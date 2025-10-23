@@ -174,10 +174,13 @@
             <div class="w-full flex flex-col justify-start flex-grow"> 
                 <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
                 
+                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-lg block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
+                    Manuális Játékfájl Kiválasztása
+                </label>
+                <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx, .txt, .db">
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
                 <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
-                
-                </div>
+            </div>
             
             <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2/3 w-40">
                 <svg viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 60V20C100 8.95431 91.0457 0 80 0H20C8.95431 0 0 8.95431 0 20V60" fill="white" stroke="#E2E8F0"/><path d="M38 20C38 14.4772 33.5228 10 28 10C22.4772 10 18 14.4772 18 20V30H38V20Z" fill="var(--brand-orange)"/><path d="M82 20C82 14.4772 77.5228 10 72 10C66.4772 10 62 14.4772 62 20V30H82V20Z" fill="var(--brand-orange)"/><circle cx="50" cy="35" r="15" fill="var(--brand-orange)"/><circle cx="40" cy="42" r="5" fill="var(--brand-blue)"/><circle cx="60" cy="42" r="5" fill="var(--brand-blue)"/><path d="M48 55C50 58 52 58 54 55" stroke="var(--brand-blue)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
@@ -222,7 +225,7 @@
                              Manuális Játékfájl Kiválasztása
                         </label>
                         <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .txt, .db">
-                        <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl">
+                        <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl hidden">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Fejlesztői Eszközök</h2>
                             <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
                                 <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
@@ -516,10 +519,16 @@
                 // showPage('game-list-page') a processExcelData végén fut le, ha sikeres
                 
             } catch (error) {
-                document.getElementById('loading-status').textContent = `Adatbázis betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
+                // Hiba esetén a Landing Page-en maradunk, és megadjuk a manuális feltöltés lehetőségét
+                document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
+                
+                // Manuális gomb megjelenítése a Landing Page-en
+                const manualInputLabel = document.getElementById('manual-file-select-label');
+                if (manualInputLabel) {
+                    manualInputLabel.classList.remove('hidden');
+                }
+
                 showLoading(false);
-                // Ha automatikus betöltés sikertelen, megmutatjuk a kézi választó gombot
-                document.querySelector('label[for="excel-file-input"]').classList.remove('hidden'); 
             }
         }
 
@@ -1483,7 +1492,7 @@
             const utterance = new SpeechSynthesisUtterance(storyText);
             
             // Próbálunk magyar nyelvet találni
-            const hungarianVoice = speechSynth.getVoices().find(voice => voice.lang.lang.startsWith('hu-'));
+            const hungarianVoice = speechSynth.getVoices().find(voice => voice.lang.startsWith('hu-'));
             if (hungarianVoice) {
                 utterance.voice = hungarianVoice;
             } else {
@@ -1666,20 +1675,41 @@
             const testModeToggleLanding = document.getElementById('test-mode-toggle');
             const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
             const logoO = document.getElementById('logo-o'); // Az "o" betűre történő kattintás
+            const manualFileSelectLabel = document.getElementById('manual-file-select-label');
+            const manualFileInput = document.getElementById('excel-file-input-manual');
             
             initializeState();
 
-            // ÚJ: Megpróbáljuk betölteni a mentett állapotot
+            // 1. Megpróbáljuk betölteni a mentett állapotot
             const continued = loadGameState();
 
             if (!continued) {
-                // Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg.
+                // 2. Ha nincs mentett állapot, megpróbáljuk az automatikus letöltést
                 showPage('landing-page');
-                
-                // ÚJ: Automatikus fájl letöltés indítása a Landing Page betöltése után
                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
+            // --- Manuális fájlválasztás a Landing Page-en ---
+            if (manualFileInput) {
+                 manualFileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0]; if (!file) return; 
+                    showLoading(true);
+                    const reader = new FileReader();
+                    reader.onload = (e) => { 
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
+                            processExcelData(wb);
+                            manualFileSelectLabel.classList.add('hidden'); // Siker esetén elrejtjük
+                        } catch (error) {
+                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                            showLoading(false);
+                        }
+                    };
+                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+            
 
             document.getElementById('modal-ok-button').addEventListener('click', hideMessage);
             
@@ -1689,23 +1719,27 @@
                  if (switchesContainer) switchesContainer.classList.toggle('hidden');
             });
             
-            // Fájl kiválasztása és feldolgozása (manuális feltöltés)
-            document.getElementById('excel-file-input').addEventListener('change', (event) => {
-                const file = event.target.files[0]; if (!file) return; 
-                showLoading(true);
-                const reader = new FileReader();
-                reader.onload = (e) => { 
-                    try {
-                        const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                        processExcelData(wb);
-                    } catch (error) {
-                        showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                        showLoading(false);
-                    }
-                };
-                reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                reader.readAsArrayBuffer(file);
-            });
+            // Fájl kiválasztása és feldolgozása (manuális feltöltés a Game List Page-en)
+            const excelFileInput = document.getElementById('excel-file-input');
+            if (excelFileInput) {
+                excelFileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0]; if (!file) return; 
+                    showLoading(true);
+                    const reader = new FileReader();
+                    reader.onload = (e) => { 
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
+                            processExcelData(wb);
+                        } catch (error) {
+                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                            showLoading(false);
+                        }
+                    };
+                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
 
             // Titkos kapcsolók logikája a Game List Page-en
             const switchesContainer = document.getElementById('secret-switches-container');
@@ -1765,7 +1799,7 @@
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 if (task.hintsUsed < 1) { 
-                    appState.score -= HINT1_PENALTY; 
+                    appState.score -= HINT1_PENALPSZ; 
                     task.hintsUsed = 1;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
