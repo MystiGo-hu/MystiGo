@@ -168,16 +168,11 @@
             </div>
             <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
                 <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);">Mysti<span id="logo-o" class="text-brand-orange-500 cursor-pointer">Go</span></h1>
-                <p class="mt-2 text-lg text-text-dark/80">A valós helyszínes, GPS-alapú városi kalandjáték</p>
+                <p id="landing-subtitle" class="mt-2 text-lg text-text-dark/80">A valós helyszínes, GPS-alapú városi kalandjáték</p>
             </div>
             
             <div class="w-full flex flex-col justify-start flex-grow"> 
                 <p id="loading-status" class="text-gray-600 my-4 h-5">A kezdéshez töltsd fel a játékfájlt.</p>
-                
-                <label for="excel-file-input" class="main-button w-full text-lg block cursor-pointer my-4">
-                    Játékfájl kiválasztása
-                </label>
-                <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .txt, .db">
                 
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
                 <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
@@ -231,7 +226,11 @@
                 
                 <section id="game-list-page" class="hidden">
                     <div id="game-list-controls" class="space-y-4 mb-6">
-
+                        
+                        <label for="excel-file-input" class="main-button w-full text-lg block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
+                             Manuális Játékfájl Kiválasztása
+                        </label>
+                        <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .txt, .db">
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
@@ -386,7 +385,7 @@
         const RESCUE_TASK_CORRECT_ANSWER = '4'; // A mentőöv feladat helyes válasza
         const RESCUE_TASK_SCORE = DEFAULT_SCORE_PER_TASK; // Mentőöv feladatért járó pont (100 pont)
         const LOCAL_STORAGE_KEY = 'MystiGoGameState'; // ÚJ: Kulcs a localStorage-hez
-        const DEFAULT_GAME_FILE = 'gamex.public.txt'; // ÚJ: Automatikusan betöltendő fájl neve
+        const DEFAULT_GAME_FILE = 'gamex.txt'; // ÚJ: Automatikusan betöltendő fájl neve
 
         // Mentőöv feladat adatai (új, kibővített)
         let rescueTask = {
@@ -509,10 +508,12 @@
                 const wb = XLSX.read(data, {type:'array'}); 
                 processExcelData(wb); // A már meglévő feldolgozó funkció meghívása
                 
+                // Ha a games lista feltöltődött, a showPage('game-list-page') a processExcelData végén fut le
+                
             } catch (error) {
                 // Csak akkor mutatunk hibát, ha a games lista üres (azaz nem csak a feltöltendő fájl hiányzik)
                 if (Object.keys(games).length === 0) {
-                     showMessage('Adatbetöltési Hiba', `Nem sikerült automatikusan betölteni a(z) ${filePath} fájlt. Próbálja meg manuálisan kiválasztani! Hiba: ${error.message}`);
+                     document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen: ${error.message}. Próbálja meg manuálisan kiválasztani!`;
                 }
                 showLoading(false);
             }
@@ -598,6 +599,9 @@
                 if (pageId === 'game-list-page' && Object.keys(games).length > 0) {
                      document.getElementById('team-setup').classList.remove('hidden');
                      document.getElementById('game-mode-settings').classList.remove('hidden');
+                     document.getElementById('excel-file-input').classList.remove('hidden'); // Manuális gomb látható
+                } else {
+                     document.getElementById('excel-file-input').classList.add('hidden'); // Eltűnik, ha nincs games lista
                 }
             }
         }
