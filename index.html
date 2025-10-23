@@ -172,21 +172,12 @@
             </div>
             
             <div class="w-full flex flex-col justify-start flex-grow"> 
-                <p id="loading-status" class="text-gray-600 my-4 h-5">A kezdéshez töltsd fel a játékfájlt.</p>
+                <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
                 
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
                 <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
                 
-                <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-center cursor-pointer mt-4 py-2 text-gray-500 hidden">
-                    <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
-                    <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
-                </label>
-
-                <label for="manual-mock-toggle" id="manual-mock-label" class="flex items-center justify-center cursor-pointer py-2 text-gray-500 hidden">
-                    <input type="checkbox" id="manual-mock-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500" disabled>
-                    <span class="ml-2 text-sm font-medium">Manuális Pozíció Beállítás (Térképen kattintás)</span>
-                </label>
-            </div>
+                </div>
             
             <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2/3 w-40">
                 <svg viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 60V20C100 8.95431 91.0457 0 80 0H20C8.95431 0 0 8.95431 0 20V60" fill="white" stroke="#E2E8F0"/><path d="M38 20C38 14.4772 33.5228 10 28 10C22.4772 10 18 14.4772 18 20V30H38V20Z" fill="var(--brand-orange)"/><path d="M82 20C82 14.4772 77.5228 10 72 10C66.4772 10 62 14.4772 62 20V30H82V20Z" fill="var(--brand-orange)"/><circle cx="50" cy="35" r="15" fill="var(--brand-orange)"/><circle cx="40" cy="42" r="5" fill="var(--brand-blue)"/><circle cx="60" cy="42" r="5" fill="var(--brand-blue)"/><path d="M48 55C50 58 52 58 54 55" stroke="var(--brand-blue)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
@@ -231,6 +222,18 @@
                              Manuális Játékfájl Kiválasztása
                         </label>
                         <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .txt, .db">
+                        <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl">
+                            <h2 class="text-xl font-bold text-text-heading mb-3">Fejlesztői Eszközök</h2>
+                            <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
+                                <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
+                                <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
+                            </label>
+
+                            <label for="manual-mock-toggle" id="manual-mock-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
+                                <input type="checkbox" id="manual-mock-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500" disabled>
+                                <span class="ml-2 text-sm font-medium">Manuális Pozíció Beállítás (Térképen kattintás)</span>
+                            </label>
+                        </div>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
@@ -490,10 +493,12 @@
         
         /**
          * Aszinkron módon letölti a megadott útvonalról az XLSX fájlt, és feldolgozza.
-         * @param {string} filePath - A fájl útvonala (pl. "adatbazis.xlsx").
+         * @param {string} filePath - A fájl útvonala (pl. "adatbazis.txt").
          */
         async function loadLocalXlsx(filePath) {
             showLoading(true);
+            document.getElementById('loading-status').textContent = `Adatbázis automatikus betöltése (${filePath})...`;
+            
             try {
                 const response = await fetch(filePath);
                 if (!response.ok) {
@@ -508,14 +513,13 @@
                 const wb = XLSX.read(data, {type:'array'}); 
                 processExcelData(wb); // A már meglévő feldolgozó funkció meghívása
                 
-                // Ha a games lista feltöltődött, a showPage('game-list-page') a processExcelData végén fut le
+                // showPage('game-list-page') a processExcelData végén fut le, ha sikeres
                 
             } catch (error) {
-                // Csak akkor mutatunk hibát, ha a games lista üres (azaz nem csak a feltöltendő fájl hiányzik)
-                if (Object.keys(games).length === 0) {
-                     document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen: ${error.message}. Próbálja meg manuálisan kiválasztani!`;
-                }
+                document.getElementById('loading-status').textContent = `Adatbázis betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
                 showLoading(false);
+                // Ha automatikus betöltés sikertelen, megmutatjuk a kézi választó gombot
+                document.querySelector('label[for="excel-file-input"]').classList.remove('hidden'); 
             }
         }
 
@@ -599,9 +603,9 @@
                 if (pageId === 'game-list-page' && Object.keys(games).length > 0) {
                      document.getElementById('team-setup').classList.remove('hidden');
                      document.getElementById('game-mode-settings').classList.remove('hidden');
-                     document.getElementById('excel-file-input').classList.remove('hidden'); // Manuális gomb látható
+                     document.getElementById('secret-switches-container').classList.remove('hidden'); // Megmutatjuk a titkos kapcsolókat
                 } else {
-                     document.getElementById('excel-file-input').classList.add('hidden'); // Eltűnik, ha nincs games lista
+                     document.getElementById('secret-switches-container').classList.add('hidden');
                 }
             }
         }
@@ -1479,7 +1483,7 @@
             const utterance = new SpeechSynthesisUtterance(storyText);
             
             // Próbálunk magyar nyelvet találni
-            const hungarianVoice = speechSynth.getVoices().find(voice => voice.lang.startsWith('hu-'));
+            const hungarianVoice = speechSynth.getVoices().find(voice => voice.lang.lang.startsWith('hu-'));
             if (hungarianVoice) {
                 utterance.voice = hungarianVoice;
             } else {
@@ -1662,8 +1666,6 @@
             const testModeToggleLanding = document.getElementById('test-mode-toggle');
             const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
             const logoO = document.getElementById('logo-o'); // Az "o" betűre történő kattintás
-            const testModeLabel = document.getElementById('test-mode-label');
-            const manualMockLabel = document.getElementById('manual-mock-label');
             
             initializeState();
 
@@ -1683,8 +1685,8 @@
             
             // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
             logoO.addEventListener('click', () => {
-                 testModeLabel.classList.toggle('hidden');
-                 manualMockLabel.classList.toggle('hidden');
+                 const switchesContainer = document.getElementById('secret-switches-container');
+                 if (switchesContainer) switchesContainer.classList.toggle('hidden');
             });
             
             // Fájl kiválasztása és feldolgozása (manuális feltöltés)
@@ -1705,19 +1707,22 @@
                 reader.readAsArrayBuffer(file);
             });
 
-            // Titkos kapcsolók logikája a Landing Page-en
-            testModeToggleLanding.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                manualMockToggleLanding.disabled = !isChecked; 
-                if (!isChecked) {
-                    manualMockToggleLanding.checked = false;
+            // Titkos kapcsolók logikája a Game List Page-en
+            const switchesContainer = document.getElementById('secret-switches-container');
+            if (switchesContainer) {
+                const testModeToggle = switchesContainer.querySelector('#test-mode-toggle');
+                const manualMockToggle = switchesContainer.querySelector('#manual-mock-toggle');
+
+                if (testModeToggle && manualMockToggle) {
+                    testModeToggle.addEventListener('change', (e) => {
+                        const isChecked = e.target.checked;
+                        manualMockToggle.disabled = !isChecked; 
+                        if (!isChecked) {
+                            manualMockToggle.checked = false;
+                        }
+                    });
                 }
-            });
-            
-            // Manual Mock GPS (térképes kattintás) engedélyezése csak akkor, ha Test Mód is aktív
-            manualMockToggleLanding.addEventListener('change', (e) => {
-                // A mock logika a startGame-ben és a watchPosition/checkGeofence-ben fut
-            });
+            }
             
             
             // Megoldás ellenőrzés
