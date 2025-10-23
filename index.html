@@ -224,16 +224,17 @@
                 <section id="game-list-page" class="hidden">
                     <div id="game-list-controls" class="space-y-4 mb-6">
                         
-                        <label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
-                             Manuális Játékfájl Kiválasztása
-                        </label>
-                        <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
                         <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl hidden">
                             <h2 id="developer-tools-toggle" class="text-xs font-bold text-text-heading mb-3 cursor-pointer select-none flex justify-between items-center">
                                 Fejlesztői Eszközök
                                 <span class="text-gray-500">▼</span>
                             </h2>
                             <div id="developer-options" class="space-y-2 hidden">
+                                <label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
+                                     Manuális Játékfájl Kiválasztása
+                                </label>
+                                <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
+                                
                                 <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
                                     <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
                                     <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
@@ -541,31 +542,28 @@
 
         // --- PDF GENERATION ---
         function downloadPDF() {
-    // A PDF generálást a HTML-ben már beágyazott html2pdf.js kezeli
-    const element = document.getElementById('pdf-content');
-    
-    // CSS fixek, hogy a PDF jól nézzen ki
-    const originalStyle = element.style.cssText;
-    element.style.padding = '20px'; 
-    element.style.backgroundColor = '#ffffff';
+            // A PDF generálást a HTML-ben már beágyazott html2pdf.js kezeli
+            const element = document.getElementById('pdf-content');
+            
+            // CSS fixek, hogy a PDF jól nézzen ki
+            const originalStyle = element.style.cssText;
+            element.style.padding = '20px'; 
+            element.style.backgroundColor = '#ffffff';
 
-    // *** IDE KELL BEILLESZTENI AZ IDŐZÍTŐT ***
-    // Egy aszinkron késleltető funkció (pl. 500ms) a térkép stabilizálására, 
-    // mielőtt a html2canvas elkészíti a pillanatképet.
-    setTimeout(() => {
-        html2pdf().from(element).set({
-            margin: 10,
-            filename: `MystiGo_Eredmény_${appState.teamName || 'Csapat'}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).save().then(() => {
-             // Visszaállítjuk a stílusokat
-             element.style.cssText = originalStyle;
-        });
-    }, 500); // 500 ezredmásodperc (fél másodperc) várakozás
-    // *** BEILLESZTÉS VÉGE ***
-}
+            // *** JAVÍTÁS: IDŐZÍTŐ Hozzáadva a térkép stabilitásához (500ms) ***
+            setTimeout(() => {
+                html2pdf().from(element).set({
+                    margin: 10,
+                    filename: `MystiGo_Eredmény_${appState.teamName || 'Csapat'}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).save().then(() => {
+                     // Visszaállítjuk a stílusokat
+                     element.style.cssText = originalStyle;
+                });
+            }, 500); // 500 ezredmásodperc (fél másodperc) várakozás
+        }
 
 
         // --- CORE APP & PAGE LOGIC ---
