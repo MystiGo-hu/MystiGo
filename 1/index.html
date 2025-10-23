@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Quest</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="status-bar">
+            <span class="time">12:44</span>
+            <div class="signal-icons">
+                <i class="fas fa-signal"></i>
+                <i class="fas fa-wifi"></i>
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <div class="app-header">
+            <a href="#" class="back-button"><i class="fas fa-arrow-left"></i></a>
+            <div class="header-title-container">
+                <div class="ribbon"></div>
+                <h1 class="app-title">Urban Quest</h1>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="map-container">
+                <img src="map-placeholder.png" alt="Map of the park with quest markers" class="map-image">
+                </div>
+
+            <div class="challenge-section">
+                <p class="challenge-title">Challenge:</p>
+                <p class="challenge-text">Find the hidden gnome near the weeping willow by the pond.</p>
+
+                <button class="hint-button">Hint</button>
+
+                <input type="text" class="solution-input" placeholder="Enter Solution Here">
+
+                <button class="submit-button">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
