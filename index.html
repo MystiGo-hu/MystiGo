@@ -177,7 +177,7 @@
                 <label for="excel-file-input" class="main-button w-full text-lg block cursor-pointer my-4">
                     Játékfájl kiválasztása
                 </label>
-                <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .txt, .db">
+                <input type="file" id="excel-file-input" class="hidden" accept=".xlsx">
                 
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
                 <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
@@ -345,7 +345,6 @@
                         <div id="route-map" style="height: 300px; width: 100%; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px 0;"></div> 
                         <p id="end-story" class="text-text-dark my-4 max-w-prose"></p>
                         <div class="relative my-6">
-                            <svg class="w-24 h-24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="#FFC107"/><circle cx="50" cy="50" r="38" fill="#FFF8E1"/><path d="M50 28L56.121 42.022L71.459 43.511L59.818 54.122L62.833 69.489L50 61.5L37.167 69.489L40.182 54.122L28.541 43.511L43.879 42.022L50 28Z" fill="white" stroke="#FDB813" stroke-width="2"/></svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center text-brand-orange-500">
                                 <span class="text-3xl font-extrabold" id="final-score" style="text-shadow: 0 1px 2px rgba(0,0,0,0.1);"></span>
                                 <span class="xs font-bold">PONT</span>
@@ -360,7 +359,7 @@
                     <p class="text-sm text-gray-500 mb-4 mt-6">Az eredmény letöltése</p>
                      <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4">Eredmény letöltése (PDF)</button>
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
-                    </section>
+                </section>
             </div>
         </div>
     </div>
@@ -387,6 +386,7 @@
         const RESCUE_TASK_CORRECT_ANSWER = '4'; // A mentőöv feladat helyes válasza
         const RESCUE_TASK_SCORE = DEFAULT_SCORE_PER_TASK; // Mentőöv feladatért járó pont (100 pont)
         const LOCAL_STORAGE_KEY = 'MystiGoGameState'; // ÚJ: Kulcs a localStorage-hez
+        const DEFAULT_GAME_FILE = 'gamex.public.txt'; // ÚJ: Automatikusan betöltendő fájl neve
 
         // Mentőöv feladat adatai (új, kibővített)
         let rescueTask = {
@@ -487,6 +487,35 @@
          */
         function clearSavedState() {
             localStorage.removeItem(LOCAL_STORAGE_KEY);
+        }
+        
+        /**
+         * Aszinkron módon letölti a megadott útvonalról az XLSX fájlt, és feldolgozza.
+         * @param {string} filePath - A fájl útvonala (pl. "adatbazis.xlsx").
+         */
+        async function loadLocalXlsx(filePath) {
+            showLoading(true);
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`A(z) ${filePath} fájl nem található, vagy a hozzáférés megtagadva. (Státusz: ${response.status})`);
+                }
+                
+                // Fájl olvasása ArrayBuffer-ként (XLSX.js-nek ez kell)
+                const arrayBuffer = await response.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                
+                // XLSX feldolgozása
+                const wb = XLSX.read(data, {type:'array'}); 
+                processExcelData(wb); // A már meglévő feldolgozó funkció meghívása
+                
+            } catch (error) {
+                // Csak akkor mutatunk hibát, ha a games lista üres (azaz nem csak a feltöltendő fájl hiányzik)
+                if (Object.keys(games).length === 0) {
+                     showMessage('Adatbetöltési Hiba', `Nem sikerült automatikusan betölteni a(z) ${filePath} fájlt. Próbálja meg manuálisan kiválasztani! Hiba: ${error.message}`);
+                }
+                showLoading(false);
+            }
         }
 
         // --- I18N ---
@@ -1638,8 +1667,11 @@
             const continued = loadGameState();
 
             if (!continued) {
-                // Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg
+                // Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg.
                 showPage('landing-page');
+                
+                // ÚJ: Automatikus fájl letöltés indítása a Landing Page betöltése után
+                loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
 
@@ -1651,7 +1683,7 @@
                  manualMockLabel.classList.toggle('hidden');
             });
             
-            // Fájl kiválasztása és feldolgozása
+            // Fájl kiválasztása és feldolgozása (manuális feltöltés)
             document.getElementById('excel-file-input').addEventListener('change', (event) => {
                 const file = event.target.files[0]; if (!file) return; 
                 showLoading(true);
