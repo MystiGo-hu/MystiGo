@@ -174,7 +174,7 @@
             <div class="w-full flex flex-col justify-start flex-grow"> 
                 <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
                 
-                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-lg block cursor-pointer mt-12 !bg-brand-blue hover:!bg-cyan-700 hidden">
+                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-lg block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
                     Manuális Játékfájl Kiválasztása
                 </label>
                 <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
@@ -188,10 +188,12 @@
         </main>
         
         <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
-            <div id="header" class="relative text-text-heading text-center pt-8 pb-16">
-                 <div id="main-header" class="pb-6">
-                     <img id="main-logo-header" src="MystiGo_logo.png" alt="MystiGo Logo" class="mx-auto h-48 mb-2"> 
-                     <h1 id="page-title" class="text-3xl font-bold tracking-wider">Válassz Kalandot!</h1>
+            <div id="header" class="relative text-text-heading text-center pt-1 pb-16">
+                 <div id="main-header">
+                    <div class="flex justify-center mb-2">
+                        <img src="./MystiGo_logo.png" alt="MystiGo Logó" class="max-h-24 w-auto">
+                    </div>
+                    <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot!</h1>
                  </div>
                  <div id="game-status-bar" class="hidden px-6">
                     <div class="bg-white/70 backdrop-blur-sm rounded-full flex justify-between items-center p-2 text-xs font-semibold shadow-sm">
@@ -227,18 +229,19 @@
                         </label>
                         <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
                         <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl hidden">
-                            <h2 id="developer-tools-toggle" class="text-sm font-semibold text-text-heading cursor-pointer select-none flex justify-between items-center">
-                                Fejlesztői Eszközök <span id="developer-toggle-icon">▼</span>
+                            <h2 id="developer-tools-toggle" class="text-xs font-bold text-text-heading mb-3 cursor-pointer select-none flex justify-between items-center">
+                                Fejlesztői Eszközök
+                                <span class="text-gray-500">▼</span>
                             </h2>
                             <div id="developer-options" class="space-y-2 hidden">
-                                <label for="test-mode-toggle" class="flex items-center justify-start cursor-pointer py-1 text-gray-500 text-xs">
-                                    <input type="checkbox" id="test-mode-toggle" class="h-3 w-3 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
-                                    <span class="ml-2 text-xs font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
+                                <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
+                                    <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
+                                    <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
                                 </label>
 
-                                <label for="manual-mock-toggle" class="flex items-center justify-start cursor-pointer py-1 text-gray-500 text-xs">
-                                    <input type="checkbox" id="manual-mock-toggle" class="h-3 w-3 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500" disabled>
-                                    <span class="ml-2 text-xs font-medium">Manuális Pozíció Beállítás (Térképen kattintás)</span>
+                                <label for="manual-mock-toggle" id="manual-mock-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
+                                    <input type="checkbox" id="manual-mock-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500" disabled>
+                                    <span class="ml-2 text-sm font-medium">Manuális Pozíció Beállítás (Térképen kattintás)</span>
                                 </label>
                             </div>
                         </div>
@@ -283,7 +286,13 @@
                                 Mentőöv
                             </button>
                         </div>
-                    </div>
+                        
+                        <div id="start-task-button-container" class="mt-4 hidden">
+                            <button id="start-game-btn" class="main-button w-full !text-lg !py-3 disabled:!bg-gray-400">
+                                🚀 Kaland Indítása (GPS és időmérés elindul)
+                            </button>
+                        </div>
+                        </div>
                     
                     <div id="task-interaction-area"> 
                         <div id="normal-task-content">
@@ -495,7 +504,7 @@
         
         /**
          * Aszinkron módon letölti a megadott útvonalról az XLSX fájlt, és feldolgozza.
-         * @param {string} filePath - A fájl útvonala (pl. "gamex.txt").
+         * @param {string} filePath - A fájl útvonala (pl. "adatbazis.xlsx").
          */
         async function loadLocalXlsx(filePath) {
             showLoading(true);
@@ -563,7 +572,7 @@
             const landingPage = document.getElementById('landing-page');
             const contentWrapper = document.getElementById('content-wrapper');
             
-            // 0. JAVÍTÁS: A Landing Page a kezdeti képernyő, ami innen eltűnik
+            // 0. JAVÍTÁS: Mindig a Landing Page a kezdeti képernyő, ami innen eltűnik
             if (pageId === 'landing-page') {
                 landingPage.classList.remove('hidden');
                 contentWrapper.classList.add('translate-y-full');
@@ -610,6 +619,9 @@
                 if (pageId === 'game-list-page' && Object.keys(games).length > 0) {
                      document.getElementById('team-setup').classList.remove('hidden');
                      document.getElementById('game-mode-settings').classList.remove('hidden');
+                     document.getElementById('secret-switches-container').classList.remove('hidden'); // Megmutatjuk a titkos kapcsolókat
+                } else {
+                     document.getElementById('secret-switches-container').classList.add('hidden');
                 }
             }
         }
@@ -637,8 +649,6 @@
             // JAVÍTVA: Rejtetté teszi a fejlesztői opciókat is a Game List Page-en
             const devOptions = document.getElementById('developer-options');
             if(devOptions) devOptions.classList.add('hidden');
-            const toggleIcon = document.getElementById('developer-tools-toggle');
-            if(toggleIcon) toggleIcon.querySelector('span').textContent = '▼';
 
 
             initializeState();
@@ -1578,7 +1588,7 @@
          * A Mentőöv felület megjelenítése a normál feladat helyén.
          */
         function showRescueTaskInterface() {
-            if (!appState.currentGame) return;
+            if (!appState.currentGame || appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Kizárjuk a Start feladatot
 
             // UI váltás a Mentőöv felületre
             document.getElementById('normal-task-content').classList.add('hidden');
@@ -1672,6 +1682,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             
             // Kezdőoldali gombok (titkos kapcsolók)
+            const testModeToggleLanding = document.getElementById('test-mode-toggle');
+            const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
+            const logoO = document.getElementById('logo-o'); // Az "o" betűre történő kattintás
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
             const manualFileInput = document.getElementById('excel-file-input-manual'); // A Landing page-i input
 
@@ -1692,13 +1705,10 @@
             document.getElementById('modal-ok-button').addEventListener('click', hideMessage);
             
             // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
-            const logoO = document.getElementById('logo-o');
-            if (logoO) {
-                 logoO.addEventListener('click', () => {
-                     const switchesContainer = document.getElementById('secret-switches-container');
-                     if (switchesContainer) switchesContainer.classList.toggle('hidden');
-                 });
-            }
+            logoO.addEventListener('click', () => {
+                 const switchesContainer = document.getElementById('secret-switches-container');
+                 if (switchesContainer) switchesContainer.classList.toggle('hidden');
+            });
             
             // Fájl kiválasztása és feldolgozása (manuális feltöltés a Landing Page-en, hiba esetén)
             if (manualFileInput) {
@@ -1754,10 +1764,7 @@
                 if (devToggle && devOptions) {
                     devToggle.addEventListener('click', () => {
                         devOptions.classList.toggle('hidden');
-                        const iconSpan = devToggle.querySelector('span');
-                        if (iconSpan) {
-                            iconSpan.textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
-                        }
+                        devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
                     });
                 }
 
