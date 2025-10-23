@@ -1676,20 +1676,31 @@
             const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
             const logoO = document.getElementById('logo-o'); // Az "o" betűre történő kattintás
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
-            const manualFileInput = document.getElementById('excel-file-input-manual');
-            
+            const manualFileInput = document.getElementById('excel-file-input-manual'); // A Landing page-i input
+
             initializeState();
 
-            // 1. Megpróbáljuk betölteni a mentett állapotot
+            // ÚJ: Megpróbáljuk betölteni a mentett állapotot
             const continued = loadGameState();
 
             if (!continued) {
-                // 2. Ha nincs mentett állapot, megpróbáljuk az automatikus letöltést
+                // Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg.
                 showPage('landing-page');
+                
+                // ÚJ: Automatikus fájl letöltés indítása a Landing Page betöltése után
                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
-            // --- Manuális fájlválasztás a Landing Page-en ---
+
+            document.getElementById('modal-ok-button').addEventListener('click', hideMessage);
+            
+            // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
+            logoO.addEventListener('click', () => {
+                 const switchesContainer = document.getElementById('secret-switches-container');
+                 if (switchesContainer) switchesContainer.classList.toggle('hidden');
+            });
+            
+            // Fájl kiválasztása és feldolgozása (manuális feltöltés a Landing Page-en, hiba esetén)
             if (manualFileInput) {
                  manualFileInput.addEventListener('change', (event) => {
                     const file = event.target.files[0]; if (!file) return; 
@@ -1699,7 +1710,8 @@
                         try {
                             const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
                             processExcelData(wb);
-                            manualFileSelectLabel.classList.add('hidden'); // Siker esetén elrejtjük
+                            // Siker esetén a landing page-en lévő manuális gombot elrejtjük
+                            if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
                         } catch (error) {
                             showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                             showLoading(false);
@@ -1709,15 +1721,6 @@
                     reader.readAsArrayBuffer(file);
                 });
             }
-            
-
-            document.getElementById('modal-ok-button').addEventListener('click', hideMessage);
-            
-            // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
-            logoO.addEventListener('click', () => {
-                 const switchesContainer = document.getElementById('secret-switches-container');
-                 if (switchesContainer) switchesContainer.classList.toggle('hidden');
-            });
             
             // Fájl kiválasztása és feldolgozása (manuális feltöltés a Game List Page-en)
             const excelFileInput = document.getElementById('excel-file-input');
@@ -1799,7 +1802,7 @@
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 if (task.hintsUsed < 1) { 
-                    appState.score -= HINT1_PENALPSZ; 
+                    appState.score -= HINT1_PENALTY; 
                     task.hintsUsed = 1;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
