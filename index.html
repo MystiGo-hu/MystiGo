@@ -155,6 +155,14 @@
             right: 0.5rem; /* Beállítja a gomb vízszintes helyzetét */
             display: flex !important; /* Erősen kikényszeríti a láthatóságot */
         }
+        
+        /* Avatár ikonok CSS */
+        .avatar-icon {
+            display: inline-block;
+            margin-right: 0.25rem;
+            font-size: 1.25rem; /* text-xl */
+            line-height: 1;
+        }
     </style>
 </head>
 <body class="overflow-hidden">
@@ -224,16 +232,21 @@
                 <section id="game-list-page" class="hidden">
                     <div id="game-list-controls" class="space-y-4 mb-6">
                         
+                        
                         <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl hidden">
                             <h2 id="developer-tools-toggle" class="text-xs font-bold text-text-heading mb-3 cursor-pointer select-none flex justify-between items-center">
                                 Fejlesztői Eszközök
                                 <span class="text-gray-500">▼</span>
                             </h2>
                             <div id="developer-options" class="space-y-2 hidden">
-                                <label for="excel-file-input" class="main-button w-full text-xs block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
+                                <label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
                                      Manuális Játékfájl Kiválasztása
                                 </label>
                                 <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
+                                
+                                <button onclick="loadLocalXlsx('games_full.txt')" class="main-button w-full text-xs block !bg-red-600 hover:!bg-red-700 my-4">
+                                     Teszt
+                                </button>
                                 
                                 <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
                                     <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
@@ -361,7 +374,12 @@
 <div class="relative my-10"> <div class="absolute inset-0 flex flex-col items-center justify-center text-brand-orange-500">
         <span class="text-5xl font-extrabold" id="final-score" style="text-shadow: 0 1px 2px rgba(0,0,0,0.1);"></span> <span class="text-base font-bold">PONT</span> </div>
 </div>
-<div class="mt-24 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md"> <p class="text-lg font-bold text-text-heading mb-1">Csapat: <span id="final-team-display"></span></p> <p class="block">Teljes Idő: <strong id="final-time">00:00</strong></p>
+<div class="mt-24 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md">
+    <p class="text-lg font-bold text-text-heading mb-1">
+        <span id="final-team-avatar-icon" class="avatar-icon"></span>
+        Csapat: <span id="final-team-display"></span>
+    </p> 
+    <p class="block">Teljes Idő: <strong id="final-time">00:00</strong></p> 
     <p class="block">Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
 </div>
                     </div> 
@@ -396,6 +414,15 @@
         const RESCUE_TASK_SCORE = DEFAULT_SCORE_PER_TASK; // Mentőöv feladatért járó pont (100 pont)
         const LOCAL_STORAGE_KEY = 'MystiGoGameState'; // ÚJ: Kulcs a localStorage-hez
         const DEFAULT_GAME_FILE = 'gamex.txt'; // ÚJ: Automatikusan betöltendő fájl neve (txt, de az XLSX.js kezeli a bináris adatokat)
+
+        // ÚJ: Avatar ikonok tárolása
+        const AVATAR_ICONS = {
+            cat: '🐈',
+            detective: '🕵️',
+            explorer: '🧭',
+            wizard: '🧙',
+            robot: '🤖',
+        };
 
         // Mentőöv feladat adatai (új, kibővített)
         let rescueTask = {
@@ -504,7 +531,7 @@
          */
         async function loadLocalXlsx(filePath) {
             showLoading(true);
-            document.getElementById('loading-status').textContent = `Adatbázis automatikus betöltése (${filePath})...`;
+            document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
             
             try {
                 const response = await fetch(filePath);
@@ -1137,8 +1164,11 @@
             
             // Csapat adatok megjelenítése
             const teamName = appState.teamName || "Névtelen Csapat";
-            const teamAvatar = appState.teamAvatar ? `(${appState.teamAvatar})` : '';
-            document.getElementById('final-team-display').textContent = `${teamName} ${teamAvatar}`;
+            const teamAvatarKey = appState.teamAvatar || null;
+            const avatarIcon = teamAvatarKey && AVATAR_ICONS[teamAvatarKey] ? AVATAR_ICONS[teamAvatarKey] : '';
+            
+            document.getElementById('final-team-display').textContent = teamName;
+            document.getElementById('final-team-avatar-icon').textContent = avatarIcon; // Avatar megjelenítése
 
             document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime); // Feladatra fordított idő
             
