@@ -302,7 +302,7 @@
                             <p id="distance-info" class="text-center text-xs font-bold"></p>
                              <button id="report-error-btn" class="text-xs text-gray-500 font-semibold hover:text-red-500 transition" onclick="showRescueTaskInterface()">
                                 <svg class="w-4 h-4 inline-block align-text-bottom mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                Hiba bejelentés
+                                Mentőöv
                             </button>
                         </div>
                         
@@ -388,7 +388,8 @@
     <p class="block">Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
 </div>
                     </div> 
-                    <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4">Eredmény letöltése (PDF)</button>
+                    <p class="text-sm text-gray-500 mb-4 mt-6">Az eredmény letöltése</p>
+                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4">Eredmény letöltése (PDF)</button>
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
                 </section>
             </div>
@@ -568,7 +569,7 @@
         }
 
         // --- I18N ---
-        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Mentőöv sikeres! (+${DEFAULT_SCORE_PER_TASK} pont)`, rescue_wrong: 'Mentőöv hibás. Próbáld újra!' } };
+        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! Jöhet a következő feladat. (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Mentőöv sikeres! (+${DEFAULT_SCORE_PER_TASK} pont)`, rescue_wrong: 'Mentőöv hibás. Próbáld újra!' } };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
         // --- PDF GENERATION ---
@@ -593,7 +594,7 @@
                      // Visszaállítjuk a stílusokat
                      element.style.cssText = originalStyle;
                 });
-            }, 500); // 500 ezredmásodperc (fél másodperc) várakozás
+            }, 1000); // 1000 ezredmásodperc (fél másodperc) várakozás
         }
 
 
@@ -1207,6 +1208,9 @@
                 // Térkép központosítása az útvonalra
                 endMap.fitBounds(polyline.getBounds().pad(0.1));
                 
+                // JAVÍTÁS: Leaflet térkép méretének kényszerített frissítése a renderelési problémák elkerülésére
+                endMap.invalidateSize(true);
+                
                 // Kezdőpont marker (StartLocation)
                 const startLoc = appState.currentGame.startLocation;
                 L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap)
@@ -1250,12 +1254,12 @@
                         
                         appState.userPosition = { lat: latLng.lat, lng: latLng.lng };
                         
-                        // *** MÓDOSÍTÁS 1: Útvonal rögzítése mock módban ***
+                        // *** MÓDOSÍTVA: Útvonal rögzítése mock módban ***
                         if (appState.isTimerRunning) {
                              appState.routeCoordinates.push([latLng.lat, latLng.lng]);
                              saveGameState(); 
                         }
-                        // *** MÓDOSÍTÁS 1 VÉGE ***
+                        // *** MÓDOSÍTVA VÉGE ***
                         
                         checkGeofence();
                         
@@ -1294,7 +1298,7 @@
         function updatePlayerMarker(lat, lng) {
             if (!appState.map) return;
 
-            // *** MÓDOSÍTÁS 2: Feltétel frissítése. Csak akkor kezeljük itt, ha NEM mock módban vagyunk. ***
+            // *** MÓDOSÍTVA: Csak akkor kezeljük itt, ha NEM mock módban vagyunk. ***
             if (!appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.userPosition = { lat, lng };
 
@@ -1316,7 +1320,7 @@
                     appState.map.fitBounds(bounds.pad(0.2)); // 20% párnázás
                 }
             }
-            // *** MÓDOSÍTÁS 2 VÉGE ***
+            // *** MÓDOSÍTVA VÉGE ***
             
             checkGeofence();
         }
