@@ -2201,21 +2201,30 @@ function startGame(gameId) {
                 } 
                 else if (!appState.geoWatchId) { watchPosition(); }
             });
-        // VÁLASZ BEVITELI MEZŐ GÖRGETÉS JAVÍTÁSÁNAK HELYE 👇
-
-            /* IDE ILLESSZE BE A KÓDRÉSZLETET */
-            document.getElementById('answer-input').addEventListener('focus', (e) => {
-                const wrapper = document.getElementById('content-page-wrapper');
-                const inputElement = e.target;
-                const inputTop = inputElement.offsetTop;
-                setTimeout(() => {
-                    wrapper.scrollTo({
-                        top: inputTop - 30, 
-                        behavior: 'smooth'
-                    });
-                }, 100); 
-            });
-            /* BEILLESZTÉS VÉGE */
+ // Megoldás beviteli mezőre kattintáskor történő görgetés (JAVÍTOTT MOBIL STABILITÁS)
+document.getElementById('answer-input').addEventListener('focus', (e) => {
+    const inputElement = e.target;
+    
+    // 1. Megpróbáljuk görgetni a mezőt a nézetbe
+    inputElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start' // Görgetés a nézet tetejére (start)
+    });
+    
+    // 2. Késleltetett görgetés a Virtuális Billentyűzet (VKB) megjelenése után
+    // Ezzel kompenzáljuk a VKB által okozott pozícióváltozást, ha az előző nem volt elég.
+    setTimeout(() => {
+        // A görgetést a külső, görgethető konténeren (content-page-wrapper) végezzük el,
+        // hogy a fix fejléc megmaradjon.
+        const wrapper = document.getElementById('content-page-wrapper');
+        const inputTop = inputElement.offsetTop;
+        
+        wrapper.scrollTo({
+            top: inputTop - 30, // 30px-es offset
+            behavior: 'smooth'
+        });
+    }, 150); // A 150ms hosszabb késleltetés segít a VKB felugrásában.
+});
             
         }); // EZ A document.addEventListener('DOMContentLoaded', ... ZÁRÓJEL
     </script>
