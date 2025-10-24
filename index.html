@@ -2201,7 +2201,23 @@ function startGame(gameId) {
                 } 
                 else if (!appState.geoWatchId) { watchPosition(); }
             });
-        });
+        // VÁLASZ BEVITELI MEZŐ GÖRGETÉS JAVÍTÁSÁNAK HELYE 👇
+
+            /* IDE ILLESSZE BE A KÓDRÉSZLETET */
+            document.getElementById('answer-input').addEventListener('focus', (e) => {
+                const wrapper = document.getElementById('content-page-wrapper');
+                const inputElement = e.target;
+                const inputTop = inputElement.offsetTop;
+                setTimeout(() => {
+                    wrapper.scrollTo({
+                        top: inputTop - 30, 
+                        behavior: 'smooth'
+                    });
+                }, 100); 
+            });
+            /* BEILLESZTÉS VÉGE */
+            
+        }); // EZ A document.addEventListener('DOMContentLoaded', ... ZÁRÓJEL
     </script>
 </body>
 </html>
