@@ -1156,107 +1156,109 @@ function downloadPDF() {
             return array;
         }
 
-        // JAVÍTOTT FÜGGVÉNY: Játék indítása (az adatok már beolvasva)
-        function startGame(gameId) {
-            clearSavedState(); // ÚJ JÁTÉK: Töröljük a mentett állapotot
-            
-            // Felolvasás leállítása, ha esetleg fut
-            if (speechSynth.speaking) speechSynth.cancel();
-            
-            // Állapotok beállítása a titkos kapcsolók alapján
-            appState.isTestModeEnabled = document.getElementById('test-mode-toggle').checked;
-            appState.isManualMock = document.getElementById('manual-mock-toggle').checked;
-            
-            // Mély másolat készítése
-            appState.currentGame = JSON.parse(JSON.stringify(games[gameId])); 
-            appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appState.geofenceTime = 0;
-            appState.startTime = null; // Csak a startTimersAndGPS állítja be
-            appState.isTimerRunning = false; // Alapállapot
-            appState.routeCoordinates = []; // Útvonal resetelése
-            
-            // Beállítások beolvasása a Game List oldalról
-            appState.taskOrder = document.getElementById('task-order-select').value;
-            // *** JAVÍTÁS: TEAM típusú játéknál a sorrend mindig RANDOM ***
-            if (appState.currentGame.type === 'team') {
-                 appState.taskOrder = 'random';
-            }
-            // *** JAVÍTÁS VÉGE ***
-            appState.teamName = document.getElementById('team-name-input').value.trim() || null;
-            appState.teamAvatar = document.getElementById('team-avatar-select').value || null;
-            
-            
-            // JAVÍTOTT RANDOM MÓD LOGIKA: Start (index 0) és Utolsó (legnagyobb index) fix, a többi random
-            if (appState.taskOrder === 'random' && appState.currentGame.tasks.length >= 1) {
-                const tasks = appState.currentGame.tasks;
-                
-                // Kimentjük az Utolsó feladatot (a jelenlegi tasks lista utolsó eleme)
-                const finalTask = tasks[tasks.length - 1]; 
-                
-                // Kinyerjük a Start Feladatot (index 0)
-                const startTask = tasks.find(t => t.index === 0) || tasks[0]; 
-                
-                // Kinyerjük az ÖSSZES keverendő feladatot: ami nem a Start Feladat (index 0) és nem az Utolsó Feladat
-                let tasksToShuffle = tasks.filter(t => t.index !== 0 && t.index !== finalTask.index);
+// JAVÍTOTT FÜGGVÉNY: Játék indítása (az adatok már beolvasva)
+function startGame(gameId) {
+    clearSavedState(); // ÚJ JÁTÉK: Töröljük a mentett állapotot
+    
+    // Felolvasás leállítása, ha esetleg fut
+    if (speechSynth.speaking) speechSynth.cancel();
+    
+    // Állapotok beállítása a titkos kapcsolók alapján
+    appState.isTestModeEnabled = document.getElementById('test-mode-toggle').checked;
+    appState.isManualMock = document.getElementById('manual-mock-toggle').checked;
+    
+    // Mély másolat készítése
+    appState.currentGame = JSON.parse(JSON.stringify(games[gameId])); 
+    appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appState.geofenceTime = 0;
+    appState.startTime = null; // Csak a startTimersAndGPS állítja be
+    appState.isTimerRunning = false; // Alapállapot
+    appState.routeCoordinates = []; // Útvonal resetelése
+    
+    // Beállítások beolvasása a Game List oldalról
+    appState.taskOrder = document.getElementById('task-order-select').value;
+    // *** JAVÍTÁS: TEAM típusú játéknál a sorrend mindig RANDOM ***
+    if (appState.currentGame.type === 'team') {
+         appState.taskOrder = 'random';
+    }
+    // *** JAVÍTÁS VÉGE ***
+    appState.teamName = document.getElementById('team-name-input').value.trim() || null;
+    appState.teamAvatar = document.getElementById('team-avatar-select').value || null;
+    
+    
+    // Start Feladat objektum létrehozása (mindig ez a kiindulópont)
+    const startTaskTemplate = {
+        index: 0,
+        isStartTask: true, // Ezzel jelöljük a speciális feladatot
+        location: appState.currentGame.startLocation,
+        geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
+        // Ezt a szöveget látja a felhasználó, amíg el nem éri a zónát és nem nyomja meg az indítást
+        story: `**${appState.currentGame.title}**<br>${appState.currentGame.description}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a **Kaland Indítása** gombot.`,
+        prompt: 'Érd el a Start Helyszínt az induláshoz!',
+        hints: [],
+        solution: '', 
+        acceptedAnswers: [],
+        hintsUsed: 0, 
+        timeSpent: 0
+    };
+    
+    let realTasks = appState.currentGame.tasks; // A valódi feladatok (index 1-től N-ig, már index alapján sortolva)
+    
+    // RANDOM MÓD LOGIKA: Start (index 0) és Utolsó (legnagyobb index) fix, a többi random
+    if (appState.taskOrder === 'random' && realTasks.length >= 1) {
+        
+        // Utolsó feladat kimentése
+        const finalTask = realTasks[realTasks.length - 1]; 
+        
+        // Keverendő feladatok: Minden, ami nem az Utolsó Feladat
+        let tasksToShuffle = realTasks.slice(0, realTasks.length - 1); 
 
-                // A keverendő feladatok keverése
-                tasksToShuffle = shuffleArray(tasksToShuffle); 
-                
-                // Visszaállítás fix sorrendbe: Start Feladat + Kevert Köztes Feladatok + Fix Utolsó Feladat
-                appState.currentGame.tasks = [startTask, ...tasksToShuffle, finalTask];
-                
-            } else if (appState.taskOrder === 'random' && appState.currentGame.tasks.length < 1) {
-                 // Ha 0 feladat van, nincs tennivaló
-            }
+        // Keverés
+        tasksToShuffle = shuffleArray(tasksToShuffle); 
+        
+        // Visszaállítás fix sorrendbe: Kevert Feladatok + Fix Utolsó Feladat
+        appState.currentGame.tasks = [...tasksToShuffle, finalTask];
+        
+        // Mivel a 0. indexű feladat is keveredhetett (az eredeti Index 1-es helyett), 
+        // a Start Feladatot most a lista elejére (index 0) helyezzük a végleges listában.
+        appState.currentGame.tasks.unshift(startTaskTemplate);
 
-            // Start Feladat objektum létrehozása (mindig ez a kiindulópont)
-            const startTaskTemplate = {
-                index: 0,
-                isStartTask: true, // ÚJ: Ezzel jelöljük a speciális feladatot
-                location: appState.currentGame.startLocation,
-                geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
-                story: `**${appState.currentGame.title}**<br>${appState.currentGame.description}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a **Kaland Indítása** gombot.`,
-                prompt: 'Érd el a Start Helyszínt az induláshoz!',
-                hints: [],
-                solution: '', 
-                acceptedAnswers: [],
-                hintsUsed: 0, 
-                timeSpent: 0
-            };
-            
-            // Az eredeti feladatok listája a Start Feladattal kezdődik (vagy a keverés után fixen az első)
-            // Az 0-ás indexen lévő feladatot (legyen az akár a kevert lista elején, akár a szekvenciális lista elején) felülírjuk a Start Feladattal, hogy a StartLocation koordinátáit és a Start UI-t kapja meg.
-            if (appState.currentGame.tasks.length > 0) {
-                 // Ha már van tasks[0], felülírjuk a startTask-kal
-                 appState.currentGame.tasks[0] = startTaskTemplate;
-            } else {
-                 // Ha teljesen üres a lista, hozzáadjuk a startTask-ot
-                 appState.currentGame.tasks.push(startTaskTemplate);
-            }
-            
-            appState.currentTaskIndex = 0; // Biztosan a Start Feladattal kezdünk
-            
-            // Eltüntetjük a GPS/Időzítő infókat amíg nem indul a játék
-            document.getElementById('timer-display').textContent = '—:—';
-            document.getElementById('geofence-timer-display').textContent = '—:—';
-            document.getElementById('task-progress-display').textContent = `0 / ${appState.currentGame.tasks.length - 1}`; 
-            
-            // Navigáció és Mentőöv gombok a loadTask/checkGeofence-ben lesznek kezelve a Start Feladatnál
+    } 
+    // SZEKVENCIÁLIS/NORMÁL MÓD LOGIKA
+    else {
+        // Szekvenciális módban az eredeti sortolt lista marad, 
+        // de elé betesszük a Start Feladatot.
+        appState.currentGame.tasks.unshift(startTaskTemplate);
+    }
+    
+    // Ha a lista > 1 elemű, biztosítjuk, hogy a startTaskTemplate kerüljön a 0. indexre 
+    // (a StartLocation, Start UI-val)
+    if(appState.currentGame.tasks.length > 0) {
+        appState.currentGame.tasks[0] = startTaskTemplate;
+    }
+    
+    appState.currentTaskIndex = 0; // Biztosan a Start Feladattal kezdünk
+    
+    // Eltüntetjük a GPS/Időzítő infókat amíg nem indul a játék
+    document.getElementById('timer-display').textContent = '—:—';
+    document.getElementById('geofence-timer-display').textContent = '—:—';
+    document.getElementById('task-progress-display').textContent = `0 / ${appState.currentGame.tasks.length - 1}`; 
+    
+    // Navigáció és Mentőöv gombok a loadTask/checkGeofence-ben lesznek kezelve a Start Feladatnál
 
-            // Időzítők stop/reset
-            clearInterval(appState.timerInterval);
+    // Időzítők stop/reset
+    clearInterval(appState.timerInterval);
 
-            document.getElementById('test-mode-indicator').classList.toggle('hidden', !appState.isTestModeEnabled);
-            showPage('game-page');
-            
-            setTimeout(() => {
-                initializeMap();
-                loadTask(appState.currentTaskIndex);
-                // Csak a pozíciót figyeljük, az időzítők még NEM indulnak!
-                watchPosition(); 
-                updateStatusDisplays(); 
-            }, 100);
-        }
-
+    document.getElementById('test-mode-indicator').classList.toggle('hidden', !appState.isTestModeEnabled);
+    showPage('game-page');
+    
+    setTimeout(() => {
+        initializeMap();
+        loadTask(appState.currentTaskIndex);
+        // Csak a pozíciót figyeljük, az időzítők még NEM indulnak!
+        watchPosition(); 
+        updateStatusDisplays(); 
+    }, 100);
+}
         // JAVÍTOTT FÜGGVÉNY: A Segítség gombok aktiválása/inaktiválása
         function updateHintButtons(task) {
             const hint1Btn = document.getElementById('hint1-btn');
