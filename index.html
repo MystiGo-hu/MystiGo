@@ -1317,6 +1317,11 @@ function startGame(gameId) {
             // Felolvasás leállítása, ha esetleg fut
             if (speechSynth.speaking) speechSynth.cancel();
             
+	    // GÖRGETÉS A TARTALOM TETEJÉRE AZONNAL
+            document.getElementById('content-page-wrapper').scrollTo({
+                top: 0,
+                behavior: 'instant' 
+            });
             const task = appState.currentGame.tasks[taskIndex];
             const isStartTask = task.isStartTask; 
 
