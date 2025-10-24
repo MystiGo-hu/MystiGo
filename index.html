@@ -229,8 +229,8 @@
                     <span id="team-name-display"></span>
                  </div>
 
-                 <button id="exit-game-btn" onclick="showExitConfirmation()" class="absolute top-10 right-0 p-2 rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition hidden">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                 <button id="exit-game-btn" onclick="showExitConfirmation()" class="absolute top-10 right-4 p-2 rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition hidden">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                  </button>
                  
                  <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1440 120H0V65.1721C0 65.1721 289.431 0 720 0C1150.57 0 1440 65.1721 1440 65.1721V120Z" fill="white"/></svg>
@@ -306,7 +306,7 @@
                             <p id="distance-info" class="text-center text-xs font-bold"></p>
                              <button id="report-error-btn" class="text-xs text-gray-500 font-semibold hover:text-red-500 transition" onclick="showRescueTaskInterface()">
                                 <svg class="w-4 h-4 inline-block align-text-bottom mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                Hiba bejelentés
+                                Mentőöv
                             </button>
                         </div>
                         
@@ -563,14 +563,14 @@
                 // showPage('game-list-page') a processExcelData végén fut le, ha sikeres
                 
             } catch (error) {
-                // Hiba esetén a Landing Page-en maradunk, és megadjuk a manuális feltöltés lehetőségét
+                // *** JAVÍTVA: Hiba esetén megjelenítjük a manuális betöltés lehetőségét a Landing Page-en ***
                 document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
                 
-                // Manuális gomb megjelenítése a Landing Page-en
                 const manualInputLabel = document.getElementById('manual-file-select-label');
                 if (manualInputLabel) {
                     manualInputLabel.classList.remove('hidden');
                 }
+                // *** JAVÍTVA VÉGE ***
 
                 showLoading(false);
             }
@@ -629,7 +629,7 @@
             
             const mainHeader = document.getElementById('main-header');
             const statusBar = document.getElementById('game-status-bar');
-            const exitButton = document.getElementById('exit-game-btn'); // Új kilépés gomb
+            const exitButton = document.getElementById('exit-game-btn'); // Kilépés gomb
             
             // CSERÉLT ELEMEK LEKÉRÉSE
             const teamNameContainer = document.getElementById('team-name-container');
@@ -1133,7 +1133,7 @@
             // A feladat promptja és története mindig látszik (task-interaction-area mindig látszik)
             document.getElementById('task-interaction-area').classList.remove('hidden');
 
-            // Navigációs és Mentőöv gombok mindig látszanak
+            // Navigációs és Mentőöv gombok mindig látszanak (Módosítás a kérésnek megfelelően)
             document.getElementById('google-maps-btn').classList.remove('hidden'); 
             document.getElementById('report-error-btn').classList.remove('hidden');
             
