@@ -223,7 +223,12 @@
                     </div>
                  </div>
                  <span id="test-mode-indicator" class="text-xs font-bold text-brand-orange-500 hidden">TESZT MÓD (NINCS GPS KORLÁTOZÁS)</span>
-                 <span id="team-name-display" class="text-sm font-semibold text-brand-blue/80 block mt-2 hidden"></span>
+                 
+                 <div id="team-name-container" class="text-sm font-semibold text-brand-blue/80 block mt-2 hidden">
+                    <span id="game-team-avatar-icon" class="avatar-icon"></span>
+                    <span id="team-name-display"></span>
+                 </div>
+                 
                  <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1440 120H0V65.1721C0 65.1721 289.431 0 720 0C1150.57 0 1440 65.1721 1440 65.1721V120Z" fill="white"/></svg>
             </div>
             
@@ -244,8 +249,8 @@
                                 </label>
                                 <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
                                 
-                                <button onclick="loadLocalXlsx('games_full.txt')" class="main-button w-full text-xs block !bg-red-600 hover:!bg-red-700 my-4">
-                                     Teszt
+                                <button onclick="loadLocalXlsx('games_full.txt')" class="main-button w-full text-sm block !bg-red-600 hover:!bg-red-700 my-4">
+                                     Teszt Adatbázis Betöltése (games_full.txt)
                                 </button>
                                 
                                 <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
@@ -297,7 +302,7 @@
                             <p id="distance-info" class="text-center text-xs font-bold"></p>
                              <button id="report-error-btn" class="text-xs text-gray-500 font-semibold hover:text-red-500 transition" onclick="showRescueTaskInterface()">
                                 <svg class="w-4 h-4 inline-block align-text-bottom mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                Mentőöv
+                                Hiba bejelentés
                             </button>
                         </div>
                         
@@ -383,8 +388,7 @@
     <p class="block">Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
 </div>
                     </div> 
-                    <p class="text-sm text-gray-500 mb-4 mt-6">Az eredmény letöltése</p>
-                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4">Eredmény letöltése (PDF)</button>
+                    <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4">Eredmény letöltése (PDF)</button>
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
                 </section>
             </div>
@@ -564,7 +568,7 @@
         }
 
         // --- I18N ---
-        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! Jöhet a következő feladat. (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Mentőöv sikeres! (+${DEFAULT_SCORE_PER_TASK} pont)`, rescue_wrong: 'Mentőöv hibás. Próbáld újra!' } };
+        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Mentőöv sikeres! (+${DEFAULT_SCORE_PER_TASK} pont)`, rescue_wrong: 'Mentőöv hibás. Próbáld újra!' } };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
         // --- PDF GENERATION ---
@@ -616,7 +620,12 @@
             
             const mainHeader = document.getElementById('main-header');
             const statusBar = document.getElementById('game-status-bar');
+            
+            // CSERÉLT ELEMEK LEKÉRÉSE
+            const teamNameContainer = document.getElementById('team-name-container');
             const teamNameDisplay = document.getElementById('team-name-display');
+            const teamAvatarIcon = document.getElementById('game-team-avatar-icon'); 
+            
             const testModeIndicator = document.getElementById('test-mode-indicator');
 
             if (pageId === 'game-page') {
@@ -626,16 +635,27 @@
                 // Teszt Mód indikátor megjelenítése
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
+                // *** JAVÍTOTT RÉSZ: AVATAR ÉS CSAPATNÉV MEGJELENÍTÉSE ***
                 if (appState.teamName) {
-                    teamNameDisplay.textContent = `${appState.teamName} (${appState.teamAvatar || 'Névtelen'})`;
-                    teamNameDisplay.classList.remove('hidden');
+                    const teamAvatarKey = appState.teamAvatar || null;
+                    const avatarIcon = teamAvatarKey && AVATAR_ICONS[teamAvatarKey] ? AVATAR_ICONS[teamAvatarKey] : '';
+                    
+                    teamAvatarIcon.textContent = avatarIcon; // Ikon beállítása
+                    teamNameDisplay.textContent = appState.teamName; // Csapatnév beállítása
+                    
+                    teamNameContainer.classList.remove('hidden');
                 } else {
-                    teamNameDisplay.classList.add('hidden');
+                    // Ha nincs csapatnév, az egész konténert elrejtjük
+                    teamNameContainer.classList.add('hidden');
                 }
+                // *** JAVÍTOTT RÉSZ VÉGE ***
             } else {
                 mainHeader.classList.remove('hidden');
                 statusBar.classList.add('hidden');
-                teamNameDisplay.classList.add('hidden');
+                
+                // Játékoldalról kilépve a csapatnév konténert elrejtjük, hogy ne zavarja a fő címet.
+                if(teamNameContainer) teamNameContainer.classList.add('hidden');
+                
                 testModeIndicator.classList.add('hidden');
                 
                 const titles = { 'game-list-page': 'Válassz Kalandot!', 'end-page': 'Játék Vége' };
@@ -1162,7 +1182,7 @@
             document.getElementById('final-score').textContent = appState.score;
             document.getElementById('final-time').textContent = formatTime(appState.totalTime); // Teljes idő
             
-            // Csapat adatok megjelenítése
+            // Csapat adatok megjelenítése (Avatar is)
             const teamName = appState.teamName || "Névtelen Csapat";
             const teamAvatarKey = appState.teamAvatar || null;
             const avatarIcon = teamAvatarKey && AVATAR_ICONS[teamAvatarKey] ? AVATAR_ICONS[teamAvatarKey] : '';
@@ -1229,6 +1249,14 @@
                         }
                         
                         appState.userPosition = { lat: latLng.lat, lng: latLng.lng };
+                        
+                        // *** MÓDOSÍTÁS 1: Útvonal rögzítése mock módban ***
+                        if (appState.isTimerRunning) {
+                             appState.routeCoordinates.push([latLng.lat, latLng.lng]);
+                             saveGameState(); 
+                        }
+                        // *** MÓDOSÍTÁS 1 VÉGE ***
+                        
                         checkGeofence();
                         
                         // JAVÍTÁS: Térkép központosítás és nagyítás
@@ -1266,6 +1294,7 @@
         function updatePlayerMarker(lat, lng) {
             if (!appState.map) return;
 
+            // *** MÓDOSÍTÁS 2: Feltétel frissítése. Csak akkor kezeljük itt, ha NEM mock módban vagyunk. ***
             if (!appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.userPosition = { lat, lng };
 
@@ -1276,7 +1305,7 @@
                     appState.playerMarker = L.marker([lat, lng], { icon: playerIcon }).addTo(appState.map);
                 }
                 
-                // JAVÍTÁS: Útvonal rögzítése, ha a számlálók futnak
+                // Útvonal rögzítése valós GPS adatokkal
                 if (appState.isTimerRunning) {
                     appState.routeCoordinates.push([lat, lng]);
                 }
@@ -1287,6 +1316,8 @@
                     appState.map.fitBounds(bounds.pad(0.2)); // 20% párnázás
                 }
             }
+            // *** MÓDOSÍTÁS 2 VÉGE ***
+            
             checkGeofence();
         }
 
@@ -1315,7 +1346,7 @@
             }
             
             // JAVÍTÁS: Térkép központosítás és nagyítás
-            if (appState.playerMarker) {
+            if (appState.playerMarker || (appState.isManualMock && manualMarker)) {
                 const currentPosition = appState.isManualMock 
                     ? manualMarker.getLatLng() 
                     : appState.playerMarker.getLatLng();
