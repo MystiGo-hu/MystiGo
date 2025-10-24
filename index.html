@@ -228,6 +228,10 @@
                     <span id="game-team-avatar-icon" class="avatar-icon"></span>
                     <span id="team-name-display"></span>
                  </div>
+
+                 <button id="exit-game-btn" onclick="showExitConfirmation()" class="absolute top-10 right-0 p-2 rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition hidden">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                 </button>
                  
                  <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1440 120H0V65.1721C0 65.1721 289.431 0 720 0C1150.57 0 1440 65.1721 1440 65.1721V120Z" fill="white"/></svg>
             </div>
@@ -302,7 +306,7 @@
                             <p id="distance-info" class="text-center text-xs font-bold"></p>
                              <button id="report-error-btn" class="text-xs text-gray-500 font-semibold hover:text-red-500 transition" onclick="showRescueTaskInterface()">
                                 <svg class="w-4 h-4 inline-block align-text-bottom mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                Mentőöv
+                                Hiba bejelentés
                             </button>
                         </div>
                         
@@ -374,6 +378,7 @@
                      <div id="pdf-content"> 
                         <h2 class="text-4xl font-bold text-text-heading">Szép munka!</h2>
                         <p class="text-lg text-text-dark mb-4">Teljesítetted a kalandot.</p>
+                        <p id="end-timestamp" class="text-sm text-gray-500 mb-6"></p> 
                         <div id="route-map" style="height: 300px; width: 100%; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px 0;"></div> 
                         <p id="end-story" class="text-text-dark my-4 max-w-prose"></p>
 <div class="relative my-10"> <div class="absolute inset-0 flex flex-col items-center justify-center text-brand-orange-500">
@@ -402,7 +407,10 @@
         <div class="bg-white rounded-2xl p-6 text-center max-w-sm w-full shadow-xl">
             <h2 id="message-title" class="text-xl font-bold text-text-heading mb-2"></h2>
             <p id="message-body" class="text-text-dark mb-6 whitespace-pre-wrap"></p>
-            <button id="modal-ok-button" class="main-button w-full !text-base">Rendben</button>
+            <div id="modal-button-container" class="flex gap-4">
+                <button id="modal-ok-button" class="main-button flex-1 !text-base">Rendben</button>
+                <button id="modal-cancel-button" class="main-button flex-1 !text-base !bg-gray-400 hover:!bg-gray-500 hidden">Mégse</button>
+            </div>
         </div>
     </div>
     
@@ -569,7 +577,7 @@
         }
 
         // --- I18N ---
-        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! Jöhet a következő feladat. (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Mentőöv sikeres! (+${DEFAULT_SCORE_PER_TASK} pont)`, rescue_wrong: 'Mentőöv hibás. Próbáld újra!' } };
+        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Mentőöv sikeres! (+${DEFAULT_SCORE_PER_TASK} pont)`, rescue_wrong: 'Mentőöv hibás. Próbáld újra!' } };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
         // --- PDF GENERATION ---
@@ -582,7 +590,7 @@
             element.style.padding = '20px'; 
             element.style.backgroundColor = '#ffffff';
 
-            // *** JAVÍTÁS: IDŐZÍTŐ Hozzáadva a térkép stabilitásához (500ms) ***
+            // *** STABIL JAVÍTÁS: Növelt IDŐZÍTŐ a térkép stabilitásához (1000ms) ***
             setTimeout(() => {
                 html2pdf().from(element).set({
                     margin: 10,
@@ -594,7 +602,7 @@
                      // Visszaállítjuk a stílusokat
                      element.style.cssText = originalStyle;
                 });
-            }, 1000); // 1000 ezredmásodperc (fél másodperc) várakozás
+            }, 1000); // 1000 ezredmásodperc (1 másodperc) várakozás
         }
 
 
@@ -621,6 +629,7 @@
             
             const mainHeader = document.getElementById('main-header');
             const statusBar = document.getElementById('game-status-bar');
+            const exitButton = document.getElementById('exit-game-btn'); // Új kilépés gomb
             
             // CSERÉLT ELEMEK LEKÉRÉSE
             const teamNameContainer = document.getElementById('team-name-container');
@@ -632,11 +641,12 @@
             if (pageId === 'game-page') {
                 mainHeader.classList.add('hidden');
                 statusBar.classList.remove('hidden');
+                exitButton.classList.remove('hidden'); // Megjelenítjük az X gombot
                 
                 // Teszt Mód indikátor megjelenítése
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
-                // *** JAVÍTOTT RÉSZ: AVATAR ÉS CSAPATNÉV MEGJELENÍTÉSE ***
+                // *** AVATAR ÉS CSAPATNÉV MEGJELENÍTÉSE ***
                 if (appState.teamName) {
                     const teamAvatarKey = appState.teamAvatar || null;
                     const avatarIcon = teamAvatarKey && AVATAR_ICONS[teamAvatarKey] ? AVATAR_ICONS[teamAvatarKey] : '';
@@ -649,10 +659,11 @@
                     // Ha nincs csapatnév, az egész konténert elrejtjük
                     teamNameContainer.classList.add('hidden');
                 }
-                // *** JAVÍTOTT RÉSZ VÉGE ***
+                // *** AVATAR ÉS CSAPATNÉV MEGJELENÍTÉSE VÉGE ***
             } else {
                 mainHeader.classList.remove('hidden');
                 statusBar.classList.add('hidden');
+                exitButton.classList.add('hidden'); // Elrejtjük az X gombot
                 
                 // Játékoldalról kilépve a csapatnév konténert elrejtjük, hogy ne zavarja a fő címet.
                 if(teamNameContainer) teamNameContainer.classList.add('hidden');
@@ -711,21 +722,75 @@
 
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
-        function showMessage(title, body, onClose) {
+        // Módosított showMessage a két gombos megjelenítéshez
+        function showMessage(title, body, onClose, showCancel = false) {
             document.getElementById('message-title').textContent = title;
-            // Frissítettem a DOMPurify.sanitize hívásokat, hogy az inline stílusok ne törjenek el
             document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p'] });
-            modalCloseCallback = onClose;
+            
+            const okButton = document.getElementById('modal-ok-button');
+            const cancelButton = document.getElementById('modal-cancel-button');
+            
+            // Alapértelmezett beállítás: csak OK gomb
+            okButton.textContent = 'Rendben';
+            cancelButton.classList.add('hidden');
+
+            if (showCancel) {
+                okButton.textContent = 'Igen'; // Ha megerősítést kérünk
+                cancelButton.textContent = 'Nem';
+                cancelButton.classList.remove('hidden');
+                
+                // Az OK (Igen) gomb hívja az onClose-t, a Mégse gomb csak bezárja
+                okButton.onclick = () => { 
+                    hideMessage(); 
+                    if(typeof onClose === 'function') onClose(); 
+                };
+                cancelButton.onclick = hideMessage; 
+            } else {
+                 okButton.onclick = () => {
+                    hideMessage();
+                    if(typeof onClose === 'function') onClose();
+                };
+            }
+
+            modalCloseCallback = null; // A gombok kezelik a hívást, nem a modal bezárása
             document.getElementById('message-modal').classList.remove('hidden');
         }
+
+        // A sima hideMessage funkció megtartása
         function hideMessage() { 
             document.getElementById('message-modal').classList.add('hidden');
             if(typeof modalCloseCallback === 'function') {
                 modalCloseCallback();
                 modalCloseCallback = null;
             }
+            // Visszaállítjuk az alapértelmezett OK gomb funkciót, hogy ne legyen félreértés
+            document.getElementById('modal-ok-button').onclick = hideMessage;
         }
-        
+
+        // --- ÚJ KILÉPÉS LOGIKA ---
+        function handleExitGame() {
+            // Leállítjuk az időzítőket és a GPS követést (mivel a resetApp ezt amúgy is megteszi, itt csak a logikát rögzítjük)
+            clearInterval(appState.timerInterval);
+            clearInterval(appState.geofenceTimerInterval);
+            
+            // Törli a mentett állapotot (visszatérő kódot)
+            clearSavedState(); 
+            
+            // Visszatérés a kalandválasztó oldalra (resetApp tartalmazza ezt a logikát)
+            resetApp(); 
+        }
+
+        function showExitConfirmation() {
+            showMessage(
+                'Játék megszakítása',
+                'Biztosan abba szeretnéd végleg hagyni ezt a kalandot?',
+                handleExitGame,
+                true // Megjeleníti a két gombot
+            );
+        }
+        // --- ÚJ KILÉPÉS LOGIKA VÉGE ---
+
+
         // --- DATA PROCESSING ---
         function assertCols(obj, req, ctx) {
             const missing = req.filter(k => !(k in obj) || obj[k] === null || String(obj[k]).trim() === '');
@@ -854,11 +919,8 @@
             appState.timerInterval = setInterval(updateTimer, 1000);
             lastTimeUpdate = appState.startTime.getTime(); 
             
-            // UI frissítés: Navigáció és Mentőöv gombok vissza
-            document.getElementById('start-task-button-container').classList.add('hidden');
-            document.getElementById('google-maps-btn').classList.remove('hidden'); 
-            document.getElementById('report-error-btn').classList.remove('hidden'); 
-            
+            // UI frissítés: Navigáció és Mentőöv gombok már a loadTask/checkGeofence-ben kezelve
+
             // Váltás az 1. igazi feladatra
             appState.currentTaskIndex = 1; // Explicit beállítás
             loadTask(appState.currentTaskIndex); 
@@ -986,10 +1048,8 @@
             document.getElementById('geofence-timer-display').textContent = '—:—';
             document.getElementById('task-progress-display').textContent = `0 / ${appState.currentGame.tasks.length - 1}`; 
             
-            // Navigáció és Mentőöv gombok elrejtése
-            document.getElementById('google-maps-btn').classList.add('hidden');
-            document.getElementById('report-error-btn').classList.add('hidden');
-            
+            // Navigáció és Mentőöv gombok a loadTask/checkGeofence-ben lesznek kezelve a Start Feladatnál
+
             // Időzítők stop/reset
             clearInterval(appState.timerInterval);
 
@@ -1073,10 +1133,10 @@
             // A feladat promptja és története mindig látszik (task-interaction-area mindig látszik)
             document.getElementById('task-interaction-area').classList.remove('hidden');
 
-            // Navigáció és Mentőöv csak az időmérés bekapcsolása után látható
-            document.getElementById('google-maps-btn').classList.toggle('hidden', !appState.isTimerRunning);
-            document.getElementById('report-error-btn').classList.toggle('hidden', !appState.isTimerRunning);
-
+            // Navigációs és Mentőöv gombok mindig látszanak
+            document.getElementById('google-maps-btn').classList.remove('hidden'); 
+            document.getElementById('report-error-btn').classList.remove('hidden');
+            
             // JAVÍTÁS: A felolvasó gomb eltávolítása/megjelenítése
             const speakBtn = document.getElementById('speak-story-btn');
             if (speakBtn && ('speechSynthesis' in window)) {
@@ -1166,6 +1226,19 @@
             // Felolvasás leállítása
             if (speechSynth.speaking) speechSynth.cancel();
             
+            // --- Befejezési idő rögzítése és manuális formázása (YYYY.MM.DD ÓÓ:PP) ---
+            const endTime = new Date();
+            
+            const year = endTime.getFullYear();
+            const month = String(endTime.getMonth() + 1).padStart(2, '0');
+            const day = String(endTime.getDate()).padStart(2, '0');
+            const hour = String(endTime.getHours()).padStart(2, '0');
+            const minute = String(endTime.getMinutes()).padStart(2, '0');
+
+            // Kívánt formátum összeállítása: YYYY.MM.DD ÓÓ:PP
+            const formattedEndTime = `${year}.${month}.${day} ${hour}:${minute}`;
+            // --- Befejezési idő vége ---
+            
             clearInterval(appState.timerInterval);
             if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
             if (appState.map) { 
@@ -1190,6 +1263,10 @@
             
             document.getElementById('final-team-display').textContent = teamName;
             document.getElementById('final-team-avatar-icon').textContent = avatarIcon; // Avatar megjelenítése
+            
+            // *** Időbélyeg beillesztése a befejezési oldalra ***
+            document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
+            // *** Időbélyeg beillesztése vége ***
 
             document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime); // Feladatra fordított idő
             
@@ -1254,12 +1331,12 @@
                         
                         appState.userPosition = { lat: latLng.lat, lng: latLng.lng };
                         
-                        // *** MÓDOSÍTVA: Útvonal rögzítése mock módban ***
+                        // *** ÚTVONAL RÖGZÍTÉSE MOCK MÓDBAN ***
                         if (appState.isTimerRunning) {
                              appState.routeCoordinates.push([latLng.lat, latLng.lng]);
                              saveGameState(); 
                         }
-                        // *** MÓDOSÍTVA VÉGE ***
+                        // *** ÚTVONAL RÖGZÍTÉSE MOCK MÓDBAN VÉGE ***
                         
                         checkGeofence();
                         
@@ -1298,7 +1375,7 @@
         function updatePlayerMarker(lat, lng) {
             if (!appState.map) return;
 
-            // *** MÓDOSÍTVA: Csak akkor kezeljük itt, ha NEM mock módban vagyunk. ***
+            // *** CSak akkor kezeljük itt, ha NEM mock módban vagyunk. ***
             if (!appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.userPosition = { lat, lng };
 
@@ -1766,7 +1843,9 @@
             }
 
 
-            document.getElementById('modal-ok-button').addEventListener('click', hideMessage);
+            // Módosított modal gomb beállítások az inicializáláskor
+            document.getElementById('modal-ok-button').onclick = hideMessage;
+            document.getElementById('modal-cancel-button').onclick = hideMessage;
             
             // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
             logoO.addEventListener('click', () => {
@@ -1937,6 +2016,9 @@
             
             // ÚJ ESEMÉNY FIGYELŐ
             document.getElementById('start-game-btn').addEventListener('click', startTimersAndGPS);
+
+            // ÚJ ESEMÉNY FIGYELŐ: Kilépés gomb
+            document.getElementById('exit-game-btn').addEventListener('click', showExitConfirmation);
             
             // A MENTŐÖV GOMB KÖVETKEZŐ FUNKCIÓT HÍVJA
             document.getElementById('report-error-btn').addEventListener('click', showRescueTaskInterface); 
