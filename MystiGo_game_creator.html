@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktív Történetkészítő</title>
+    
+    <style>
+        /* CSS az elrendezéshez (Egyoszlopos) */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #f4f4f4;
+        }
+
+        #form-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .general-info, .task-group {
+            border: 1px solid #0056b3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .general-info {
+            background-color: #e6f7ff;
+        }
+
+        .task-group {
+            background-color: #f0f8ff;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .input-row > div {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        textarea, input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        input[readonly] {
+            background-color: #eee;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        #plus-button, #save-button {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        
+        #plus-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #plus-button:hover {
+            background-color: #45a049;
+        }
+
+        #save-button {
+            background-color: #007bff;
+            color: white;
+            margin-top: 30px;
+            font-weight: bold;
+        }
+        #save-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div id="form-container">
+    <h1>Interaktív Történet & Feladatkészítő</h1>
+
+    <div class="general-info">
+        <h2>Általános adatok 📋</h2>
+        
+        <div class="input-row">
+            <div>
+                <label for="title">Cím</label>
+                <input type="text" id="title" placeholder="A kaland címe (pl: A Főváros Rejtélye)" oninput="generateId(this.value)">
+            </div>
+            <div>
+                <label for="generated-id">Azonosító (ID)</label>
+                <input type="text" id="generated-id" placeholder="pl: a-fovaros-rejtelye" readonly>
+            </div>
+        </div>
+
+
+        <div class="input-row">
+            <div>
+                <label for="type">Típus</label>
+                <select id="type">
+                    <option value="normal">Normal</option>
+                    <option value="kids">Kids</option>
+                    <option value="team">Team</option>
+                </select>
+            </div>
+            <div>
+                <label for="cover-image">Borítókép fájlnév</label>
+                <input type="text" id="cover-image" placeholder="pl: boritokep.jpg">
+            </div>
+        </div>
+
+    </div>
+
+    <label for="initial-story">Kezdeti Történet</label>
+    <textarea id="initial-story" rows="4" placeholder="Írd ide a történet elejét, a küldetés indítását..."></textarea>
+    
+    <hr>
+
+    <div id="task-groups-container">
+        <div class="task-group" id="task-group-1">
+            <h2>Feladat 1. (Helyszín) 📍</h2>
+            
+            <div class="input-row">
+                <div>
+                    <label for="task-coords-1">GPS Koordináták</label>
+                    <input type="text" id="task-coords-1" placeholder="Pl: 47.4979, 19.0402">
+                </div>
+                <div>
+                    <label for="task-radius-1">Rádiusz (méterben)</label>
+                    <input type="text" id="task-radius-1" placeholder="Pl: 10 (ez a kör sugara)">
+                </div>
+            </div>
+
+            <label for="task-story-1">Feladathoz Tartozó Történet</label>
+            <textarea id="task-story-1" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
+
+            <label for="task-description-1">Konkrét Feladat</label>
+            <textarea id="task-description-1" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
+            
+            <hr style="border-style: dashed;">
+
+            <div class="input-row">
+                <div>
+                    <label for="task-hint-1-1">Segítség 1</label>
+                    <input type="text" id="task-hint-1-1" placeholder="Rövid tipp 1">
+                </div>
+                <div>
+                    <label for="task-hint-2-1">Segítség 2</label>
+                    <input type="text" id="task-hint-2-1" placeholder="Rövid tipp 2">
+                </div>
+                <div>
+                    <label for="task-solution-1">Megoldás</label>
+                    <input type="text" id="task-solution-1" placeholder="A helyes válasz">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="plus-button">➕ Plusz Feladatcsoport Hozzáadása</button>
+
+    <hr>
+
+    <label for="final-story">Záró Történet</label>
+    <textarea id="final-story" rows="4" placeholder="Írd ide a történet végét, a küldetés lezárását..."></textarea>
+
+    <button id="save-button" onclick="saveData()">💾 Mentés (JSON fájlként)</button>
+
+</div>
+
+<script>
+    // A vizuális számláló 1-ről indul a felhasználói élmény érdekében
+    let taskCounter = 1; 
+
+    // ===================================
+    // 1. AZONOSÍTÓ GENERÁLÁSA
+    // ===================================
+
+    function generateId(title) {
+        const id = title.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, "") 
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-');
+        
+        document.getElementById('generated-id').value = id;
+    }
+
+    // ===================================
+    // 2. DINAMIKUS MEZŐK HOZZÁADÁSA (Működik)
+    // ===================================
+
+    const taskGroupsContainer = document.getElementById('task-groups-container');
+    const plusButton = document.getElementById('plus-button');
+
+    plusButton.addEventListener('click', function() {
+        taskCounter++;
+        const newTaskId = taskCounter;
+
+        const newGroupHTML = `
+            <div class="task-group" id="task-group-${newTaskId}">
+                <h2>Feladat ${newTaskId}. (Helyszín) 📍</h2>
+
+                <div class="input-row">
+                    <div>
+                        <label for="task-coords-${newTaskId}">GPS Koordináták</label>
+                        <input type="text" id="task-coords-${newTaskId}" placeholder="Pl: 47.4979, 19.0402">
+                    </div>
+                    <div>
+                        <label for="task-radius-${newTaskId}">Rádiusz (méterben)</label>
+                        <input type="text" id="task-radius-${newTaskId}" placeholder="Pl: 10 (ez a kör sugara)">
+                    </div>
+                </div>
+
+                <label for="task-story-${newTaskId}">Feladathoz Tartozó Történet</label>
+                <textarea id="task-story-${newTaskId}" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
+
+                <label for="task-description-${newTaskId}">Konkrét Feladat</label>
+                <textarea id="task-description-${newTaskId}" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
+
+                <hr style="border-style: dashed;">
+
+                <div class="input-row">
+                    <div>
+                        <label for="task-hint-1-${newTaskId}">Segítség 1</label>
+                        <input type="text" id="task-hint-1-${newTaskId}" placeholder="Rövid tipp 1">
+                    </div>
+                    <div>
+                        <label for="task-hint-2-${newTaskId}">Segítség 2</label>
+                        <input type="text" id="task-hint-2-${newTaskId}" placeholder="Rövid tipp 2">
+                    </div>
+                    <div>
+                        <label for="task-solution-${newTaskId}">Megoldás</label>
+                        <input type="text" id="task-solution-${newTaskId}" placeholder="A helyes válasz">
+                    </div>
+                </div>
+            </div>
+        `;
+        taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
+    });
+    
+    // ===================================
+    // 3. ADATOK GYŰJTÉSE ÉS MENTÉSE (JSON - Index 0-tól)
+    // ===================================
+
+    function saveData() {
+        const title = document.getElementById('title').value || "Névtelen Kaland";
+        const gameId = document.getElementById('generated-id').value || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const type = document.getElementById('type').value;
+        const coverImage = document.getElementById('cover-image').value;
+        const initialStory = document.getElementById('initial-story').value;
+        const finalStory = document.getElementById('final-story').value;
+        
+        let tasks = [];
+        let firstTaskCoords = null; 
+
+        const taskGroups = document.querySelectorAll('.task-group');
+        
+        taskGroups.forEach((group, index) => { // A 'index' itt 0, 1, 2, ...
+            const currentTaskId = index + 1; // Ezt használjuk az input ID-khez (pl. 1, 2, 3...)
+            const coordsInput = document.getElementById(`task-coords-${currentTaskId}`).value;
+            const radiusInput = document.getElementById(`task-radius-${currentTaskId}`).value;
+
+            let lat = '';
+            let lng = '';
+            if (coordsInput) {
+                const parts = coordsInput.split(',').map(c => c.trim());
+                if (parts.length === 2) {
+                    lat = parts[0];
+                    lng = parts[1];
+                    if (index === 0) {
+                        firstTaskCoords = { lat, lng };
+                    }
+                }
+            }
+
+            tasks.push({
+                gameId: gameId, 
+                // ITT INDUL AZ INDEX 0-RÓL, AHOGY KÉRTED:
+                index: index, 
+                locationLat: lat,
+                locationLng: lng,
+                geofenceRadius: radiusInput || '0',
+                story: document.getElementById(`task-story-${currentTaskId}`).value,
+                prompt: document.getElementById(`task-description-${currentTaskId}`).value,
+                hint1: document.getElementById(`task-hint-1-${currentTaskId}`).value,
+                hint2: document.getElementById(`task-hint-2-${currentTaskId}`).value,
+                solution: document.getElementById(`task-solution-${currentTaskId}`).value
+            });
+        });
+
+        // Általános játék adatok
+        const gameData = {
+            id: gameId,
+            type: type,
+            title: title,
+            age: '',
+            price: '0',
+            description: initialStory,
+            startLocationLat: firstTaskCoords ? firstTaskCoords.lat : '',
+            startLocationLng: firstTaskCoords ? firstTaskCoords.lng : '',
+            endStory: finalStory,
+            imageUrl: coverImage
+        };
+
+        const outputData = {
+            game_info: [gameData],
+            tasks: tasks
+        };
+
+        // JSON fájl generálása és letöltése
+        const jsonString = JSON.stringify(outputData, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${gameId}_data.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert(`Az adatok sikeresen mentve lettek ${a.download} néven!`);
+    }
+</script>
+
+</body>
+</html>
