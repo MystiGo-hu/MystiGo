@@ -263,7 +263,7 @@
                     <div class="flex justify-center mb-2">
                         <img src="./MystiGo_logo.png" alt="MystiGo Logó" class="max-h-24 w-auto">
                     </div>
-                    <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot!</h1>
+                    <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot</h1>
                  </div>
                  
                  <div id="game-header-logo-container" class="hidden">
@@ -326,8 +326,8 @@
                                      Game Creator (Megnyitás)
                                 </button>
                                 
-                                <button onclick="loadLocalXlsx('gamex_full.txt')" class="main-button w-full text-sm block !bg-red-600 hover:!bg-red-700 my-4">
-                                     Teszt Adatbázis Betöltése (gamex_full.txt)
+                                <button onclick="loadLocalXlsx('games_full.txt')" class="main-button w-full text-sm block !bg-red-600 hover:!bg-red-700 my-4">
+                                     Teszt Adatbázis Betöltése (games_full.txt)
                                 </button>
                                 
                                 <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
@@ -365,7 +365,7 @@
 				    <option value="wizard">Varázsló 🧙</option>
 				    <option value="robot">Robot 🤖</option>
 				    <option value="ghost">Szellem 👻</option>
-				    <option value="lock">Zárlat 🔐</option>
+				    <option value="lock">Lakat 🔐</option>
 				    <option value="magician">Bűvész 🎩</option>
 				    <option value="mask">Álarc 🎭</option>
 				    <option value="fire">Tűz 🔥</option>
@@ -774,7 +774,7 @@ function downloadPDF() {
                 
                 testModeIndicator.classList.add('hidden');
                 
-                const titles = { 'game-list-page': 'Válassz Kalandot!', 'end-page': 'Játék Vége' };
+                const titles = { 'game-list-page': 'Válassz Kalandot', 'end-page': 'Játék Vége' };
                 document.getElementById('page-title').textContent = titles[pageId] || 'MystiGo';
                 
                 // JAVÍTVA: Csapat és mód beállítások megjelenítése a Játéklista oldalon
@@ -793,7 +793,7 @@ function downloadPDF() {
             if (pageId === 'game-list-page') {
                 const titleEl = document.getElementById('page-title');
                 // *** MÓDOSÍTÁS: Töröltem az első "!" jelet, csak a narancsárga maradt ***
-                titleEl.textContent = 'Válassz Kalandot!';
+                titleEl.textContent = 'Válassz Kalandot';
 
                 // A titkos gombot ismét beillesztjük
                 const secretTrigger = document.createElement('span');
