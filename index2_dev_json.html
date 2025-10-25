@@ -501,7 +501,7 @@
         const RESCUE_TASK_SCORE = 0; // Mentőöv feladatért járó pont
         const LOCAL_STORAGE_KEY = 'MystiGoGameState'; // Kulcs a localStorage-hoz
         // *** MÓDOSÍTVA: Csak egyetlen JSON fájlt töltünk be, ami minden adatot tartalmaz ***
-        const DEFAULT_GAME_FILE_JSON = 'games_free\games_data.json'; 
+        const DEFAULT_GAME_FILE_JSON = 'games_data.json'; 
         // *** MÓDOSÍTVA VÉGE ***
 
         const AVATAR_ICONS = {
@@ -1005,6 +1005,10 @@
             try {
                 const response = await fetch(filePath);
                 if (!response.ok) {
+                    // Ha a hiba 404 vagy CORS probléma (ami lokálisan gyakori)
+                    if (window.location.protocol === 'file:') {
+                         throw new Error("A fájl automatikus betöltése sikertelen ('file://' protokoll). Kérem, használja a 'Manuális Játékfájl Kiválasztása' gombot, vagy futtassa webkiszolgálón!");
+                    }
                     throw new Error(`Nem található, vagy a hozzáférés megtagadva. (Státusz: ${response.status})`);
                 }
                 
@@ -1026,7 +1030,7 @@
                  // Próbáljuk betölteni a mentett állapotot (ez már a DOMContentLoaded-ben lefutott, de itt is kell)
                  loadGameState(); 
             } else {
-                 document.getElementById('loading-status').textContent = `A központi adatbázis nem töltődött be. Kérem, válasszon fájlt!`;
+                 // Ha nincs játék, megmutatjuk a manuális opciót
                  document.getElementById('manual-file-select-label').classList.remove('hidden');
                  showPage('landing-page');
             }
@@ -1134,7 +1138,6 @@
 
         function startGame(gameId) {
             // ... (A játék indítási logika)
-            // ...
             const selectedGame = games[gameId];
             if (!selectedGame) {
                 showMessage("Hiba", "A kiválasztott játék nem található.", null);
@@ -1216,7 +1219,6 @@
 
         function loadTask(index, resetTaskState = true) {
             // ... (Feladat betöltésének logika)
-            // ...
             const task = appState.currentGame.tasks[index];
             if (!task) return endGame();
 
@@ -1309,7 +1311,6 @@
 
         function checkAnswer() {
             // ... (Válasz ellenőrzésének logika)
-            // ...
             const inputElement = document.getElementById('answer-input');
             const answer = inputElement.value;
             const normalizedAnswer = normalizeAnswer(answer);
@@ -1352,7 +1353,6 @@
 
         function useHint(hintNumber) {
             // ... (Segítség felhasználásának logika)
-            // ...
             const task = appState.currentGame.tasks[appState.currentTaskIndex];
             
             if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage("Messze Vagy", "Lépj be a zónába a segítség kéréséhez!"); }
@@ -1394,7 +1394,6 @@
 
         function endGame() {
             // ... (Játék befejezésének logika)
-            // ...
             stopTimer();
             clearGameState(); // Töröljük a mentést
             
@@ -1713,13 +1712,15 @@
             routeMapDiv.style.height = '50px';
 
             setTimeout(() => {
-                html2pdf().from(element).set({
+                html2pdf().from(element).set(
+                    {
                     margin: 10,
                     filename: fileName,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                }).save().then(() => {
+                    }
+                ).save().then(() => {
                      // Visszaállítjuk a stílusokat és a térkép konténert
                      element.style.cssText = originalStyle;
                      routeMapDiv.style.height = '300px';
@@ -1776,7 +1777,7 @@
         document.getElementById('report-error-btn').addEventListener('click', showReportModal); 
         document.getElementById('submit-error-report').addEventListener('click', handleSubmitError); 
         
-        // Manuális fájlválasztás (CSV, XLSX, JSON)
+        // Manuális XLSX/TXT fájlválasztás
         document.getElementById('excel-file-input').addEventListener('change', (event) => {
              const file = event.target.files[0];
              if (!file) return;
@@ -1811,21 +1812,24 @@
              reader.readAsArrayBuffer(file);
         });
         
+        // Manuális JSON/XLSX/TXT fájlválasztás a Landing Page-ről (JAVÍTVA JSON OLVASÁSRA)
         document.getElementById('excel-file-input-manual').addEventListener('change', (event) => {
              const file = event.target.files[0];
              if (!file) return;
 
+             showLoading(true);
              const reader = new FileReader();
+             
              reader.onload = (e) => {
                 try {
-                     const data = new Uint8Array(e.target.result);
                      let jsonData = {};
                      
                      if (file.name.toLowerCase().endsWith('.json')) {
-                        // JSON olvasása
-                        jsonData = JSON.parse(new TextDecoder().decode(data));
+                        // JSON olvasása: Text-ként kell olvasni, majd parsolni
+                        jsonData = JSON.parse(e.target.result);
                      } else {
-                        // XLSX/TXT olvasása
+                        // XLSX/TXT olvasása: ArrayBuffer kell az XLSX.js-nek
+                        const data = new Uint8Array(e.target.result);
                         const wb = XLSX.read(data, {type:'array'});
                         jsonData = {
                             games: XLSX.utils.sheet_to_json(wb.Sheets['games']),
@@ -1838,6 +1842,7 @@
                      showLoading(false);
                      renderGameList();
                      showPage('game-list-page');
+                     document.getElementById('manual-file-select-label').classList.add('hidden');
 
                 } catch (error) {
                      showLoading(false);
@@ -1845,11 +1850,12 @@
                      document.getElementById('manual-file-select-label').classList.remove('hidden');
                 }
              };
-             // Ha JSON, Text-ként olvassuk, ha bináris (XLSX/TXT) ArrayBuffer-ként
+             
+             // Fájl olvasása a kiterjesztés alapján
              if (file.name.toLowerCase().endsWith('.json')) {
-                 reader.readAsText(file);
+                 reader.readAsText(file); // JSON-t szövegként olvassuk
              } else {
-                 reader.readAsArrayBuffer(file);
+                 reader.readAsArrayBuffer(file); // XLSX/TXT-t binárisan olvassuk
              }
         });
 
