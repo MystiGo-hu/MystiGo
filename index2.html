@@ -938,15 +938,14 @@ function downloadPDF() {
 
             const errorDescription = document.getElementById('error-description-input').value.trim();
             
-            // Feladat lezárása 0 ponttal
-            // A RESCUE_TASK_SCORE (0) hozzáadása biztosítja, hogy 0 pontot kapjon
-            // *** MÓDOSÍTÁS: Ekkor is a taskScore-t állítjuk 0-ra, majd adjuk hozzá a teljes score-hoz. ***
+            // Logolás: (Éles környezetben itt kellene a szerverre küldeni az infót)
+            console.log(`Hiba bejelentve a ${appState.currentTaskIndex}. feladatnál: ${errorDescription}`);
+            
+            // *** MÓDOSÍTÁS: Nincs levonás a teljes score-ból. Csak nullázzuk a taskScore-t. ***
             const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
             
-            // Levonjuk a megmaradt pontot a taskScore-ból (így 0 lesz)
-            appState.score += currentTask.taskScore > 0 ? -currentTask.taskScore : 0;
+            // A feladat pontszámát 0-ra állítjuk. A handleCorrectAnswer fogja a 0 pontot hozzáadni.
             currentTask.taskScore = 0; 
-            // *** MÓDOSÍTÁS VÉGE ***
             
             updateStatusDisplays();
             
@@ -1120,7 +1119,7 @@ function downloadPDF() {
             // Váltás az 1. igazi feladatra
             appState.currentTaskIndex = 1; // Explicit beállítás
             
-            // *** MÓDOSÍTÁS: A feladat pontjainak beállítása (a loadTask-ban történik) ***
+            // *** MÓDOSÍTÁS: Nincs kezdeti pont hozzáadás, a loadTask csinálja! ***
             
             loadTask(appState.currentTaskIndex); 
             
@@ -1453,8 +1452,7 @@ function startGame(gameId) {
             
             if (appState.currentTaskIndex < appState.currentGame.tasks.length) {
                 
-                // Nincs szükség külön pontszám adásra, mert a loadTask inicializálja 100-ra.
-
+                // A loadTask beállítja a következő feladat taskScore-ját 100-ra, ha nem start task
                 loadTask(appState.currentTaskIndex);
             } else {
                 endGame();
@@ -1992,13 +1990,11 @@ function startGame(gameId) {
             // Logolás: (Éles környezetben itt kellene a szerverre küldeni az infót)
             console.log(`Hiba bejelentve a ${appState.currentTaskIndex}. feladatnál: ${errorDescription}`);
             
-            // *** MÓDOSÍTÁS: Task pontszám 0-ra állítása és levonása a teljes score-ból (csak ha pozitív) ***
+            // *** MÓDOSÍTÁS: Nincs levonás a teljes score-ból. Csak nullázzuk a taskScore-t. ***
             const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
             
-            // Csak a pozitív pontot vonjuk le, hogy a feladat pontja 0 legyen
-            appState.score -= currentTask.taskScore;
+            // A feladat pontszámát 0-ra állítjuk. A handleCorrectAnswer fogja a 0 pontot hozzáadni.
             currentTask.taskScore = 0; 
-            // *** MÓDOSÍTÁS VÉGE ***
             
             updateStatusDisplays();
             
@@ -2065,6 +2061,18 @@ function startGame(gameId) {
                  // Ha a landing page-en vagyunk, a logoO kattintás nem a listát hívja elő,
                  // de ha mégis előkerül a listás oldal, akkor a trigger már be van állítva.
             });
+            
+            // *** ÚJ ESEMÉNY FIGYELŐ: Logó kattintásra visszavisz a Landing Page-re ***
+            const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
+            if (mainHeaderLogoContainer) {
+                mainHeaderLogoContainer.style.cursor = 'pointer'; // Vizuális visszajelzés
+                mainHeaderLogoContainer.addEventListener('click', () => {
+                    // A resetApp() funkció biztosítja a teljes visszaállítást
+                    resetApp();
+                });
+            }
+            // *** MÓDOSÍTÁS VÉGE ***
+
             
             // Fájl kiválasztása és feldolgozása (manuális feltöltés a Landing Page-en, hiba esetén)
             if (manualFileInput) {
@@ -2171,7 +2179,6 @@ function startGame(gameId) {
                     // *** MÓDOSÍTÁS: Csak ha még pozitív a taskScore, akkor vonunk le pontot. ***
                     if (task.taskScore > 0) {
                         task.taskScore = Math.max(0, task.taskScore - WRONG_ANSWER_PENALTY);
-                        // A teljes score-hoz nem adunk hozzá, és nem vonunk le. Csak a következő feladat betöltésénél, ha helyes volt.
                     }
                     showMessage(t('wrong_title'), `Próbáld újra! Rossz válasz: -${WRONG_ANSWER_PENALTY} pont. (Maradt pont: ${task.taskScore})`);
                 }
