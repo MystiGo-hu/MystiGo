@@ -151,7 +151,8 @@
         /* Extra CSS a gomb garantált megjelenítéséhez és pozíciójához (FELOLVASÓ GOMB JAVÍTÁS) */
         #speak-story-btn {
             position: absolute;
-            top: 1rem; /* Beállítja a gomb függőleges helyzetét (belül) */
+            top: 50%; /* Módosítva: Középre igazítás */
+            transform: translateY(-50%); /* Módosítva: Középre igazítás */
             right: 0.5rem; /* Beállítja a gomb vízszintes helyzetét (belül) */
             display: flex !important; /* Erősen kikényszeríti a láthatóságot */
             width: 32px; /* Kisebb méret */
@@ -316,7 +317,7 @@
                         <div id="secret-switches-container" class="mt-4 p-4 bg-gray-50 rounded-xl hidden">
                             <h2 id="developer-tools-toggle" class="text-xs font-bold text-text-heading mb-3 cursor-pointer select-none flex justify-between items-center">
                                 Fejlesztői Eszközök
-                                <span class="text-gray-500">▼</span>
+                                <span class="text-gray-50">▼</span>
                             </h2>
                             <div id="developer-options" class="space-y-2 hidden">
                                 <label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
@@ -500,10 +501,10 @@
         // --- GLOBAL STATE & CONSTANTS ---
         let games = {};
         const GEOFENCE_DEFAULT_RADIUS = 20; // ÚJ: Alapértelmezett sugár
-        const DEFAULT_SCORE_PER_TASK = 100; // Alap pontszám / feladat
+        const DEFAULT_SCORE_PER_TASK = 100; // Alap pontszám / feladat (Ezt kapja a feladat indításakor)
         const HINT1_PENALTY = 20; // Első segítség pontlevonás
         const HINT2_PENALTY = 30; // Második segítség pontlevonás
-        const SOLUTION_PENALTY = 50; // Megoldás pontlevonás (kérésre -50 pont)
+        const SOLUTION_PENALTY_IGNORED = 50; // A korábbi fix -50 pont levonás helyett most a hátralévő pontot vonjuk le.
         const WRONG_ANSWER_PENALTY = 1; // Rossz válasz pontlevonás
         const RESCUE_TASK_CORRECT_ANSWER = '4'; // A mentőöv feladat helyes válasza
         const RESCUE_TASK_SCORE = 0; // MÓDOSÍTVA: Mentőöv feladatért járó pont (0 pont)
@@ -939,7 +940,14 @@ function downloadPDF() {
             
             // Feladat lezárása 0 ponttal
             // A RESCUE_TASK_SCORE (0) hozzáadása biztosítja, hogy 0 pontot kapjon
-            appState.score += RESCUE_TASK_SCORE; 
+            // *** MÓDOSÍTÁS: Ekkor is a taskScore-t állítjuk 0-ra, majd adjuk hozzá a teljes score-hoz. ***
+            const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
+            
+            // Levonjuk a megmaradt pontot a taskScore-ból (így 0 lesz)
+            appState.score += currentTask.taskScore > 0 ? -currentTask.taskScore : 0;
+            currentTask.taskScore = 0; 
+            // *** MÓDOSÍTÁS VÉGE ***
+            
             updateStatusDisplays();
             
             hideReportModal();
@@ -1027,7 +1035,8 @@ function downloadPDF() {
                         solution: String(task.solution || ''), // Az eredeti solution (pl. Megoldás gombhoz)
                         acceptedAnswers: acceptedAnswers, 
                         hintsUsed: 0, 
-                        timeSpent: 0 
+                        timeSpent: 0,
+                        taskScore: 0 // ÚJ: A feladatért kapott aktuális pontszám
                     }); 
                 });
                 // --- KORRIGÁLT JAVÍTÁS VÉGE ---
@@ -1110,6 +1119,9 @@ function downloadPDF() {
 
             // Váltás az 1. igazi feladatra
             appState.currentTaskIndex = 1; // Explicit beállítás
+            
+            // *** MÓDOSÍTÁS: A feladat pontjainak beállítása (a loadTask-ban történik) ***
+            
             loadTask(appState.currentTaskIndex); 
             
             // Geo-fence és Marker azonnali frissítése a célkoordinátára
@@ -1210,7 +1222,8 @@ function startGame(gameId) {
         solution: '', 
         acceptedAnswers: [],
         hintsUsed: 0, 
-        timeSpent: 0
+        timeSpent: 0,
+        taskScore: 0 // Start feladat pontja 0
     };
     
     let realTasks = appState.currentGame.tasks; // A valódi feladatok (index 1-től N-ig, már index alapján sortolva)
@@ -1337,6 +1350,14 @@ function startGame(gameId) {
             const task = appState.currentGame.tasks[taskIndex];
             const isStartTask = task.isStartTask; 
 
+            // *** ÚJ LOGIKA: Feladat pontszámának inicializálása ***
+            if (!isStartTask && task.taskScore !== DEFAULT_SCORE_PER_TASK) { 
+                 task.taskScore = DEFAULT_SCORE_PER_TASK; 
+            } else if (isStartTask) {
+                 task.taskScore = 0; // Start feladat 0 pont
+            }
+            // *** ÚJ LOGIKA VÉGE ***
+
             // UI váltás a normál feladatra (Mentőöv UI törölve)
             document.getElementById('normal-task-content').classList.remove('hidden');
             
@@ -1422,9 +1443,18 @@ function startGame(gameId) {
             // Feladatra fordított idő mentése
             currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
 
+            // *** FONTOS MÓDOSÍTÁS: Az aktuális feladat pontszámát adjuk hozzá a teljes score-hoz ***
+            if (currentTask.taskScore > 0 && !currentTask.isStartTask) {
+                appState.score += currentTask.taskScore; 
+            }
+            // *** MÓDOSÍTÁS VÉGE ***
+
             appState.currentTaskIndex++;
-            // *** MÓDOSÍTVA: Ha befejeztük a játékot, egyből a resetApp-et hívjuk, ami visszavisz a listára ***
+            
             if (appState.currentTaskIndex < appState.currentGame.tasks.length) {
+                
+                // Nincs szükség külön pontszám adásra, mert a loadTask inicializálja 100-ra.
+
                 loadTask(appState.currentTaskIndex);
             } else {
                 endGame();
@@ -1962,8 +1992,14 @@ function startGame(gameId) {
             // Logolás: (Éles környezetben itt kellene a szerverre küldeni az infót)
             console.log(`Hiba bejelentve a ${appState.currentTaskIndex}. feladatnál: ${errorDescription}`);
             
-            // Feladat lezárása 0 ponttal
-            appState.score += RESCUE_TASK_SCORE; // RESCUE_TASK_SCORE = 0
+            // *** MÓDOSÍTÁS: Task pontszám 0-ra állítása és levonása a teljes score-ból (csak ha pozitív) ***
+            const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
+            
+            // Csak a pozitív pontot vonjuk le, hogy a feladat pontja 0 legyen
+            appState.score -= currentTask.taskScore;
+            currentTask.taskScore = 0; 
+            // *** MÓDOSÍTÁS VÉGE ***
+            
             updateStatusDisplays();
             
             hideReportModal();
@@ -2129,11 +2165,15 @@ function startGame(gameId) {
                 // *** JAVÍTOTT ELLENŐRZÉS VÉGE ***
                 
                 if (isCorrect) {
-                    appState.score += DEFAULT_SCORE_PER_TASK; 
-                    showMessage(t('correct_title'), t('correct_body'), handleCorrectAnswer);
+                    // A helyes válasz leadása után a feladatért járó aktuális pontszámot kapja meg (ami taskScore-ban van)
+                    showMessage(t('correct_title'), `Ügyes vagy! (+${task.taskScore} pont)`, handleCorrectAnswer);
                 } else {
-                    appState.score -= WRONG_ANSWER_PENALTY; 
-                    showMessage(t('wrong_title'), t('wrong_body'));
+                    // *** MÓDOSÍTÁS: Csak ha még pozitív a taskScore, akkor vonunk le pontot. ***
+                    if (task.taskScore > 0) {
+                        task.taskScore = Math.max(0, task.taskScore - WRONG_ANSWER_PENALTY);
+                        // A teljes score-hoz nem adunk hozzá, és nem vonunk le. Csak a következő feladat betöltésénél, ha helyes volt.
+                    }
+                    showMessage(t('wrong_title'), `Próbáld újra! Rossz válasz: -${WRONG_ANSWER_PENALTY} pont. (Maradt pont: ${task.taskScore})`);
                 }
                 updateStatusDisplays();
             });
@@ -2147,7 +2187,8 @@ function startGame(gameId) {
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 if (task.hintsUsed < 1) { 
-                    appState.score -= HINT1_PENALTY; 
+                    // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
+                    task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); // Fix -20 pont
                     task.hintsUsed = 1;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
@@ -2166,7 +2207,8 @@ function startGame(gameId) {
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 if (task.hintsUsed < 2) { 
-                    appState.score -= HINT2_PENALTY; 
+                    // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
+                    task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); // Fix -30 pont
                     task.hintsUsed = 2;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
@@ -2185,12 +2227,16 @@ function startGame(gameId) {
                 
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
-                appState.score -= SOLUTION_PENALTY;
+                // *** ÚJ LOGIKA: A HÁTRALÉVŐ PONT LEVONÁSA (A taskScore-t 0-ra viszi) ***
+                const scoreLost = task.taskScore; // Levonandó pont: az aktuális taskScore
+                task.taskScore = 0; // A taskScore 0 lesz
                 
-                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. `, () => {
+                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. (Levont pont: ${scoreLost})`, () => {
                     handleCorrectAnswer(); 
                     updateStatusDisplays();
                 });
+                // *** ÚJ LOGIKA VÉGE ***
+                
                 saveGameState(); // ÁLLAPOT MENTÉSE
             });
             
