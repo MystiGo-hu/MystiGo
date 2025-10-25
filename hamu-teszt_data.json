@@ -1,0 +1,43 @@
+{
+  "games": [
+    {
+      "id": "hamu-teszt",
+      "type": "normal",
+      "title": "Hamu u. teszt pálya",
+      "age": "6+",
+      "price": 0,
+      "description": "Séta a Hamu utcában",
+      "startLocationLat": 47.43474024308314,
+      "startLocationLng": 19.163423567679114,
+      "startGeofenceRadius": null,
+      "endStory": "Ügyesen végigmentél a Hamu utcán",
+      "imageUrl": "hamu.png"
+    }
+  ],
+  "tasks": [
+    {
+      "gameId": "hamu-teszt",
+      "index": 0,
+      "locationLat": 47.4350488157327,
+      "locationLng": 19.164046677783087,
+      "geofenceRadius": NaN,
+      "story": "A ködös utca\nKrisztián egy hűvös, ködös estén indult haza a kihalt utcán. A lámpák fénye sárgásan vibrált, mintha a levegő is lélegezne. A távolban egy csendes, alig hallható dorombolás hangja szűrődött át a ködből.",
+      "prompt": "2+2",
+      "hint1": "több mint 3",
+      "hint2": "kevesebb mint 5",
+      "solution": "4;44;444"
+    },
+    {
+      "gameId": "hamu-teszt",
+      "index": 1,
+      "locationLat": 47.43370173853671,
+      "locationLng": 19.162764570728925,
+      "geofenceRadius": NaN,
+      "story": "Az új hajnal\nAmikor felébredt, ugyanazon az utcán állt, de a hajnal fénye áttört a házak között. Az órásbolt helyén már csak egy omladozó téglaépület maradt, rajta a felirat: Bezárt 1952-ben. A macska árnyéka még egyszer átsuhant a falon – majd eltűnt a napfényben.",
+      "prompt": "5+5",
+      "hint1": "tobb mint 9",
+      "hint2": "kevesebb mint 11",
+      "solution": 10
+    }
+  ]
+}
