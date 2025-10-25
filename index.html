@@ -266,6 +266,13 @@
             object-fit: contain; 
         }
 
+/* ÚJ STÍLUS AZ IKONOKNAK - MÓDOSÍTOTT */
+        .landing-icons {
+            font-size: 2rem; /* A kért ikonok méretének növelése */
+            margin-bottom: 1.5rem; 
+            color: var(--brand-orange);
+        }
+
         /* 2. KÉRÉS: SZÖVEG TELJES SZÉLESSÉGRE ÁLLÍTÁSA ASZTALI NÉZETBEN */
         @media (min-width: 1024px) {
             .landing-text-container {
@@ -298,17 +305,21 @@
             <div class="w-full flex flex-col items-center justify-start flex-grow">
                 
                 <div class="landing-text-container max-w-sm mx-auto">
-                    <h2>Üdvözlünk a MystiGo világában! 🧭🐾</h2>
+                    <h2>Üdvözlünk a MystiGo világában!</h2>
+		    <div class="landing-icons text-center">
+                        🐈🧭 <span class="mx-0"></span> 🐾
+                    </div>
+
                     <p>A MystiGo egy városi <strong>kalandjáték</strong>, ahol a <strong>szabadban</strong> barangolhatsz, miközben rejtélyeket oldasz meg és felfedezed a környék titkait.</p>
 
-                    <p>Legyen szó <strong>gyerekek</strong>ről, <strong>család</strong>okról, baráti társaságokról, <strong>csapatépítés</strong>ről vagy <strong>osztálykirándulás</strong>ról – mindenki megtalálja a neki való kalandot.</p>
+                    <p>Legyen szó <strong>gyerekek</strong>ről, <strong>családokról</strong>, baráti társaságokról, <strong>csapatépítés</strong>ről vagy <strong>osztálykirándulás</strong>ról – mindenki megtalálja a neki való kalandot.</p>
 
-                    <p>A MystiGo segít kimozdulni a lakásból, de nem kell teljesen elengedned a telefonodat sem, mert az lesz a térképed, a segítőd és a nyomozótársad is.</p>
+                    <p>A <strong>MystiGo</strong> segít kimozdulni a lakásból, de nem kell teljesen elengedned a telefonodat sem, mert az lesz a térképed, a segítőd és a nyomozótársad is egyben.</p>
 
                     <p class="highlight">
                         🎒 Indulj el, fedezd fel a várost, és gyűjts MystiPoint-okat minden kaland után!
                     </p>
-                    <p>Fedezd fel a világot, lépésről lépésre – MystiGo-val.</p>
+                    <p>Fedezd fel a világot, lépésről lépésre – <strong>MystiGo</strong>-val.</p>
 
                     <p class="text-center mt-6 text-2xl font-bold text-brand-blue">Készen állsz a kalandra?</p>
                 </div>
