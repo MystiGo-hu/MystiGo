@@ -287,7 +287,7 @@
                                 <span id="geofence-timer-display">00:00</span>
                             </div>
                             <div class="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full text-brand-orange-500">
-                                <svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1-81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                <svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1-81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                                 <span id="score-display">0</span>
                             </div>
                         </div>
@@ -347,9 +347,6 @@
                             </div>
                         </div>
                         
-                        <div id="qr-code-container" class="flex justify-center my-4 hidden">
-                            <img src="./QR_code.png" alt="QR Kód" class="w-24 h-24 object-contain">
-                        </div>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
@@ -465,7 +462,7 @@
         </div>
     </div>
     
-    <div id="loading-overlay" class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center flex"><div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div></div>
+//    <div id="loading-overlay" class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center flex"><div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div></div>
     
     <div id="message-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-6 text-center max-w-sm w-full shadow-xl">
@@ -964,7 +961,8 @@ function downloadPDF() {
             const missing = req.filter(k => !(k in obj) || obj[k] === null || String(obj[k]).trim() === '');
             if (missing.length > 0) throw new Error(`'${ctx}' munkalap hiba: A(z) ${missing.map(m => `"${m}"`).join(', ')} mező(k) hiányzik/üres.`);
         }
-function processExcelData(workbook) {
+
+        function processExcelData(workbook) {
             try {
                 const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
                 if (!gamesSheet || !tasksSheet) throw new Error("A 'games' vagy 'tasks' munkalap hiányzik.");
@@ -1031,21 +1029,16 @@ function processExcelData(workbook) {
                 renderGameList();
                 
                 // JAVÍTVA: Betöltő képernyő leállítása és a Játéklista oldalra lépés.
-                showLoading(false); // Ezt hagyd bent!
-
-                // *** HOZZÁADVA: A töltőképernyő elrejtésének GARANTÁLÁSA, mielőtt váltunk a felületre ***
-                setTimeout(() => {
-                    showLoading(false); 
-                    showPage('game-list-page');
-                }, 10); 
-                // *** HOZZÁADVA VÉGE ***
+                showLoading(false);
+                showPage('game-list-page');
 
             } catch (error) {
                 // Ezzel a hibával már elkapjuk az undefined hibákat is
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                 showLoading(false);
             }
-        }   
+        }
+        
         // --- UI RENDERING & STATUS ---
         function renderGameList() {
             const listEl = document.getElementById('game-list');
@@ -2008,12 +2001,7 @@ function startGame(gameId) {
                 // MÓDOSÍTÁS 6: A landing page megjelenítése helyett azonnal a Kalandlista oldalra ugrik 
                 // és elindítja az automatikus betöltést.
                 showPage('game-list-page'); // A tartalom konténer láthatóvá válik
-                
-                // *** JAVÍTÁS (IDŐZÍTÉS): Késleltetjük a betöltést, hogy a DOM felépüljön ***
-                setTimeout(() => {
-                   loadLocalXlsx(DEFAULT_GAME_FILE);
-                }, 50); 
-                // *** JAVÍTÁS VÉGE ***
+                loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
 
