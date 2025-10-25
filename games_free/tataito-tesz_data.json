@@ -1,0 +1,103 @@
+{
+  "games": [
+    {
+      "id": "tataito-tesz",
+      "type": "kids",
+      "title": "Mysti cica a Tatai Öreg-tónál",
+      "age": "6+",
+      "price": 0.0,
+      "description": "Egy napsütéses délelőtt Mysti, a narancssárga kiscica, megérkezett a Tatai Öreg-tó partjára. A víz csillogott, a hattyúk méltóságteljesen siklottak rajta, és a háttérben a vár tornyai tündököltek. Mysti a fák lombjai alatt sétált, hallgatta a madarak csicsergését, és közben a medálja halkan csengett a nyakában. Tudta, hogy minden hang, minden árnyék egy új titkot rejthet. Kíváncsian elindult, hogy felfedezze a tópart rejtett csodáit.",
+      "startLocationLat": 47.64236232897382,
+      "startLocationLng": 18.338481328931568,
+      "endStory": "Ahogy a nap lebukott a vár mögött, Mysti leült a part menti fűbe. A tó vize narancs és arany színekben játszott, mintha őt tükrözné vissza. A szellő lágyan fújt, és a nádas susogása búcsúként ringatta. Mysti elégedetten dorombolt – ma is tíz titkot fejtett meg, és új barátokat szerzett a tónál. A medálja utoljára csengett egyet, mintha azt mondta volna: „Holnap új kaland vár!”",
+      "imageUrl": "tata.png",
+      "startGeofenceRadius": null
+    }
+  ],
+  "tasks": [
+    {
+      "gameId": "tataito-tesz",
+      "index": 1,
+      "locationLat": 47.64184565217391,
+      "locationLng": 18.33779566914559,
+      "geofenceRadius": null,
+      "story": "A hattyúk királynője – Mysti négy hattyút lát a vízen, de három fióka is csatlakozik.",
+      "prompt": "Hány hattyú úszik összesen?",
+      "hint1": "4+3",
+      "hint2": "1-el több mint 6",
+      "solution": "7"
+    },
+    {
+      "gameId": "tataito-tesz",
+      "index": 2,
+      "locationLat": 47.64121347596179,
+      "locationLng": 18.33812947719929,
+      "geofenceRadius": null,
+      "story": "A tó tükre – Mysti belenéz a vízbe, és a hullámokban látja magát.",
+      "prompt": "Ki hány éves?\nÁdám 10 éves, Bori 2 évvel fiatalabb Nóránál, Nóra 1 évvel idősebb Ádámnál. Hány éves Bori?",
+      "hint1": "Nóra = Ádám + 1",
+      "hint2": "Bori = Nóra – 2",
+      "solution": "9"
+    },
+    {
+      "gameId": "tataito-tesz",
+      "index": 3,
+      "locationLat": 47.64061776445355,
+      "locationLng": 18.33835502318152,
+      "geofenceRadius": null,
+      "story": "A békakórus – Egy, kettő, három, majd még kettő béka énekel.",
+      "prompt": "Hány béka énekel összesen?",
+      "hint1": "Számold össze mindet!",
+      "hint2": "Három és kettő együtt...",
+      "solution": "5"
+    },
+    {
+      "gameId": "tataito-tesz",
+      "index": 4,
+      "locationLat": 47.63998557338295,
+      "locationLng": 18.33817458639573,
+      "geofenceRadius": null,
+      "story": "A virágos rét titka – Mysti négyféle virágot lát: pipacs, margaréta, pitypang, ibolya.",
+      "prompt": "Melyik sárga színű?",
+      "hint1": "Gondolj a napsárga virágra!",
+      "hint2": "Nem pipacs, nem ibolya…",
+      "solution": "Pitypang"
+    },
+    {
+      "gameId": "tataito-tesz",
+      "index": 5,
+      "locationLat": 47.638735829138064,
+      "locationLng": 18.3390566646349,
+      "geofenceRadius": null,
+      "story": "A béka koncert.\nA nád között hirtelen halk „brek-brek” hallatszott. Egy apró zöld béka nézett fel Mystire, mintha köszöntötte volna. Nemsokára még három társa is csatlakozott, és együtt brekegni kezdtek, mint egy vízi zenekar!",
+      "prompt": "A parti kövön egy béka ugrál: 4, 8, 12, ... és mindig ugyanannyit ugrik tovább.\nMi a következő szám a sorban?",
+      "hint1": "Mindig 4-el több.",
+      "hint2": "20-nál kevesebb",
+      "solution": "16"
+    },
+    {
+      "gameId": "tataito-tesz",
+      "index": 6,
+      "locationLat": 47.63720227831224,
+      "locationLng": 18.33913252899207,
+      "geofenceRadius": null,
+      "story": "A rejtett kavics.\nMysti egy különös, csillogó kavicsot vett észre a part mentén. A kavics kékesen fénylett, mintha a Duna tükréből született volna. Vajon mit rejt a belseje?",
+      "prompt": "Mysti négy rajzot lát a korláton: kacsa, sirály, gyík, hal\nMelyik nem illik a többiek közé?",
+      "hint1": "Az egyik máshol él mint a többi.",
+      "hint2": "Az egyiknek nincs lába",
+      "solution": "hal"
+    },
+    {
+      "gameId": "tataito-tesz",
+      "index": 7,
+      "locationLat": 47.63458491433835,
+      "locationLng": 18.33975461644209,
+      "geofenceRadius": null,
+      "story": "A varázsmedál fénye – Mysti medálja egy csillag alakot rajzol a vízre.",
+      "prompt": "Ha két indián két perc alatt két nyilat lő ki, akkor tíz indián tíz perc alatt hány nyilat lő ki?",
+      "hint1": "2 indián 2 nyilat lő ki 2 perc alatt. Ez azt jelenti, hogy 1 indián 2 perc alatt 1 nyilat lő ki.",
+      "hint2": "Ha 1 indián 2 perc alatt 1 nyilat lő, akkor 10 perc alatt 5 nyilat (mert 10 ÷ 2 = 5)",
+      "solution": "50"
+    }
+  ]
+}

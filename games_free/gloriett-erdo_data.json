@@ -1,0 +1,139 @@
+{
+  "games": [
+    {
+      "id": "gloriett-erdo",
+      "type": "team",
+      "title": "Gloriett Erdő Titka",
+      "age": "6+",
+      "price": 0.0,
+      "description": "Egy késő őszi délutánon Mysti elindult a hegyek felé, hogy lefotózza a naplementét. Az út mentén már dér csillogott a fűszálakon, a fák pedig suttogva hajladoztak a szélben. Amint elérte az erdő szélét, különös érzés fogta el – mintha valaki figyelné. A madarak egyszerre hallgattak el, és a levegő szinte megfagyott.\nEkkor halvány fény derengett fel az ösvény mélyén, mintha egy ezüst lámpás világítana odabent. Mysti tudta, hogy nem lenne szabad követnie… mégis lépett egyet, aztán még egyet. A világ körülötte lassan megváltozott: a fák törzsei megnyúltak, a színek tompábbá váltak, és minden hangtalan lett. Az Ezüsterdő kapuja bezárult mögötte.",
+      "startLocationLat": 47.428092680702704,
+      "startLocationLng": 19.17703094175861,
+      "endStory": "Amikor visszaért a faluhoz, a nap már lebukóban volt a hegy mögött. Az emberek furcsán néztek rá, mintha napok óta nem látták volna. A telefonja lemerült, az órája megállt pontosan akkor, amikor belépett az erdőbe.\nEgy kisgyerek virágot szedett az úton, és Mysti meglepetten vette észre: a kislány hajában ugyanaz az ezüstlevél csillogott. „Szép, ugye?” – kérdezte a gyerek. Mysti csak bólintott. A szél halk dallamot hozott az erdő felől – mintha az Ezüsterdő még mindig figyelné őt.",
+      "imageUrl": "thumbnails\\erdo2.png",
+      "startGeofenceRadius": null
+    }
+  ],
+  "tasks": [
+    {
+      "gameId": "gloriett-erdo",
+      "index": 1,
+      "locationLat": 47.428092680702704,
+      "locationLng": 19.17703094175861,
+      "geofenceRadius": null,
+      "story": "A fénylő ösvény.\nA talaj alatt apró, kékes fények izzottak, mint elrejtett csillagok. Mysti mezítláb lépett tovább, mert a cipője túl hangosan csoszogott ebben a némaságban. A fények minden lépésére reagáltak, mintha életre keltek volna. A lány érezte: az erdő él, és figyeli őt.",
+      "prompt": "Van egy 12 szeletes torta, ebből 4 szeltetet megeszel a maradék negyedét a kutya eszi meg. Mennyi torta marad?",
+      "hint1": "12-4=8",
+      "hint2": "8-nak a negyede az 2",
+      "solution": "6"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 2,
+      "locationLat": 47.42722647351093,
+      "locationLng": 19.17805697905915,
+      "geofenceRadius": null,
+      "story": "A folyó, ami visszafelé folyt.\nEgy keskeny folyóhoz ért, amelyben a víz felfelé hömpölygött, mintha az ég felé sietne. Amikor belemártotta az ujját, a víz hideg volt, de a bőrét meleg bizsergés járta át. A túlparton egy árnyék suhant el, emberi alak, de hangtalanul. Mysti nem tudta, követnie kellene-e, vagy menekülnie.",
+      "prompt": "Ha holnapután csütörtök, akkor milyen nap van ma?",
+      "hint1": "Gondold végig visszafelé: ha holnapután csütörtök, akkor holnap szerda.",
+      "hint2": "Ha holnap szerda, akkor ma…",
+      "solution": "Kedd"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 3,
+      "locationLat": 47.42652602629024,
+      "locationLng": 19.1789153021512,
+      "geofenceRadius": null,
+      "story": "A szikla, ami suttogott.\nA folyó mentén egy hatalmas, mohás szikla állt, rajta ősi rovásokkal. Ahogy közelebb hajolt, a kövek suttogni kezdtek – a saját nevét hallotta. „Mysti… te is emlékszel, igaz?” – mondta a hang. A lány hátrahőkölt: soha életében nem járt itt, mégis minden ismerősnek tűnt.",
+      "prompt": "Tortaszeletelés.\nEgy kerek tortát két egyenes vágással legfeljebb hány darabra tudsz vágni?",
+      "hint1": "Egy vágás két darab.",
+      "hint2": "A második vágást úgy tedd, hogy mindkét régi darabot metsze.",
+      "solution": "4"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 4,
+      "locationLat": 47.4256332313087,
+      "locationLng": 19.18012766083825,
+      "geofenceRadius": null,
+      "story": "A fák szemei.\nA fák törzsén kis gödrök tátongtak, mint szemüregek. Egy pillanatra úgy tűnt, mintha tényleg pislognának. Amikor elhaladt mellettük, mind felé fordultak, követve minden mozdulatát. Mysti lehajtotta a fejét és gyorsított a léptein – az erdő most már nemcsak figyelt, hanem próbára is tette.",
+      "prompt": "Ki hány éves?\nÁdám 10 éves, Bori 2 évvel fiatalabb Nóránál, Nóra 1 évvel idősebb Ádámnál. Hány éves Bori?",
+      "hint1": "Nóra = Ádám + 1",
+      "hint2": "Bori = Nóra – 2",
+      "solution": "9"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 5,
+      "locationLat": 47.42486381861795,
+      "locationLng": 19.181157628997017,
+      "geofenceRadius": null,
+      "story": "A harangtorony a fák között.\nA sűrűségben egyszer csak fémes csilingelést hallott. Egy elhagyatott, mohával benőtt kis harangtorony állt előtte, mintha egy rég eltűnt falu maradványa lenne. A harang magától mozdult meg, lassan kondult egyet. A hang hullámai átszelték az erdőt, és hirtelen minden mozdulatlanná vált.",
+      "prompt": "Add össze az Aranybulla évszámának számjegyeit, ennyiedik betű az Angol ABC-ben.",
+      "hint1": "Aranybulla 1222",
+      "hint2": 7,
+      "solution": "G"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 6,
+      "locationLat": 47.42420327608993,
+      "locationLng": 19.18224124159133,
+      "geofenceRadius": null,
+      "story": "Az idő megáll.\nA levegőben megdermedtek a falevelek, és még a szél is megfagyott. Mysti körülnézett – minden szín elszürkült, csak ő maradt mozgásban. A távolból egy alak közeledett: egy fehér ruhás nő, aki mintha a ködből született volna. „Végre visszatértél” – suttogta.",
+      "prompt": "Ha két indián két perc alatt két nyilat lő ki, akkor tíz indián tíz perc alatt hány nyilat lő ki?",
+      "hint1": "2 indián 2 nyilat lő ki 2 perc alatt. Ez azt jelenti, hogy 1 indián 2 perc alatt 1 nyilat lő ki.",
+      "hint2": "Ha 1 indián 2 perc alatt 1 nyilat lő, akkor 10 perc alatt 5 nyilat (mert 10 ÷ 2 = 5)",
+      "solution": "50"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 7,
+      "locationLat": 47.423811301891874,
+      "locationLng": 19.183807651499457,
+      "geofenceRadius": null,
+      "story": "A múlt árnyai.\nA nő egy fonott kosarat nyújtott át, benne három fénygömbbel. „Ezek az emlékeid, amiket elfelejtettél, amikor elhagytad az erdőt.” Mysti tétován nézett rá – soha nem járt itt, mégis valami belülről ismerte a helyet. Az egyik fénygömb megmozdult, és képet vetített a levegőbe: egy gyerek önfeledten fut az erdei pataknál – ő maga, évekkel ezelőtt.",
+      "prompt": "Ha 5 métert mész előre, majd 2m-t hátra, utána ismét 3m előre akkor hány méterre vagy az indulási ponttól?",
+      "hint1": "Hátra is mentél",
+      "hint2": "5-2+3",
+      "solution": "6"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 8,
+      "locationLat": 47.42336125384296,
+      "locationLng": 19.18542770558252,
+      "geofenceRadius": null,
+      "story": "A döntés.\n„Ha mindhárom fényt visszaveszed, örökre itt maradsz” – mondta a nő. „Ha elengeded őket, elfelejtesz mindent, és visszatérsz az emberi világba.” Mysti szíve hevesen vert, miközben a fénygömbök lassan köröztek körülötte. Végül lehunyta a szemét, és megérintette az egyiket – a múlt legszebb emlékét.",
+      "prompt": "Számsor folytatása.\n2, 4, 8, 16, … Melyik szám következik?",
+      "hint1": "Nézd meg, hogyan változik egyik szám a következőre.",
+      "hint2": "Mindig ugyanannyival szorzunk.",
+      "solution": "32"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 9,
+      "locationLat": 47.42254099506718,
+      "locationLng": 19.186747352566904,
+      "geofenceRadius": null,
+      "story": "A fény felrobban.\nAmint a gömb hozzáért, vakító fény töltötte be az erdőt. A fák koronái megmozdultak, a folyó újra lefelé kezdett folyni, és a harang ismét megszólalt. Az ezüst levegő vibrálni kezdett, mintha az egész világ lélegezne. Mysti hirtelen zuhanni kezdett – de nem félt.",
+      "prompt": "Melyik a magyar ÁBC 10. betüje?",
+      "hint1": "a 12. a \"G\"",
+      "hint2": "a 8. a \"Dzs\"",
+      "solution": "É"
+    },
+    {
+      "gameId": "gloriett-erdo",
+      "index": 10,
+      "locationLat": 47.42294749658105,
+      "locationLng": 19.189590493838494,
+      "geofenceRadius": null,
+      "story": "Az ébredés.\nEgy puha mohakupacban ébredt, a nap sugarai áttörtek a lombok között. A fény meleg volt, és a madarak újra énekeltek. A kosár üresen feküdt mellette, csak egy apró ezüstlevél maradt benne. Mysti elmosolyodott – tudta, hogy az Ezüsterdő nem álom volt, csak nem mindenki látja, aki jár benne.",
+      "prompt": "Rejtélyes szám.\nGondolok egy számra. Hozzáadok 5-öt, majd megduplázom, és 22 lesz. Mennyi volt az eredeti szám?",
+      "hint1": "Képzeld el: (x + 5) × 2 = 22",
+      "hint2": "22 ÷ 2 = 11, 11 − 5 = ?",
+      "solution": "6"
+    }
+  ]
+}

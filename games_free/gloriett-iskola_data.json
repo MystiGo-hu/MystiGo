@@ -1,0 +1,103 @@
+{
+  "games": [
+    {
+      "id": "gloriett-iskola",
+      "type": "team",
+      "title": "A Gloriett titkos folyosója",
+      "age": "6+",
+      "price": 0.0,
+      "description": "Egy esős délutánon Mysti cica besurrant a Gloriett Sportiskolába, ahol a gyerekek már hazamentek, csak a takarító néni zörgette a vödröket a folyosón. A tornaterem sarkában azonban valami különösre lett figyelmes – a padló egyik lapja alatt apró fény szivárgott. „Ez biztosan nem csak egy régi lámpa!” – gondolta Mysti, és mancsával óvatosan megnyomta a csempét. A padló megremegett, és egy rejtett ajtó tárult fel előtte, ami egy kódot kért…",
+      "startLocationLat": 47.42864299179549,
+      "startLocationLng": 19.175713302975225,
+      "endStory": "Mysti mancsával beütötte a kódot amit sikerült összegyűjtenie és bejutott a titkos folyosóra. Következő kalandban talán fényderül rá hová vezet ez a titkos járat… Tarts Mystivel a következő kalandban is.",
+      "imageUrl": "gloriett.png",
+      "startGeofenceRadius": null
+    }
+  ],
+  "tasks": [
+    {
+      "gameId": "gloriett-iskola",
+      "index": 1,
+      "locationLat": 47.4283345055176,
+      "locationLng": 19.1751178095692,
+      "geofenceRadius": 10.0,
+      "story": "Mysti hallotta, hogy valami kopog a lépcső alól, mintha üzenni akarna. Mikor odasettenkedett, meglátta a kis fém lapot, amire ez volt vésve: „Aki ide belép, őrzi a tudás lángját.”",
+      "prompt": "Az iskola irányító számából vond ki az iskola házszámát. Hogy írod le Római számmal ezt a számot?",
+      "hint1": "M = 1000",
+      "hint2": "C = 100, L = 50",
+      "solution": "MCLXXVIII"
+    },
+    {
+      "gameId": "gloriett-iskola",
+      "index": 2,
+      "locationLat": 47.42799336972903,
+      "locationLng": 19.174533088035915,
+      "geofenceRadius": 10.0,
+      "story": "Az egyik pad alatt Mysti egy kis borítékot talált, benne egy üzenettel: „Nem minden pad üres, ahol senki sem ül.”\nA borítékban egy fénykép volt, amin a pad háttámláján halványan látszott egy szám.",
+      "prompt": "Az iskola hivatalos e-mail címánek a 10. betűje a következő kód.",
+      "hint1": "Nézd meg a honlapon",
+      "hint2": "gloriett….@gmail.com",
+      "solution": "U"
+    },
+    {
+      "gameId": "gloriett-iskola",
+      "index": 3,
+      "locationLat": 47.4273800455561,
+      "locationLng": 19.173315365202097,
+      "geofenceRadius": 10.0,
+      "story": "Mysti megérezte, hogy a zászló mozgása nemcsak a szél miatt különös. Amikor odament, látta, hogy a zászlótartó tövében egy kis kődarab fénylik, rajta vésett számokkal.",
+      "prompt": "Melyik évben kezdte meg az oktatást az iskola?",
+      "hint1": "Több mint 30 éve",
+      "hint2": "Az évszám számjegyinek összege 27.",
+      "solution": "1989"
+    },
+    {
+      "gameId": "gloriett-iskola",
+      "index": 4,
+      "locationLat": 47.42658888312655,
+      "locationLng": 19.17422731621732,
+      "geofenceRadius": 10.0,
+      "story": "Mysti a háló széléhez lopakodott, ahol valami csillogott a fűben. Egy régi síp feküdt ott, amiből halkan zengő hang áradt – mintha valaki múltból hívná a sportolók lelkét.",
+      "prompt": "Egy tanteremben 10 gyerek ül. Az első szünetben kimegy 3, bejön 5. A következő szünetben 4 kimegy, 2 új gyerek bejön. Hányan vannak a teremben.",
+      "hint1": "Egyszerű matek, ne gondold túl.",
+      "hint2": "Összeadás, kivonás",
+      "solution": "10"
+    },
+    {
+      "gameId": "gloriett-iskola",
+      "index": 5,
+      "locationLat": 47.42728931652335,
+      "locationLng": 19.17525728442274,
+      "geofenceRadius": 10.0,
+      "story": "Mysti egy pillanatra megállt a virágágyásnál, ahol a szél a leveleket különös alakban fújta össze: mintha egy betű formáját rajzolták volna ki. A macska megkaparta a földet, és egy apró, üveges kődarabot talált alatta, benne egy papírcsík: „A természet őrzi a nyolcadik kódot, de a kilencediket csak a figyelmesek találják meg.”",
+      "prompt": "Három ajtó van:\n1 - Az első mögött tűz ég.\n2 - A második mögött egy mérges oroszlán van, amit 3 éve nem etettek.\n3 - A harmadik mögött méreggel teli gáz áramlik.\nMelyik számú ajtón mennél be, hogy túléld?",
+      "hint1": "Gondold végig, mi történne azzal az oroszlánnal 3 év alatt.",
+      "hint2": "Az állat már valószínűleg nem él.",
+      "solution": "2"
+    },
+    {
+      "gameId": "gloriett-iskola",
+      "index": 6,
+      "locationLat": 47.4278590922562,
+      "locationLng": 19.17578299736093,
+      "geofenceRadius": 10.0,
+      "story": "Mysti cica észrevett valamit a legnagyobb fa gyökerénél: egy apró, fényes érmét, rajta különös rovásokkal. Ahogy közelebb ment, a levegő megváltozott, és halkan suttogást hallott: „Az első kód a bölcsesség fájánál rejtőzik…”",
+      "prompt": "Az iskola irányító számának számjegyei összege, ez a magyar ÁBC hányadik betűje?",
+      "hint1": 1186,
+      "hint2": "a J elött van",
+      "solution": "í"
+    },
+    {
+      "gameId": "gloriett-iskola",
+      "index": 7,
+      "locationLat": 47.42814311170687,
+      "locationLng": 19.17651895792345,
+      "geofenceRadius": 10.0,
+      "story": "Ahogy Mysti átsétált a térköveken, hirtelen megállt – az egyik kő alatt halk csengő hangot hallott. A hang egy kerek fémfedél alól jött, amelyet mintha valaki réges-rég elfeledett volna. A fedélen furcsa minták voltak: körök és háromszögek váltakozva, középen pedig egy szám.",
+      "prompt": "Mysti cica és barátja, Misi egymás mellett ültek a padon.\nMysti azt mondta: „Kétszer annyi idős vagyok, mint amikor te voltál annyi idős, mint most én.”\nMisi így válaszolt: „Akkor te most 12 éves vagy.”\nHány éves Misi?",
+      "hint1": "Gondold végig, hogy hány évvel ezelőtt volt Misi fiatalabb Mystinél ugyanannyi különbséggel.",
+      "hint2": "A korkülönbség mindig ugyanannyi marad.",
+      "solution": "8"
+    }
+  ]
+}

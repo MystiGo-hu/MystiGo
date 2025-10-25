@@ -1,0 +1,139 @@
+{
+  "games": [
+    {
+      "id": "biatorbagy-teszt",
+      "type": "kids",
+      "title": "Mysti cica biatorbágyi sétája",
+      "age": "6+",
+      "price": 0.0,
+      "description": "Volt egyszer egy apró, vörös cica, Mysti, akinek türkizkék szemei úgy ragyogtak, mint a tavaszi ég. Egy szép napsütéses reggelen arra ébredt, hogy a szél lágyan fújja a bundáját, és a távolban harangszót hall. A dombok között egy kisváros terült el előtte: Biatorbágy.\n„Milyen különös neve van… talán itt is vár rám egy titok?” – gondolta, és elindult, hogy felfedezze.\nAhogy Mysti elindult, a levegőben valami különös érzés vibrált.\nEgy öreg macska ült egy kerítés tetején, és bölcsen figyelte őt.\n„Ha meg akarod érteni ezt a várost, keresd meg a tíz nyomát – mindegyik egy darabját rejti Biatorbágy szívének.”\nMysti bólintott, és halkan dorombolni kezdett – a kaland elkezdődött.",
+      "startLocationLat": 47.47133315462557,
+      "startLocationLng": 18.84397272405356,
+      "endStory": "Gratulálunk megfejtetted Biatorbágy titkát!",
+      "imageUrl": "biatorbagy.png",
+      "startGeofenceRadius": null
+    }
+  ],
+  "tasks": [
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 1,
+      "locationLat": 47.47133315462557,
+      "locationLng": 18.84397272405356,
+      "geofenceRadius": null,
+      "story": "A reggeli napfény nyoma.\nMysti sétálni kezdett egy virágos utcán, ahol az ablakokból friss kenyér illata szállt.\nMegállt, és érezte, ahogy a napfény melegíti a bundáját.\n„Minden nap így kezdődik: egy kis fény, egy kis remény” – gondolta elégedetten.",
+      "prompt": "Milyen színű Mysti a kiscica?",
+      "hint1": "Emlékezz a történet elejére.",
+      "hint2": "Nem fekete.",
+      "solution": "Vörös"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 2,
+      "locationLat": 47.47120261390562,
+      "locationLng": 18.845281641921986,
+      "geofenceRadius": null,
+      "story": "A fák árnyékában.\nA város szélén árnyas fák alatt kismadarak ugrándoztak.\nMysti figyelte őket, és megtanulta: nem mindenkit kell elkapni, néha csak gyönyörködni kell bennük.\nA fák lombjai között mintha suttogás hallatszott volna: „A türelem a legnagyobb erő.”",
+      "prompt": "Van egy 12 szeletes torta, ebből 4 szeltetet megeszel a maradék negyedét a kutya eszi meg. Mennyi torta marad?",
+      "hint1": "12-4=8",
+      "hint2": "8-nak a negyede az 2",
+      "solution": "6"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 3,
+      "locationLat": 47.47058616723601,
+      "locationLng": 18.84498123454235,
+      "geofenceRadius": null,
+      "story": "A gyerekek nevetése.\nEgy parkból hangos nevetés hallatszott, gyerekek labdáztak és futkároztak.\nMysti odasettenkedett, és a gyerekek örömmel üdvözölték.\nAz egyik kislány megsimogatta a fejét, és azt mondta: „Te szerencsét hozol!”\nMysti elmosolyodott – talán tényleg így van.",
+      "prompt": "Ha holnapután csütörtök, akkor milyen nap van ma?",
+      "hint1": "Gondold végig visszafelé: ha holnapután csütörtök, akkor holnap szerda.",
+      "hint2": "Ha holnap szerda, akkor ma…",
+      "solution": "Kedd"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 4,
+      "locationLat": 47.46995520845111,
+      "locationLng": 18.844809573182552,
+      "geofenceRadius": null,
+      "story": "A titkos ösvény.\nEgy szűk kis utcába tévedt, ahol régi házak sorakoztak egymás mellett.\nAz egyik kapu alatt egy apró lyukat talált – pont akkora volt, hogy átférjen rajta.\nOdabent egy kert rejtőzött tele virággal és pillangóval.\n„A szépség néha a legrejtettebb helyeken bújik meg” – súgta a szél.",
+      "prompt": "Tortaszeletelés.\nEgy kerek tortát két egyenes vágással legfeljebb hány darabra tudsz vágni?",
+      "hint1": "Egy vágás két darab.",
+      "hint2": "A második vágást úgy tedd, hogy mindkét régi darabot metsze.",
+      "solution": "4"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 5,
+      "locationLat": 47.46946203998882,
+      "locationLng": 18.843007128904716,
+      "geofenceRadius": null,
+      "story": "A szél dala.\nA domb tetején Mysti megállt, és a városra nézett.\nA szél végigsöpört a fűszálakon, és különös dallamot vitt magával.\nA cica becsukta a szemét, és mintha megértette volna a természet nyelvét – a város élt, lélegzett, mesélt.",
+      "prompt": "Ki hány éves?\nÁdám 10 éves, Bori 2 évvel fiatalabb Nóránál, Nóra 1 évvel idősebb Ádámnál. Hány éves Bori?",
+      "hint1": "Nóra = Ádám + 1",
+      "hint2": "Bori = Nóra – 2",
+      "solution": "9"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 6,
+      "locationLat": 47.46917193873166,
+      "locationLng": 18.841183226956897,
+      "geofenceRadius": null,
+      "story": "A barátság nyoma.\nMysti találkozott egy fekete kandúrral, aki eleinte morcosan méregette.\nDe hamar kiderült, hogy ő csak magányos volt.\nKetten együtt indultak tovább, és a cica megértette: minden városban a barátság adja a legnagyobb fényt.",
+      "prompt": "Ha két indián két perc alatt két nyilat lő ki, akkor tíz indián tíz perc alatt hány nyilat lő ki?",
+      "hint1": "2 indián 2 nyilat lő ki 2 perc alatt. Ez azt jelenti, hogy 1 indián 2 perc alatt 1 nyilat lő ki.",
+      "hint2": "Ha 1 indián 2 perc alatt 1 nyilat lő, akkor 10 perc alatt 5 nyilat (mert 10 ÷ 2 = 5)",
+      "solution": "50"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 7,
+      "locationLat": 47.469215454022326,
+      "locationLng": 18.83929495199916,
+      "geofenceRadius": null,
+      "story": "Az elhagyott cipő.\nEgy pad mellett egy apró gyerekcipőt talált.\nValaki elhagyhatta – de ki?\nMysti óvatosan a padra tette, mintha visszaadná a tulajdonosának, és a következő pillanatban egy szellő suttogta: „A jóság sosem marad észrevétlen.”",
+      "prompt": "Ha 5 métert mész előre, majd 2m-t hátra, utána ismét 3m előre akkor hány méterre vagy az indulási ponttól?",
+      "hint1": "Hátra is mentél",
+      "hint2": "5-2+3",
+      "solution": "6"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 8,
+      "locationLat": 47.46889634105425,
+      "locationLng": 18.837664169081112,
+      "geofenceRadius": null,
+      "story": "A fénylő kő.\nAhogy a nap lejjebb ereszkedett, a járda szélén valami megcsillant.\nEgy kicsi, kerek kő volt az – türkizszínű, pont, mint Mysti szeme.\nA cica zsebre nem tudta tenni, de a szívébe elrakta emlékül.",
+      "prompt": "Számsor folytatása\n2, 4, 8, 16, … Melyik szám következik?",
+      "hint1": "Nézd meg, hogyan változik egyik szám a következőre.",
+      "hint2": "Mindig ugyanannyival szorzunk.",
+      "solution": "32"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 9,
+      "locationLat": 47.46851920504855,
+      "locationLng": 18.83925203665921,
+      "geofenceRadius": null,
+      "story": "A csillagok kapuja.\nEste lett, és Mysti megállt egy kis téren, ahol az égbolt tisztán ragyogott.\nFelfelé nézett, és halkan dorombolt a csillagoknak.\nMintha egyikük visszavilágított volna rá – talán a múltjából üzent valaki.",
+      "prompt": "Melyik a magyar ÁBC 10. betüje?",
+      "hint1": "a 12. a \"G\"",
+      "hint2": "a 8. a \"Dzs\"",
+      "solution": "É"
+    },
+    {
+      "gameId": "biatorbagy-teszt",
+      "index": 10,
+      "locationLat": 47.4686497524337,
+      "locationLng": 18.84060386986759,
+      "geofenceRadius": null,
+      "story": "A hazatalálás.\nAmikor Mysti végül visszatért oda, ahonnan indult, a város már csendbe burkolózott.\nDe most minden ismerős volt: a házak, az illatok, a szél dallama.\n„Biatorbágy nemcsak egy hely…” – gondolta – „hanem egy érzés. Egy otthon.”\nÉs azóta, ha valaki sétál az utcákon, talán hall egy halk dorombolást a közelben.",
+      "prompt": "Rejtélyes szám\nGondolok egy számra. Hozzáadok 5-öt, majd megduplázom, és 22 lesz. Mennyi volt az eredeti szám?",
+      "hint1": "Képzeld el: (x + 5) × 2 = 22",
+      "hint2": "22 ÷ 2 = 11, 11 − 5 = ?",
+      "solution": "6"
+    }
+  ]
+}
