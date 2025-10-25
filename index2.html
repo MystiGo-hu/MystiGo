@@ -964,8 +964,7 @@ function downloadPDF() {
             const missing = req.filter(k => !(k in obj) || obj[k] === null || String(obj[k]).trim() === '');
             if (missing.length > 0) throw new Error(`'${ctx}' munkalap hiba: A(z) ${missing.map(m => `"${m}"`).join(', ')} mező(k) hiányzik/üres.`);
         }
-
-        function processExcelData(workbook) {
+function processExcelData(workbook) {
             try {
                 const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
                 if (!gamesSheet || !tasksSheet) throw new Error("A 'games' vagy 'tasks' munkalap hiányzik.");
@@ -1032,16 +1031,21 @@ function downloadPDF() {
                 renderGameList();
                 
                 // JAVÍTVA: Betöltő képernyő leállítása és a Játéklista oldalra lépés.
-                showLoading(false);
-                showPage('game-list-page');
+                showLoading(false); // Ezt hagyd bent!
+
+                // *** HOZZÁADVA: A töltőképernyő elrejtésének GARANTÁLÁSA, mielőtt váltunk a felületre ***
+                setTimeout(() => {
+                    showLoading(false); 
+                    showPage('game-list-page');
+                }, 10); 
+                // *** HOZZÁADVA VÉGE ***
 
             } catch (error) {
                 // Ezzel a hibával már elkapjuk az undefined hibákat is
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                 showLoading(false);
             }
-        }
-        
+        }   
         // --- UI RENDERING & STATUS ---
         function renderGameList() {
             const listEl = document.getElementById('game-list');
