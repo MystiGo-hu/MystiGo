@@ -27,6 +27,7 @@
             --text-dark: #2D3748;
             --text-heading: var(--brand-blue);
         }
+        /* MODOSITAS 1: body: overflow-hidden eltávolítása */
         body { 
             font-family: 'Poppins', sans-serif; 
             background: linear-gradient(180deg, var(--background-start) 0%, var(--background-end) 70%);
@@ -227,11 +228,9 @@
         }
     </style>
 </head>
-<body class="overflow-hidden">
+<body> <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-    <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
-
-        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
+        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8 hidden">
             <div class="w-full h-[20vh] flex items-center justify-center pt-8">
                 <svg class="w-48" viewBox="0 0 245 197" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M122.5 13.0031C122.5 13.0031 163 -14.9969 187 13.0031C211 41.0031 187 63.0031 187 63.0031M122.5 13.0031C122.5 13.0031 82 -14.9969 58 13.0031C34 41.0031 58 63.0031 58 63.0031" stroke="var(--brand-blue)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M122.5 194.003C158.33 194.003 187 165.333 187 129.503C187 93.6731 158.33 65.0031 122.5 65.0031C86.67
              65.0031 58 93.6731 58 129.503C58 165.333 86.67 194.003 122.5 194.003Z" fill="var(--brand-orange)"/><path d="M110.5 101.003H134.5V113.003C134.5 119.633 129.13 125.003 122.5 125.003C115.87 125.003 110.5 119.633 110.5 113.003V101.003Z" fill="var(--brand-blue)"/><rect x="94" y="125.003" width="57" height="42" rx="4" fill="var(--brand-blue)"/><rect x="102" y="132.003" width="8" height="12" rx="2" fill="var(--brand-orange)"/><rect x="118" y="132.00000000000001" width="8" height="20" rx="2" fill="var(--brand-orange)"/><rect x="134" y="132.00000000000001" width="8" height="12" rx="2" fill="var(--brand-orange)"/><circle cx="122.5" cy="65.0031" r="58.5" stroke="var(--brand-cyan)" stroke-width="8"/><path d="M181 125.003L237 181.003" stroke="var(--brand-cyan)" stroke-width="8" stroke-linecap="round"/></svg>
@@ -252,9 +251,9 @@
                 <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
             </div>
             
-            </main>
+        </main>
         
-        <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
+        <div id="content-wrapper" class="absolute inset-0 transition-transform duration-500"> 
             <div id="header" class="relative text-text-heading text-center pt-1 pb-16">
                  <div id="main-header">
                     <div class="flex justify-center mb-2">
@@ -348,9 +347,6 @@
                             </div>
                         </div>
                         
-                        <div id="qr-code-container" class="flex justify-center my-4 hidden">
-                            <img src="./QR_code.png" alt="QR Kód" class="w-24 h-24 object-contain">
-                        </div>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
@@ -466,7 +462,7 @@
         </div>
     </div>
     
-    <div id="loading-overlay" class="modal-overlay fixed inset-0 bg-black/50 hidden items-center justify-center"><div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div></div>
+    <div id="loading-overlay" class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center flex"><div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div></div>
     
     <div id="message-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-6 text-center max-w-sm w-full shadow-xl">
@@ -617,7 +613,9 @@
          */
         async function loadLocalXlsx(filePath) {
             showLoading(true);
-            document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
+            
+            // MÓDOSÍTÁS: Ezt a státuszt a loading overlay-ben kellene frissíteni, de a landing page-et elrejtettük
+            // document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
             
             try {
                 const response = await fetch(filePath);
@@ -637,12 +635,13 @@
                 
             } catch (error) {
                 // *** JAVÍTVA: Hiba esetén megjelenítjük a manuális betöltés lehetőségét a Landing Page-en ***
-                document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
+                // Ez az üzenet most csak a modal-ban vagy a console-ban jelenik meg, mivel a landing page rejtett
+                showMessage('Hiba', `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt a Fejlesztői Eszközök menüpontban!`);
                 
-                const manualInputLabel = document.getElementById('manual-file-select-label');
-                if (manualInputLabel) {
-                    manualInputLabel.classList.remove('hidden');
-                }
+                // Visszaugrunk a Kalandlista oldalra, ami most az alapértelmezett kezdőoldal
+                showLoading(false);
+                showPage('game-list-page');
+
                 // *** JAVÍTVA VÉGE ***
 
                 showLoading(false);
@@ -696,9 +695,9 @@ function downloadPDF() {
             const landingPage = document.getElementById('landing-page');
             const contentWrapper = document.getElementById('content-wrapper');
             
-            // 0. JAVÍTÁS: Mindig a Landing Page a kezdeti képernyő, ami innen eltűnik
+            // MÓDOSÍTÁS 5: Landing page-re lépéskor is rejtve marad
             if (pageId === 'landing-page') {
-                landingPage.classList.remove('hidden');
+                landingPage.classList.add('hidden');
                 contentWrapper.classList.add('translate-y-full');
             } else {
                 landingPage.classList.add('hidden');
@@ -848,12 +847,13 @@ function downloadPDF() {
             if (Object.keys(games).length > 0) {
                 showPage('game-list-page');
             } else {
-                showPage('landing-page');
+                // Ha nincs betöltve semmi, megpróbáljuk betölteni az alapértelmezett fájlt
+                loadLocalXlsx(DEFAULT_GAME_FILE);
             }
             // *** MÓDOSÍTVA VÉGE ***
         }
 
-        const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+        const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('flex', show) && document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
         // Módosított showMessage a két gombos megjelenítéshez
         function showMessage(title, body, onClose, showCancel = false) {
@@ -1998,10 +1998,9 @@ function startGame(gameId) {
             const continued = loadGameState();
 
             if (!continued) {
-                // 2. Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg.
-                showPage('landing-page');
-                
-                // 3. Automatikus fájl letöltés indítása
+                // MÓDOSÍTÁS 6: A landing page megjelenítése helyett azonnal a Kalandlista oldalra ugrik 
+                // és elindítja az automatikus betöltést.
+                showPage('game-list-page'); // A tartalom konténer láthatóvá válik
                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
@@ -2011,11 +2010,14 @@ function startGame(gameId) {
             document.getElementById('modal-cancel-button').onclick = hideMessage;
             
             // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
-            logoO.addEventListener('click', () => {
-                 const switchesContainer = document.getElementById('secret-switches-container');
-                 // Ha a landing page-en vagyunk, a logoO kattintás nem a listát hívja elő,
-                 // de ha mégis előkerül a listás oldal, akkor a trigger már be van állítva.
-            });
+            // Ez a funkció valószínűleg már nem működik, mivel a landing page rejtett, de benne hagyom
+            if(logoO) {
+                logoO.addEventListener('click', () => {
+                     const switchesContainer = document.getElementById('secret-switches-container');
+                     // Ha a landing page-en vagyunk, a logoO kattintás nem a listát hívja elő,
+                     // de ha mégis előkerül a listás oldal, akkor a trigger már be van állítva.
+                });
+            }
             
             // Fájl kiválasztása és feldolgozása (manuális feltöltés a Landing Page-en, hiba esetén)
             if (manualFileInput) {
