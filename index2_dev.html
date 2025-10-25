@@ -1119,7 +1119,7 @@ function downloadPDF() {
             // Váltás az 1. igazi feladatra
             appState.currentTaskIndex = 1; // Explicit beállítás
             
-            // *** MÓDOSÍTÁS: Nincs kezdeti pont hozzáadás, a loadTask csinálja! ***
+            // Nincs kezdeti pont hozzáadás, a loadTask csinálja!
             
             loadTask(appState.currentTaskIndex); 
             
@@ -1463,7 +1463,7 @@ function startGame(gameId) {
         // JAVÍTVA: Összesítő képernyő frissítése
         function endGame() {
             // Felolvasás leállítása
-            if (speechSynth.speaking) speechSynth.cancel();
+            if (speechSynth.speaking) synth.cancel();
             
             // --- Befejezési idő rögzítése és manuális formázása (YYYY.MM.DD ÓÓ:PP) ---
             const endTime = new Date();
@@ -1948,20 +1948,38 @@ function startGame(gameId) {
                     updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
                     startGame(gameId);
                 },
-                (err) => { // Hiba esetén
+                (err) => { // Hiba esetén (GPS inaktív / engedély megtagadva)
                     showLoading(false);
-                    // *** JAVÍTOTT: Normal módban GPS hiba esetén KIÍRJA A HIBÁT ÉS NEM INDUL EL A JÁTÉK ***
+                    
+                    // *** JAVÍTOTT GPS HIBAKEZELÉS A TESZTHEZ ***
+                    let errorMessage = t('gps_required'); // Alapértelmezett üzenet
+                    
+                    // Geolocation API hibakódok (err.code):
+                    // 1: Permission Denied (Engedély megtagadva)
+                    // 2: Position Unavailable (Pozíció nem elérhető/GPS kikapcsolva)
+                    // 3: Timeout
+                    
+                    if (err.code === 1) {
+                         errorMessage = 'Engedély Megtagadva: A kaland indításához engedélyezned kell a helymeghatározást a böngésző/eszköz beállításaiban. Kérlek, engedélyezd és próbáld újra!';
+                    } else if (err.code === 2) {
+                         errorMessage = 'Pozíció nem elérhető: Kérlek, ellenőrizd, hogy a GPS/Helymeghatározás be van-e kapcsolva az eszközödön, és van-e tiszta rálátásod az égre.';
+                    } else if (err.code === 3) {
+                         errorMessage = 'Időtúllépés: A GPS jel gyenge volt. Próbálj jobb helyre menni, és próbáld újra!';
+                    }
+                    
                     if (!document.getElementById('test-mode-toggle').checked) {
-                         showMessage('GPS Hiba / Engedély szükséges', t('gps_required'), () => {
+                         showMessage('GPS Teszt Sikertelen', errorMessage, () => {
                              // Nincs automatikus váltás teszt módra, a usernek kell engedélyeznie
-                             resetApp(); 
+                             // A modal bezárása után a kalandválasztó oldalon marad
                          });
                     } else {
                         // Teszt módban elindul
+                        showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód miatt a játék elindul.');
                         startGame(gameId);
                     }
+                    // *** JAVÍTÁS VÉGE ***
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } // Kisebb timeout a gyorsabb visszajelzésért
             );
         }
         
@@ -2189,7 +2207,7 @@ function startGame(gameId) {
                 if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
                  if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
-                if (speechSynth.speaking) speechSynth.cancel();
+                if (speechSynth.speaking) synth.cancel();
                 
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
@@ -2209,7 +2227,7 @@ function startGame(gameId) {
                 if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
                  if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
-                if (speechSynth.speaking) speechSynth.cancel();
+                if (speechSynth.speaking) synth.cancel();
                 
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
