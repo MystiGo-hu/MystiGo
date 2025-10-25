@@ -634,6 +634,12 @@
                 
             } catch (error) {
                 // *** JAVÍTVA: Hiba esetén megjelenítjük a manuális betöltés lehetőségét a Landing Page-en ***
+                // Ha a betöltés hibás, a landing page-nek láthatónak kell lennie a hibaüzenet/manuális választó miatt.
+                
+                document.getElementById('landing-page').classList.remove('hidden');
+                document.getElementById('content-wrapper').classList.add('translate-y-full'); // Rejtjük a játéklistát
+                document.getElementById('content-wrapper').classList.add('hidden'); // Rejtjük a játéklistát
+                
                 document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
                 
                 const manualInputLabel = document.getElementById('manual-file-select-label');
@@ -841,13 +847,19 @@ function downloadPDF() {
             initializeState();
             clearSavedState(); // Töröljük a mentett állapotot
             
-            // *** MÓDOSÍTVA: Mindig a Kaland választó oldalra visz, ha van betöltött játék ***
-            if (Object.keys(games).length > 0) {
-                showPage('game-list-page');
-            } else {
-                showPage('landing-page');
+            // FONTOS JAVÍTÁS: Kényszerítjük a landing page rejtését azonnal
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('content-wrapper').classList.remove('hidden');
+            document.getElementById('content-wrapper').classList.remove('translate-y-full');
+
+
+            // Garantált visszatérés a Kaland választó oldalra
+            showPage('game-list-page'); 
+            
+            // *** FONTOS JAVÍTÁS: Ha üres a játéklisa, indítsuk el a betöltést ***
+            if (Object.keys(games).length === 0) {
+                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
-            // *** MÓDOSÍTVA VÉGE ***
         }
 
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
@@ -1956,7 +1968,7 @@ function startGame(gameId) {
             });
         }
         
-        // --- KILÉPÉS LOGIKA ---
+        // --- ÚJ KILÉPÉS LOGIKA ---
         function handleExitGame() {
             // Mivel a resetApp meghívása a végén amúgy is törli a state-et és a game-list-page-re visz, 
             // elég itt csak a resetApp-et hívni.
@@ -1971,7 +1983,7 @@ function startGame(gameId) {
                 true // Megjeleníti a két gombot
             );
         }
-        // --- KILÉPÉS LOGIKA VÉGE ---
+        // --- ÚJ KILÉPÉS LOGIKA VÉGE ---
 
 
         // --- EVENT LISTENERS ---
@@ -1995,10 +2007,8 @@ function startGame(gameId) {
             const continued = loadGameState();
 
             if (!continued) {
-                // 2. Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg.
-                showPage('landing-page');
-                
-                // 3. Automatikus fájl letöltés indítása
+                // *** MÓDOSÍTÁS ITT: Nincs showPage('landing-page');, az automatikus betöltés indul ***
+                // Automatikus fájl letöltés indítása
                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
@@ -2165,7 +2175,7 @@ function startGame(gameId) {
                 if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
                  if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
-                if (speechSynth.speaking) speechSynth.cancel();
+                if (speechSynth.speaking) synth.cancel();
                 
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
