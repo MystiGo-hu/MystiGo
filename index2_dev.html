@@ -847,7 +847,7 @@ function downloadPDF() {
             initializeState();
             clearSavedState(); // Töröljük a mentett állapotot
             
-            // *** FONTOS JAVÍTÁS: Kényszerítjük a landing page rejtését azonnal ***
+            // FONTOS JAVÍTÁS: Kényszerítjük a landing page rejtését azonnal
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('content-wrapper').classList.remove('hidden');
             document.getElementById('content-wrapper').classList.remove('translate-y-full');
@@ -855,6 +855,11 @@ function downloadPDF() {
 
             // Garantált visszatérés a Kaland választó oldalra
             showPage('game-list-page'); 
+            
+            // *** FONTOS JAVÍTÁS: Ha üres a játéklisa, indítsuk el a betöltést ***
+            if (Object.keys(games).length === 0) {
+                 loadLocalXlsx(DEFAULT_GAME_FILE);
+            }
         }
 
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
@@ -1963,7 +1968,7 @@ function startGame(gameId) {
             });
         }
         
-        // --- KILÉPÉS LOGIKA ---
+        // --- ÚJ KILÉPÉS LOGIKA ---
         function handleExitGame() {
             // Mivel a resetApp meghívása a végén amúgy is törli a state-et és a game-list-page-re visz, 
             // elég itt csak a resetApp-et hívni.
@@ -1978,7 +1983,7 @@ function startGame(gameId) {
                 true // Megjeleníti a két gombot
             );
         }
-        // --- KILÉPÉS LOGIKA VÉGE ---
+        // --- ÚJ KILÉPÉS LOGIKA VÉGE ---
 
 
         // --- EVENT LISTENERS ---
