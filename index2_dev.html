@@ -421,7 +421,7 @@
                                     <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: -50)</button>
                                 </div>
                                 
-                                <div style="height: 14rem;"> </div>
+                                <div style="height: 14rem;">&nbsp;</div>
                             </div>
                         </div>
 
@@ -1995,10 +1995,12 @@ function startGame(gameId) {
             const continued = loadGameState();
 
             if (!continued) {
-                // 2. Ha nincs mentett állapot, az alapértelmezett landing page jelenik meg.
-                showPage('landing-page');
+                // A Kaland választó oldal töltődjön be automatikusan (Loading overlay jelenik meg)
+                // és automatikusan elindítjuk a gamex.txt betöltését.
                 
-                // 3. Automatikus fájl letöltés indítása
+                // Mivel a loadLocalXlsx hívja a showLoading(true)-t, a showPage('landing-page') helyett
+                // azonnal indítjuk a betöltést.
+                
                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
@@ -2165,7 +2167,7 @@ function startGame(gameId) {
                 if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
                  if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
-                if (speechSynth.speaking) speechSynth.cancel();
+                if (speechSynth.speaking) synth.cancel();
                 
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
