@@ -128,6 +128,7 @@
             list-style: none; /* Eltávolítja az alapértelmezett nyilat */
             display: flex;
             align-items: center;
+            position: relative; /* <-- ÚJ MÓDOSÍTÁS: Ezzel a gomb a summary-hez képest igazodik */
         }
         .story-details summary::-webkit-details-marker {
             display: none;
@@ -1046,7 +1047,8 @@ function downloadPDF() {
                         acceptedAnswers: acceptedAnswers, 
                         hintsUsed: 0, 
                         timeSpent: 0,
-                        taskScore: 0 // ÚJ: A feladatért kapott aktuális pontszám
+                        taskScore: 0, // ÚJ: A feladatért kapott aktuális pontszám
+                        isTaskTimerActive: false // ÚJ: Feladat időmérés állapota
                     }); 
                 });
                 // --- KORRIGÁLT JAVÍTÁS VÉGE ---
@@ -1155,10 +1157,14 @@ function downloadPDF() {
             appState.totalTime += steps;
             document.getElementById('timer-display').textContent = formatTime(appState.totalTime);
             
-            // Geo-fence Idő frissítése: CSAK akkor, ha a zónán belül vagyunk. (Teszt módban is számol)
-            if (appState.isInZone || appState.isTestModeEnabled) {
+            // *** MÓDOSÍTOTT LOGIKA: Geo-fence Idő frissítése: CSAK akkor, ha az aktuális feladat időmérése már aktív ***
+            const currentTask = appState.currentGame ? appState.currentGame.tasks[appState.currentTaskIndex] : null;
+            
+            if (currentTask && currentTask.isTaskTimerActive) {
                 appState.geofenceTime += steps;
             }
+            // *** MÓDOSÍTÁS VÉGE ***
+
             document.getElementById('geofence-timer-display').textContent = formatTime(appState.geofenceTime);
             
             lastTimeUpdate = now;
@@ -1233,7 +1239,8 @@ function startGame(gameId) {
         acceptedAnswers: [],
         hintsUsed: 0, 
         timeSpent: 0,
-        taskScore: 0 // Start feladat pontja 0
+        taskScore: 0, // Start feladat pontja 0
+        isTaskTimerActive: false // ÚJ: Start feladatnál inaktív
     };
     
     let realTasks = appState.currentGame.tasks; // A valódi feladatok (index 1-től N-ig, már index alapján sortolva)
@@ -1340,7 +1347,8 @@ function startGame(gameId) {
             solutionBtn.disabled = (task.hintsUsed < maxHints);
 
             // Geo-fence korlátozás felülírása 
-            if (!appState.isInZone && !appState.isTestModeEnabled) { 
+            // A segítség/megoldás kéréshez már nem kell a zónán belül lenni, HA már elindult az időmérés
+            if (!appState.isTestModeEnabled && !task.isTaskTimerActive) { 
                 hint1Btn.disabled = true;
                 hint2Btn.disabled = true;
                 solutionBtn.disabled = true;
@@ -1359,6 +1367,11 @@ function startGame(gameId) {
             });
             const task = appState.currentGame.tasks[taskIndex];
             const isStartTask = task.isStartTask; 
+            
+            // *** ÚJ LOGIKA: Feladat időmérés állapotának inicializálása ***
+            if (typeof task.isTaskTimerActive === 'undefined') {
+                task.isTaskTimerActive = false;
+            }
 
             // *** ÚJ LOGIKA: Feladat pontszámának inicializálása ***
             if (!isStartTask && task.taskScore !== DEFAULT_SCORE_PER_TASK) { 
@@ -1387,10 +1400,8 @@ function startGame(gameId) {
             }
             
             // JAVÍTVA: Feladat időzítésének inicializálása (Geo-fence Time-ot használjuk)
-            // Csak akkor állítjuk be, ha már fut a számláló
-            if (appState.isTimerRunning && !isStartTask) {
-                appState.currentGame.tasks[taskIndex].startTime = appState.geofenceTime;
-            } else if (isStartTask) {
+            // A startTime-ot a checkGeofence állítja be, amikor a feladat időmérése elindul
+            if (isStartTask) {
                  appState.currentGame.tasks[taskIndex].startTime = 0;
             }
 
@@ -1409,7 +1420,8 @@ function startGame(gameId) {
             
             // Gombok állapotának kezelése:
             if (!isStartTask) {
-                 // Ha nem Start Feladat, engedélyezzük az input/submit-ot zónán belül
+                 // Ha nem Start Feladat, engedélyezzük az input/submit-ot
+                 // Az input/submit engedélyezése most már az isTaskTimerActive-tól függ.
                  document.getElementById('submit-answer-btn').disabled = true; 
                  document.getElementById('answer-input').disabled = true;
                  updateHintButtons(task);
@@ -1452,6 +1464,9 @@ function startGame(gameId) {
             
             // Feladatra fordított idő mentése
             currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
+            
+            // Feladat időmérés inaktiválása
+            currentTask.isTaskTimerActive = false;
 
             // *** FONTOS MÓDOSÍTÁS: Az aktuális feladat pontszámát adjuk hozzá a teljes score-hoz ***
             if (currentTask.taskScore > 0 && !currentTask.isStartTask) {
@@ -1772,6 +1787,17 @@ function startGame(gameId) {
             if (appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.isInZone = true;
                 
+                // *** MÓDOSÍTOTT LOGIKA: Feladat időmérésének AKTIVÁLÁSA ***
+                if (!currentTask.isTaskTimerActive) {
+                    currentTask.isTaskTimerActive = true;
+                    // Mivel Teszt módban vagyunk, a startTime-ot most állítjuk be, 
+                    // de csak akkor, ha már fut a fő időmérő (azaz a startTimersAndGPS meghívása után).
+                    if (appState.isTimerRunning && !isStartTask) {
+                        currentTask.startTime = appState.geofenceTime;
+                    }
+                }
+                // *** MÓDOSÍTÁS VÉGE ***
+                
                 if (isStartTask) { 
                     startButtonContainer.classList.remove('hidden');
                     taskInteractionArea.classList.remove('hidden'); 
@@ -1803,8 +1829,8 @@ function startGame(gameId) {
                     document.getElementById('submit-answer-btn').disabled = true;
                     document.getElementById('answer-input').disabled = true;
                     
-                    // [2. JAVÍTÁS] Ha nincs pozíció, elrejtjük az interakciós területet (Story/Prompt is), ha nem Start Feladat.
-                    if (!isStartTask) { 
+                    // [2. JAVÍTÁS] Ha nincs pozíció, elrejtjük az interakciós területet (Story/Prompt is), ha nem Start Feladat, és még nem indult el a feladat időmérés.
+                    if (!isStartTask && !currentTask.isTaskTimerActive) { 
                        taskInteractionArea.classList.add('hidden');
                     } else {
                        taskInteractionArea.classList.remove('hidden'); // Start feladatnál látszik a Story/Prompt
@@ -1829,6 +1855,16 @@ function startGame(gameId) {
 
                 const distance = haversineDistance(currentLocation, currentTask.location);
                 appState.isInZone = distance <= currentRadius; 
+                
+                // *** MÓDOSÍTOTT LOGIKA: Feladat időmérésének AKTIVÁLÁSA ***
+                if (appState.isInZone && !currentTask.isTaskTimerActive) {
+                    currentTask.isTaskTimerActive = true;
+                    // A startTime-ot most állítjuk be, de csak akkor, ha már fut a fő időmérő.
+                    if (appState.isTimerRunning && !isStartTask) {
+                        currentTask.startTime = appState.geofenceTime;
+                    }
+                }
+                // *** MÓDOSÍTÁS VÉGE ***
                 
                 if (appState.isInZone) {
                     
@@ -1855,17 +1891,15 @@ function startGame(gameId) {
                     }
 
                 } else {
-                    // Zónán kívül: Letiltjuk a bevitelt és a Segítséget
-                    document.getElementById('submit-answer-btn').disabled = true;
-                    document.getElementById('answer-input').disabled = true;
-
+                    // Zónán kívül
+                    
                     distEl.textContent = t('out_zone', Math.round(distance));
                     distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
                     appState.geofenceCircle.setRadius(currentRadius);
                     appState.geofenceCircle.setStyle({ color: 'red', fillColor: 'red', fillOpacity: 0.1 }); 
                     
-                    // [2. JAVÍTÁS] Ha zónán kívül van (normál feladatnál), elrejtjük a teljes interakciós területet
-                    if (!isStartTask) {
+                    // [2. JAVÍTÁS] Ha zónán kívül van, de már elindult az időmérés (isTaskTimerActive), akkor látszódhat az interakciós terület
+                    if (!isStartTask && !currentTask.isTaskTimerActive) {
                         taskInteractionArea.classList.add('hidden');
                     } else {
                         taskInteractionArea.classList.remove('hidden'); // Start feladatnál látszik
@@ -1875,10 +1909,24 @@ function startGame(gameId) {
                 }
             }
             
-            // Frissítjük a Segítség gombokat a friss isInZone állapottal.
+            // Frissítjük a Segítség gombokat a friss isTaskTimerActive állapottal.
             if (!currentTask.isStartTask) {
                  updateHintButtons(currentTask);
             }
+            
+            // Ha a feladatidő számláló aktív, de zónán kívül vagyunk, a feladatmegoldás tiltva marad (csalás elleni védelem)
+            if (currentTask && currentTask.isTaskTimerActive && !appState.isInZone && !appState.isTestModeEnabled && !isStartTask) {
+                // Itt TILTVA marad a válasz, de a tartalom látszik
+                document.getElementById('submit-answer-btn').disabled = true;
+                document.getElementById('answer-input').disabled = true;
+                taskInteractionArea.classList.remove('hidden');
+                document.getElementById('prompt').classList.remove('hidden'); 
+            } else if (currentTask && currentTask.isTaskTimerActive && (appState.isInZone || appState.isTestModeEnabled) && !isStartTask) {
+                // Ha aktív és zónán belül vagyunk (vagy Teszt módban), akkor ENGEDÉLYEZVE
+                document.getElementById('submit-answer-btn').disabled = false;
+                document.getElementById('answer-input').disabled = false;
+            }
+            
             saveGameState(); // ÁLLAPOT MENTÉSE GPS FRISSÍTÉSKOR
         }
         
@@ -2178,17 +2226,22 @@ function startGame(gameId) {
             
             // Megoldás ellenőrzés
             document.getElementById('submit-answer-btn').addEventListener('click', () => {
-                // Csak akkor küldhető be válasz, ha a Geo-fence korlátozás feloldott
-                if (!appState.isInZone && !appState.isTestModeEnabled) {
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
+                
+                // MÓDOSÍTOTT ELENŐRZÉS: Csak akkor küldhető be válasz, ha a feladat időmérése már aktív 
+                // ÉS zónán belül vagyunk (vagy Teszt módban)
+                if (!task.isTaskTimerActive) {
                      return showMessage(t('far_title'), t('far_body')); 
+                }
+                if (!appState.isInZone && !appState.isTestModeEnabled) {
+                     return showMessage(t('far_title'), 'A megoldás beküldéséhez lépj vissza a feladat zónájába!'); 
                 }
                 
                 // Ha Start Feladatnál vagyunk, nem lehet beküldeni
-                if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return;
+                if (task.isStartTask) return;
 
 
                 const userAnswer = document.getElementById('answer-input').value;
-                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 // A felhasználói választ is normalizáljuk
                 const normalizedUserAnswer = normalizeAnswer(userAnswer);
@@ -2215,12 +2268,13 @@ function startGame(gameId) {
             });
 
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
-                if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
-                 if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
+                // MÓDOSÍTOTT ELLENŐRZÉS: Csak akkor kérhető segítség, ha a feladat időmérése már aktív
+                if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
+                 if (task.isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
                 if (speechSynth.speaking) synth.cancel();
                 
-                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 if (task.hintsUsed < 1) { 
                     // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
@@ -2235,12 +2289,13 @@ function startGame(gameId) {
             });
 
             document.getElementById('hint2-btn').addEventListener('click', (e) => {
-                if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
-                 if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
+                // MÓDOSÍTOTT ELLENŐRZÉS: Csak akkor kérhető segítség, ha a feladat időmérése már aktív
+                if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
+                 if (task.isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
                 if (speechSynth.speaking) synth.cancel();
                 
-                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 if (task.hintsUsed < 2) { 
                     // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
@@ -2256,12 +2311,13 @@ function startGame(gameId) {
             });
             
             document.getElementById('solution-btn').addEventListener('click', () => {
-                if (!appState.isInZone && !appState.isTestModeEnabled) { return showMessage(t('far_title'), t('far_body')); }
-                 if (appState.currentGame.tasks[appState.currentTaskIndex].isStartTask) return; // Start Feladat kizárása
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
+                // MÓDOSÍTOTT ELLENŐRZÉS: Csak akkor kérhető megoldás, ha a feladat időmérése már aktív
+                if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
+                 if (task.isStartTask) return; // Start Feladat kizárása
                 // Felolvasás leállítása
                 if (speechSynth.speaking) synth.cancel();
                 
-                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 // *** ÚJ LOGIKA: A HÁTRALÉVŐ PONT LEVONÁSA (A taskScore-t 0-ra viszi) ***
                 const scoreLost = task.taskScore; // Levonandó pont: az aktuális taskScore
