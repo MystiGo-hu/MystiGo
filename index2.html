@@ -128,7 +128,7 @@
             list-style: none; /* Eltávolítja az alapértelmezett nyilat */
             display: flex;
             align-items: center;
-            position: relative; /* <-- ÚJ MÓDOSÍTÁS: Ezzel a gomb a summary-hez képest igazodik */
+            position: relative; /* EZ BIZTOSÍTJA A GOMB FIXÁLÁSÁT A SUMMARY-N BELÜL */
         }
         .story-details summary::-webkit-details-marker {
             display: none;
@@ -449,7 +449,7 @@
 <div class="relative my-10"> <div class="absolute inset-0 flex flex-col items-center justify-center text-brand-orange-500">
         <span class="text-5xl font-extrabold" id="final-score" style="text-shadow: 0 1px 2px rgba(0,0,0,0.1);"></span> <span class="text-base font-bold">PONT</span> </div>
 </div>
-<div class="mt-24 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md">
+<div class="mt-20 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md">
     <p class="text-lg font-bold text-text-heading mb-1">
         <span id="final-team-avatar-icon" class="avatar-icon"></span>
         Csapat: <span id="final-team-display"></span>
@@ -461,20 +461,31 @@
                             </div>
                     </div> 
                     
-                    <p class="text-sm text-gray-500 mb-4 mt-6">Amennyiben tetszett a játék az alábbi lehetőségeken keresztül tudsz támogatni minket:</p>
+                    <p class="text-sm text-gray-500 mb-4 mt-4 font-semibold">Oszd meg a teljesítésed a közösségi médián:</p>
+                    <div id="social-share-buttons" class="flex space-x-6 justify-center">
+                        <button onclick="shareResult('facebook')" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Megosztás Facebookon">
+                            <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.35c0 .732.593 1.325 1.325 1.325h11.495v-9.294h-3.143v-3.626h3.143v-2.128c0-3.12 1.847-4.815 4.673-4.815 1.326 0 2.464.099 2.802.143v3.25l-1.921.001c-1.503 0-1.802.714-1.802 1.768v2.316h3.618l-.471 3.626h-3.147v9.294h6.115c.732 0 1.325-.593 1.325-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>
+                        </button>
+                        <button onclick="shareResult('system')" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Megosztás Instagramon/TikTokon/Egyebek">
+                            <img src="social_share2.png" alt="Általános megosztás" class="w-8 h-8">
+                        </button>
+                    </div>
+<p</p>
+<p</p>
+                    <p class="text-sm text-gray-500 mb-4 mt-10">Amennyiben tetszett a játék az alábbi lehetőségeken keresztül tudsz támogatni minket:</p>
 
-<div class="flex space-x-6">
-        <a href="https://Revolut.Me/krisztwaeo" target="_blank" title="Támogatás Revoluton"
-           class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200">
-            <img src="./revolut.png" alt="Revolut Logó" class="w-8 h-8">
-        </a>
-        
-        <a href="https://paypal.me/mystigohu" target="_blank" title="Támogatás PayPalon"
-           class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200">
-            <img src="./paypal.png" alt="PayPal Logó" class="w-8 h-8">
-        </a>
-    </div>                    
-                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4">Eredmény letöltése (PDF)</button>
+                    <div class="flex space-x-6 justify-center">
+                            <a href="https://Revolut.Me/krisztwaeo" target="_blank" title="Támogatás Revoluton"
+                            class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200">
+                                <img src="./revolut.png" alt="Revolut Logó" class="w-8 h-8">
+                            </a>
+                            
+                            <a href="https://paypal.me/mystigohu" target="_blank" title="Támogatás PayPalon"
+                            class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200">
+                                <img src="./paypal.png" alt="PayPal Logó" class="w-8 h-8">
+                            </a>
+                    </div>                    
+                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6">Eredmény letöltése (PDF)</button>
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
                 </section>
             </div>
@@ -969,9 +980,6 @@ function downloadPDF() {
             });
         }
         
-        // --- ÚJ HIBABEJELENTÉS MODAL LOGIKA VÉGE ---
-
-
         // --- ÚJ KILÉPÉS LOGIKA ---
         function handleExitGame() {
             // Mivel a resetApp meghívása a végén amúgy is törli a state-et és a game-list-page-re visz, 
@@ -1574,6 +1582,11 @@ function startGame(gameId) {
             }
             // --- ÚTVONAL TÉRKÉP RAJZOLÁSA VÉGE ---
 
+            // *** AUTOMATIKUS PDF LETÖLTÉS BEKAPCSOLÁSA ***
+            // Ha nem szeretné az automatikus letöltést, ezt a sort kommentelje ki:
+            downloadPDF(); 
+            // *** VÉGE ***
+            
             clearSavedState(); // Töröljük a mentést
             appState.currentGame = null;
         }
@@ -1979,6 +1992,52 @@ function startGame(gameId) {
             // A felolvasás indítása
             speechSynth.speak(utterance);
         }
+        
+        // --- KÖZÖSSÉGI MÉDIA MEGOSZTÁS LOGIKA ---
+        function shareResult(platform) {
+            const finalScore = document.getElementById('final-score').textContent;
+            const finalTime = document.getElementById('final-time').textContent;
+            const teamName = appState.teamName || "Csapat";
+            const gameTitle = appState.currentGame ? appState.currentGame.title : "Kaland";
+            
+            const text = `Éppen most fejeztem be a(z) ${gameTitle} kalandot a(z) ${teamName} csapattal! 🏆 Pontszám: ${finalScore}, Teljes idő: ${finalTime}. Próbáld ki te is! #MystiGo #VárosiKaland #KalandJáték`;
+            
+            // A megosztás céloldalának URL-je (ezt éles környezetben a weboldal URL-jére kell cserélni)
+            const url = 'https://www.mystigo.hu/'; 
+
+            let shareUrl = '';
+
+            switch (platform) {
+                case 'facebook':
+                    // Facebook megosztás: link és quote (text)
+                    shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+                    break;
+                case 'system':
+                    // Általános megosztás (pl. Instagram, TikTok, WhatsApp, E-mail, System Share Sheet)
+                    if (navigator.share) {
+                        navigator.share({
+                            title: 'MystiGo Kaland Teljesítve!',
+                            text: text,
+                            url: url,
+                        }).catch(error => console.log('Megosztás megszakítva vagy hiba történt', error));
+                        return; // Megszakítja a további futást
+                    } 
+                    
+                    // Ha a system share API nem elérhető, és az általános megosztás gombra kattintott, 
+                    // a legegyszerűbb, ha megpróbálunk egy generikus URL-t megnyitni.
+                    shareUrl = `mailto:?subject=MystiGo Kaland&body=${encodeURIComponent(text + " " + url)}`;
+                    
+                    break;
+                default:
+                    return;
+            }
+
+            if (shareUrl) {
+                window.open(shareUrl, '_blank');
+            }
+        }
+        // --- KÖZÖSSÉGI MÉDIA MEGOSZTÁS LOGIKA VÉGE ---
+
 
         // --- Válasz-ellenőrzési logika ---
         function normalizeAnswer(str) { 
@@ -2200,13 +2259,13 @@ function startGame(gameId) {
                 const devOptions = document.getElementById('developer-options');
                 const devToggle = document.getElementById('developer-tools-toggle');
 
-                // Fejlesztői eszközök kattintásra történő megjelenítése/elrejtése
-                if (devToggle && devOptions) {
-                    devToggle.addEventListener('click', () => {
-                        devOptions.classList.toggle('hidden');
-                        devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
-                    });
-                }
+                    // Fejlesztői eszközök kattintásra történő megjelenítése/elrejtése
+                    if (devToggle && devOptions) {
+                        devToggle.addEventListener('click', () => {
+                            devOptions.classList.toggle('hidden');
+                            devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
+                        });
+                    }
 
 
                 const testModeToggle = secretSwitchesContainer.querySelector('#test-mode-toggle');
