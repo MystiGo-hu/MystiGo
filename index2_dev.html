@@ -662,22 +662,30 @@
                 // showPage('game-list-page') a processExcelData végén fut le, ha sikeres
                 
             } catch (error) {
-                // *** JAVÍTVA: Hiba esetén megjelenítjük a manuális betöltés lehetőségét a Landing Page-en ***
-                // Ha a betöltés hibás, a landing page-nek láthatónak kell lennie a hibaüzenet/manuális választó miatt.
+                // *** JAVÍTOTT LOGIKA: Betöltés hiba esetén a játéklista oldalra lépünk, de üresen hagyjuk a listát ***
                 
-                document.getElementById('landing-page').classList.remove('hidden');
-                document.getElementById('content-wrapper').classList.add('translate-y-full'); // Rejtjük a játéklistát
-                document.getElementById('content-wrapper').classList.add('hidden'); // Rejtjük a játéklistát
+                console.error("Automatikus betöltési hiba:", error.message);
                 
-                document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
+                // 1. Üres játékok objektum beállítása
+                games = {}; 
                 
-                const manualInputLabel = document.getElementById('manual-file-select-label');
-                if (manualInputLabel) {
-                    manualInputLabel.classList.remove('hidden');
-                }
-                // *** JAVÍTVA VÉGE ***
-
+                // 2. Játéklista UI frissítése (Ez kiírja: "Nem található érvényes játék az adatfájlban.")
+                renderGameList(); 
+                
+                // 3. Betöltő képernyő elrejtése
                 showLoading(false);
+
+                // 4. Navigálás a Kaland Választó oldalra
+                showPage('game-list-page'); 
+
+                // 5. Opcionális: Hibaüzenet megjelenítése Modalban
+                showMessage(
+                    'Adatbázis Hiba', 
+                    `Az automatikus játékfájl betöltése sikertelen: **${error.message}**. Kérem, próbálja meg manuálisan betölteni a fájlt a **Fejlesztői Eszközök** menüpontban!`, 
+                    null
+                );
+                
+                // *** JAVÍTOTT LOGIKA VÉGE ***
             }
         }
 
@@ -813,8 +821,10 @@ function downloadPDF() {
                      // document.getElementById('game-mode-settings').classList.remove('hidden');
                      // A fejlesztői eszközök alapértelmezetten rejtve, csak a ! gomb hívja elő
                      // document.getElementById('secret-switches-container').classList.remove('hidden'); 
-                } else {
-                     document.getElementById('secret-switches-container').classList.add('hidden');
+                } else if (pageId === 'game-list-page') {
+                     // Ha üres a játéklap (Hiba történt), a csapatbeállítás és a fejlesztői opciók mégis látszódnak
+                     document.getElementById('team-setup').classList.remove('hidden');
+                     // Itt is látszódhatna a secretSwitchesContainer, de a trigger a title-re van kötve, ami csak a listás oldalon van beállítva.
                 }
             }
             
