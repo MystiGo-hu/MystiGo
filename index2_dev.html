@@ -44,7 +44,7 @@
         }
         .main-button:hover {
             transform: translateY(-4px);
-            box-shadow: 0 20px 35px -8px rgba(255, 165, 0, 0.35), 0 8px 10px -6px rgba(255, 165, 0, 0.35);
+            box-shadow: 0 20px 35px -8p...
         }
         .main-button:disabled {
             background-color: #9ca3af;
@@ -171,7 +171,7 @@
             line-height: 1;
         }
         
-        /* JAVÍTOTT: Játék közbeni logó és csapatnév stílusa */
+        /* JÁTÉK KÖZBENI FEJLÉC ÉS STATUS BAR STÍLUSAI */
         #game-header-logo-container {
             position: absolute;
             top: 0.5rem; 
@@ -232,6 +232,35 @@
             max-width: 90%;
             width: 350px;
         }
+        
+        /* --- KALANDVÁLASZTÓ OLDAL FEJLÉC STÍLUSAI (JAVÍTVA) --- */
+        
+        /* Oldalsó képek méretének szabályozása a Kalandválasztó oldalon */
+        .side-header-asset-image {
+            height: 50px; /* Kisebb méret, hogy ne lógjon bele (pl. 40px) */
+            width: auto;
+            margin: 0 2.5rem; /* Kisebb margó a logótól */
+        }
+        
+        /* Középső logó méretének kicsinyítése a Kalandválasztó oldalon */
+        #main-header-logo {
+            max-width: 120px; /* Elegendő helyet hagy az oldalsó képeknek és az alatta lévő tartalomnak */
+            height: auto;
+        }
+        
+        /* --- LANDING PAGE (INDÍTÓ OLDAL) VISSZAÁLLÍTOTT STÍLUSAI --- */
+        #landing-page .w-full.h-\[20vh\] {
+            height: 20vh; 
+            padding-top: 8; 
+        }
+        
+        /* Az SVG logó eredeti mérete (a HTML-ben w-48) */
+        #landing-page svg {
+            width: 48; 
+            height: auto;
+        }
+        /* Mivel a korábbi kísérletben beillesztettük a #landing-logo-container-t, azt most eltávolítjuk
+           és visszaállítjuk az eredeti kódot az indító oldalon. */
     </style>
 </head>
 <body class="overflow-hidden">
@@ -264,11 +293,17 @@
         <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
             <div id="header" class="relative text-text-heading text-center pt-1 pb-16">
                  <div id="main-header">
-                    <div class="flex justify-center mb-2">
-                        <img src="./MystiGo_logo.png" alt="MystiGo Logó" class="max-h-24 w-auto">
-                    </div>
-                    <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot</h1>
-                 </div>
+   <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
+       
+       <img id="left-asset" src="./MystiCat1.png" alt="Bal oldali ikon" class="side-header-asset-image"> 
+       
+       <img id="main-header-logo" src="./MystiGo_logo.png" alt="MystiGo Logó" class="w-full max-w-xs mx-4">
+       
+       <img id="right-asset" src="./MystiCat2.png" alt="Jobb oldali ikon" class="side-header-asset-image">
+       
+   </div>
+   <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot</h1>
+</div>
                  
                  <div id="game-header-logo-container" class="hidden">
                     <img id="game-header-logo" src="./MystiGo_logo.png" alt="MystiGo Logó">
@@ -470,8 +505,8 @@
                             <img src="social_share2.png" alt="Általános megosztás" class="w-8 h-8">
                         </button>
                     </div>
-<p</p>
-<p</p>
+<p></p>
+<p></p>
                     <p class="text-sm text-gray-500 mb-4 mt-10">Amennyiben tetszett a játék az alábbi lehetőségeken keresztül tudsz támogatni minket:</p>
 
                     <div class="flex space-x-6 justify-center">
@@ -756,6 +791,9 @@ function downloadPDF() {
             const teamAvatarIcon = document.getElementById('game-team-avatar-icon'); 
             const testModeIndicator = document.getElementById('test-mode-indicator');
             
+            // ÚJ: Kalandválasztó oldal fejlécének sorai
+            const mainHeaderLogoRow = document.getElementById('main-header-logo-row'); 
+            
             // QR Kód konténer
             const qrCodeContainer = document.getElementById('qr-code-container');
 
@@ -792,6 +830,9 @@ function downloadPDF() {
                 } else {
                     teamNameContainer.classList.add('hidden');
                 }
+                
+                // Kalandválasztó fejléc elrejtése
+                if(mainHeaderLogoRow) mainHeaderLogoRow.classList.add('hidden');
 
             } else {
                 mainHeader.classList.remove('hidden');
@@ -802,6 +843,9 @@ function downloadPDF() {
                 centerHeaderContent.classList.add('hidden');
                 
                 testModeIndicator.classList.add('hidden');
+                
+                // Kalandválasztó fejléc megjelenítése
+                if(mainHeaderLogoRow) mainHeaderLogoRow.classList.remove('hidden');
                 
                 const titles = { 'game-list-page': 'Válassz Kalandot', 'end-page': 'Játék Vége' };
                 document.getElementById('page-title').textContent = titles[pageId] || 'MystiGo';
@@ -1466,7 +1510,7 @@ function startGame(gameId) {
 
         function handleCorrectAnswer() {
             // Felolvasás leállítása
-            if (speechSynth.speaking) speechSynth.cancel();
+            if (speechSynth.speaking) synth.cancel();
             
             const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
             
