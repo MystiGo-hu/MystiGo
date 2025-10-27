@@ -448,10 +448,11 @@
             <div class="w-full flex flex-col justify-start flex-grow"> 
                 <p id="loading-status" class="text-gray-700 font-semibold my-4 h-5" style="font-family: 'Fredoka', sans-serif;">⏳ Adatbázis automatikus betöltése...</p>
                 
-                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
-                    📁 Manuális Játékfájl Kiválasztása
+                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-base block cursor-pointer my-4" style="background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); box-shadow: 0 8px 25px -5px rgba(139, 92, 246, 0.5);">
+                    📁 Játékfájl Feltöltése (.xlsx)
                 </label>
                 <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
+                <p class="text-sm text-gray-600 text-center -mt-2 mb-4">Válassz ki egy MystiGo játékfájlt</p>
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
                 <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
             </div>
