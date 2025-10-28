@@ -6,24 +6,79 @@
     <title>Interaktív Történetkészítő</title>
     
     <style>
-        /* CSS az elrendezéshez (Egyoszlopos) */
+        /* Új CSS a két oszlopos elrendezéshez és az oldalsávhoz */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
             background-color: #f4f4f4;
+            display: flex; /* Fő elrendezés */
+            justify-content: center;
+        }
+
+        #main-layout {
+            display: flex;
+            width: 100%;
+            max-width: 1200px; /* Szélesebb konténer az oldalsáv miatt */
+            gap: 20px;
+        }
+
+        #game-list-sidebar {
+            flex: 0 0 250px; /* Fix szélességű oldalsáv */
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-height: 80vh; /* Megnyitás gomb miatt */
+            overflow-y: auto;
+        }
+        
+        #game-list-sidebar h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        #game-list-container {
+            list-style: none;
+            padding: 0;
+        }
+
+        .game-list-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: bold;
+            font-size: 0.9em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .game-list-item:hover {
+            background-color: #e0f7fa;
+            color: #0056b3;
+        }
+        
+        .game-list-item.selected {
+            background-color: #007bff;
+            color: white;
         }
 
         #form-container {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
+            flex-grow: 1; /* A fő űrlap kitölti a maradék helyet */
             background-color: white;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+        
+        /* A többi stílus változatlan, de az utolsó gombok stílusát frissítjük */
 
         .general-info, .task-group {
             border: 1px solid #0056b3;
@@ -72,7 +127,7 @@
             resize: vertical;
         }
 
-        #plus-button, #save-button {
+        #plus-button, .action-button {
             padding: 10px 20px;
             border: none;
             cursor: pointer;
@@ -81,123 +136,200 @@
             font-size: 1.1em;
             width: 100%;
             transition: background-color 0.2s;
+            margin-top: 10px; 
         }
         
         #plus-button {
             background-color: #4CAF50;
             color: white;
+            margin-bottom: 30px;
         }
         #plus-button:hover {
             background-color: #45a049;
+        }
+        
+        .action-button-row {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .action-button-row > button {
+            flex: 1;
+            font-weight: bold;
+        }
+
+        #open-button {
+            background-color: #ff9800;
+            color: white;
+        }
+        #open-button:hover {
+            background-color: #e68900;
         }
 
         #save-button {
             background-color: #007bff;
             color: white;
-            margin-top: 30px;
-            font-weight: bold;
         }
         #save-button:hover {
             background-color: #0056b3;
         }
     </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script> 
 </head>
 <body>
 
-<div id="form-container">
-    <h1>Interaktív Történet & Feladatkészítő</h1>
-
-    <div class="general-info">
-        <h2>Általános adatok 📋</h2>
-        
-        <div class="input-row">
-            <div>
-                <label for="title">Cím</label>
-                <input type="text" id="title" placeholder="A kaland címe (pl: A Főváros Rejtélye)" oninput="generateId(this.value)">
-            </div>
-            <div>
-                <label for="generated-id">Azonosító (ID)</label>
-                <input type="text" id="generated-id" placeholder="pl: a-fovaros-rejtelye" readonly>
-            </div>
-        </div>
-
-
-        <div class="input-row">
-            <div>
-                <label for="type">Típus</label>
-                <select id="type">
-                    <option value="normal">Normal</option>
-                    <option value="kids">Kids</option>
-                    <option value="team">Team</option>
-                </select>
-            </div>
-            <div>
-                <label for="cover-image">Borítókép fájlnév</label>
-                <input type="text" id="cover-image" placeholder="pl: boritokep.jpg">
-            </div>
-        </div>
-
-    </div>
-
-    <label for="initial-story">Kezdeti Történet</label>
-    <textarea id="initial-story" rows="4" placeholder="Írd ide a történet elejét, a küldetés indítását..."></textarea>
+<div id="main-layout">
     
-    <hr>
+    <div id="game-list-sidebar">
+        <h2>Játékok listája</h2>
+        <div id="game-list-container">
+            <p style="font-size: 0.9em; color: #555;">Tölts be egy XLSX adatbázis fájlt a lentebbi gombbal!</p>
+        </div>
+        
+        <hr style="margin-top: 20px;">
+        <button id="open-button" onclick="document.getElementById('file-input').click()" class="action-button">📂 Megnyitás (XLSX)</button>
+    </div>
+    
+    <div id="form-container">
+        <h1>Interaktív Történet & Feladatkészítő</h1>
 
-    <div id="task-groups-container">
-        <div class="task-group" id="task-group-1">
-            <h2>Feladat 1. (Helyszín) 📍</h2>
+        <div class="general-info">
+            <h2>Általános adatok 📋</h2>
             
             <div class="input-row">
                 <div>
-                    <label for="task-coords-1">GPS Koordináták</label>
-                    <input type="text" id="task-coords-1" placeholder="Pl: 47.4979, 19.0402">
+                    <label for="title">Cím</label>
+                    <input type="text" id="title" placeholder="A kaland címe (pl: A Főváros Rejtélye)" oninput="generateId(this.value)">
                 </div>
                 <div>
-                    <label for="task-radius-1">Rádiusz (méterben)</label>
-                    <input type="text" id="task-radius-1" placeholder="Pl: 10 (ez a kör sugara)">
+                    <label for="generated-id">Azonosító (ID)</label>
+                    <input type="text" id="generated-id" placeholder="pl: a-fovaros-rejtelye" readonly>
                 </div>
             </div>
 
-            <label for="task-story-1">Feladathoz Tartozó Történet</label>
-            <textarea id="task-story-1" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
-
-            <label for="task-description-1">Konkrét Feladat</label>
-            <textarea id="task-description-1" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
-            
-            <hr style="border-style: dashed;">
-
             <div class="input-row">
                 <div>
-                    <label for="task-hint-1-1">Segítség 1</label>
-                    <input type="text" id="task-hint-1-1" placeholder="Rövid tipp 1">
+                    <label for="type">Típus</label>
+                    <select id="type">
+                        <option value="normal">Normal</option>
+                        <option value="kids">Kids</option>
+                        <option value="team">Team</option>
+                    </select>
                 </div>
                 <div>
-                    <label for="task-hint-2-1">Segítség 2</label>
-                    <input type="text" id="task-hint-2-1" placeholder="Rövid tipp 2">
+                    <label for="cover-image">Borítókép fájlnév</label>
+                    <input type="text" id="cover-image" placeholder="pl: boritokep.jpg">
+                </div>
+            </div>
+            
+            <div class="input-row">
+                <div>
+                    <label for="start-coords">Kezdő GPS Koordináták</label>
+                    <input type="text" id="start-coords" placeholder="Pl: 47.4979, 19.0402">
                 </div>
                 <div>
-                    <label for="task-solution-1">Megoldás</label>
-                    <input type="text" id="task-solution-1" placeholder="A helyes válasz">
+                    <label for="start-radius">Kezdő Rádiusz (méterben)</label>
+                    <input type="text" id="start-radius" placeholder="Pl: 20 (ez a kör sugara)">
+                </div>
+            </div>
+
+        </div>
+
+        <label for="initial-story">Kezdeti Történet</label>
+        <textarea id="initial-story" rows="4" placeholder="Írd ide a történet elejét, a küldetés indítását..."></textarea>
+        
+        <hr>
+
+        <div id="task-groups-container">
+            <div class="task-group" id="task-group-1">
+                <h2>Feladat 1. (Helyszín) 📍</h2>
+                
+                <div class="input-row">
+                    <div>
+                        <label for="task-coords-1">GPS Koordináták</label>
+                        <input type="text" id="task-coords-1" placeholder="Pl: 47.4979, 19.0402">
+                    </div>
+                    <div>
+                        <label for="task-radius-1">Rádiusz (méterben)</label>
+                        <input type="text" id="task-radius-1" placeholder="Pl: 10 (ez a kör sugara)">
+                    </div>
+                </div>
+
+                <label for="task-story-1">Feladathoz Tartozó Történet</label>
+                <textarea id="task-story-1" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
+
+                <label for="task-description-1">Konkrét Feladat</label>
+                <textarea id="task-description-1" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
+                
+                <hr style="border-style: dashed;">
+
+                <div class="input-row">
+                    <div>
+                        <label for="task-hint-1-1">Segítség 1</label>
+                        <input type="text" id="task-hint-1-1" placeholder="Rövid tipp 1">
+                    </div>
+                    <div>
+                        <label for="task-hint-2-1">Segítség 2</label>
+                        <input type="text" id="task-hint-2-1" placeholder="Rövid tipp 2">
+                    </div>
+                    <div>
+                        <label for="task-solution-1">Megoldás</label>
+                        <input type="text" id="task-solution-1" placeholder="A helyes válasz">
+                    </div>
                 </div>
             </div>
         </div>
+
+        <button id="plus-button">➕ Plusz Feladatcsoport Hozzáadása</button>
+
+        <hr>
+
+        <label for="final-story">Záró Történet</label>
+        <textarea id="final-story" rows="4" placeholder="Írd ide a történet végét, a küldetés lezárását..."></textarea>
+
+        <div class="action-button-row">
+             <button id="save-button" onclick="saveData()">💾 Mentés (XLSX fájlként)</button>
+        </div>
     </div>
-
-    <button id="plus-button">➕ Plusz Feladatcsoport Hozzáadása</button>
-
-    <hr>
-
-    <label for="final-story">Záró Történet</label>
-    <textarea id="final-story" rows="4" placeholder="Írd ide a történet végét, a küldetés lezárását..."></textarea>
-
-    <button id="save-button" onclick="saveData()">💾 Mentés (JSON fájlként)</button>
-
+    
+    <input type="file" id="file-input" accept=".xlsx, .xls" style="display: none;" onchange="openData(event)">
 </div>
 
 <script>
-    // A vizuális számláló 1-ről indul a felhasználói élmény érdekében
-    let taskCounter = 1; 
+    let taskCounter = 1;
+    
+    // GLOBÁLIS TÁROLÓK A BETÖLTÖTT JÁTÉKOKNAK ÉS FELADATOKNAK
+    let allGamesData = [];
+    let allTasksData = [];
+    let currentLoadedGameId = null;
+
+    // Segédfunkciók
+    function setInputValue(id, value) {
+        const element = document.getElementById(id);
+        if (element && value !== undefined && value !== null) {
+            // A null/undefined értékeket üres stringre konvertáljuk az űrlap miatt
+            element.value = (value === null || value === undefined) ? '' : value;
+        }
+    }
+
+    function clearTaskGroups() {
+        const taskGroupsContainer = document.getElementById('task-groups-container');
+        taskGroupsContainer.innerHTML = '';
+        taskCounter = 0;
+    }
+    
+    function clearForm() {
+        setInputValue('title', '');
+        setInputValue('generated-id', '');
+        setInputValue('type', 'normal');
+        setInputValue('cover-image', '');
+        setInputValue('initial-story', '');
+        setInputValue('final-story', '');
+        setInputValue('start-coords', '');
+        setInputValue('start-radius', '');
+        clearTaskGroups();
+    }
 
     // ===================================
     // 1. AZONOSÍTÓ GENERÁLÁSA
@@ -210,11 +342,11 @@
             .trim()
             .replace(/\s+/g, '-');
         
-        document.getElementById('generated-id').value = id;
+        setInputValue('generated-id', id);
     }
 
     // ===================================
-    // 2. DINAMIKUS MEZŐK HOZZÁADÁSA (Működik)
+    // 2. DINAMIKUS MEZŐK HOZZÁADÁSA (A logika változatlan)
     // ===================================
 
     const taskGroupsContainer = document.getElementById('task-groups-container');
@@ -264,13 +396,183 @@
             </div>
         `;
         taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
+        // Frissen hozzáadott mezők kitörlése
+        document.getElementById(`task-coords-${newTaskId}`).value = '';
+        document.getElementById(`task-radius-${newTaskId}`).value = '';
+        document.getElementById(`task-story-${newTaskId}`).value = '';
+        document.getElementById(`task-description-${newTaskId}`).value = '';
+        document.getElementById(`task-hint-1-${newTaskId}`).value = '';
+        document.getElementById(`task-hint-2-${newTaskId}`).value = '';
+        document.getElementById(`task-solution-${newTaskId}`).value = '';
     });
     
     // ===================================
-    // 3. ADATOK GYŰJTÉSE ÉS MENTÉSE (JSON - Index 0-tól)
+    // 3. ADATOK BETÖLTÉSE AZ XLSX-BŐL
+    // ===================================
+
+    function openData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            try {
+                // 1. Adatok kinyerése
+                const gameSheet = workbook.Sheets['games'];
+                const taskSheet = workbook.Sheets['tasks'];
+                
+                allGamesData = XLSX.utils.sheet_to_json(gameSheet) || [];
+                allTasksData = XLSX.utils.sheet_to_json(taskSheet) || [];
+                
+                // 2. Oldalsáv feltöltése
+                const listContainer = document.getElementById('game-list-container');
+                listContainer.innerHTML = '';
+                
+                if (allGamesData.length === 0) {
+                    listContainer.innerHTML = '<p style="font-size: 0.9em; color: #555;">Nincs játék a games munkalapon.</p>';
+                    return;
+                }
+                
+                allGamesData.forEach(game => {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'game-list-item';
+                    listItem.textContent = game.title || game.id || 'Névtelen játék';
+                    listItem.setAttribute('data-game-id', game.id);
+                    listItem.onclick = () => loadGame(game.id, listItem);
+                    listContainer.appendChild(listItem);
+                });
+                
+                // 3. Az első játék betöltése
+                loadGame(allGamesData[0].id, listContainer.firstChild);
+
+                alert(`Sikeresen betöltve ${allGamesData.length} játék a(z) ${file.name} fájlból!`);
+                
+            } catch (error) {
+                console.error("Hiba a fájl feldolgozásakor:", error);
+                alert("Hiba történt a fájl feldolgozása közben. Győződj meg róla, hogy a fájl tartalmazza a 'games' és 'tasks' munkalapokat, és a formátum helyes.");
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+    
+    // ===================================
+    // 4. EGY JÁTÉK ADATAINAK BETÖLTÉSE AZ ŰRLAPBA
+    // ===================================
+
+    function loadGame(gameId, listItemElement) {
+        
+        const gameInfo = allGamesData.find(g => g.id === gameId);
+        const tasks = allTasksData.filter(t => t.gameId === gameId);
+        
+        if (!gameInfo) {
+            alert(`Hiba: Nem található játék a(z) ${gameId} azonosítóval.`);
+            return;
+        }
+
+        // Vizuális kiemelés eltávolítása és hozzáadása
+        document.querySelectorAll('.game-list-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        if (listItemElement) {
+             listItemElement.classList.add('selected');
+        }
+
+        currentLoadedGameId = gameId;
+        clearForm(); // Minden mező törlése
+        
+        // --- Általános adatok betöltése ---
+        setInputValue('title', gameInfo.title);
+        setInputValue('generated-id', gameInfo.id);
+        setInputValue('type', gameInfo.type);
+        setInputValue('cover-image', gameInfo.imageUrl);
+        setInputValue('initial-story', gameInfo.description);
+        setInputValue('final-story', gameInfo.endStory);
+        
+        // Kezdő koordináták és rádiusz
+        const startCoords = `${gameInfo.startLocationLat || ''}, ${gameInfo.startLocationLng || ''}`.trim().replace(/^,\s*|,\s*$/g, '');
+        setInputValue('start-coords', startCoords);
+        setInputValue('start-radius', gameInfo.startGeofenceRadius);
+        
+        // --- Feladatok betöltése ---
+        clearTaskGroups(); // Töröljük a régi feladatmezőket
+
+        tasks.sort((a, b) => (a.index || 0) - (b.index || 0)); // Index szerinti rendezés
+
+        tasks.forEach(task => {
+            // Dinamikus feladatcsoport hozzáadása
+            taskCounter++; // A számláló használata új ID generálásához
+            const newTaskId = taskCounter; 
+
+            const newGroupHTML = `
+                <div class="task-group" id="task-group-${newTaskId}">
+                    <h2>Feladat ${newTaskId}. (Helyszín) 📍</h2>
+
+                    <div class="input-row">
+                        <div>
+                            <label for="task-coords-${newTaskId}">GPS Koordináták</label>
+                            <input type="text" id="task-coords-${newTaskId}" placeholder="Pl: 47.4979, 19.0402">
+                        </div>
+                        <div>
+                            <label for="task-radius-${newTaskId}">Rádiusz (méterben)</label>
+                            <input type="text" id="task-radius-${newTaskId}" placeholder="Pl: 10 (ez a kör sugara)">
+                        </div>
+                    </div>
+
+                    <label for="task-story-${newTaskId}">Feladathoz Tartozó Történet</label>
+                    <textarea id="task-story-${newTaskId}" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
+
+                    <label for="task-description-${newTaskId}">Konkrét Feladat</label>
+                    <textarea id="task-description-${newTaskId}" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
+
+                    <hr style="border-style: dashed;">
+
+                    <div class="input-row">
+                        <div>
+                            <label for="task-hint-1-${newTaskId}">Segítség 1</label>
+                            <input type="text" id="task-hint-1-${newTaskId}" placeholder="Rövid tipp 1">
+                        </div>
+                        <div>
+                            <label for="task-hint-2-${newTaskId}">Segítség 2</label>
+                            <input type="text" id="task-hint-2-${newTaskId}" placeholder="Rövid tipp 2">
+                        </div>
+                        <div>
+                            <label for="task-solution-${newTaskId}">Megoldás</label>
+                            <input type="text" id="task-solution-${newTaskId}" placeholder="A helyes válasz">
+                        </div>
+                    </div>
+                </div>
+            `;
+            taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
+            
+            // Értékek feltöltése
+            const coords = `${task.locationLat || ''}, ${task.locationLng || ''}`.trim().replace(/^,\s*|,\s*$/g, '');
+            setInputValue(`task-coords-${newTaskId}`, coords);
+            setInputValue(`task-radius-${newTaskId}`, task.geofenceRadius);
+            setInputValue(`task-story-${newTaskId}`, task.story);
+            setInputValue(`task-description-${newTaskId}`, task.prompt);
+            setInputValue(`task-hint-1-${newTaskId}`, task.hint1);
+            setInputValue(`task-hint-2-${newTaskId}`, task.hint2);
+            setInputValue(`task-solution-${newTaskId}`, task.solution);
+
+        });
+        
+        // Ha az XLSX üres volt, gondoskodunk egy alap feladatcsoportról
+        if (tasks.length === 0) {
+            clearTaskGroups(); // Csak a számlálót állítja 0-ra
+            plusButton.click(); // Hozzáadja az első üres feladatot (taskCounter 1 lesz)
+        }
+    }
+    
+    // ===================================
+    // 5. ADATOK GYŰJTÉSE ÉS MENTÉSE (XLSX)
     // ===================================
 
     function saveData() {
+        // 1. Általános adatok gyűjtése
         const title = document.getElementById('title').value || "Névtelen Kaland";
         const gameId = document.getElementById('generated-id').value || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const type = document.getElementById('type').value;
@@ -278,15 +580,35 @@
         const initialStory = document.getElementById('initial-story').value;
         const finalStory = document.getElementById('final-story').value;
         
-        let tasks = [];
-        let firstTaskCoords = null; 
+        const startCoordsInput = document.getElementById('start-coords').value;
+        const startRadiusInput = document.getElementById('start-radius').value;
 
+        let startLat = '';
+        let startLng = '';
+        if (startCoordsInput) {
+            const parts = startCoordsInput.split(',').map(c => c.trim());
+            if (parts.length === 2) {
+                startLat = parts[0];
+                startLng = parts[1];
+            }
+        }
+        
+        // 2. Feladat adatok gyűjtése
+        let tasksData = [];
         const taskGroups = document.querySelectorAll('.task-group');
         
-        taskGroups.forEach((group, index) => { // A 'index' itt 0, 1, 2, ...
-            const currentTaskId = index + 1; // Ezt használjuk az input ID-khez (pl. 1, 2, 3...)
-            const coordsInput = document.getElementById(`task-coords-${currentTaskId}`).value;
-            const radiusInput = document.getElementById(`task-radius-${currentTaskId}`).value;
+        taskGroups.forEach((group, index) => {
+            // Mivel a loadGame minden alkalommal új ID-t (taskCounter) ad, 
+            // a dinamikusan létrejött ID-t kell használnunk a mezők értékéhez.
+            const currentTaskIndex = index + 1; // 1-től indexelés a mentéshez
+            
+            // Azon ID-ket használjuk, amik a taskCounter növekedésekor jöttek létre
+            // A taskCounter mindig a valaha volt legmagasabb sorszámot tartja.
+            // A legbiztosabb az a DOM-ban lévő elemek sorszáma
+            const groupID = group.id.split('-').pop(); // Kinyerjük a task-group-X ID-ből az X-et
+
+            const coordsInput = document.getElementById(`task-coords-${groupID}`).value;
+            const radiusInput = document.getElementById(`task-radius-${groupID}`).value;
 
             let lat = '';
             let lng = '';
@@ -295,60 +617,76 @@
                 if (parts.length === 2) {
                     lat = parts[0];
                     lng = parts[1];
-                    if (index === 0) {
-                        firstTaskCoords = { lat, lng };
-                    }
                 }
             }
 
-            tasks.push({
+            tasksData.push({
                 gameId: gameId, 
-                // ITT INDUL AZ INDEX 0-RÓL, AHOGY KÉRTED:
-                index: index, 
+                index: currentTaskIndex, // 1-től indexelés
                 locationLat: lat,
                 locationLng: lng,
                 geofenceRadius: radiusInput || '0',
-                story: document.getElementById(`task-story-${currentTaskId}`).value,
-                prompt: document.getElementById(`task-description-${currentTaskId}`).value,
-                hint1: document.getElementById(`task-hint-1-${currentTaskId}`).value,
-                hint2: document.getElementById(`task-hint-2-${currentTaskId}`).value,
-                solution: document.getElementById(`task-solution-${currentTaskId}`).value
+                story: document.getElementById(`task-story-${groupID}`).value,
+                prompt: document.getElementById(`task-description-${groupID}`).value,
+                hint1: document.getElementById(`task-hint-1-${groupID}`).value,
+                hint2: document.getElementById(`task-hint-2-${groupID}`).value,
+                solution: document.getElementById(`task-solution-${groupID}`).value
             });
         });
 
-        // Általános játék adatok
-        const gameData = {
+        // 3. Általános adatok (games munkalap)
+        const gameInfo = {
             id: gameId,
             type: type,
             title: title,
-            age: '',
-            price: '0',
+            age: '', 
+            price: '0', 
             description: initialStory,
-            startLocationLat: firstTaskCoords ? firstTaskCoords.lat : '',
-            startLocationLng: firstTaskCoords ? firstTaskCoords.lng : '',
+            startLocationLat: startLat,
+            startLocationLng: startLng,
+            startGeofenceRadius: startRadiusInput || '0', 
             endStory: finalStory,
             imageUrl: coverImage
         };
 
-        const outputData = {
-            game_info: [gameData],
-            tasks: tasks
-        };
-
-        // JSON fájl generálása és letöltése
-        const jsonString = JSON.stringify(outputData, null, 2);
-        const blob = new Blob([jsonString], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
+        let finalGamesData = [];
+        let finalTasksData = [];
         
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${gameId}_data.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Ha van már betöltött adatbázis (allGamesData nem üres), akkor FRISSÍTJÜK ahelyett, hogy felülírnánk az egészet
+        if (allGamesData.length > 0) {
+            // Játék frissítése vagy hozzáadása
+            const gameIndex = allGamesData.findIndex(g => g.id === gameId);
+            if (gameIndex > -1) {
+                allGamesData[gameIndex] = gameInfo;
+            } else {
+                allGamesData.push(gameInfo);
+            }
+            finalGamesData = allGamesData;
 
-        alert(`Az adatok sikeresen mentve lettek ${a.download} néven!`);
+            // Feladatok frissítése/cseréje: az összes régi feladatot töröljük, és betesszük az újakat
+            finalTasksData = allTasksData.filter(t => t.gameId !== gameId); // Régi feladatok törlése
+            finalTasksData.push(...tasksData); // Új feladatok hozzáadása
+            
+        } else {
+            // Ha nem volt betöltve adatbázis, csak az aktuális játékot mentjük
+            finalGamesData.push(gameInfo);
+            finalTasksData.push(...tasksData);
+        }
+
+        // 4. Munkalapok létrehozása és fájl mentése (SheetJS)
+        
+        const workbook = XLSX.utils.book_new();
+
+        const taskSheet = XLSX.utils.json_to_sheet(finalTasksData);
+        XLSX.utils.book_append_sheet(workbook, taskSheet, 'tasks');
+
+        const gameSheet = XLSX.utils.json_to_sheet(finalGamesData);
+        XLSX.utils.book_append_sheet(workbook, gameSheet, 'games');
+
+        const filename = `${gameId}_data.xlsx`;
+        XLSX.writeFile(workbook, filename);
+
+        alert(`Az adatok sikeresen mentve lettek ${filename} néven, XLSX formátumban! (Munkalapok: games, tasks)`);
     }
 </script>
 
