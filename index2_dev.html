@@ -439,7 +439,7 @@
                     <div id="task-interaction-area"> 
                         <div id="normal-task-content">
                             <div class="content-card p-5">
-                                <details id="story-details" class="story-details mb-4">
+                                <details id="story-details" class="story-details mb-4" open>
                                     <summary>
                                         Történet Olvasása
                                         <button id="speak-story-btn" onclick="speakStory(event)" class="p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition" title="Felolvasás indítása">
@@ -1463,7 +1463,7 @@ function startGame(gameId) {
             document.getElementById('answer-input').value = '';
             
             // A Történet doboz bezárása új feladat betöltésénél
-            document.getElementById('story-details').open = false; 
+            document.getElementById('story-details').open = true; 
             
             // Ha a tasknak még nincs hintsUsed számlálója, inicializáljuk 0-ra
             if(typeof appState.currentGame.tasks[taskIndex].hintsUsed === 'undefined') {
