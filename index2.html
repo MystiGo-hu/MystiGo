@@ -520,7 +520,15 @@
                                 <img src="./paypal.png" alt="PayPal Logó" class="w-8 h-8">
                             </a>
                     </div>                    
-                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6">Eredmény letöltése (PDF)</button>
+                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6 hidden">Eredmény letöltése (PDF)</button>
+                     
+                     <a href="https://docs.google.com/forms/d/e/1FAIpQLScl1wQ2h7Gln_Pf9orPz2OnOz7Jridw7GWLALCTY9kkwDfflw/viewform?usp=dialog" 
+                        target="_blank" 
+                        class="main-button w-full max-w-xs !text-base !bg-brand-cyan hover:!bg-cyan-600 !text-white !font-extrabold mt-4 mb-4"
+                        title="Értékeld a kalandot">
+                        Kérlek, ÉRTÉKELJ MINKET! ⭐
+                     </a>
+                     
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
                 </section>
             </div>
@@ -1628,7 +1636,7 @@ function startGame(gameId) {
 
             // *** AUTOMATIKUS PDF LETÖLTÉS BEKAPCSOLÁSA ***
             // Ha nem szeretné az automatikus letöltést, ezt a sort kommentelje ki:
-            downloadPDF(); 
+            // downloadPDF(); 
             // *** VÉGE ***
             
             clearSavedState(); // Töröljük a mentést
