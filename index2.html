@@ -16,14 +16,29 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1SBQQGDGL7"></script>
     <script>
+        // 1. Definiáld az alapértelmezett beleegyezési állapotot a CMP kódja előtt!
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
+        
+        gtag('consent', 'default', {
+            'ad_storage': 'denied', // Hirdetés tárolás tiltva
+            'analytics_storage': 'denied', // Analitika tárolás tiltva
+            'wait_for_update': 500 // 500 ms várakozás a CMP-re
+        });
+    </script>
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1SBQQGDGL7"></script>
+    <script>
         gtag('js', new Date());
         gtag('config', 'G-1SBQQGDGL7');
     </script>
-
+    <script type="text/javascript">
+    var _iub = _iub || [];
+    _iub.csConfiguration = {"lang":"hu","siteId":2549400,"cookiePolicyId":40995967, "consentOnContinuedBrowsing": false, "callback": { onConsentGiven: function() { gtag('consent', 'update', { 'analytics_storage': 'granted', 'ad_storage': 'granted' }); }, onConsentRejected: function() { gtag('consent', 'update', { 'analytics_storage': 'denied', 'ad_storage': 'denied' }); }}};
+    </script>
+    <script type="text/javascript" src="//cdn.iubenda.com/cs/tcf/stub.js"></script>
+    <script type="text/javascript" src="//cdn.iubenda.com/cs/iubenda_cs.js" charset="utf-8"></script>
     <style>
         /* --- Arculat frissítve a leírás alapján (türkiz, narancs, sötétkék) --- */
         :root {
@@ -579,7 +594,12 @@
 </a>
                      
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
-                </section>
+                     
+                     <div class="mt-4 p-2 text-center text-xs">
+                        <a href="https://www.iubenda.com/privacy-policy/40995967" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Privacy Policy ">Adatvédelmi Szabályzat</a> | 
+                        <a href="https://www.iubenda.com/privacy-policy/40995967/cookie-policy" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Cookie Policy ">Cookie Szabályzat</a>
+                    </div>
+                    </section>
             </div>
         </div>
     </div>
