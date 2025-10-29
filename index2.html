@@ -389,7 +389,16 @@
                                 </div>
                             </div>
                         </div>
-                                                
+                        
+                        <div id="game-type-explanation" class="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                            <h2 class="text-xl font-bold text-text-heading mb-3">Kaland Típusok Magyarázata</h2>
+                            <div class="space-y-2 text-sm text-gray-700">
+                               <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok szekvenciálisan, sorban követik egymást.</p>
+                                <p><strong>Kids 👶:</strong> Kimondottan 6-10 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve. Szekvenciális feladatok.</p>
+                                <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok **változó sorrendben** jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a végén.</p>
+
+                            </div>
+                        </div>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
@@ -787,6 +796,16 @@ function downloadPDF() {
             document.querySelectorAll('#content-wrapper section').forEach(p => p.classList.add('hidden'));
             document.getElementById(pageId).classList.remove('hidden');
             
+            // ÚJ: A 'game-page' és 'end-page' oldalakra görgetünk a tartalom tetejére, 
+            // mivel az indító és lista oldal automatikusan fent van.
+            const contentWrapper = document.getElementById('content-page-wrapper');
+            if (contentWrapper) {
+                 contentWrapper.scrollTo({
+                     top: 0,
+                     behavior: 'instant' 
+                 });
+            }
+
             const mainHeader = document.getElementById('main-header');
             const statusBar = document.getElementById('game-status-bar');
             const exitButton = document.getElementById('exit-game-btn'); // Kilépés gomb
