@@ -76,8 +76,31 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: relative; /* <-- ÚJ: A bezáró gomb pozicionálásához */
         }
         
+        /* ÚJ STÍLUS: Piros Bezáró/Törlő gomb */
+        #close-form-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #dc3545; /* Piros szín */
+            font-size: 2em;
+            line-height: 1;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            transition: transform 0.2s, color 0.2s;
+            z-index: 10;
+        }
+
+        #close-form-button:hover {
+            color: #c82333;
+            transform: scale(1.1);
+        }
+
         /* A többi stílus változatlan, de az utolsó gombok stílusát frissítjük */
 
         .general-info, .task-group {
@@ -222,6 +245,9 @@
     </div>
     
     <div id="form-container">
+        
+        <button id="close-form-button" onclick="resetFormToDefault()" title="Jelenlegi munka törlése és visszaállítás alapállapotra">❌</button>
+
         <h1>Interaktív Történet & Feladatkészítő</h1>
         
         <p id="autosave-status" style="color: #007bff; font-weight: bold; font-size: 0.9em;">Automatikusan mentve: ...</p>
@@ -328,6 +354,28 @@
         setInputValue('start-coords', '');
         setInputValue('start-radius', '');
         clearTaskGroups();
+        
+        // Kiemelés eltávolítása a listáról, ha volt
+        document.querySelectorAll('.game-list-item').forEach(item => {
+             item.classList.remove('selected');
+        });
+        currentLoadedGameId = null;
+    }
+
+    // ÚJ FÜGGVÉNY: Űrlap törlése és alapállapotba állítás megerősítéssel
+    function resetFormToDefault() {
+        const confirmation = confirm("Biztosan törölni szeretnéd a jelenleg kitöltött adatokat és visszaállni az alapállapotra? Ezzel a helyi automatikus mentés is törlődik!");
+        
+        if (confirmation) {
+            clearForm(); // Minden mező törlése
+            localStorage.removeItem(AUTOSAVE_KEY); // Autosave törlése
+            
+            // Létrehozunk egy üres feladatcsoportot
+            plusButton.click(); 
+            
+            document.getElementById('autosave-status').textContent = 'Automatikusan mentve: Alapállapot visszaállítva, helyi mentés törölve.';
+            alert("A munkafolyamat törölve, az űrlap alapállapotba állt.");
+        }
     }
     
     // ===================================
