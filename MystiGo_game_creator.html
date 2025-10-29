@@ -140,7 +140,7 @@
             line-height: 1;
             transition: background-color 0.2s;
             height: auto; /* Magasság automatikus, nem fix */
-            text-transform: lowercase; /* Kisbetűs stílus */
+            text-transform: uppercase; /* Nagybetűs stílus */
             white-space: nowrap; /* Megakadályozza a törést */
         }
 
@@ -285,7 +285,7 @@
                     <label for="start-coords">Kezdő GPS Koordináták</label>
                     <div class="input-with-gps">
                         <input type="text" id="start-coords" placeholder="Pl: 47.4979, 19.0402" oninput="autoSave()">
-                        <button type="button" class="gps-button" onclick="getCurrentGps('start-coords')">📍gps</button>
+                        <button type="button" class="gps-button" onclick="getCurrentGps('start-coords')">📍GPS</button>
                     </div>
                 </div>
                 <div>
@@ -392,7 +392,7 @@
                         <label for="task-coords-${newTaskId}">GPS Koordináták</label>
                         <div class="input-with-gps">
                             <input type="text" id="task-coords-${newTaskId}" placeholder="Pl: 47.4979, 19.0402" oninput="autoSave()">
-                            <button type="button" class="gps-button" onclick="getCurrentGps('task-coords-${newTaskId}')">📍gps</button>
+                            <button type="button" class="gps-button" onclick="getCurrentGps('task-coords-${newTaskId}')">📍GPS</button>
                         </div>
                     </div>
                     <div>
@@ -446,7 +446,7 @@
             .normalize('NFD').replace(/[\u0300-\u036f]/g, "") 
             .replace(/[^a-z0-9\s-]/g, '')
             .trim()
-            .replace(/\s+/g, '-');
+            .replace(/\s+/g, '-');s
         
         setInputValue('generated-id', id);
     }
@@ -459,29 +459,29 @@
         if (navigator.geolocation) {
             const button = document.querySelector(`[onclick="getCurrentGps('${targetId}')"]`);
             // Módosított szövegek szóköz nélkül
-            const originalText = '📍gps'; 
+            const originalText = '📍GPS'; 
             if (button) button.textContent = 'betöltés...';
             
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const lat = position.coords.latitude.toFixed(4);
-                    const lng = position.coords.longitude.toFixed(4);
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lng = position.coords.longitude.toFixed(6);
                     const coords = `${lat}, ${lng}`;
                     setInputValue(targetId, coords);
                     
-                    if (button) button.textContent = '✅betöltve';
+                    if (button) button.textContent = '✅OK';
                     // 2000 ms késleltetés a pontosság ellenőrzésére
-                    setTimeout(() => { if (button) button.textContent = originalText; }, 2000); 
+                    setTimeout(() => { if (button) button.textContent = originalText; }, 5000); 
                     autoSave();
                 },
                 (error) => {
                     alert(`Hiba történt a GPS koordináták lekérésekor: ${error.message}`);
-                    if (button) button.textContent = '❌hiba';
-                    setTimeout(() => { if (button) button.textContent = originalText; }, 2000);
+                    if (button) button.textContent = '❌Hiba';
+                    setTimeout(() => { if (button) button.textContent = originalText; }, 5000);
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 5000,
+                    timeout: 7000,
                     maximumAge: 0
                 }
             );
