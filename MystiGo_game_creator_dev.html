@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MystiGo Game Creator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0D2B45; /* brand-blue */
+            border-bottom: 2px solid #00CED1; /* brand-cyan */
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #FFA500; /* brand-orange */
+            margin-top: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #2D3748;
+        }
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .main-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .save-button {
+            background-color: #00CED1; /* brand-cyan */
+            color: white;
+        }
+        .save-button:hover {
+            background-color: #008080;
+        }
+        .add-task-button {
+            background-color: #FFA500; /* brand-orange */
+            color: white;
+        }
+        .add-task-button:hover {
+            background-color: #cc8400;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #0D2B45;
+            color: white;
+        }
+        td input, td textarea {
+            min-width: 150px;
+        }
+        .index-cell {
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        .action-cell {
+            width: 120px;
+            text-align: center;
+        }
+        .action-cell button {
+            margin: 2px;
+            padding: 5px 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        /* ÚJ STÍLUSOK A GPS GOMBHOZ ÉS ELRENDEZÉSHEZ */
+        .input-with-button {
+            display: flex;
+            gap: 5px; /* Kisebb távolság a mező és a gomb között */
+        }
+        .input-with-button input {
+            flex-grow: 1;
+        }
+        .gps-button {
+            flex-shrink: 0; /* Megakadályozza, hogy a gomb zsugorodjon */
+            width: 40px;
+            height: 40px; /* Az input mező magasságával megegyező magasság */
+            padding: 0;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #00CED1; /* brand-cyan */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+            line-height: 40px; /* Vertikális középre igazítás */
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gps-button:hover {
+            background-color: #008080; /* Sötétebb cyan */
+        }
+        .text-red-500 { color: #dc3545; }
+        .text-green-500 { color: #28a745; }
+        .text-gray-400 { color: #ccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MystiGo Játék Szerkesztő (v1.0)</h1>
+        <p id="save-status" class="text-xs text-gray-400 mt-2 mb-4">Autosave aktív</p>
+        
+        <section id="game-settings">
+            <h2>Játék Beállítások</h2>
+            <label for="input-game-title">Játék Cím (Title):</label>
+            <input type="text" id="input-game-title" required>
+
+            <label for="input-game-type">Játék Típus (Type):</label>
+            <select id="input-game-type" required>
+                <option value="normal">normal 🧭 (Általános, Szekvenciális)</option>
+                <option value="kids">kids 👶 (Gyerekeknek, Szekvenciális)</option>
+                <option value="team">team 🧑‍🤝‍🧑 (Csapat, Random Feladatok)</option>
+            </select>
+            
+            <label for="input-game-price">Ár (price - Ft):</label>
+            <input type="number" id="input-game-price" value="0" min="0">
+
+            <label for="input-game-description">Leírás (description):</label>
+            <textarea id="input-game-description"></textarea>
+            
+            <h3>Kezdőpont (Start Location)</h3>
+            <label for="input-start-lat">Kezdő Koordináta (szélesség):</label>
+            <div class="input-with-button">
+                <input type="text" id="input-start-lat" required>
+                <button type="button" class="gps-button" title="Aktuális pozíció betöltése" onclick="getGpsLocation('start-lat')">📍</button>
+            </div>
+
+            <label for="input-start-lng">Kezdő Koordináta (hosszúság):</label>
+            <div class="input-with-button">
+                <input type="text" id="input-start-lng" required>
+                <button type="button" class="gps-button" title="Aktuális pozíció betöltése" onclick="getGpsLocation('start-lng')">📍</button>
+            </div>
+
+            <label for="input-end-story">Befejező Történet (endStory):</label>
+            <textarea id="input-end-story" rows="4"></textarea>
+
+        </section>
+
+        <section id="task-list">
+            <h2>Feladatok (Tasks)</h2>
+            
+            <div class="button-group">
+                <button class="main-button add-task-button" onclick="addTaskRow()">Új Feladat Hozzáadása</button>
+            </div>
+
+            <p style="font-size: 0.9em; color: #555; margin-top: 10px;">
+                * **Index:** A feladat sorszáma a fájlban. A végső sorrendet a Játék Típus határozza meg (Normal/Kids: Szekvenciális; Team: Random, az első és utolsó kivételével).
+            </p>
+
+            <div style="overflow-x: auto;">
+                <table id="task-table">
+                    <thead>
+                        <tr>
+                            <th class="index-cell">Index</th>
+                            <th>GameId</th>
+                            <th>Loc. Szél.</th>
+                            <th>Loc. Hoss.</th>
+                            <th>GeoF. R. (m)</th>
+                            <th>Prompt (Kérdés)</th>
+                            <th>Solution (Helyes válasz)</th>
+                            <th>Hint1</th>
+                            <th>Hint2</th>
+                            <th>Story</th>
+                            <th>Accepted Answers (synonym)</th>
+                            <th>Synonyms (accepted_answers)</th>
+                            <th class="action-cell">Művelet</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-table-body">
+                        </tbody>
+                </table>
+            </div>
+            
+        </section>
+
+        <section id="export-section">
+            <h2>Exportálás</h2>
+            <div class="button-group">
+                <button class="main-button save-button" id="save-xlsx-button">Játékfájl Mentése (.xlsx)</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const CREATOR_STORAGE_KEY = 'MystiGoCreatorState'; // Kulcs a localStorage-hoz
+        const GEOFENCE_DEFAULT_RADIUS = 20;
+
+        // --- ADATGYŰJTÉS ÉS ADATOSZTÁS SEGÉDFÜGGVÉNYEK ---
+
+        /**
+         * Összegyűjti az összes szükséges adatot a szerkesztőfelületről.
+         */
+        function getCreatorData() {
+            const gameConfig = {
+                title: document.getElementById('input-game-title').value,
+                type: document.getElementById('input-game-type').value,
+                description: document.getElementById('input-game-description').value,
+                startLocationLat: document.getElementById('input-start-lat').value,
+                startLocationLng: document.getElementById('input-start-lng').value,
+                endStory: document.getElementById('input-end-story').value,
+                price: document.getElementById('input-game-price').value
+            };
+
+            const tasks = [];
+            const taskRows = document.getElementById('task-table-body').querySelectorAll('tr');
+
+            taskRows.forEach((row, rowIndex) => {
+                const inputs = row.querySelectorAll('input, textarea');
+                
+                // Mivel az inputoknak nincs ID-jük, a fix sorrendet feltételezzük:
+                // 0: GameId, 1: Index, 2: Lat, 3: Lng, 4: Radius, 5: Prompt, 6: Solution, 7: Hint1, 8: Hint2, 9: Story, 10: Accepted, 11: Synonyms
+                tasks.push({
+                    gameId: inputs[0] ? inputs[0].value : '',
+                    index: rowIndex + 1, // Az indexet a sortól újra generáljuk, hogy helyes legyen a visszatöltéskor
+                    locationLat: inputs[2] ? inputs[2].value : '',
+                    locationLng: inputs[3] ? inputs[3].value : '',
+                    geofenceRadius: inputs[4] ? inputs[4].value : GEOFENCE_DEFAULT_RADIUS,
+                    prompt: inputs[5] ? inputs[5].value : '',
+                    solution: inputs[6] ? inputs[6].value : '',
+                    hint1: inputs[7] ? inputs[7].value : '',
+                    hint2: inputs[8] ? inputs[8].value : '',
+                    story: inputs[9] ? inputs[9].value : '',
+                    accepted_answers: inputs[10] ? inputs[10].value : '',
+                    synonyms: inputs[11] ? inputs[11].value : ''
+                });
+            });
+            
+            return { config: gameConfig, tasks: tasks };
+        }
+
+        /**
+         * Betölti a mentett adatokat a szerkesztőfelületre (visszatölti a beviteli mezőket).
+         * @param {object} data - A mentett állapotot tartalmazó objektum.
+         */
+        function loadCreatorUI(data) {
+            if (!data || !data.config || !data.tasks) return;
+
+            // 1. Game Config betöltése
+            document.getElementById('input-game-title').value = data.config.title || '';
+            document.getElementById('input-game-type').value = data.config.type || 'normal';
+            document.getElementById('input-game-description').value = data.config.description || '';
+            document.getElementById('input-start-lat').value = data.config.startLocationLat || '';
+            document.getElementById('input-start-lng').value = data.config.startLocationLng || '';
+            document.getElementById('input-end-story').value = data.config.endStory || '';
+            document.getElementById('input-game-price').value = data.config.price || '0';
+
+            // 2. Feladatok betöltése a táblázatba (meglévő sorok törlése és újak generálása)
+            document.getElementById('task-table-body').innerHTML = '';
+            
+            data.tasks.forEach(task => {
+                // A task objektumot átadjuk az addTaskRow-nak, ami generálja a sort és betölti az értékeket
+                addTaskRow(task); 
+            });
+            
+            updateTaskIndices(); // Indexek frissítése a betöltött táblázatban
+            
+            // alert(`Sikeresen folytatva a(z) "${data.config.title || 'Névtelen játék'}" szerkesztését.`);
+        }
+
+        /**
+         * Törli a mentett szerkesztési állapotot a localStorage-ból.
+         */
+        function clearCreatorState() {
+            localStorage.removeItem(CREATOR_STORAGE_KEY);
+        }
+
+        // --- MENTÉSI LOGIKA ---
+
+        /**
+         * Elmenti az aktuális szerkesztési állapotot a localStorage-ba.
+         */
+        function saveCreatorState() {
+            const data = getCreatorData();
+            // Ne mentsünk, ha üres a cím (feltételezve, hogy csak GameId nélkül mentünk)
+            if (data.config.title.trim() === '' || data.tasks.length === 0) return; 
+
+            const stateToSave = {
+                ...data,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                localStorage.setItem(CREATOR_STORAGE_KEY, JSON.stringify(stateToSave));
+                console.log(`[Autosave] Állapot elmentve: ${data.config.title}`);
+                // UI visszajelzés
+                const saveStatus = document.getElementById('save-status');
+                if (saveStatus) {
+                    saveStatus.innerText = `Mentve: ${new Date().toLocaleTimeString('hu-HU')}`;
+                    saveStatus.classList.remove('text-red-500');
+                    saveStatus.classList.add('text-green-500');
+                    setTimeout(() => {
+                        saveStatus.innerText = 'Autosave aktív';
+                        saveStatus.classList.remove('text-green-500');
+                    }, 3000);
+                }
+            } catch (e) {
+                console.error("Hiba a szerkesztői állapot mentésekor:", e);
+            }
+        }
+
+
+        // --- VISSZATÖLTÉSI LOGIKA ---
+
+        /**
+         * Visszatölti az állapotot a localStorage-ból, ha van mentés.
+         */
+        function loadCreatorState() {
+            try {
+                const savedState = localStorage.getItem(CREATOR_STORAGE_KEY);
+                if (!savedState) return false;
+
+                const state = JSON.parse(savedState);
+                const lastSaved = new Date(state.timestamp).toLocaleString('hu-HU');
+                const gameTitle = state.config.title || 'Névtelen játék';
+
+                if (confirm(`Találtunk egy mentett szerkesztést a(z) "${gameTitle}" játékról, (${lastSaved}). Szeretnéd folytatni? (OK=Folytatás, Mégse=Új játék)`)) {
+                    loadCreatorUI(state);
+                    return true;
+                } else {
+                    clearCreatorState();
+                    return false;
+                }
+
+            } catch (e) {
+                console.error("Hiba a szerkesztői állapot betöltésekor:", e);
+                clearCreatorState(); // Töröljük a sérült mentést
+                return false;
+            }
+        }
+
+        // --- GPS LOGIKA ---
+
+        /**
+         * Lekéri az aktuális GPS pozíciót és beírja a megfelelő koordináta mezőbe.
+         * @param {string} targetId - A céltérkép ID-je ('start-lat', 'start-lng', 'lat', 'lng')
+         */
+        function getGpsLocation(targetId) {
+            if (!navigator.geolocation) {
+                alert('A böngésződ nem támogatja a helymeghatározást.');
+                return;
+            }
+
+            const button = event.currentTarget;
+            button.disabled = true;
+            button.innerHTML = '📡';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lng = position.coords.longitude.toFixed(6);
+                    
+                    // Speciális kezelés a Start Location-höz
+                    if (targetId === 'start-lat') {
+                        document.getElementById('input-start-lat').value = lat;
+                    } else if (targetId === 'start-lng') {
+                        document.getElementById('input-start-lng').value = lng;
+                    } 
+                    // Normál Task sor koordinátákhoz
+                    else {
+                        const inputField = button.previousElementSibling; // Az input mező a gomb előtt van
+                        if (inputField) inputField.value = (targetId === 'lat') ? lat : lng;
+                    }
+
+                    button.disabled = false;
+                    button.innerHTML = '📍';
+                    // alert(`Pozíció betöltve: ${lat}, ${lng}`);
+                },
+                (error) => {
+                    console.error("Helymeghatározási hiba:", error);
+                    let errorMessage = "Hiba a GPS pozíció lekérésekor.";
+                    if (error.code === error.PERMISSION_DENIED) {
+                        errorMessage = "Hozzáférés megtagadva! Engedélyezd a helymeghatározást a böngésződben.";
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        errorMessage = "A helyinformáció nem elérhető.";
+                    }
+                    
+                    alert(errorMessage);
+                    button.disabled = false;
+                    button.innerHTML = '📍';
+                },
+                {
+                    enableHighAccuracy: true, 
+                    timeout: 5000, 
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // --- TÁBLÁZAT MANIPULÁCIÓ ---
+        
+        // A meglévő addTaskRow függvény módosítása, hogy opcionálisan fogadjon adatokat
+        function addTaskRow(taskData = {}) {
+            const tbody = document.getElementById('task-table-body');
+            const newRow = tbody.insertRow();
+            
+            const taskIndex = tbody.rows.length; // Az index a sorok számával egyezik
+            
+            // Alapértelmezett értékek beállítása, ha nincs mentett adat
+            const defaults = {
+                gameId: document.getElementById('input-game-title').value || '',
+                index: taskIndex,
+                locationLat: '',
+                locationLng: '',
+                geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
+                prompt: '',
+                solution: '',
+                hint1: '',
+                hint2: '',
+                story: '',
+                accepted_answers: '',
+                synonyms: '',
+                ...taskData // Felülírjuk az alapértékeket a mentett adatokkal
+            };
+
+            // Index Cell
+            newRow.insertCell().innerHTML = `<div class="index-cell">${defaults.index}</div>`;
+            
+            // GameId
+            newRow.insertCell().innerHTML = `<input type="text" value="${defaults.gameId}" placeholder="Pl. Eger_kaland_2024">`;
+            
+            // Location Lat + GPS gomb
+            newRow.insertCell().innerHTML = `<div class="input-with-button">
+                                                <input type="text" value="${defaults.locationLat}" placeholder="47.9026" required>
+                                                <button type="button" class="gps-button" title="Pozíció betöltése" onclick="getGpsLocation('lat')">📍</button>
+                                            </div>`;
+
+            // Location Lng + GPS gomb
+            newRow.insertCell().innerHTML = `<div class="input-with-button">
+                                                <input type="text" value="${defaults.locationLng}" placeholder="20.3777" required>
+                                                <button type="button" class="gps-button" title="Pozíció betöltése" onclick="getGpsLocation('lng')">📍</button>
+                                            </div>`;
+
+            // Geofence Radius
+            newRow.insertCell().innerHTML = `<input type="number" value="${defaults.geofenceRadius}" min="5" placeholder="${GEOFENCE_DEFAULT_RADIUS}">`;
+            
+            // Prompt, Solution, Hints, Story, Accepted Answers, Synonyms
+            newRow.insertCell().innerHTML = `<textarea rows="2" placeholder="A kérdés, ami megjelenik">${defaults.prompt}</textarea>`;
+            newRow.insertCell().innerHTML = `<input type="text" value="${defaults.solution}" placeholder="A titkos megoldás">`;
+            newRow.insertCell().innerHTML = `<input type="text" value="${defaults.hint1}" placeholder="-20 pont">`;
+            newRow.insertCell().innerHTML = `<input type="text" value="${defaults.hint2}" placeholder="-30 pont">`;
+            newRow.insertCell().innerHTML = `<textarea rows="3" placeholder="A feladat története">${defaults.story}</textarea>`;
+            newRow.insertCell().innerHTML = `<input type="text" value="${defaults.accepted_answers}" placeholder="Szavak; pontosvesszővel elválasztva">`;
+            newRow.insertCell().innerHTML = `<input type="text" value="${defaults.synonyms}" placeholder="Synonymok; pontosvesszővel elválasztva">`;
+
+            // Action buttons
+            newRow.insertCell().innerHTML = `<div class="action-cell">
+                                                <button onclick="moveRow(this, -1)">↑ Fel</button>
+                                                <button onclick="moveRow(this, 1)">↓ Le</button>
+                                                <button onclick="removeTaskRow(this)">Töröl</button>
+                                            </div>`;
+            
+            // Frissítjük a GameId-t a táblázat összes sorában a fenti Game Title alapján, ha nincs mentett adat
+            if (!taskData.gameId) {
+                 updateGameIds();
+            }
+        }
+
+        function removeTaskRow(button) {
+            if (!confirm("Biztosan törölni szeretnéd ezt a feladatot?")) return;
+            const row = button.closest('tr');
+            row.remove();
+            updateTaskIndices();
+        }
+
+        function moveRow(button, direction) {
+            const row = button.closest('tr');
+            const tbody = document.getElementById('task-table-body');
+            const index = row.rowIndex - 1; // -1 a thead miatt
+            const targetIndex = index + direction;
+
+            if (targetIndex >= 0 && targetIndex < tbody.rows.length) {
+                if (direction === -1) {
+                    tbody.insertBefore(row, tbody.rows[targetIndex]);
+                } else {
+                    tbody.insertBefore(row, tbody.rows[targetIndex + 1]);
+                }
+                updateTaskIndices();
+            }
+        }
+
+        function updateTaskIndices() {
+            const tbody = document.getElementById('task-table-body');
+            Array.from(tbody.rows).forEach((row, index) => {
+                // Index cell frissítése
+                row.cells[0].innerHTML = `<div class="index-cell">${index + 1}</div>`;
+                
+                // Mivel a GameId input a 2. cellában van (index 1), ezt használjuk GameId frissítésre
+                // Az index inputot eltávolítottam, mert automatikus a sorrend.
+            });
+        }
+        
+        function updateGameIds() {
+             const gameIdValue = document.getElementById('input-game-title').value.trim();
+             const tbody = document.getElementById('task-table-body');
+             Array.from(tbody.rows).forEach((row) => {
+                const gameIdInput = row.cells[1].querySelector('input');
+                if (gameIdInput) {
+                    gameIdInput.value = gameIdValue;
+                }
+             });
+        }
+
+
+        // --- XLSX EXPORT LOGIKA ---
+
+        function saveGameData() {
+            const data = getCreatorData();
+            const config = data.config;
+            const tasks = data.tasks;
+
+            if (!config.title || !config.startLocationLat || !config.startLocationLng || tasks.length === 0) {
+                alert("Kérjük, töltsd ki a Játék Címét, a Kezdőpont koordinátáit és adj hozzá legalább egy feladatot.");
+                return false;
+            }
+            
+            // Fő táblázat adatai
+            const gameData = [
+                ['id', 'title', 'type', 'startLocationLat', 'startLocationLng', 'description', 'endStory', 'imageUrl', 'price'],
+                [
+                    config.title,
+                    config.title,
+                    config.type,
+                    config.startLocationLat,
+                    config.startLocationLng,
+                    config.description,
+                    config.endStory,
+                    '', // imageUrl - placeholder
+                    config.price
+                ]
+            ];
+
+            // Feladatok táblázat adatai
+            const taskData = [
+                ['gameId', 'index', 'locationLat', 'locationLng', 'geofenceRadius', 'prompt', 'solution', 'hint1', 'hint2', 'story', 'accepted_answers', 'synonyms', 'timeLimitSec'],
+            ];
+
+            tasks.forEach((task, index) => {
+                taskData.push([
+                    task.gameId,
+                    index + 1, // Kényszerített index
+                    task.locationLat,
+                    task.locationLng,
+                    task.geofenceRadius,
+                    task.prompt,
+                    task.solution,
+                    task.hint1,
+                    task.hint2,
+                    task.story,
+                    task.accepted_answers,
+                    task.synonyms,
+                    '' // timeLimitSec - placeholder
+                ]);
+            });
+
+            // Workbook és Munkalapok létrehozása
+            const workbook = XLSX.utils.book_new();
+            const gamesSheet = XLSX.utils.aoa_to_sheet(gameData);
+            const tasksSheet = XLSX.utils.aoa_to_sheet(taskData);
+            
+            XLSX.utils.book_append_sheet(workbook, gamesSheet, "games");
+            XLSX.utils.book_append_sheet(workbook, tasksSheet, "tasks");
+
+            // Fájl mentése
+            const filename = `${config.title.replace(/\s/g, '_')}_game.xlsx`;
+            XLSX.writeFile(workbook, filename);
+            
+            return true;
+        }
+
+        // --- ESEMÉNY FIGYELŐK ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. Állapot visszatöltése a betöltéskor
+            loadCreatorState();
+            
+            // 2. Automatikus mentés indítása
+            // Mentés 5 másodpercenként
+            setInterval(saveCreatorState, 5000); 
+            // Mentés az oldal elhagyása előtt
+            window.addEventListener('beforeunload', saveCreatorState);
+            
+            // 3. Eseményfigyelők
+            document.getElementById('save-xlsx-button').addEventListener('click', () => {
+                if (saveGameData()) {
+                    clearCreatorState(); // Töröljük a mentett állapotot sikeres exportálás után
+                }
+            });
+            
+            // Frissíti a GameId-t, ha a Game Title változik
+            document.getElementById('input-game-title').addEventListener('input', updateGameIds);
+
+            // Kezdeti üres sor hozzáadása, ha nincs betöltve állapot
+            if (document.getElementById('task-table-body').rows.length === 0) {
+                 // addTaskRow(); // Kezdeti üres sort most elhagyjuk
+            }
+            
+            updateTaskIndices(); // Biztosítjuk, hogy az indexek rendben legyenek
+        });
+    </script>
+</body>
+</html>
