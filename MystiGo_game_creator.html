@@ -95,6 +95,36 @@
             background-color: #f0f8ff;
         }
         
+        /* GPS gomb elrendezéshez (MÓDOSÍTVA: Oszlopos elrendezés) */
+        .input-with-gps {
+            display: flex;
+            flex-direction: column; /* Oszlopos elrendezés: mező alatta gomb */
+            gap: 5px;
+        }
+        
+        .input-with-gps input[type="text"] {
+            flex-grow: 1; /* A mező foglalja el a hely nagy részét */
+        }
+
+        .gps-button {
+            padding: 8px 10px;
+            border: none;
+            background-color: #ffc107;
+            color: #333;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9em;
+            line-height: 1;
+            transition: background-color 0.2s;
+            height: auto; /* Magasság automatikus, nem fix */
+            text-transform: lowercase; /* Kisbetűs stílus */
+            white-space: nowrap; /* Megakadályozza a törést */
+        }
+
+        .gps-button:hover {
+            background-color: #e0a800;
+        }
+
         .input-row {
             display: flex;
             gap: 20px;
@@ -193,14 +223,15 @@
     
     <div id="form-container">
         <h1>Interaktív Történet & Feladatkészítő</h1>
-
+        
+        <p id="autosave-status" style="color: #007bff; font-weight: bold; font-size: 0.9em;">Automatikusan mentve: ...</p>
         <div class="general-info">
             <h2>Általános adatok 📋</h2>
             
             <div class="input-row">
                 <div>
                     <label for="title">Cím</label>
-                    <input type="text" id="title" placeholder="A kaland címe (pl: A Főváros Rejtélye)" oninput="generateId(this.value)">
+                    <input type="text" id="title" placeholder="A kaland címe (pl: A Főváros Rejtélye)" oninput="generateId(this.value); autoSave()">
                 </div>
                 <div>
                     <label for="generated-id">Azonosító (ID)</label>
@@ -211,7 +242,7 @@
             <div class="input-row">
                 <div>
                     <label for="type">Típus</label>
-                    <select id="type">
+                    <select id="type" onchange="autoSave()">
                         <option value="normal">Normal</option>
                         <option value="kids">Kids</option>
                         <option value="team">Team</option>
@@ -219,74 +250,40 @@
                 </div>
                 <div>
                     <label for="cover-image">Borítókép fájlnév</label>
-                    <input type="text" id="cover-image" placeholder="pl: boritokep.jpg">
+                    <input type="text" id="cover-image" placeholder="pl: boritokep.jpg" oninput="autoSave()">
                 </div>
             </div>
             
             <div class="input-row">
                 <div>
                     <label for="start-coords">Kezdő GPS Koordináták</label>
-                    <input type="text" id="start-coords" placeholder="Pl: 47.4979, 19.0402">
+                    <div class="input-with-gps">
+                        <input type="text" id="start-coords" placeholder="Pl: 47.4979, 19.0402" oninput="autoSave()">
+                        <button type="button" class="gps-button" onclick="getCurrentGps('start-coords')">📍gps</button>
+                    </div>
                 </div>
                 <div>
                     <label for="start-radius">Kezdő Rádiusz (méterben)</label>
-                    <input type="text" id="start-radius" placeholder="Pl: 20 (ez a kör sugara)">
+                    <input type="text" id="start-radius" placeholder="Pl: 20 (ez a kör sugara)" oninput="autoSave()">
                 </div>
             </div>
 
         </div>
 
         <label for="initial-story">Kezdeti Történet</label>
-        <textarea id="initial-story" rows="4" placeholder="Írd ide a történet elejét, a küldetés indítását..."></textarea>
+        <textarea id="initial-story" rows="4" placeholder="Írd ide a történet elejét, a küldetés indítását..." oninput="autoSave()"></textarea>
         
         <hr>
 
         <div id="task-groups-container">
-            <div class="task-group" id="task-group-1">
-                <h2>Feladat 1. (Helyszín) 📍</h2>
-                
-                <div class="input-row">
-                    <div>
-                        <label for="task-coords-1">GPS Koordináták</label>
-                        <input type="text" id="task-coords-1" placeholder="Pl: 47.4979, 19.0402">
-                    </div>
-                    <div>
-                        <label for="task-radius-1">Rádiusz (méterben)</label>
-                        <input type="text" id="task-radius-1" placeholder="Pl: 10 (ez a kör sugara)">
-                    </div>
-                </div>
-
-                <label for="task-story-1">Feladathoz Tartozó Történet</label>
-                <textarea id="task-story-1" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
-
-                <label for="task-description-1">Konkrét Feladat</label>
-                <textarea id="task-description-1" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
-                
-                <hr style="border-style: dashed;">
-
-                <div class="input-row">
-                    <div>
-                        <label for="task-hint-1-1">Segítség 1</label>
-                        <input type="text" id="task-hint-1-1" placeholder="Rövid tipp 1">
-                    </div>
-                    <div>
-                        <label for="task-hint-2-1">Segítség 2</label>
-                        <input type="text" id="task-hint-2-1" placeholder="Rövid tipp 2">
-                    </div>
-                    <div>
-                        <label for="task-solution-1">Megoldás</label>
-                        <input type="text" id="task-solution-1" placeholder="A helyes válasz">
-                    </div>
-                </div>
             </div>
-        </div>
 
         <button id="plus-button">➕ Plusz Feladatcsoport Hozzáadása</button>
 
         <hr>
 
         <label for="final-story">Záró Történet</label>
-        <textarea id="final-story" rows="4" placeholder="Írd ide a történet végét, a küldetés lezárását..."></textarea>
+        <textarea id="final-story" rows="4" placeholder="Írd ide a történet végét, a küldetés lezárását..." oninput="autoSave()"></textarea>
 
         <div class="action-button-row">
              <button id="save-button" onclick="saveData()">💾 Mentés (XLSX fájlként)</button>
@@ -297,24 +294,26 @@
 </div>
 
 <script>
-    let taskCounter = 1;
+    let taskCounter = 0; // 0-ról indul a jobb kezelhetőségért a dinamikus részben
     
     // GLOBÁLIS TÁROLÓK A BETÖLTÖTT JÁTÉKOKNAK ÉS FELADATOKNAK
     let allGamesData = [];
     let allTasksData = [];
     let currentLoadedGameId = null;
+    
+    const AUTOSAVE_KEY = 'mystigo_game_creator_data';
+    const taskGroupsContainer = document.getElementById('task-groups-container');
+    const plusButton = document.getElementById('plus-button');
 
     // Segédfunkciók
     function setInputValue(id, value) {
         const element = document.getElementById(id);
         if (element && value !== undefined && value !== null) {
-            // A null/undefined értékeket üres stringre konvertáljuk az űrlap miatt
             element.value = (value === null || value === undefined) ? '' : value;
         }
     }
 
     function clearTaskGroups() {
-        const taskGroupsContainer = document.getElementById('task-groups-container');
         taskGroupsContainer.innerHTML = '';
         taskCounter = 0;
     }
@@ -330,6 +329,65 @@
         setInputValue('start-radius', '');
         clearTaskGroups();
     }
+    
+    // ===================================
+    // 0. GPS MEZŐK DINAMIKUS GENERÁLÁSA
+    // ===================================
+
+    function getTaskGroupHTML(newTaskId, isLoadedData = false) {
+        return `
+            <div class="task-group" id="task-group-${newTaskId}">
+                <h2>Feladat ${newTaskId}. (Helyszín) 📍</h2>
+
+                <div class="input-row">
+                    <div>
+                        <label for="task-coords-${newTaskId}">GPS Koordináták</label>
+                        <div class="input-with-gps">
+                            <input type="text" id="task-coords-${newTaskId}" placeholder="Pl: 47.4979, 19.0402" oninput="autoSave()">
+                            <button type="button" class="gps-button" onclick="getCurrentGps('task-coords-${newTaskId}')">📍gps</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="task-radius-${newTaskId}">Rádiusz (méterben)</label>
+                        <input type="text" id="task-radius-${newTaskId}" placeholder="Pl: 10 (ez a kör sugara)" oninput="autoSave()">
+                    </div>
+                </div>
+
+                <label for="task-story-${newTaskId}">Feladathoz Tartozó Történet</label>
+                <textarea id="task-story-${newTaskId}" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..." oninput="autoSave()"></textarea>
+
+                <label for="task-description-${newTaskId}">Konkrét Feladat</label>
+                <textarea id="task-description-${newTaskId}" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?" oninput="autoSave()"></textarea>
+
+                <hr style="border-style: dashed;">
+
+                <div class="input-row">
+                    <div>
+                        <label for="task-hint-1-${newTaskId}">Segítség 1</label>
+                        <input type="text" id="task-hint-1-${newTaskId}" placeholder="Rövid tipp 1" oninput="autoSave()">
+                    </div>
+                    <div>
+                        <label for="task-hint-2-${newTaskId}">Segítség 2</label>
+                        <input type="text" id="task-hint-2-${newTaskId}" placeholder="Rövid tipp 2" oninput="autoSave()">
+                    </div>
+                    <div>
+                        <label for="task-solution-${newTaskId}">Megoldás</label>
+                        <input type="text" id="task-solution-${newTaskId}" placeholder="A helyes válasz" oninput="autoSave()">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    plusButton.addEventListener('click', function() {
+        taskCounter++;
+        const newTaskId = taskCounter;
+        const newGroupHTML = getTaskGroupHTML(newTaskId);
+        taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
+        // Törlés nem szükséges, az űrlap elemek alapból üresek
+        autoSave(); // Menti a megnövekedett mezőszámot
+    });
+
 
     // ===================================
     // 1. AZONOSÍTÓ GENERÁLÁSA
@@ -344,71 +402,178 @@
         
         setInputValue('generated-id', id);
     }
-
-    // ===================================
-    // 2. DINAMIKUS MEZŐK HOZZÁADÁSA (A logika változatlan)
-    // ===================================
-
-    const taskGroupsContainer = document.getElementById('task-groups-container');
-    const plusButton = document.getElementById('plus-button');
-
-    plusButton.addEventListener('click', function() {
-        taskCounter++;
-        const newTaskId = taskCounter;
-
-        const newGroupHTML = `
-            <div class="task-group" id="task-group-${newTaskId}">
-                <h2>Feladat ${newTaskId}. (Helyszín) 📍</h2>
-
-                <div class="input-row">
-                    <div>
-                        <label for="task-coords-${newTaskId}">GPS Koordináták</label>
-                        <input type="text" id="task-coords-${newTaskId}" placeholder="Pl: 47.4979, 19.0402">
-                    </div>
-                    <div>
-                        <label for="task-radius-${newTaskId}">Rádiusz (méterben)</label>
-                        <input type="text" id="task-radius-${newTaskId}" placeholder="Pl: 10 (ez a kör sugara)">
-                    </div>
-                </div>
-
-                <label for="task-story-${newTaskId}">Feladathoz Tartozó Történet</label>
-                <textarea id="task-story-${newTaskId}" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
-
-                <label for="task-description-${newTaskId}">Konkrét Feladat</label>
-                <textarea id="task-description-${newTaskId}" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
-
-                <hr style="border-style: dashed;">
-
-                <div class="input-row">
-                    <div>
-                        <label for="task-hint-1-${newTaskId}">Segítség 1</label>
-                        <input type="text" id="task-hint-1-${newTaskId}" placeholder="Rövid tipp 1">
-                    </div>
-                    <div>
-                        <label for="task-hint-2-${newTaskId}">Segítség 2</label>
-                        <input type="text" id="task-hint-2-${newTaskId}" placeholder="Rövid tipp 2">
-                    </div>
-                    <div>
-                        <label for="task-solution-${newTaskId}">Megoldás</label>
-                        <input type="text" id="task-solution-${newTaskId}" placeholder="A helyes válasz">
-                    </div>
-                </div>
-            </div>
-        `;
-        taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
-        // Frissen hozzáadott mezők kitörlése
-        document.getElementById(`task-coords-${newTaskId}`).value = '';
-        document.getElementById(`task-radius-${newTaskId}`).value = '';
-        document.getElementById(`task-story-${newTaskId}`).value = '';
-        document.getElementById(`task-description-${newTaskId}`).value = '';
-        document.getElementById(`task-hint-1-${newTaskId}`).value = '';
-        document.getElementById(`task-hint-2-${newTaskId}`).value = '';
-        document.getElementById(`task-solution-${newTaskId}`).value = '';
-    });
     
     // ===================================
-    // 3. ADATOK BETÖLTÉSE AZ XLSX-BŐL
+    // 2. GPS KOORDINÁTA KÉZELÉS (FRISSÍTVE: 2 mp késleltetés)
     // ===================================
+    
+    function getCurrentGps(targetId) {
+        if (navigator.geolocation) {
+            const button = document.querySelector(`[onclick="getCurrentGps('${targetId}')"]`);
+            // Módosított szövegek szóköz nélkül
+            const originalText = '📍gps'; 
+            if (button) button.textContent = 'betöltés...';
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(4);
+                    const lng = position.coords.longitude.toFixed(4);
+                    const coords = `${lat}, ${lng}`;
+                    setInputValue(targetId, coords);
+                    
+                    if (button) button.textContent = '✅betöltve';
+                    // 2000 ms késleltetés a pontosság ellenőrzésére
+                    setTimeout(() => { if (button) button.textContent = originalText; }, 2000); 
+                    autoSave();
+                },
+                (error) => {
+                    alert(`Hiba történt a GPS koordináták lekérésekor: ${error.message}`);
+                    if (button) button.textContent = '❌hiba';
+                    setTimeout(() => { if (button) button.textContent = originalText; }, 2000);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            alert("A böngésződ nem támogatja a Geolocation-t (GPS koordináta lekérést).");
+        }
+    }
+
+
+    // ===================================
+    // 3. AUTOMATIKUS MENTÉS ÉS BETÖLTÉS
+    // ===================================
+    
+    function getFormData() {
+        // Általános adatok
+        const formData = {
+            title: document.getElementById('title').value,
+            generatedId: document.getElementById('generated-id').value,
+            type: document.getElementById('type').value,
+            coverImage: document.getElementById('cover-image').value,
+            initialStory: document.getElementById('initial-story').value,
+            finalStory: document.getElementById('final-story').value,
+            startCoords: document.getElementById('start-coords').value,
+            startRadius: document.getElementById('start-radius').value,
+            tasks: [],
+            taskCounter: taskCounter // Mentjük a feladatok számát
+        };
+
+        // Feladat adatok gyűjtése
+        const taskGroups = document.querySelectorAll('.task-group');
+        taskGroups.forEach((group) => {
+            const groupID = group.id.split('-').pop(); // Kinyerjük az aktuális dinamikus ID-t
+            
+            // Csak akkor mentjük, ha vannak a mezőkben valós ID-k
+            if(document.getElementById(`task-coords-${groupID}`)) {
+                formData.tasks.push({
+                    id: groupID, // A dinamikus ID mentése a visszaállításhoz
+                    coords: document.getElementById(`task-coords-${groupID}`).value,
+                    radius: document.getElementById(`task-radius-${groupID}`).value,
+                    story: document.getElementById(`task-story-${groupID}`).value,
+                    description: document.getElementById(`task-description-${groupID}`).value,
+                    hint1: document.getElementById(`task-hint-1-${groupID}`).value,
+                    hint2: document.getElementById(`task-hint-2-${groupID}`).value,
+                    solution: document.getElementById(`task-solution-${groupID}`).value
+                });
+            }
+        });
+        
+        return formData;
+    }
+
+    function autoSave() {
+        const formData = getFormData();
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(formData));
+        
+        // Vizuális visszajelzés
+        const now = new Date();
+        const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        document.getElementById('autosave-status').textContent = `Automatikusan mentve: ${timeString}`;
+    }
+
+    function loadAutosave() {
+        const savedDataJson = localStorage.getItem(AUTOSAVE_KEY);
+        if (!savedDataJson) {
+            document.getElementById('autosave-status').textContent = 'Automatikusan mentve: Még nem volt mentés.';
+            plusButton.click(); // Ha nincs mentés, hozzunk létre egy üres feladatot
+            return;
+        }
+
+        try {
+            const data = JSON.parse(savedDataJson);
+            
+            // --- Általános adatok betöltése ---
+            setInputValue('title', data.title);
+            setInputValue('generated-id', data.generatedId);
+            setInputValue('type', data.type);
+            setInputValue('cover-image', data.coverImage);
+            setInputValue('initial-story', data.initialStory);
+            setInputValue('final-story', data.finalStory);
+            setInputValue('start-coords', data.startCoords);
+            setInputValue('start-radius', data.startRadius);
+            
+            // --- Feladatok betöltése (Dinamikus visszaállítás) ---
+            clearTaskGroups(); // Törli és taskCounter = 0
+            
+            // Visszaállítja a taskCountert a mentett legmagasabb ID-re
+            taskCounter = data.taskCounter || 0; 
+            
+            data.tasks.forEach(task => {
+                const newTaskId = parseInt(task.id, 10); // A mentett dinamikus ID
+                
+                // Mivel a loadAutosave futása előtt a taskCounter a mentett értékre áll,
+                // a getTaskGroupHTML-ben a newTaskId-t használjuk fel a mezők ID-jének.
+                const newGroupHTML = getTaskGroupHTML(newTaskId);
+                taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
+                
+                // Értékek feltöltése
+                setInputValue(`task-coords-${newTaskId}`, task.coords);
+                setInputValue(`task-radius-${newTaskId}`, task.radius);
+                setInputValue(`task-story-${newTaskId}`, task.story);
+                setInputValue(`task-description-${newTaskId}`, task.description);
+                setInputValue(`task-hint-1-${newTaskId}`, task.hint1);
+                setInputValue(`task-hint-2-${newTaskId}`, task.hint2);
+                setInputValue(`task-solution-${newTaskId}`, task.solution);
+            });
+            
+            // Ha a mentett feladatok száma 0, de a számláló nem, akkor is kell egy üres
+            if (data.tasks.length === 0) {
+                 clearTaskGroups();
+                 plusButton.click();
+            }
+
+            document.getElementById('autosave-status').textContent = `Automatikusan mentve: Sikeresen visszaállítva az előző munkamenet!`;
+
+        } catch (error) {
+            console.error("Hiba az autosave adatok betöltésekor:", error);
+            document.getElementById('autosave-status').textContent = 'Automatikusan mentve: Hiba a mentett adatok visszaállításakor.';
+            clearForm();
+            plusButton.click();
+        }
+    }
+    
+    // Eseményfigyelő hozzáadása minden mezőhöz a form-container-ben a változások figyelésére
+    document.getElementById('form-container').addEventListener('input', (event) => {
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.tagName === 'SELECT') {
+            // A globális oninput/onchange-t a dinamikus mezők miatt adtam hozzá, 
+            // de a general-info-n belüli mezőkre is érvényes, így a meglévő oninput-okat kivesszük, ha itt kezeljük
+            // Viszont a generateId-t meghívó oninput miatt jobb ha marad a jelenlegi kód!
+            // Ezzel a megoldással a dinamikus mezőket és a gombokat kezeljük a meglévő kóddal.
+        }
+    });
+
+    // Oldal betöltésekor azonnal hívjuk
+    window.addEventListener('load', loadAutosave);
+
+
+    // ===================================
+    // 4. ADATOK BETÖLTÉSE AZ XLSX-BŐL
+    // ===================================
+    // (A logika nagyjából változatlan, de a clearForm és taskCounter miatt már jól működik)
 
     function openData(event) {
         const file = event.target.files[0];
@@ -447,6 +612,10 @@
                 
                 // 3. Az első játék betöltése
                 loadGame(allGamesData[0].id, listContainer.firstChild);
+                
+                // Töröljük a localStorage-t, ha XLSX-ből töltünk be
+                localStorage.removeItem(AUTOSAVE_KEY); 
+                document.getElementById('autosave-status').textContent = 'Automatikusan mentve: Betöltés XLSX-ből. (A helyi mentés törölve lett)';
 
                 alert(`Sikeresen betöltve ${allGamesData.length} játék a(z) ${file.name} fájlból!`);
                 
@@ -460,7 +629,7 @@
     }
     
     // ===================================
-    // 4. EGY JÁTÉK ADATAINAK BETÖLTÉSE AZ ŰRLAPBA
+    // 5. EGY JÁTÉK ADATAINAK BETÖLTÉSE AZ ŰRLAPBA
     // ===================================
 
     function loadGame(gameId, listItemElement) {
@@ -482,7 +651,7 @@
         }
 
         currentLoadedGameId = gameId;
-        clearForm(); // Minden mező törlése
+        clearForm(); // Minden mező törlése és taskCounter = 0
         
         // --- Általános adatok betöltése ---
         setInputValue('title', gameInfo.title);
@@ -498,7 +667,7 @@
         setInputValue('start-radius', gameInfo.startGeofenceRadius);
         
         // --- Feladatok betöltése ---
-        clearTaskGroups(); // Töröljük a régi feladatmezőket
+        clearTaskGroups(); // Töröljük a régi feladatmezőket és taskCounter = 0
 
         tasks.sort((a, b) => (a.index || 0) - (b.index || 0)); // Index szerinti rendezés
 
@@ -507,45 +676,7 @@
             taskCounter++; // A számláló használata új ID generálásához
             const newTaskId = taskCounter; 
 
-            const newGroupHTML = `
-                <div class="task-group" id="task-group-${newTaskId}">
-                    <h2>Feladat ${newTaskId}. (Helyszín) 📍</h2>
-
-                    <div class="input-row">
-                        <div>
-                            <label for="task-coords-${newTaskId}">GPS Koordináták</label>
-                            <input type="text" id="task-coords-${newTaskId}" placeholder="Pl: 47.4979, 19.0402">
-                        </div>
-                        <div>
-                            <label for="task-radius-${newTaskId}">Rádiusz (méterben)</label>
-                            <input type="text" id="task-radius-${newTaskId}" placeholder="Pl: 10 (ez a kör sugara)">
-                        </div>
-                    </div>
-
-                    <label for="task-story-${newTaskId}">Feladathoz Tartozó Történet</label>
-                    <textarea id="task-story-${newTaskId}" rows="3" placeholder="A helyszínre érkezéskor megjelenő történeti rész..."></textarea>
-
-                    <label for="task-description-${newTaskId}">Konkrét Feladat</label>
-                    <textarea id="task-description-${newTaskId}" rows="3" placeholder="Mit kell a felhasználónak csinálnia a helyszínen?"></textarea>
-
-                    <hr style="border-style: dashed;">
-
-                    <div class="input-row">
-                        <div>
-                            <label for="task-hint-1-${newTaskId}">Segítség 1</label>
-                            <input type="text" id="task-hint-1-${newTaskId}" placeholder="Rövid tipp 1">
-                        </div>
-                        <div>
-                            <label for="task-hint-2-${newTaskId}">Segítség 2</label>
-                            <input type="text" id="task-hint-2-${newTaskId}" placeholder="Rövid tipp 2">
-                        </div>
-                        <div>
-                            <label for="task-solution-${newTaskId}">Megoldás</label>
-                            <input type="text" id="task-solution-${newTaskId}" placeholder="A helyes válasz">
-                        </div>
-                    </div>
-                </div>
-            `;
+            const newGroupHTML = getTaskGroupHTML(newTaskId);
             taskGroupsContainer.insertAdjacentHTML('beforeend', newGroupHTML);
             
             // Értékek feltöltése
@@ -562,13 +693,15 @@
         
         // Ha az XLSX üres volt, gondoskodunk egy alap feladatcsoportról
         if (tasks.length === 0) {
-            clearTaskGroups(); // Csak a számlálót állítja 0-ra
             plusButton.click(); // Hozzáadja az első üres feladatot (taskCounter 1 lesz)
         }
+        
+        // A betöltés után azonnal mentsük el az állapotot a localStorage-ba
+        autoSave();
     }
     
     // ===================================
-    // 5. ADATOK GYŰJTÉSE ÉS MENTÉSE (XLSX)
+    // 6. ADATOK GYŰJTÉSE ÉS MENTÉSE (XLSX)
     // ===================================
 
     function saveData() {
@@ -598,13 +731,8 @@
         const taskGroups = document.querySelectorAll('.task-group');
         
         taskGroups.forEach((group, index) => {
-            // Mivel a loadGame minden alkalommal új ID-t (taskCounter) ad, 
-            // a dinamikusan létrejött ID-t kell használnunk a mezők értékéhez.
             const currentTaskIndex = index + 1; // 1-től indexelés a mentéshez
             
-            // Azon ID-ket használjuk, amik a taskCounter növekedésekor jöttek létre
-            // A taskCounter mindig a valaha volt legmagasabb sorszámot tartja.
-            // A legbiztosabb az a DOM-ban lévő elemek sorszáma
             const groupID = group.id.split('-').pop(); // Kinyerjük a task-group-X ID-ből az X-et
 
             const coordsInput = document.getElementById(`task-coords-${groupID}`).value;
@@ -687,6 +815,10 @@
         XLSX.writeFile(workbook, filename);
 
         alert(`Az adatok sikeresen mentve lettek ${filename} néven, XLSX formátumban! (Munkalapok: games, tasks)`);
+        
+        // Sikeres mentés után töröljük az autosave-et
+        localStorage.removeItem(AUTOSAVE_KEY);
+        document.getElementById('autosave-status').textContent = 'Automatikusan mentve: A fájl sikeresen elmentve, helyi mentés törölve.';
     }
 </script>
 
