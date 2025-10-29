@@ -369,16 +369,26 @@
                                      Teszt Adatbázis Betöltése (games_full.xlsx)
                                 </button>
                                 
-                                <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
-                                    <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
-                                    <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
-                                </label>
-
-                                <label for="manual-mock-toggle" id="manual-mock-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
-                                    <input type="checkbox" id="manual-mock-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500" disabled>
-                                    <span class="ml-2 text-sm font-medium">Manuális Pozíció Beállítás (Térképen kattintás)</span>
-                                </label>
-                                
+                                <fieldset id="game-mode-select-fieldset" class="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                                    <legend class="text-xs font-bold text-text-heading mb-2">Játék Mód Választása:</legend>
+                                    <div class="space-y-1">
+                                        
+                                        <label for="mode-normal" class="flex items-center cursor-pointer text-gray-700">
+                                            <input type="radio" id="mode-normal" name="game_mode_selection" value="normal" checked class="h-4 w-4 text-cyan-500 border-gray-300 focus:ring-cyan-500">
+                                            <span class="ml-2 text-sm font-medium">Normál Játék (GPS szükséges)</span>
+                                        </label>
+                                        
+                                        <label for="mode-test" class="flex items-center cursor-pointer text-gray-700">
+                                            <input type="radio" id="mode-test" name="game_mode_selection" value="test" class="h-4 w-4 text-cyan-500 border-gray-300 focus:ring-cyan-500">
+                                            <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolva)</span>
+                                        </label>
+                                        
+                                        <label for="mode-mock" class="flex items-center cursor-pointer text-gray-700">
+                                            <input type="radio" id="mode-mock" name="game_mode_selection" value="mock" class="h-4 w-4 text-cyan-500 border-gray-300 focus:ring-cyan-500">
+                                            <span class="ml-2 text-sm font-medium">Manuális GPS (Térképen kattintás)</span>
+                                        </label>
+                                    </div>
+                                </fieldset>
                                 <div id="game-mode-settings" class="p-4 bg-gray-100 rounded-xl border border-gray-200 mt-4">
                                     <p class="text-sm font-semibold text-brand-blue mb-2">Feladatok és Sorrend</p>
                                     
@@ -420,7 +430,7 @@
                             </div>
                         </details>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
+                            <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</p>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
                             <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
                                 <option value="">Válassz Avatart (opcionális)</option>
@@ -909,7 +919,7 @@ function downloadPDF() {
                 }
             }
             
-            // Új: Cím frissítése a titkos gomb megjelenítéséhez a game-list-page-en
+            // ÚJ: Cím frissítése a titkos gomb megjelenítéséhez a game-list-page-en
             if (pageId === 'game-list-page') {
                 const titleEl = document.getElementById('page-title');
                 // *** MÓDOSÍTÁS: Töröltem az első "!" jelet, csak a narancsárga maradt ***
@@ -925,13 +935,7 @@ function downloadPDF() {
                      titleEl.appendChild(secretTrigger);
                 }
                 
-                // Eseményfigyelő hozzáadása a titkos gombhoz
-                const secretTriggerEl = document.getElementById('secret-trigger');
-                if (secretTriggerEl && secretSwitchesContainer) {
-                    secretTriggerEl.addEventListener('click', () => {
-                        secretSwitchesContainer.classList.toggle('hidden');
-                    });
-                }
+                // Eseményfigyelő hozzáadása a titkos gombhoz a DOMContentLoaded-ben lesz kezelve
             }
         }
 
@@ -950,10 +954,12 @@ function downloadPDF() {
                 appState.map.remove(); 
                 appState.map = null; 
             }
-            // Visszaállítjuk a kezdőoldali állapotot a gombokról
-            document.getElementById('test-mode-toggle').checked = false;
-            document.getElementById('manual-mock-toggle').checked = false;
-            document.getElementById('manual-mock-toggle').disabled = true;
+            
+            // Visszaállítjuk az alapértelmezett Játék Mód (Normál Játék) rádió gombot
+            const normalModeRadio = document.getElementById('mode-normal');
+            if (normalModeRadio) {
+                normalModeRadio.checked = true;
+            }
             
             // JAVÍTVA: Rejtetté teszi a fejlesztői opciókat is a Game List Page-en
             const devOptions = document.getElementById('developer-options');
@@ -1302,9 +1308,12 @@ function startGame(gameId) {
     // Felolvasás leállítása, ha esetleg fut
     if (speechSynth.speaking) speechSynth.cancel();
     
-    // Állapotok beállítása a titkos kapcsolók alapján
-    appState.isTestModeEnabled = document.getElementById('test-mode-toggle').checked;
-    appState.isManualMock = document.getElementById('manual-mock-toggle').checked;
+    // Állapotok beállítása a radio button-ök alapján
+    const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
+    const gameMode = selectedMode ? selectedMode.value : 'normal'; // Alapértelmezett: normal
+    
+    appState.isTestModeEnabled = (gameMode === 'test' || gameMode === 'mock');
+    appState.isManualMock = (gameMode === 'mock');
     
     // Mély másolat készítése
     appState.currentGame = JSON.parse(JSON.stringify(games[gameId])); 
@@ -2140,7 +2149,10 @@ function startGame(gameId) {
 
         function requestGpsAndStart(gameId) {
             
-            if (document.getElementById('manual-mock-toggle').checked) {
+            const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
+            const gameMode = selectedMode ? selectedMode.value : 'normal';
+
+            if (gameMode === 'mock') {
                  startGame(gameId);
                  return;
             }
@@ -2176,13 +2188,12 @@ function startGame(gameId) {
                          errorMessage = 'Időtúllépés: A GPS jel gyenge volt. Próbálj jobb helyre menni, és próbáld újra!';
                     }
                     
-                    if (!document.getElementById('test-mode-toggle').checked) {
+                    if (gameMode === 'normal') {
                          showMessage('GPS Teszt Sikertelen', errorMessage, () => {
                              // Nincs automatikus váltás teszt módra, a usernek kell engedélyeznie
                              // A modal bezárása után a kalandválasztó oldalon marad
                          });
-                    } else {
-                        // Teszt módban elindul
+                    } else { // test mód (Geo-fence kikapcsolva) esetén indul a játék GPS nélkül is
                         showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód miatt a játék elindul.');
                         startGame(gameId);
                     }
@@ -2255,15 +2266,14 @@ function startGame(gameId) {
         document.addEventListener('DOMContentLoaded', () => {
             
             // Kezdőoldali gombok (titkos kapcsolók)
-            const testModeToggleLanding = document.getElementById('test-mode-toggle');
-            const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
             const logoO = document.getElementById('logo-o'); // Az "o" betűre történő kattintás
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
             const manualFileInput = document.getElementById('excel-file-input-manual'); // A Landing page-i input
             
             // A titkos fejlesztői box alapértelmezetten rejtve, csak a titkos trigger hívja elő
             const secretSwitchesContainer = document.getElementById('secret-switches-container');
-            if (secretSwitchesContainer) secretSwitchesContainer.classList.add('hidden');
+            const devOptions = document.getElementById('developer-options');
+            const devToggle = document.getElementById('developer-tools-toggle');
 
 
             initializeState();
@@ -2282,7 +2292,7 @@ function startGame(gameId) {
             document.getElementById('modal-ok-button').onclick = hideMessage;
             document.getElementById('modal-cancel-button').onclick = hideMessage;
             
-            // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
+            // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE (LANDING PAGE) ---
             logoO.addEventListener('click', () => {
                  const switchesContainer = document.getElementById('secret-switches-container');
                  // Ha a landing page-en vagyunk, a logoO kattintás nem a listát hívja elő,
@@ -2344,36 +2354,31 @@ function startGame(gameId) {
                 });
             }
 
-
-            // Titkos kapcsolók logikája a Game List Page-en
-            if (secretSwitchesContainer) {
-                const devOptions = document.getElementById('developer-options');
-                const devToggle = document.getElementById('developer-tools-toggle');
-
-                    // Fejlesztői eszközök kattintásra történő megjelenítése/elrejtése
-                    if (devToggle && devOptions) {
-                        devToggle.addEventListener('click', () => {
-                            devOptions.classList.toggle('hidden');
-                            devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
-                        });
+            // --- JAVÍTOTT FEJLESZTŐI ESZKÖZÖK NYITÓ LOGIKA ---
+            // A "secret-trigger" (sárga !) elemet a showContentPage hozza létre, de a DOMContentLoaded idején nem létezik.
+            // Ezért az eseménykezelőnek késleltetve kell hozzáadódnia, vagy delegálni kell.
+            
+            // A sárga felkiáltójelre kattintás kezelése, ami megmutatja a fejlesztői boxot
+            document.body.addEventListener('click', (e) => {
+                 if (e.target && e.target.id === 'secret-trigger') {
+                    const container = document.getElementById('secret-switches-container');
+                    if (container) {
+                        container.classList.toggle('hidden');
                     }
-
-
-                const testModeToggle = secretSwitchesContainer.querySelector('#test-mode-toggle');
-                const manualMockToggle = secretSwitchesContainer.querySelector('#manual-mock-toggle');
-
-                if (testModeToggle && manualMockToggle) {
-                    testModeToggle.addEventListener('change', (e) => {
-                        const isChecked = e.target.checked;
-                        manualMockToggle.disabled = !isChecked; 
-                        if (!isChecked) {
-                            manualMockToggle.checked = false;
-                        }
-                    });
-                }
+                 }
+            });
+            
+            // A "Fejlesztői Eszközök" címsor nyitó/záró funkcionalitása
+            if (devToggle && devOptions) {
+                devToggle.addEventListener('click', () => {
+                    devOptions.classList.toggle('hidden');
+                    // Nyíl állapotának frissítése
+                    devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
+                });
             }
-            
-            
+            // --- JAVÍTOTT FEJLESZTŐI ESZKÖZÖK NYITÓ LOGIKA VÉGE ---
+
+
             // Megoldás ellenőrzés
             document.getElementById('submit-answer-btn').addEventListener('click', () => {
                 const task = appState.currentGame.tasks[appState.currentTaskIndex];
