@@ -390,15 +390,35 @@
                             </div>
                         </div>
                         
-                        <div id="game-type-explanation" class="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                            <h2 class="text-xl font-bold text-text-heading mb-3">Kaland Típusok Magyarázata</h2>
-                            <div class="space-y-2 text-sm text-gray-700">
-                               <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok szekvenciálisan, sorban követik egymást.</p>
-                                <p><strong>Kids 👶:</strong> Kimondottan 6-10 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve. Szekvenciális feladatok.</p>
-                                <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok **változó sorrendben** jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a végén.</p>
-
+                        <details id="game-type-explanation" class="story-details mb-4" style="background-color: #fefce8; border-color: #fde68a;">
+                            <summary style="font-weight: 800; color: var(--brand-blue); list-style: none; display: block; padding: 0.5rem;">
+                                <span class="text-xl">ℹ️ Hogyan működik a MystiGo</span>
+                                <span style="position: absolute; right: 0.75rem; top: 0.8rem; font-size: 1.5rem;"></span>
+                            </summary>
+                            <div class="story-content" style="border-top: 1px solid #fde68a; margin-top: 0.5rem; padding-top: 0.5rem;">
+                                <h2 class="text-lg font-bold text-text-heading mb-2">Hogyan működik a MystiGo?</h2>
+                                <div class="space-y-2 text-sm text-gray-700">
+                                   <p>📱 Telefon + GPS + internet szükséges</p>
+                                   <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
+                                   <p>📍 Menj a játék kezdőpontjára – ott indul el</p>
+                                   <p>🗺️ Kövesd a térképen a célpontokat</p>
+                                   <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
+                                   <p>💡 Kérhetsz 2 segítséget (−20 / −30 pont) vagy megoldást (0 pont)</p>
+                                   <p>❌ Rossz válasz: −1 pont</p>
+                                   <p>⏱️ Két időmérés:</p>
+                                   <p style="margin-left: 1.5rem">• Kék = teljes játékidő</p>
+                                   <p style="margin-left: 1.5rem">• Zöld = feladatra fordított idő</p>
+                                   <p>⚠️ Ha gond van az adott feladattal, használd a „Hiba bejelentés” gombot</p>
+                                </div>
+                                
+                                <h2 class="text-lg font-bold text-text-heading mt-4 mb-2">Kaland Típusok Magyarázata</h2>
+                                <div class="space-y-2 text-sm text-gray-700">
+                                   <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok szekvenciálisan, sorban követik egymást.</p>
+                                    <p><strong>Kids 👶:</strong> Kimondottan 6-10 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve. Szekvenciális feladatok.</p>
+                                    <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok **változó sorrendben** jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a végén.</p>
+                                </div>
                             </div>
-                        </div>
+                        </details>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
                             <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
@@ -1637,7 +1657,7 @@ function startGame(gameId) {
                 endMap.invalidateSize(true);
                 
                 // Kezdőpont marker (StartLocation)
-                const startLoc = appState.currentGame.startLocation;
+                const startLoc = appState.currentGame.tasks[0].location; // Csak a StartLocation, mert a 0-ás indexen van a Start Feladat
                 L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap)
                     .bindPopup('<b>Start Helyszín</b>').openPopup();
 
