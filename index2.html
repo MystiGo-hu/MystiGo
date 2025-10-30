@@ -62,8 +62,7 @@
             font-weight: 600;
             padding: 1rem 2rem;
             border-radius: 9999px;
-            box-shadow: 0 10px 25px -5px rgba(255, 165, 0, 0.3), 0 8px 10px -6px rgba(255, 165, 0, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+            box-shadow: 0 10px 25px -5p...
         }
         .main-button:hover {
             transform: translateY(-4px);
@@ -436,8 +435,8 @@
                                    <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                                    <p>🗺️ Kövesd a térképen a célpontokat</p>
                                    <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
- 				   <p>⭐ Minden feladat 100 pontot ér</p>
-                                   <p>💡 Kérhetsz 2 segítséget (−20 / −30 pont) vagy megoldást (0 pont)</p>
+ 				   <p>⭐ Minden feladat 50 pontot ér</p>
+                                   <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
                                    <p>❌ Minden rossz válasz: −1 pont</p>
                                    <p>⏱️ Két időmérés:</p>
                                    <p style="margin-left: 1.5rem">• Kék = teljes játékidő</p>
@@ -521,9 +520,9 @@
                                    <button id="submit-answer-btn" class="p-3 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 transition flex-shrink-0"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></button>
                                 </div>
                                  <div id="hint-buttons-container" class="flex justify-center gap-2 mt-4 text-xs font-semibold">
-                                    <button id="hint1-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50">Segítség 1 (Pont: -20)</button>
-                                    <button id="hint2-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Segítség 2 (Pont: -30)</button>
-                                    <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: -50)</button>
+                                    <button id="hint1-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50">Segítség 1 (Pont: -10)</button>
+                                    <button id="hint2-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Segítség 2 (Pont: -20)</button>
+                                    <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: 0)</button>
                                 </div>
                                 
                                 <div style="height: 14rem;"> </div>
@@ -636,9 +635,9 @@
         // --- GLOBAL STATE & CONSTANTS ---
         let games = {};
         const GEOFENCE_DEFAULT_RADIUS = 20; // ÚJ: Alapértelmezett sugár
-        const DEFAULT_SCORE_PER_TASK = 100; // Alap pontszám / feladat (Ezt kapja a feladat indításakor)
-        const HINT1_PENALTY = 20; // Első segítség pontlevonás
-        const HINT2_PENALTY = 30; // Második segítség pontlevonás
+        const DEFAULT_SCORE_PER_TASK = 50; // MÓDOSÍTVA: 50 pont
+        const HINT1_PENALTY = 10; // MÓDOSÍTVA: -10 pont
+        const HINT2_PENALTY = 20; // MÓDOSÍTVA: -20 pont
         const SOLUTION_PENALTY_IGNORED = 50; // A korábbi fix -50 pont levonás helyett most a hátralévő pontot vonjuk le.
         const WRONG_ANSWER_PENALTY = 1; // Rossz válasz pontlevonás
         const RESCUE_TASK_CORRECT_ANSWER = '4'; // A mentőöv feladat helyes válasza
@@ -794,7 +793,24 @@
         }
 
         // --- I18N ---
-        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Megkerülő sikeres! (+${RESCUE_TASK_SCORE} pont)`, rescue_wrong: 'Megkerülő hibás. Próbáld újra!', gps_required: 'Kérjük, engedélyezd a GPS-t az eszközödön a kaland elindításához. Normal módban a játék csak működő GPS-szel indul el.' } };
+        const I18N = { 
+            hu: { 
+                correct_title: 'Helyes!', 
+                correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', 
+                wrong_title: 'Sajnos nem jó.', 
+                wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', 
+                far_title: 'Még messze vagy', 
+                far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', 
+                in_zone: 'A célterületen vagy!', 
+                out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, 
+                // A hint_body-k pontlevonás részét manuálisan illesztjük be, hogy a levonás UTÁNI pontszámot mutassuk.
+                hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, 
+                hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, 
+                rescue_correct: `Megkerülő sikeres! (+${RESCUE_TASK_SCORE} pont)`, 
+                rescue_wrong: 'Megkerülő hibás. Próbáld újra!', 
+                gps_required: 'Kérjük, engedélyezd a GPS-t az eszközödön a kaland elindításához. Normal módban a játék csak működő GPS-szel indul el.' 
+            } 
+        };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
         // --- PDF GENERATION ---
@@ -1023,7 +1039,7 @@ function downloadPDF() {
         // Módosított showMessage a két gombos megjelenítéshez
         function showMessage(title, body, onClose, showCancel = false) {
             document.getElementById('message-title').textContent = title;
-            document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p'] });
+            document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p', 'br'] }); // Hozzáadtuk a 'br'-t
             
             const okButton = document.getElementById('modal-ok-button');
             const cancelButton = document.getElementById('modal-cancel-button');
@@ -2447,7 +2463,7 @@ function startGame(gameId) {
                     if (task.taskScore > 0) {
                         task.taskScore = Math.max(0, task.taskScore - WRONG_ANSWER_PENALTY);
                     }
-                    showMessage(t('wrong_title'), `Próbáld újra! Rossz válasz: -${WRONG_ANSWER_PENALTY} pont. (Maradt pont: ${task.taskScore})`);
+                    showMessage(t('wrong_title'), t('wrong_body') + `<br><br>(Maradt pont: ${task.taskScore})`);
                 }
                 updateStatusDisplays();
             });
@@ -2463,12 +2479,13 @@ function startGame(gameId) {
                 
                 if (task.hintsUsed < 1) { 
                     // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
-                    task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); // Fix -20 pont
+                    task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); // MÓDOSÍTVA: -10 pont
                     task.hintsUsed = 1;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
                 }
-                showMessage('1. Segítség', t('hint1_body', task.hints[0]), () => {
+                // *** MÓDOSÍTVA: Pontszám kijelzése az ablakban a levonás után ***
+                showMessage('1. Segítség', t('hint1_body', task.hints[0]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => {
                     updateHintButtons(task);
                 });
             });
@@ -2484,13 +2501,14 @@ function startGame(gameId) {
                 
                 if (task.hintsUsed < 2) { 
                     // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
-                    task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); // Fix -30 pont
+                    task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); // MÓDOSÍTVA: -20 pont
                     task.hintsUsed = 2;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
                 }
                 
-                showMessage('2. Segítség', t('hint2_body', task.hints[1]), () => {
+                // *** MÓDOSÍTVA: Pontszám kijelzése az ablakban a levonás után ***
+                showMessage('2. Segítség', t('hint2_body', task.hints[1]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => {
                     updateHintButtons(task);
                 });
             });
@@ -2508,7 +2526,7 @@ function startGame(gameId) {
                 const scoreLost = task.taskScore; // Levonandó pont: az aktuális taskScore
                 task.taskScore = 0; // A taskScore 0 lesz
                 
-                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. (Levont pont: ${scoreLost})`, () => {
+                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
                     handleCorrectAnswer(); 
                     updateStatusDisplays();
                 });
