@@ -16,29 +16,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
-    <script>
-        // 1. Definiáld az alapértelmezett beleegyezési állapotot a CMP kódja előtt!
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        
-        gtag('consent', 'default', {
-            'ad_storage': 'denied', // Hirdetés tárolás tiltva
-            'analytics_storage': 'denied', // Analitika tárolás tiltva
-            'wait_for_update': 500 // 500 ms várakozás a CMP-re
-        });
-    </script>
-    
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1SBQQGDGL7"></script>
-    <script>
-        gtag('js', new Date());
-        gtag('config', 'G-1SBQQGDGL7');
-    </script>
-    <script type="text/javascript">
-    var _iub = _iub || [];
-    _iub.csConfiguration = {"lang":"hu","siteId":2549400,"cookiePolicyId":40995967, "consentOnContinuedBrowsing": false, "callback": { onConsentGiven: function() { gtag('consent', 'update', { 'analytics_storage': 'granted', 'ad_storage': 'granted' }); }, onConsentRejected: function() { gtag('consent', 'update', { 'analytics_storage': 'denied', 'ad_storage': 'denied' }); }}};
-    </script>
-    <script type="text/javascript" src="//cdn.iubenda.com/cs/tcf/stub.js"></script>
-    <script type="text/javascript" src="//cdn.iubenda.com/cs/iubenda_cs.js" charset="utf-8"></script>
     <style>
         /* --- Arculat frissítve a leírás alapján (türkiz, narancs, sötétkék) --- */
         :root {
@@ -62,7 +39,8 @@
             font-weight: 600;
             padding: 1rem 2rem;
             border-radius: 9999px;
-            box-shadow: 0 10px 25px -5p...
+            box-shadow: 0 10px 25px -5px rgba(255, 165, 0, 0.3), 0 8px 10px -6px rgba(255, 165, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
         }
         .main-button:hover {
             transform: translateY(-4px);
@@ -283,23 +261,6 @@
         }
         /* Mivel a korábbi kísérletben beillesztettük a #landing-logo-container-t, azt most eltávolítjuk
            és visszaállítjuk az eredeti kódot az indító oldalon. */
-        
-        /* ÚJ CSS: Térképes feladat választó marker EXPLORE módhoz */
-        .task-selector-marker {
-            background-color: var(--brand-cyan);
-            border: 3px solid white;
-            border-radius: 50%;
-            width: 30px !important;
-            height: 30px !important;
-            box-shadow: 0 0 10px var(--brand-cyan);
-            color: white;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body class="overflow-hidden">
@@ -408,70 +369,29 @@
                                      Teszt Adatbázis Betöltése (games_full.xlsx)
                                 </button>
                                 
-                                <fieldset id="game-mode-select-fieldset" class="mt-4 p-3 bg-white rounded-lg border border-gray-200">
-                                    <legend class="text-xs font-bold text-text-heading mb-2">Játék Mód Választása:</legend>
-                                    <div class="space-y-1">
-                                        
-                                        <label for="mode-normal" class="flex items-center cursor-pointer text-gray-700">
-                                            <input type="radio" id="mode-normal" name="game_mode_selection" value="normal" checked class="h-4 w-4 text-cyan-500 border-gray-300 focus:ring-cyan-500">
-                                            <span class="ml-2 text-sm font-medium">Normál Játék (GPS szükséges)</span>
-                                        </label>
-                                        
-                                        <label for="mode-test" class="flex items-center cursor-pointer text-gray-700">
-                                            <input type="radio" id="mode-test" name="game_mode_selection" value="test" class="h-4 w-4 text-cyan-500 border-gray-300 focus:ring-cyan-500">
-                                            <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolva)</span>
-                                        </label>
-                                        
-                                        <label for="mode-mock" class="flex items-center cursor-pointer text-gray-700">
-                                            <input type="radio" id="mode-mock" name="game_mode_selection" value="mock" class="h-4 w-4 text-cyan-500 border-gray-300 focus:ring-cyan-500">
-                                            <span class="ml-2 text-sm font-medium">Manuális GPS (Térképen kattintás)</span>
-                                        </label></div>
-                                </fieldset>
+                                <label for="test-mode-toggle" id="test-mode-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
+                                    <input type="checkbox" id="test-mode-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500">
+                                    <span class="ml-2 text-sm font-medium">Teszt Mód (Geo-fence kikapcsolása)</span>
+                                </label>
+
+                                <label for="manual-mock-toggle" id="manual-mock-label" class="flex items-center justify-start cursor-pointer py-2 text-gray-500">
+                                    <input type="checkbox" id="manual-mock-toggle" class="h-4 w-4 rounded text-cyan-500 border-gray-300 focus:ring-cyan-500" disabled>
+                                    <span class="ml-2 text-sm font-medium">Manuális Pozíció Beállítás (Térképen kattintás)</span>
+                                </label>
+                                
                                 <div id="game-mode-settings" class="p-4 bg-gray-100 rounded-xl border border-gray-200 mt-4">
                                     <p class="text-sm font-semibold text-brand-blue mb-2">Feladatok és Sorrend</p>
                                     
                                     <select id="task-order-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-3">
                                         <option value="sequential">Szekvenciális (Sorban)</option>
                                         <option value="random">Véletlenszerű (Random)</option>
-					<option value="explore">Explore (összes pont látszik)</option>
-                                        </select>
+                                    </select>
                                 </div>
                             </div>
                         </div>
-                        
-                        <details id="game-type-explanation" class="story-details mb-4" style="background-color: #fefce8; border-color: #fde68a;">
-    <summary style="font-weight: 800; color: var(--brand-blue); padding: 0.5rem; display: flex; align-items: center;">
-        <span class="text-xl mr-2"ℹ️</span> Hogyan működik a MystiGo?
-        <span style="position: absolute; right: 0.75rem; top: 0.8rem; font-size: 1.5rem;"></span>
-    </summary>
-                            <div class="story-content" style="border-top: 1px solid #fde68a; margin-top: 0.5rem; padding-top: 0.5rem;">
-                                
-                                <div class="space-y-2 text-sm text-gray-700">
-                                   <p>📱 Telefon + GPS + internet szükséges</p>
-                                   <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
-                                   <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
-                                   <p>🗺️ Kövesd a térképen a célpontokat</p>
-                                   <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
- 				   <p>⭐ Minden feladat 50 pontot ér</p>
-                                   <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
-                                   <p>❌ Minden rossz válasz: −1 pont</p>
-                                   <p>⏱️ Két időmérés:</p>
-                                   <p style="margin-left: 1.5rem">• Kék = teljes játékidő</p>
-                                   <p style="margin-left: 1.5rem">• Zöld = feladatra fordított idő</p>
-                                   <p>⚠️ Ha gond van az adott feladattal, használd a „Hiba bejelentés” gombot</p>
-                                </div>
-                                
-                                <h2 class="text-lg font-bold text-text-heading mt-4 mb-2">Kaland Típusok Magyarázata</h2>
-                                <div class="space-y-2 text-sm text-gray-700">
-                                   <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok szekvenciálisan, sorban követik egymást.</p>
-                                    <p><strong>Kids 👶:</strong> Kimondottan 6-10 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve. Szekvenciális feladatok.</p>
-                                    <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok **változó sorrendben** jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a végén.</p>
-                                    <p><strong>Explore (Felfedező) 🗺️:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
-                                </div>
-                            </div>
-                        </details>
+                                                
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</p>
+                            <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</h2>
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
                             <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
                                 <option value="">Válassz Avatart (opcionális)</option>
@@ -499,7 +419,7 @@
                         
                         <div class="text-center mt-3 mb-2 flex justify-between items-center px-2">
                             <button id="google-maps-btn" class="text-xs text-brand-blue font-semibold hover:text-brand-cyan-500 transition flex items-center" onclick="startNavigation()">
-                                <svg class="w-4 h-4 inline-block align-text-bottom mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.864 4.068 11.972 7.23 15.659.387.464.887.464 1.274 0 3.162-3.687 7.23-10.795 7.23-15.659 0-4.199-3.802-7.602-8-7-602zm0 10c-1.105 0-2-.896-2-2 0-1.105.895-2 2-2 1.104 0 2 .895 2 2 0 1.104-.896 2-2 2z"/></svg>
+                                <svg class="w-4 h-4 inline-block align-text-bottom mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.864 4.068 11.972 7.23 15.659.387.464.887.464 1.274 0 3.162-3.687 7.23-10.795 7.23-15.659 0-4.199-3.802-7.602-8-7.602zm0 10c-1.105 0-2-.896-2-2 0-1.105.895-2 2-2 1.104 0 2 .895 2 2 0 1.104-.896 2-2 2z"/></svg>
                                 Navigálás
                             </button>
                             <p id="distance-info" class="text-center text-xs font-bold"></p>
@@ -513,10 +433,6 @@
                             <button id="start-game-btn" class="main-button w-full !text-lg !py-3 disabled:!bg-gray-400">
                                 🚀 Kaland Indítása (Időmérés elindul)
                             </button>
-                        </div>
-                        <div id="explore-selection-container" class="mt-4 hidden text-center">
-                            <h3 class="text-lg font-bold text-brand-blue mb-2">Válassz Feladatot a Térképen!</h3>
-                            <p class="text-sm text-gray-600 mb-4">Kattints egy kék markerre a következő célpont kiválasztásához.</p>
                         </div>
                         </div>
                     
@@ -542,9 +458,9 @@
                                    <button id="submit-answer-btn" class="p-3 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 transition flex-shrink-0"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></button>
                                 </div>
                                  <div id="hint-buttons-container" class="flex justify-center gap-2 mt-4 text-xs font-semibold">
-                                    <button id="hint1-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50">Segítség 1 (Pont: -10)</button>
-                                    <button id="hint2-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Segítség 2 (Pont: -20)</button>
-                                    <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: 0)</button>
+                                    <button id="hint1-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50">Segítség 1 (Pont: -20)</button>
+                                    <button id="hint2-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Segítség 2 (Pont: -30)</button>
+                                    <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: -50)</button>
                                 </div>
                                 
                                 <div style="height: 14rem;"> </div>
@@ -604,23 +520,9 @@
                                 <img src="./paypal.png" alt="PayPal Logó" class="w-8 h-8">
                             </a>
                     </div>                    
-                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6 hidden">Eredmény letöltése (PDF)</button>
-                     
-                     <a href="https://docs.google.com/forms/d/e/1FAIpQLScl1wQ2h7Gln_Pf9orPz2OnOz7Jridw7GWLALCTY9kkwDfflw/viewform?usp=dialog" 
-    target="_blank" 
-    class="main-button w-full max-w-xs !text-base hover:!bg-cyan-600 !text-white !font-extrabold mt-4 mb-4"
-    style="background-color: var(--brand-cyan) !important;"
-    title="Értékeld a kalandot">
-    Kérlek, ÉRTÉKELJ MINKET! ⭐
-</a>
-                     
+                     <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6">Eredmény letöltése (PDF)</button>
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
-                     
-                     <div class="mt-4 p-2 text-center text-xs">
-                        <a href="https://www.iubenda.com/privacy-policy/40995967" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Privacy Policy ">Adatvédelmi Szabályzat</a> | 
-                        <a href="https://www.iubenda.com/privacy-policy/40995967/cookie-policy" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Cookie Policy ">Cookie Szabályzat</a>
-                    </div>
-                    </section>
+                </section>
             </div>
         </div>
     </div>
@@ -657,9 +559,9 @@
         // --- GLOBAL STATE & CONSTANTS ---
         let games = {};
         const GEOFENCE_DEFAULT_RADIUS = 20; // ÚJ: Alapértelmezett sugár
-        const DEFAULT_SCORE_PER_TASK = 50; // MÓDOSÍTVA: 50 pont
-        const HINT1_PENALTY = 10; // MÓDOSÍTVA: -10 pont
-        const HINT2_PENALTY = 20; // MÓDOSÍTVA: -20 pont
+        const DEFAULT_SCORE_PER_TASK = 100; // Alap pontszám / feladat (Ezt kapja a feladat indításakor)
+        const HINT1_PENALTY = 20; // Első segítség pontlevonás
+        const HINT2_PENALTY = 30; // Második segítség pontlevonás
         const SOLUTION_PENALTY_IGNORED = 50; // A korábbi fix -50 pont levonás helyett most a hátralévő pontot vonjuk le.
         const WRONG_ANSWER_PENALTY = 1; // Rossz válasz pontlevonás
         const RESCUE_TASK_CORRECT_ANSWER = '4'; // A mentőöv feladat helyes válasza
@@ -691,36 +593,7 @@
 
         function initializeState() {
             // ÚJ: isTimerRunning és routeCoordinates állapottal bővítve
-            appState = { 
-                currentPage: 'landing-page', 
-                selectedGameId: null, 
-                currentGame: null, 
-                currentTaskIndex: 0, 
-                score: 0, 
-                timerInterval: null, 
-                geofenceTimerInterval: null, 
-                startTime: null, 
-                map: null, 
-                playerMarker: null, 
-                taskMarker: null, 
-                geofenceCircle: null, 
-                userPosition: null, 
-                geoWatchId: null, 
-                isInZone: false, 
-                isTestModeEnabled: false, 
-                isManualMock: false, 
-                teamName: null, 
-                teamAvatar: null, 
-                taskOrder: 'sequential', 
-                totalTime: 0, 
-                geofenceTime: 0, 
-                isTimerRunning: false, 
-                routeCoordinates: [],
-                // ÚJ EXPLORE MÓD ÁLLAPOTOK
-                completedTasks: [], // Befejezett task indexek (index > 0)
-                availableTasks: [], // Elérhető task indexek (index > 0)
-                taskMarkers: {} // Leaflet markerek tárolása ID alapján
-            };
+            appState = { currentPage: 'landing-page', selectedGameId: null, currentGame: null, currentTaskIndex: 0, score: 0, timerInterval: null, geofenceTimerInterval: null, startTime: null, map: null, playerMarker: null, taskMarker: null, geofenceCircle: null, userPosition: null, geoWatchId: null, isInZone: false, isTestModeEnabled: false, isManualMock: false, teamName: null, teamAvatar: null, taskOrder: 'sequential', totalTime: 0, geofenceTime: 0, isTimerRunning: false, routeCoordinates: [] };
         }
 
         // --- LOCAL STORAGE LOGIC ---
@@ -741,10 +614,7 @@
                 teamAvatar: appState.teamAvatar,
                 isTestModeEnabled: appState.isTestModeEnabled,
                 isManualMock: appState.isManualMock,
-                routeCoordinates: appState.routeCoordinates,
-                // EXPLORE MÓD MENTÉSE
-                completedTasks: appState.completedTasks,
-                availableTasks: appState.availableTasks
+                routeCoordinates: appState.routeCoordinates 
             };
             try {
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
@@ -774,40 +644,16 @@
                 
                 setTimeout(() => {
                     initializeMap();
+                    loadTask(appState.currentTaskIndex);
                     // GPS figyelés indítása a pozíció frissítéséhez
                     watchPosition(); 
                     updateStatusDisplays();
-                    
                     // Ha a számláló futott, újraindítjuk
                     if (appState.isTimerRunning) {
                         appState.timerInterval = setInterval(updateTimer, 1000);
                         lastTimeUpdate = new Date().getTime(); 
                     }
-                    
-                    // EXPLORE MÓD folytatása:
-                    if (appState.currentGame.taskOrder === 'explore') {
-                         // Ha Start Task-on áll a mentés, de már fut a játék, a térképes választóra ugrik
-                         if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
-                             showTaskSelectionMap();
-                             showMessage("Folytatás", `Játék folytatása. Válassz egy feladatot a térképen.`);
-                             return true; 
-                         } else if (appState.currentTaskIndex > 0) {
-                             // Folytatás egy kiválasztott feladatnál
-                             loadTask(appState.currentTaskIndex); 
-                             showMessage("Folytatás", `Játék folytatása a(z) ${appState.currentTaskIndex} / ${appState.currentGame.tasks.length - 1} feladatnál.`, null);
-                             return true;
-                         }
-                    } 
-                    
-                    // Minden más mód és Start állapot
-                    loadTask(appState.currentTaskIndex); 
-                    if (appState.currentTaskIndex > 0) {
-                         showMessage("Folytatás", `Játék folytatása a(z) ${appState.currentTaskIndex} / ${appState.currentGame.tasks.length - 1} feladatnál.`, null);
-                    } else {
-                         showMessage("Folytatás", `Játék folytatása a start pozíciónál.`, null);
-                    }
-
-
+                    showMessage("Folytatás", `Játék folytatása a(z) ${appState.currentTaskIndex} / ${appState.currentGame.tasks.length - 1} feladatnál.`, null);
                 }, 100);
 
                 return true;
@@ -871,24 +717,7 @@
         }
 
         // --- I18N ---
-        const I18N = { 
-            hu: { 
-                correct_title: 'Helyes!', 
-                correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', 
-                wrong_title: 'Sajnos nem jó.', 
-                wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', 
-                far_title: 'Még messze vagy', 
-                far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', 
-                in_zone: 'A célterületen vagy!', 
-                out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, 
-                // A hint_body-k pontlevonás részét manuálisan illesztjük be, hogy a levonás UTÁNI pontszámot mutassuk.
-                hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, 
-                hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, 
-                rescue_correct: `Megkerülő sikeres! (+${RESCUE_TASK_SCORE} pont)`, 
-                rescue_wrong: 'Megkerülő hibás. Próbáld újra!', 
-                gps_required: 'Kérjük, engedélyezd a GPS-t az eszközödön a kaland elindításához. Normal módban a játék csak működő GPS-szel indul el.' 
-            } 
-        };
+        const I18N = { hu: { correct_title: 'Helyes!', correct_body: 'Ügyes vagy! (+' + DEFAULT_SCORE_PER_TASK + ' pont)', wrong_title: 'Sajnos nem jó.', wrong_body: 'Próbáld újra! Rossz válasz: -' + WRONG_ANSWER_PENALTY + ' pont.', far_title: 'Még messze vagy', far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', in_zone: 'A célterületen vagy!', out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, rescue_correct: `Megkerülő sikeres! (+${RESCUE_TASK_SCORE} pont)`, rescue_wrong: 'Megkerülő hibás. Próbáld újra!', gps_required: 'Kérjük, engedélyezd a GPS-t az eszközödön a kaland elindításához. Normal módban a játék csak működő GPS-szel indul el.' } };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
         // --- PDF GENERATION ---
@@ -950,16 +779,6 @@ function downloadPDF() {
             document.querySelectorAll('#content-wrapper section').forEach(p => p.classList.add('hidden'));
             document.getElementById(pageId).classList.remove('hidden');
             
-            // ÚJ: A 'game-page' és 'end-page' oldalakra görgetünk a tartalom tetejére, 
-            // mivel az indító és lista oldal automatikusan fent van.
-            const contentWrapper = document.getElementById('content-page-wrapper');
-            if (contentWrapper) {
-                 contentWrapper.scrollTo({
-                     top: 0,
-                     behavior: 'instant' 
-                 });
-            }
-
             const mainHeader = document.getElementById('main-header');
             const statusBar = document.getElementById('game-status-bar');
             const exitButton = document.getElementById('exit-game-btn'); // Kilépés gomb
@@ -1043,7 +862,7 @@ function downloadPDF() {
                 }
             }
             
-            // ÚJ: Cím frissítése a titkos gomb megjelenítéséhez a game-list-page-en
+            // Új: Cím frissítése a titkos gomb megjelenítéséhez a game-list-page-en
             if (pageId === 'game-list-page') {
                 const titleEl = document.getElementById('page-title');
                 // *** MÓDOSÍTÁS: Töröltem az első "!" jelet, csak a narancsárga maradt ***
@@ -1059,7 +878,13 @@ function downloadPDF() {
                      titleEl.appendChild(secretTrigger);
                 }
                 
-                // Eseményfigyelő hozzáadása a titkos gombhoz a DOMContentLoaded-ben lesz kezelve
+                // Eseményfigyelő hozzáadása a titkos gombhoz
+                const secretTriggerEl = document.getElementById('secret-trigger');
+                if (secretTriggerEl && secretSwitchesContainer) {
+                    secretTriggerEl.addEventListener('click', () => {
+                        secretSwitchesContainer.classList.toggle('hidden');
+                    });
+                }
             }
         }
 
@@ -1075,23 +900,13 @@ function downloadPDF() {
             
             if (appState.map) { 
                 toggleMapClickMock(false); // Map click handler és mock marker eltávolítása
-                // EXPLORE MÓD TÉRKÉP KATTINTÁS KEZELŐ TÖRLÉSE
-                if (appState.map.exploreClickListener) {
-                     appState.map.off('click', appState.map.exploreClickListener);
-                     appState.map.exploreClickListener = null;
-                }
-                Object.values(appState.taskMarkers).forEach(m => m.remove());
-                appState.taskMarkers = {};
-                
                 appState.map.remove(); 
                 appState.map = null; 
             }
-            
-            // Visszaállítjuk az alapértelmezett Játék Mód (Normál Játék) rádió gombot
-            const normalModeRadio = document.getElementById('mode-normal');
-            if (normalModeRadio) {
-                normalModeRadio.checked = true;
-            }
+            // Visszaállítjuk a kezdőoldali állapotot a gombokról
+            document.getElementById('test-mode-toggle').checked = false;
+            document.getElementById('manual-mock-toggle').checked = false;
+            document.getElementById('manual-mock-toggle').disabled = true;
             
             // JAVÍTVA: Rejtetté teszi a fejlesztői opciókat is a Game List Page-en
             const devOptions = document.getElementById('developer-options');
@@ -1125,7 +940,7 @@ function downloadPDF() {
         // Módosított showMessage a két gombos megjelenítéshez
         function showMessage(title, body, onClose, showCancel = false) {
             document.getElementById('message-title').textContent = title;
-            document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p', 'br'] }); // Hozzáadtuk a 'br'-t
+            document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p'] });
             
             const okButton = document.getElementById('modal-ok-button');
             const cancelButton = document.getElementById('modal-cancel-button');
@@ -1194,8 +1009,7 @@ function downloadPDF() {
             console.log(`Hiba bejelentve a ${appState.currentTaskIndex}. feladatnál: ${errorDescription}`);
             
             // *** MÓDOSÍTÁS: Nincs levonás a teljes score-ból. Csak nullázzuk a taskScore-t. ***
-            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-            if (!currentTask) return;
+            const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
             
             // A feladat pontszámát 0-ra állítjuk. A handleCorrectAnswer fogja a 0 pontot hozzáadni.
             currentTask.taskScore = 0; 
@@ -1294,8 +1108,7 @@ function downloadPDF() {
                 const validatedGames = {};
                 for (const gameId in combinedGames) {
                     const game = combinedGames[gameId];
-                    // JAVÍTVA: Az explore is érvényes típus
-                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) continue;
+                    if (!['normal', 'kids', 'team'].includes(game.type)) continue;
                     if (game.tasks.length === 0) continue;
                     game.tasks.sort((a, b) => a.index - b.index);
                     validatedGames[gameId] = game;
@@ -1323,17 +1136,9 @@ function downloadPDF() {
             }
             Object.values(games).forEach(game => {
                 const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
-                let gameTypeBadge = '';
-                if (game.type === 'kids') {
-                    gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
-                } else if (game.type === 'team') {
-                    gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
-                } else if (game.type === 'explore') {
-                    gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800">Explore (Felfedező) 🗺️</span>`;
-                } else {
-                    gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">Normal 🧭</span>`;
-                }
-                
+                const gameTypeBadge = game.type === 'kids' ? `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>` : 
+                                      game.type === 'team' ? `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>` :
+                                      `<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">Normal 🧭</span>`;
                 const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
                 
                 const gameTitleForMessage = game.title.replace(/'/g, "\\'"); 
@@ -1364,7 +1169,7 @@ function downloadPDF() {
          * Elindítja a GPS követést és az időzítőket (Kaland Indítása gomb)
          */
         function startTimersAndGPS() {
-            if (!appState.currentGame) return;
+            if (appState.isTimerRunning) return; // Már fut
 
             appState.startTime = new Date();
             appState.isTimerRunning = true;
@@ -1374,27 +1179,21 @@ function downloadPDF() {
             appState.timerInterval = setInterval(updateTimer, 1000);
             lastTimeUpdate = appState.startTime.getTime(); 
             
-            // EXPLORE MÓD SPECIFIKUS LOGIKA: A Start gomb megnyomása után azonnal a választóra ugrik
-            if (appState.currentGame.taskOrder === 'explore') {
-                // Start Feladat befejezettnek jelölése
-                if (appState.completedTasks.indexOf(0) === -1) {
-                     appState.completedTasks.push(0);
-                }
-                
-                // Közvetlenül a térképes választóra ugrunk
-                showTaskSelectionMap();
-            } else {
-                // Normál/Random mód: Váltás az 1. igazi feladatra
-                appState.currentTaskIndex = 1;
-                loadTask(appState.currentTaskIndex); 
-            }
+            // UI frissítés: Navigáció és Mentőöv gombok már a loadTask/checkGeofence-ben kezelve
+
+            // Váltás az 1. igazi feladatra
+            appState.currentTaskIndex = 1; // Explicit beállítás
             
-            // Geo-fence és Marker azonnali frissítése (ha szükséges)
+            // Nincs kezdeti pont hozzáadás, a loadTask csinálja!
+            
+            loadTask(appState.currentTaskIndex); 
+            
+            // Geo-fence és Marker azonnali frissítése a célkoordinátára
             if (appState.map) {
+                 // A loadTask már hívja az updateTaskMarker-t és a checkGeofence-t, 
+                 // itt ismét hívjuk a checkGeofence-t a legfrissebb pozícióval
                  checkGeofence();
             }
-            
-            updateStatusDisplays(); 
         }
 
         // JAVÍTOTT FÜGGVÉNY: Két időmérő frissítése
@@ -1411,8 +1210,7 @@ function downloadPDF() {
             document.getElementById('timer-display').textContent = formatTime(appState.totalTime);
             
             // *** MÓDOSÍTOTT LOGIKA: Geo-fence Idő frissítése: CSAK akkor, ha az aktuális feladat időmérése már aktív ***
-            // Az Explore módban a currentTaskIndex lehet 0 a választó képernyőn.
-            const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null;
+            const currentTask = appState.currentGame ? appState.currentGame.tasks[appState.currentTaskIndex] : null;
             
             if (currentTask && currentTask.isTaskTimerActive) {
                 appState.geofenceTime += steps;
@@ -1432,15 +1230,7 @@ function downloadPDF() {
             // ÚJ: A Start Feladat (index 0) kizárása a progress bar-ból
             const totalTasks = appState.currentGame.tasks.length - 1; 
             const currentTaskNumber = appState.currentTaskIndex; // Az 1. igazi feladat indexe: 1
-            let displayedTask;
-
-            if (appState.currentGame.taskOrder === 'explore') {
-                 // Explore módban a már teljesített VALÓDI feladatok száma (index 0 nem számít)
-                 displayedTask = appState.completedTasks.filter(index => index > 0).length; 
-            } else {
-                 // Normál és Random módban a feladat indexe
-                 displayedTask = (currentTaskNumber === 0) ? 0 : currentTaskNumber;
-            }
+            const displayedTask = (currentTaskNumber === 0) ? 0 : currentTaskNumber;
 
             const progress = `${displayedTask} / ${totalTasks}`;
             document.getElementById('task-progress-display').textContent = progress;
@@ -1465,58 +1255,22 @@ function startGame(gameId) {
     // Felolvasás leállítása, ha esetleg fut
     if (speechSynth.speaking) speechSynth.cancel();
     
-    // Állapotok beállítása a radio button-ök alapján
-    const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
-    const gameMode = selectedMode ? selectedMode.value : 'normal'; // Alapértelmezett: normal
-    // Ha Explore módot választottunk, a feladat-sorrend kényszerítetten 'explore'
-    if (gameMode === 'explore') {
-         appState.taskOrder = 'explore';
-    }
-    
-    
-    appState.isTestModeEnabled = (gameMode === 'test' || gameMode === 'mock');
-    appState.isManualMock = (gameMode === 'mock');
+    // Állapotok beállítása a titkos kapcsolók alapján
+    appState.isTestModeEnabled = document.getElementById('test-mode-toggle').checked;
+    appState.isManualMock = document.getElementById('manual-mock-toggle').checked;
     
     // Mély másolat készítése
     appState.currentGame = JSON.parse(JSON.stringify(games[gameId])); 
-    
-    // Ha a játék típusa 'explore', állítsuk be ALAPÉRTELMEZETTEN a sorrendet 'explore'-ra
-    (function() {
-        try {
-            if (appState.currentGame && appState.currentGame.type === 'explore') {
-                const orderSel = document.getElementById('task-order-select');
-                if (orderSel) orderSel.value = 'explore';
-            }
-        } catch(e) {}
-    })();
-appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appState.geofenceTime = 0;
+    appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appState.geofenceTime = 0;
     appState.startTime = null; // Csak a startTimersAndGPS állítja be
     appState.isTimerRunning = false; // Alapállapot
     appState.routeCoordinates = []; // Útvonal resetelése
     
     // Beállítások beolvasása a Game List oldalról
     appState.taskOrder = document.getElementById('task-order-select').value;
-    
-    // Ha a játék típusa 'explore', alapértelmezetten kényszerítsük 'explore'-ra (alapbeállítás)
-    if (appState.currentGame && appState.currentGame.type === 'explore') {
-        appState.taskOrder = 'explore';
-    }
-    appState.currentGame.taskOrder = appState.taskOrder;
-// *** JAVÍTÁS: TEAM típusú játéknál a sorrend mindig RANDOM ***
-// Tükrözzük a currentGame.taskOrder-be is
-    appState.currentGame.taskOrder = appState.taskOrder;
+    // *** JAVÍTÁS: TEAM típusú játéknál a sorrend mindig RANDOM ***
     if (appState.currentGame.type === 'team') {
          appState.taskOrder = 'random';
-    }
-    // ÚJ: Explore mód esetén a sorrend fix (sequential)
-    if (appState.taskOrder === 'explore') {
-         appState.currentGame.taskOrder = 'explore';
-         appState.taskOrder = 'explore';
-         // EXPLORE mód specifikus állapotok inicializálása
-         appState.completedTasks = [];
-         appState.availableTasks = appState.currentGame.tasks.filter(t => t.index > 0).map(t => t.index); // Csak a task.index-eket tároljuk (1-től N-ig)
-         // Töröljük a task markereket
-         appState.taskMarkers = {}; 
     }
     // *** JAVÍTÁS VÉGE ***
     appState.teamName = document.getElementById('team-name-input').value.trim() || null;
@@ -1530,8 +1284,8 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
         location: appState.currentGame.startLocation,
         geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
         // Ezt a szöveget látja a felhasználó, amíg el nem éri a zónát és nem nyomja meg az indítást
-        story: `**${appState.currentGame.title}**<br>${appState.currentGame.description}<br><br>Indítsd el a kalandot a **Kaland Indítása** gombbal!`, // Módosított szöveg
-        prompt: 'Nyomd meg a Kaland Indítása gombot a kezdéshez!', // Módosított szöveg
+        story: `**${appState.currentGame.title}**<br>${appState.currentGame.description}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a **Kaland Indítása** gombot.`,
+        prompt: 'Érd el a Start Helyszínt az induláshoz!',
         hints: [],
         solution: '', 
         acceptedAnswers: [],
@@ -1563,7 +1317,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
         appState.currentGame.tasks.unshift(startTaskTemplate);
 
     } 
-    // SZEKVENCIÁLIS/NORMÁL ÉS EXPLORE MÓD LOGIKA
+    // SZEKVENCIÁLIS/NORMÁL MÓD LOGIKA
     else {
         // Szekvenciális módban az eredeti sortolt lista marad, 
         // de elé betesszük a Start Feladatot.
@@ -1642,9 +1396,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             }
             
             // Megoldás állapota
-            // Ha Explore mód van, és az utolsó feladatot csináljuk, akkor a gomb ne működjön
-            const isFinalTaskInExplore = appState.currentGame.taskOrder === 'explore' && appState.availableTasks.length === 1; // Ha már csak egy van hátra
-            solutionBtn.disabled = (task.hintsUsed < maxHints && !isFinalTaskInExplore);
+            solutionBtn.disabled = (task.hintsUsed < maxHints);
 
             // Geo-fence korlátozás felülírása 
             // A segítség/megoldás kéréshez már nem kell a zónán belül lenni, HA már elindult az időmérés
@@ -1665,11 +1417,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 top: 0,
                 behavior: 'instant' 
             });
-            const task = appState.currentGame.tasks.find(t => t.index === taskIndex);
-            if (!task) return; // Biztos, ami biztos
-            
-            appState.currentTaskIndex = taskIndex; // Aktuális feladat index frissítése
-            
+            const task = appState.currentGame.tasks[taskIndex];
             const isStartTask = task.isStartTask; 
             
             // *** ÚJ LOGIKA: Feladat időmérés állapotának inicializálása ***
@@ -1690,12 +1438,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             
             // A feladat promptja és története mindig látszik (task-interaction-area mindig látszik)
             document.getElementById('task-interaction-area').classList.remove('hidden');
-            
-            // EXPLORE MÓD SPECIFIKUS UI REJTÉSE
-            document.getElementById('explore-selection-container').classList.add('hidden');
-            // START GOMB REJTÉSE
-            document.getElementById('start-task-button-container').classList.add('hidden');
-            
+
             // Navigációs és Hiba bejelentés gombok mindig látszanak
             document.getElementById('google-maps-btn').classList.remove('hidden'); 
             document.getElementById('report-error-btn').classList.remove('hidden');
@@ -1711,7 +1454,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             // JAVÍTVA: Feladat időzítésének inicializálása (Geo-fence Time-ot használjuk)
             // A startTime-ot a checkGeofence állítja be, amikor a feladat időmérése elindul
             if (isStartTask) {
-                 task.startTime = 0;
+                 appState.currentGame.tasks[taskIndex].startTime = 0;
             }
 
             // Történet a details/summary-be és a Prompt a helyére
@@ -1723,8 +1466,8 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             document.getElementById('story-details').open = true; 
             
             // Ha a tasknak még nincs hintsUsed számlálója, inicializáljuk 0-ra
-            if(typeof task.hintsUsed === 'undefined') {
-                task.hintsUsed = 0;
+            if(typeof appState.currentGame.tasks[taskIndex].hintsUsed === 'undefined') {
+                appState.currentGame.tasks[taskIndex].hintsUsed = 0;
             }
             
             // Gombok állapotának kezelése:
@@ -1756,24 +1499,12 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
 
                  // Prompt alapértelmezett beállítása: látható (ezt szabályozza a checkGeofence a zónától függően)
                  document.getElementById('prompt').classList.remove('hidden');
-                 
-                 // *** VÉGLEGES JAVÍTÁS: Explore módban a Start gombot megmutatjuk, ÉS ENGEDÉLYEZÜNK BÁRHOL ***
-                 if (appState.currentGame.taskOrder === 'explore') {
-                     document.getElementById('start-game-btn').disabled = false; // Bárhol indítható!
-                     document.getElementById('start-task-button-container').classList.remove('hidden');
-                 }
-                 // *** JAVÍTÁS VÉGE ***
             }
             
             if (appState.map) {
                 updateTaskMarker(task.location);
-                // EXPLORE MARKEREK ELTÜNTETÉSE
-                Object.values(appState.taskMarkers).forEach(m => m.remove());
-                appState.taskMarkers = {};
             }
-            
-            // Geo-fence ellenőrzés futtatása (a Start gomb geo-fence felülírásával)
-            checkGeofence(); 
+            checkGeofence(); // Geo-fence ellenőrzés
             updateStatusDisplays();
         }
 
@@ -1781,7 +1512,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             // Felolvasás leállítása
             if (speechSynth.speaking) synth.cancel();
             
-            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+            const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
             
             // Feladatra fordított idő mentése
             currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
@@ -1794,41 +1525,16 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 appState.score += currentTask.taskScore; 
             }
             // *** MÓDOSÍTÁS VÉGE ***
+
+            appState.currentTaskIndex++;
             
-            // EXPLORE MÓD LOGIKA:
-            if (appState.currentGame.taskOrder === 'explore') {
-                if (currentTask && !currentTask.isStartTask) {
-                    // Eltávolítjuk az elérhető taskok közül
-                    const indexToRemove = appState.availableTasks.indexOf(appState.currentTaskIndex);
-                    if (indexToRemove > -1) {
-                         appState.availableTasks.splice(indexToRemove, 1);
-                    }
-                    // Csak a VALÓDI taskokat számoljuk (index > 0)
-                    if (appState.completedTasks.indexOf(currentTask.index) === -1) {
-                        appState.completedTasks.push(currentTask.index);
-                    }
-                }
+            if (appState.currentTaskIndex < appState.currentGame.tasks.length) {
                 
-                if (appState.availableTasks.length === 0) {
-                     // Nincs több feladat -> Befejezés
-                     endGame();
-                } else {
-                     // Vissza a térképes választó nézetre
-                     appState.currentTaskIndex = 0; // Aktuális index 0 (Start Task / Váró állapot)
-                     showTaskSelectionMap();
-                }
-            } 
-            // NORMÁL ÉS RANDOM MÓD LOGIKA:
-            else {
-                appState.currentTaskIndex++;
-                if (appState.currentTaskIndex < appState.currentGame.tasks.length) {
-                    // A loadTask beállítja a következő feladat taskScore-ját 100-ra, ha nem start task
-                    loadTask(appState.currentTaskIndex);
-                } else {
-                    endGame();
-                }
+                // A loadTask beállítja a következő feladat taskScore-ját 100-ra, ha nem start task
+                loadTask(appState.currentTaskIndex);
+            } else {
+                endGame();
             }
-            
             saveGameState(); // ÁLLAPOT MENTÉSE
         }
         
@@ -1904,27 +1610,14 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 endMap.invalidateSize(true);
                 
                 // Kezdőpont marker (StartLocation)
-                const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; // A 0-ás indexen van a Start Feladat
+                const startLoc = appState.currentGame.startLocation;
                 L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap)
                     .bindPopup('<b>Start Helyszín</b>').openPopup();
 
                 // Feladatok jelölése (Marker és Geo-fence kör)
-                appState.currentGame.tasks.filter(t => t.index > 0).forEach(task => { // CSAK a VALÓDI feladatok
+                appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
                     if (task.location) {
-                        // Külön ikon a teljesített és nem teljesített feladatoknak (Explore módban)
-                        const isCompleted = appState.completedTasks.includes(task.index);
-                        
-                        const taskMarkerIcon = L.divIcon({
-                            className: isCompleted ? 'task-selector-marker' : 'task-selector-marker', 
-                            html: isCompleted ? '✅' : task.index.toString(),
-                            iconSize: isCompleted ? [30, 30] : [30, 30],
-                            iconAnchor: [15, 30],
-                            popupAnchor: [0, -30],
-                            // Változtassuk meg a színt a teljesített feladatoknál
-                            style: isCompleted ? 'background-color: green;' : 'background-color: var(--brand-cyan);'
-                        });
-
-                        L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(endMap)
+                        L.marker([task.location.lat, task.location.lng], { title: `Feladat ${task.index}` }).addTo(endMap)
                            .bindPopup(`<b>Feladat ${task.index}</b>`);
                     }
                 });
@@ -1935,7 +1628,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
 
             // *** AUTOMATIKUS PDF LETÖLTÉS BEKAPCSOLÁSA ***
             // Ha nem szeretné az automatikus letöltést, ezt a sort kommentelje ki:
-            // downloadPDF(); 
+            downloadPDF(); 
             // *** VÉGE ***
             
             clearSavedState(); // Töröljük a mentést
@@ -1945,15 +1638,6 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
         // Kézi GPS (Manual Mock GPS) be- és kikapcsolása
         function toggleMapClickMock(enable) {
             if (!appState.map) return;
-
-            // EXPLORE MÓD FELÜLÍRÁSA: Csak akkor engedélyezzük a mock kattintáskezelőt, ha NEM a feladatválasztó nézeten vagyunk
-            if (appState.currentGame && appState.currentGame.taskOrder === 'explore' && appState.currentTaskIndex === 0 && appState.isTimerRunning) {
-                if (appState.map.clickHandler) {
-                     appState.map.off('click', appState.map.clickHandler);
-                     appState.map.clickHandler = null;
-                }
-                return;
-            }
 
             if (enable) {
                 // Kikapcsolja a valós GPS követést
@@ -1983,12 +1667,9 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                         checkGeofence();
                         
                         // JAVÍTÁS: Térkép központosítás és nagyítás
-                        if (appState.currentGame && appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex)) {
-                            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                            const currentTaskLoc = currentTask.location;
-                            const bounds = L.latLngBounds(manualMarker.getLatLng(), L.latLng(currentTaskLoc.lat, currentTaskLoc.lng));
-                            appState.map.fitBounds(bounds.pad(0.2)); 
-                        }
+                        const currentTaskLoc = appState.currentGame.tasks[appState.currentTaskIndex].location;
+                        const bounds = L.latLngBounds(manualMarker.getLatLng(), L.latLng(currentTaskLoc.lat, currentTaskLoc.lng));
+                        appState.map.fitBounds(bounds.pad(0.2)); 
                     };
                     appState.map.on('click', appState.map.clickHandler);
                 }
@@ -2021,7 +1702,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             if (!appState.map) return;
 
             // *** CSak akkor kezeljük itt, ha NEM mock módban vagyunk. ***
-            if (!appState.isManualMock) { // A teszt módra vonatkozó logikát kiszedtem, mert az csak a geo-fence-t hagyja ki
+            if (!appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.userPosition = { lat, lng };
 
                 if (appState.playerMarker) {
@@ -2053,17 +1734,13 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             
             const initialColor = 'red'; 
             
-            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-            if (!currentTask) return;
-            
             const currentTaskLoc = L.latLng(location.lat, location.lng);
             // JAVÍTVA: Dinamikus sugár
-            const currentRadius = currentTask.geofenceRadius || GEOFENCE_DEFAULT_RADIUS;
+            const currentRadius = appState.currentGame.tasks[appState.currentTaskIndex].geofenceRadius || GEOFENCE_DEFAULT_RADIUS;
 
             if (appState.geofenceCircle) {
                 appState.geofenceCircle.setLatLng(currentTaskLoc);
                 appState.geofenceCircle.setRadius(currentRadius);
-                appState.geofenceCircle.addTo(appState.map);
             } else {
                 appState.geofenceCircle = L.circle(currentTaskLoc, {
                     radius: currentRadius,
@@ -2076,9 +1753,10 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             }
             
             // JAVÍTÁS: Térkép központosítás és nagyítás
-            const playerMarkerForBounds = appState.isManualMock ? manualMarker : appState.playerMarker;
-            if (playerMarkerForBounds) {
-                const currentPosition = playerMarkerForBounds.getLatLng();
+            if (appState.playerMarker || (appState.isManualMock && manualMarker)) {
+                const currentPosition = appState.isManualMock 
+                    ? manualMarker.getLatLng() 
+                    : appState.playerMarker.getLatLng();
                 
                 const bounds = L.latLngBounds(currentPosition, currentTaskLoc);
                 appState.map.fitBounds(bounds.pad(0.2)); 
@@ -2114,12 +1792,8 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             } else if (appState.isTestModeEnabled && !appState.isManualMock) {
-                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                 if (task) {
-                     appState.userPosition = { lat: task.location.lat, lng: task.location.lng };
-                 } else {
-                     appState.userPosition = { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
-                 }
+                 const taskLoc = appState.currentGame.tasks[appState.currentTaskIndex].location;
+                 appState.userPosition = { lat: taskLoc.lat, lng: taskLoc.lng };
                  checkGeofence();
             } else if (appState.isManualMock) {
                  appState.userPosition = (manualMarker) 
@@ -2140,45 +1814,17 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             const taskInteractionArea = document.getElementById('task-interaction-area');
             const distEl = document.getElementById('distance-info');
             const startButtonContainer = document.getElementById('start-task-button-container'); 
-            const exploreSelectionContainer = document.getElementById('explore-selection-container');
             
             const currentLocation = (appState.isManualMock && manualMarker) 
                 ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } 
                 : appState.userPosition;
             
-            const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null;
+            const currentTask = appState.currentGame ? appState.currentGame.tasks[appState.currentTaskIndex] : null;
             if (!currentTask) return;
 
             const currentRadius = currentTask.geofenceRadius || GEOFENCE_DEFAULT_RADIUS;
             const isStartTask = currentTask.isStartTask; 
             
-            // --- EXPLORE MÓD GEO-FENCE FELÜLÍRÁSA (Garantálja az azonnali Start gombot) ---
-            if (appState.currentGame.taskOrder === 'explore' && isStartTask) {
-                 // Az explore mód Start gombja mindig aktív és látható
-                 startButtonContainer.classList.remove('hidden');
-                 document.getElementById('start-game-btn').disabled = false;
-                 
-                 // UI frissítés
-                 taskInteractionArea.classList.remove('hidden'); 
-                 document.getElementById('prompt').classList.add('hidden');
-                 distEl.textContent = "Kaland indítható bárhol!";
-                 distEl.className = 'text-center text-xs font-bold mt-2 text-green-600';
-                 
-                 // Geo-fence kör eltüntetése a Start feladatnál (nincs értelme mutatni)
-                 if (appState.geofenceCircle) {
-                     appState.geofenceCircle.remove();
-                     appState.geofenceCircle = null;
-                 }
-                 
-                 // EXPLORE VÁLASZTÓ NÉZET FOLYAMATBAN?
-                 if (appState.isTimerRunning) {
-                     showTaskSelectionMap();
-                 }
-                 
-                 return; // Visszatérünk, elkerülve a geo-fence logikát
-            }
-            // --------------------------------------------------------------------------
-
             // Ha a Mentőöv/Hiba modal aktív, a Geo-fence ellenőrzés csak a távolság infót frissíti!
             const isReportModalActive = !document.getElementById('report-error-modal').classList.contains('hidden');
             if (isReportModalActive) {
@@ -2193,21 +1839,6 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
 
             // Eltüntetjük a Start gombot alapból
             startButtonContainer.classList.add('hidden');
-            // EXPLORE UI-T ELTÜNTETJÜK
-            exploreSelectionContainer.classList.add('hidden');
-
-            
-            // EXPLORE MÓD FELADAT VÁLASZTÓ NÉZET:
-            // VÉGLEGES JAVÍTÁS: Ha a játék fut, de az aktuális index 0 (a választó képernyő), akkor a térképes választó logikáját futtatjuk.
-            if (appState.currentGame.taskOrder === 'explore' && appState.isTimerRunning && appState.currentTaskIndex === 0) {
-                 taskInteractionArea.classList.add('hidden');
-                 exploreSelectionContainer.classList.remove('hidden');
-                 
-                 // Térkép központosítás a játékosra és a célokra
-                 renderTaskMarkers();
-
-                 return; // Kilépünk a normál geo-fence logikából
-            }
             
             // --- TESZT MÓD LOGIKA ---
             if (appState.isTestModeEnabled && !appState.isManualMock) {
@@ -2225,19 +1856,6 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 // *** MÓDOSÍTÁS VÉGE ***
                 
                 if (isStartTask) { 
-                    // *** EXPLORE JAVÍTÁS: Teszt módban is azonnal engedélyezzük a gombot ***
-                    if (appState.currentGame.taskOrder === 'explore') {
-                         startButtonContainer.classList.remove('hidden');
-                         document.getElementById('start-game-btn').disabled = false; // Bárhol indítható!
-                         taskInteractionArea.classList.remove('hidden'); 
-                         document.getElementById('prompt').classList.add('hidden'); // Prompt elrejtése
-                         // Az információs szöveg is legyen jó
-                         distEl.textContent = "Kaland indítható bárhol!";
-                         distEl.className = 'text-center text-xs font-bold mt-2 text-green-600';
-                         return; // Visszatérünk, hogy ne hajtsa végre a lenti GPS ellenőrzést, ami a geo-fence miatt elrejtené a gombot.
-                    }
-                    // *** JAVÍTÁS VÉGE ***
-                    
                     startButtonContainer.classList.remove('hidden');
                     taskInteractionArea.classList.remove('hidden'); 
                     // JAVÍTÁS: Teszt módban is eltüntetjük a promptot zónán belül
@@ -2289,12 +1907,6 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                         appState.geofenceCircle.setStyle({ color: 'red', fillColor: 'red', fillOpacity: 0.1 }); 
                     }
                     
-                    // EXPLORE MÓD BÁRHOL INDÍTÁS JAVÍTÁSA:
-                    if (isStartTask && appState.currentGame.taskOrder === 'explore') {
-                         startButtonContainer.classList.remove('hidden');
-                         document.getElementById('start-game-btn').disabled = false; // Bárhol engedélyezve
-                    }
-
                     return; 
                 }
 
@@ -2332,14 +1944,6 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                         
                         // ÚJ JAVÍTÁS: Zónán belül a Prompt elrejtése a Start Feladatnál
                         document.getElementById('prompt').classList.add('hidden');
-                        
-                        // *** EXPLORE JAVÍTÁS: Start Feladat gomb BÁRHOL engedélyezve Explore módban ***
-                        if (appState.currentGame.taskOrder === 'explore') {
-                             document.getElementById('start-game-btn').disabled = false; 
-                        } else {
-                             document.getElementById('start-game-btn').disabled = false; 
-                        }
-                        // *** JAVÍTÁS VÉGE ***
 
                     }
 
@@ -2358,13 +1962,6 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                         taskInteractionArea.classList.remove('hidden'); // Start feladatnál látszik
                         // Zónán kívül a Prompt megmutatása a Start Feladatnál
                         document.getElementById('prompt').classList.remove('hidden');
-                        
-                        // *** EXPLORE JAVÍTÁS: Start Feladat gomb BÁRHOL engedélyezve Explore módban ***
-                        if (isStartTask && appState.currentGame.taskOrder === 'explore') {
-                             startButtonContainer.classList.remove('hidden');
-                             document.getElementById('start-game-btn').disabled = false; // Bárhol engedélyezve
-                        }
-                        // *** JAVÍTÁS VÉGE ***
                     }
                 }
             }
@@ -2389,151 +1986,16 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             
             saveGameState(); // ÁLLAPOT MENTÉSE GPS FRISSÍTÉSKOR
         }
-
-        // --- EXPLORE MÓD ÚJ LOGIKÁJA ---
-
-        // Térkép kattintás kezelő explore módban a feladat kiválasztásához
-        function exploreSelectionMapMarkerSelectHandler(e) {
-            // Ez a függvény a L.marker.on('click') eseményből hívódik meg.
-            if (!e.target || !e.target.options || e.target.options.taskIndex === undefined) return;
-
-            const selectedTaskIndex = e.target.options.taskIndex;
-            
-            // Betöltjük a kiválasztott feladatot
-            loadTask(selectedTaskIndex);
-            
-            // Interakciós felület megmutatása
-            document.getElementById('task-interaction-area').classList.remove('hidden');
-            document.getElementById('explore-selection-container').classList.add('hidden');
-            
-            // Visszaállítjuk a mock GPS kattintáskezelőt, ha szükséges
-            if (appState.isManualMock) {
-                 toggleMapClickMock(true); 
-            }
-        }
         
-        // Funkció: A rendelkezésre álló feladatok markereinek kirajzolása
-        function renderTaskMarkers() {
-            if (!appState.map || appState.currentGame.taskOrder !== 'explore') return;
-            
-            // Markerek eltávolítása (ha van a térképen)
-            Object.values(appState.taskMarkers).forEach(m => m.remove());
-            appState.taskMarkers = {};
-            
-            // Geo-fence kör eltávolítása (csak a választó nézeten)
-            if (appState.geofenceCircle) {
-                 appState.geofenceCircle.remove();
-            }
-            
-            // Task markerek kirajzolása
-            const bounds = [];
-            
-            // Összes elérhető feladat (index > 0)
-            appState.availableTasks.forEach(taskIndex => {
-                const task = appState.currentGame.tasks.find(t => t.index === taskIndex);
-                if (!task) return;
-                
-                // Task Marker létrehozása
-                const taskIcon = L.divIcon({
-                    className: 'task-selector-marker',
-                    html: task.index.toString(),
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 30],
-                    popupAnchor: [0, -30]
-                });
-                
-                // Marker létrehozása és tárolása, extra opciókkal
-                const marker = L.marker([task.location.lat, task.location.lng], { 
-                    icon: taskIcon,
-                    title: `Feladat ${task.index} - Válassz`,
-                    taskIndex: task.index // Hozzáadjuk a task indexet az opciókhoz
-                }).addTo(appState.map)
-                  .bindPopup(`<b>Feladat ${task.index}</b><br>Kattints a kiválasztáshoz!`);
-                  
-                // Markerre kattintás kezelése
-                marker.on('click', exploreSelectionMapMarkerSelectHandler);
-
-                appState.taskMarkers[task.index] = marker;
-                bounds.push([task.location.lat, task.location.lng]);
-            });
-            
-            // Térkép központosítása az összes feladatra és a játékosra
-            const playerMarkerForBounds = appState.isManualMock ? manualMarker : appState.playerMarker;
-            if (playerMarkerForBounds) {
-                 bounds.push(playerMarkerForBounds.getLatLng());
-            } else if (appState.userPosition) {
-                 bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
-            }
-            
-            // Ha már fut az explore mód, és van elérhető task, akkor a térképet erre a területre központosítjuk
-            if (bounds.length > 0 && appState.isTimerRunning) {
-                 appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
-            } else if (bounds.length > 0) {
-                 // Ha még csak a Start oldalon vagyunk, a Start helyszínre központosít
-                 const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
-                 appState.map.setView([startLoc.lat, startLoc.lng], 16);
-            }
-            
-            // Kényszerítjük a térkép méretének frissítését, hogy a markerek megjelenjenek
-            appState.map.invalidateSize(true);
-        }
-
-        // Funkció: Térképes feladatválasztó UI megjelenítése
-        function showTaskSelectionMap() {
-            if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
-            
-            // Geo-fence kör eltüntetése
-            if (appState.geofenceCircle) {
-                 appState.geofenceCircle.remove();
-            }
-            
-            // Interakciós terület elrejtése
-            document.getElementById('task-interaction-area').classList.add('hidden');
-            
-            // Start gomb elrejtése
-            document.getElementById('start-task-button-container').classList.add('hidden');
-
-            // Explore választó UI megjelenítése
-            document.getElementById('explore-selection-container').classList.remove('hidden');
-            
-            // Feladat markerek kirajzolása
-            renderTaskMarkers();
-            
-            // Ha Manuális GPS módban van (mock), kikapcsoljuk a mock GPS kattintáskezelőt,
-            // hogy ne a mock pozíciót állítsa be a markerre kattintás.
-            // A mock GPS-nek most nem szabad aktiválnia a térkép click-et, csak a markereket.
-            if (appState.isManualMock && appState.map.clickHandler) {
-                 appState.map.off('click', appState.map.clickHandler);
-                 appState.map.clickHandler = null;
-            }
-            
-            // A távolság infó visszaállítása
-            document.getElementById('distance-info').textContent = "Válassz feladatot a térképen!";
-            document.getElementById('distance-info').className='text-center text-xs font-bold mt-2 text-brand-blue';
-        }
-
         // --- GOOGLE MAPS NAVIGÁCIÓS LOGIKA ---
         function startNavigation() {
-            if (!appState.currentGame || appState.currentTaskIndex === 0) {
-                 // Ha Explore módban van, és a választó nézeten, akkor a start location-re navigál
-                 if (appState.currentGame && appState.currentGame.taskOrder === 'explore') {
-                     const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
-                     const lat = startLoc.lat;
-                     const lng = startLoc.lng;
-                     const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-                     window.open(mapUrl, '_blank');
-                     return;
-                 }
-                 return showMessage('Hiba', 'Nincs aktuális feladat a navigációhoz.');
+            if (!appState.currentGame || appState.currentTaskIndex >= appState.currentGame.tasks.length) {
+                return showMessage('Hiba', 'Nincs aktuális feladat a navigációhoz.');
             }
             
-            const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-            if (!task) {
-                 return showMessage('Hiba', 'Nincs aktuális feladat a navigációhoz.');
-            }
-            
-            const lat = task.location.lat;
-            const lng = task.location.lng;
+            const taskLocation = appState.currentGame.tasks[appState.currentTaskIndex].location;
+            const lat = taskLocation.lat;
+            const lng = taskLocation.lng;
             
             const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
             
@@ -2631,10 +2093,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
 
         function requestGpsAndStart(gameId) {
             
-            const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
-            const gameMode = selectedMode ? selectedMode.value : 'normal';
-
-            if (gameMode === 'mock') {
+            if (document.getElementById('manual-mock-toggle').checked) {
                  startGame(gameId);
                  return;
             }
@@ -2670,12 +2129,13 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                          errorMessage = 'Időtúllépés: A GPS jel gyenge volt. Próbálj jobb helyre menni, és próbáld újra!';
                     }
                     
-                    if (gameMode === 'normal') {
+                    if (!document.getElementById('test-mode-toggle').checked) {
                          showMessage('GPS Teszt Sikertelen', errorMessage, () => {
                              // Nincs automatikus váltás teszt módra, a usernek kell engedélyeznie
                              // A modal bezárása után a kalandválasztó oldalon marad
                          });
-                    } else { // test mód (Geo-fence kikapcsolva) esetén indul a játék GPS nélkül is
+                    } else {
+                        // Teszt módban elindul
                         showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód miatt a játék elindul.');
                         startGame(gameId);
                     }
@@ -2711,8 +2171,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             console.log(`Hiba bejelentve a ${appState.currentTaskIndex}. feladatnál: ${errorDescription}`);
             
             // *** MÓDOSÍTÁS: Nincs levonás a teljes score-ból. Csak nullázzuk a taskScore-t. ***
-            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-            if (!currentTask) return;
+            const currentTask = appState.currentGame.tasks[appState.currentTaskIndex];
             
             // A feladat pontszámát 0-ra állítjuk. A handleCorrectAnswer fogja a 0 pontot hozzáadni.
             currentTask.taskScore = 0; 
@@ -2749,14 +2208,15 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
         document.addEventListener('DOMContentLoaded', () => {
             
             // Kezdőoldali gombok (titkos kapcsolók)
+            const testModeToggleLanding = document.getElementById('test-mode-toggle');
+            const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
             const logoO = document.getElementById('logo-o'); // Az "o" betűre történő kattintás
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
             const manualFileInput = document.getElementById('excel-file-input-manual'); // A Landing page-i input
             
             // A titkos fejlesztői box alapértelmezetten rejtve, csak a titkos trigger hívja elő
             const secretSwitchesContainer = document.getElementById('secret-switches-container');
-            const devOptions = document.getElementById('developer-options');
-            const devToggle = document.getElementById('developer-tools-toggle');
+            if (secretSwitchesContainer) secretSwitchesContainer.classList.add('hidden');
 
 
             initializeState();
@@ -2775,7 +2235,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
             document.getElementById('modal-ok-button').onclick = hideMessage;
             document.getElementById('modal-cancel-button').onclick = hideMessage;
             
-            // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE (LANDING PAGE) ---
+            // --- TITKOS MÓD AKTIVÁLÁSA A LOGÓ "O" BETŰJÉRE ---
             logoO.addEventListener('click', () => {
                  const switchesContainer = document.getElementById('secret-switches-container');
                  // Ha a landing page-en vagyunk, a logoO kattintás nem a listát hívja elő,
@@ -2837,35 +2297,39 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 });
             }
 
-            // --- JAVÍTOTT FEJLESZTŐI ESZKÖZÖK NYITÓ LOGIKA ---
-            // A "secret-trigger" (sárga !) elemet a showContentPage hozza létre, de a DOMContentLoaded idején nem létezik.
-            // Ezért az eseménykezelőnek késleltetve kell hozzáadódnia, vagy delegálni kell.
-            
-            // A sárga felkiáltójelre kattintás kezelése, ami megmutatja a fejlesztői boxot
-            document.body.addEventListener('click', (e) => {
-                 if (e.target && e.target.id === 'secret-trigger') {
-                    const container = document.getElementById('secret-switches-container');
-                    if (container) {
-                        container.classList.toggle('hidden');
+
+            // Titkos kapcsolók logikája a Game List Page-en
+            if (secretSwitchesContainer) {
+                const devOptions = document.getElementById('developer-options');
+                const devToggle = document.getElementById('developer-tools-toggle');
+
+                    // Fejlesztői eszközök kattintásra történő megjelenítése/elrejtése
+                    if (devToggle && devOptions) {
+                        devToggle.addEventListener('click', () => {
+                            devOptions.classList.toggle('hidden');
+                            devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
+                        });
                     }
-                 }
-            });
-            
-            // A "Fejlesztői Eszközök" címsor nyitó/záró funkcionalitása
-            if (devToggle && devOptions) {
-                devToggle.addEventListener('click', () => {
-                    devOptions.classList.toggle('hidden');
-                    // Nyíl állapotának frissítése
-                    devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
-                });
+
+
+                const testModeToggle = secretSwitchesContainer.querySelector('#test-mode-toggle');
+                const manualMockToggle = secretSwitchesContainer.querySelector('#manual-mock-toggle');
+
+                if (testModeToggle && manualMockToggle) {
+                    testModeToggle.addEventListener('change', (e) => {
+                        const isChecked = e.target.checked;
+                        manualMockToggle.disabled = !isChecked; 
+                        if (!isChecked) {
+                            manualMockToggle.checked = false;
+                        }
+                    });
+                }
             }
-            // --- JAVÍTOTT FEJLESZTŐI ESZKÖZÖK NYITÓ LOGIKA VÉGE ---
-
-
+            
+            
             // Megoldás ellenőrzés
             document.getElementById('submit-answer-btn').addEventListener('click', () => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 
                 // MÓDOSÍTOTT ELENŐRZÉS: Csak akkor küldhető be válasz, ha a feladat időmérése már aktív 
                 // ÉS zónán belül vagyunk (vagy Teszt módban)
@@ -2901,14 +2365,13 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                     if (task.taskScore > 0) {
                         task.taskScore = Math.max(0, task.taskScore - WRONG_ANSWER_PENALTY);
                     }
-                    showMessage(t('wrong_title'), t('wrong_body') + `<br><br>(Maradt pont: ${task.taskScore})`);
+                    showMessage(t('wrong_title'), `Próbáld újra! Rossz válasz: -${WRONG_ANSWER_PENALTY} pont. (Maradt pont: ${task.taskScore})`);
                 }
                 updateStatusDisplays();
             });
 
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 // MÓDOSÍTOTT ELLENŐRZÉS: Csak akkor kérhető segítség, ha a feladat időmérése már aktív
                 if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
                  if (task.isStartTask) return; // Start Feladat kizárása
@@ -2918,20 +2381,18 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 
                 if (task.hintsUsed < 1) { 
                     // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
-                    task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); // MÓDOSÍTVA: -10 pont
+                    task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); // Fix -20 pont
                     task.hintsUsed = 1;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
                 }
-                // *** MÓDOSÍTVA: Pontszám kijelzése az ablakban a levonás után ***
-                showMessage('1. Segítség', t('hint1_body', task.hints[0]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => {
+                showMessage('1. Segítség', t('hint1_body', task.hints[0]), () => {
                     updateHintButtons(task);
                 });
             });
 
             document.getElementById('hint2-btn').addEventListener('click', (e) => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 // MÓDOSÍTOTT ELLENŐRZÉS: Csak akkor kérhető segítség, ha a feladat időmérése már aktív
                 if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
                  if (task.isStartTask) return; // Start Feladat kizárása
@@ -2941,21 +2402,19 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 
                 if (task.hintsUsed < 2) { 
                     // *** MÓDOSÍTÁS: Csak a taskScore-ból vonódik le, min 0. ***
-                    task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); // MÓDOSÍTVA: -20 pont
+                    task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); // Fix -30 pont
                     task.hintsUsed = 2;
                     updateStatusDisplays(); 
                     saveGameState(); // ÁLLAPOT MENTÉSE
                 }
                 
-                // *** MÓDOSÍTVA: Pontszám kijelzése az ablakban a levonás után ***
-                showMessage('2. Segítség', t('hint2_body', task.hints[1]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => {
+                showMessage('2. Segítség', t('hint2_body', task.hints[1]), () => {
                     updateHintButtons(task);
                 });
             });
             
             document.getElementById('solution-btn').addEventListener('click', () => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
+                const task = appState.currentGame.tasks[appState.currentTaskIndex];
                 // MÓDOSÍTOTT ELLENŐRZÉS: Csak akkor kérhető megoldás, ha a feladat időmérése már aktív
                 if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
                  if (task.isStartTask) return; // Start Feladat kizárása
@@ -2967,7 +2426,7 @@ appState.currentTaskIndex = 0; appState.score = 0; appState.totalTime = 0; appSt
                 const scoreLost = task.taskScore; // Levonandó pont: az aktuális taskScore
                 task.taskScore = 0; // A taskScore 0 lesz
                 
-                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
+                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. (Levont pont: ${scoreLost})`, () => {
                     handleCorrectAnswer(); 
                     updateStatusDisplays();
                 });
