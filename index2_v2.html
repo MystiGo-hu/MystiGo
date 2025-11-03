@@ -852,32 +852,10 @@
                 // showPage('game-list-page') a processExcelData végén fut le, ha sikeres
                 
             } catch (error) {
-                // Hiba esetén megjelenítjük a manuális betöltés lehetőségét a Landing Page-en
-                try {
-                    const landing = document.getElementById('landing-page');
-                    const contentWrapper = document.getElementById('content-wrapper');
-                    const statusEl = document.getElementById('loading-status');
-                    const manualLabel = document.getElementById('manual-file-select-label');
-                    const manualInput = document.getElementById('excel-file-input-manual');
-                    
-                    if (landing) landing.classList.remove('hidden');
-                    if (contentWrapper) {
-                        contentWrapper.classList.add('translate-y-full');
-                        contentWrapper.classList.add('hidden');
-                    }
-                    if (statusEl) statusEl.textContent = `Adatbázis betöltése sikertelen: ${error && error.message ? error.message : 'ismeretlen ok'}. Válassz manuálisan fájlt.`;
-                    if (manualLabel) manualLabel.classList.remove('hidden');
-                    if (manualInput) manualInput.classList.remove('hidden');
-                    
-                    // Ha a labelre kattintunk, nyissa meg a fájl választót (biztonsági háló, ha a for= nem működne böngészőfüggően)
-                    if (manualLabel && manualInput && !manualLabel._wired) {
-                        manualLabel.addEventListener('click', () => manualInput.click());
-                        manualLabel._wired = true;
-                    }
-                } catch(e2) {
-                    console.warn('Manual load UI show failed:', e2);
-                }
-            }). Kérem, válasszon fájlt!`;
+  if (typeof appState !== 'undefined') appState.dbLoadFailed = true;
+  const msg = `Adatbázis betöltése sikertelen: ${error && error.message ? error.message : 'ismeretlen ok'}. Válassz manuálisan fájlt.`;
+  showManualLoad(msg);
+}). Kérem, válasszon fájlt!`;
                 
                 const manualInputLabel = document.getElementById('manual-file-select-label');
                 if (manualInputLabel) {
@@ -3019,6 +2997,82 @@ document.getElementById('answer-input').addEventListener('focus', (e) => {
 });
             
         }); // EZ A document.addEventListener('DOMContentLoaded', ... ZÁRÓJEL
-    </script>
+    
+/* ===== Manual DB Load Helper ===== */
+function showManualLoad(message) {
+  try {
+    const landing = document.getElementById('landing-page');
+    const contentWrapper = document.getElementById('content-wrapper');
+    const statusEl = document.getElementById('loading-status');
+    const manualLabel = document.getElementById('manual-file-select-label');
+    const manualInput = document.getElementById('excel-file-input-manual');
+
+    if (landing) landing.classList.remove('hidden');
+    if (contentWrapper) {
+      contentWrapper.classList.add('hidden');
+      contentWrapper.classList.add('translate-y-full');
+    }
+    if (statusEl) statusEl.textContent = message || 'Az automatikus betöltés nem sikerült. Válassz manuálisan fájlt.';
+
+    function unhideAll(el) {
+      if (!el) return;
+      if (el.classList && el.classList.contains('hidden')) el.classList.remove('hidden');
+      if (el.parentElement) unhideAll(el.parentElement);
+    }
+
+    if (manualLabel) {
+      manualLabel.classList.remove('hidden');
+      unhideAll(manualLabel);
+      if (!manualLabel._wired) {
+        const input = manualInput || document.getElementById('excel-file-input-manual');
+        if (input) manualLabel.addEventListener('click', () => input.click());
+        manualLabel._wired = true;
+      }
+    }
+    if (manualInput) {
+      manualInput.classList.remove('hidden');
+      unhideAll(manualInput);
+    }
+    if (manualLabel && manualLabel.scrollIntoView) {
+      manualLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  } catch (e) {
+    console.warn('showManualLoad failed:', e);
+  }
+}
+
+
+/* ===== Manual load fallbacks ===== */
+(function(){
+  function noGamesLoaded(){
+    try {
+      if (typeof games !== 'undefined' && games && Object.keys(games).length > 0) return false;
+    } catch(e){}
+    try {
+      if (typeof combinedGames !== 'undefined' && combinedGames && Object.keys(combinedGames).length > 0) return false;
+    } catch(e){}
+    return true;
+  }
+  function scheduleCheck(){
+    setTimeout(() => {
+      if (typeof appState !== 'undefined' && appState.dbLoadFailed) {
+        showManualLoad('Az automatikus betöltés nem sikerült (korábbi hiba). Válassz manuálisan fájlt.');
+        return;
+      }
+      if (noGamesLoaded()) {
+        showManualLoad('Nem érkezett felhasználható adat. Válassz manuálisan fájlt.');
+      }
+    }, 1500);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleCheck);
+  } else {
+    scheduleCheck();
+  }
+  window.addEventListener('unhandledrejection', () => showManualLoad('Váratlan hiba történt. Kérlek válassz manuálisan fájlt.'));
+  window.addEventListener('error', () => showManualLoad('Váratlan hiba történt. Kérlek válassz manuálisan fájlt.'));
+})();
+
+</script>
 </body>
 </html>
