@@ -466,7 +466,7 @@
                                    <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok szekvenciálisan, sorban követik egymást.</p>
                                     <p><strong>Kids 👶:</strong> Kimondottan 6-10 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve. Szekvenciális feladatok.</p>
                                     <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok **változó sorrendben** jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a végén.</p>
-                                    <p><strong>Explore (Felfedező) 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
+                                    <p><strong>Explore (Felfedező) 🗺️:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
                                 </div>
                             </div>
                         </details>
@@ -834,6 +834,7 @@
                 
                 document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
                 
+                // JAVÍTVA: Mindig megmutatjuk a manuális fájlválasztót, ha az automatikus betöltés sikertelen
                 const manualInputLabel = document.getElementById('manual-file-select-label');
                 if (manualInputLabel) {
                     manualInputLabel.classList.remove('hidden');
@@ -984,6 +985,7 @@
                 const titleEl = document.getElementById('page-title');
                 titleEl.textContent = 'Válassz Kalandot';
 
+                // JAVÍTVA: A titkos trigger újra beillesztése.
                 const secretTrigger = document.createElement('span');
                 secretTrigger.id = 'secret-trigger';
                 secretTrigger.className = 'text-brand-orange-500 cursor-pointer ml-1 font-extrabold';
@@ -1036,12 +1038,10 @@
             document.getElementById('content-wrapper').classList.remove('hidden');
             document.getElementById('content-wrapper').classList.remove('translate-y-full');
 
-
-            showPage('game-list-page'); 
+            // Megpróbáljuk betölteni az alapértelmezett fájlt
+            loadLocalXlsx(DEFAULT_GAME_FILE);
             
-            if (Object.keys(games).length === 0) {
-                 loadLocalXlsx(DEFAULT_GAME_FILE);
-            }
+            showPage('game-list-page'); 
         }
 
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
@@ -1232,7 +1232,7 @@
                 } else if (game.type === 'team') {
                     gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
                 } else if (game.type === 'explore') {
-                    gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800">Explore (Felfedező) 🌍</span>`;
+                    gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800">Explore (Felfedező) 🗺️</span>`;
                 } else {
                     gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">Normal 🧭</span>`;
                 }
@@ -2211,14 +2211,11 @@ function endGame() {
             let lat, lng;
 
             if (appState.currentTaskIndex === 0) {
-                 if (appState.currentGame.taskOrder === 'explore') {
-                     const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
-                     lat = startLoc.lat;
-                     lng = startLoc.lng;
-                     showMessage('Navigálás a kezdőponthoz', 'A Start Helyszínre navigálunk. Innen a játék elindítása után választhatod ki a következő feladatot.');
-                 } else {
-                     return showMessage('Hiba', 'Nincs aktuális célpont a navigációhoz (Előbb induljon el a kaland a Start zónán belül).');
-                 }
+                 // MÓDOSÍTOTT LOGIKA: Engedélyezzük a navigációt a 0. ponthoz minden módban
+                 const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
+                 lat = startLoc.lat;
+                 lng = startLoc.lng;
+                 showMessage('Navigálás a kezdőponthoz', 'A Start Helyszínre navigálunk.');
             } else {
                  const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                  if (!task) {
@@ -2375,6 +2372,7 @@ function endGame() {
             const continued = loadGameState();
 
             if (!continued) {
+                // Módosítva a logikát, hogy a resetApp hívja meg a loadLocalXlsx-et
                 loadLocalXlsx(DEFAULT_GAME_FILE);
             }
 
@@ -2382,8 +2380,15 @@ function endGame() {
             document.getElementById('modal-ok-button').onclick = hideMessage;
             document.getElementById('modal-cancel-button').onclick = hideMessage;
             
+            // JAVÍTVA: A logoO kattintás eseménykezelője csak a developer switcheket kapcsolja be
             logoO.addEventListener('click', () => {
                  const switchesContainer = document.getElementById('secret-switches-container');
+                 if (switchesContainer) {
+                    // Az 'hidden' eltávolítása/hozzáadása a konténerhez, ha az éppen a játéklista oldalon van
+                    if (!document.getElementById('game-list-page').classList.contains('hidden')) {
+                        switchesContainer.classList.toggle('hidden');
+                    }
+                 }
             });
             
             const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
@@ -2403,10 +2408,13 @@ function endGame() {
                         try {
                             const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
                             processExcelData(wb);
+                            // JAVÍTVA: Elrejtjük, ha sikeres a betöltés
                             if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
                         } catch (error) {
                             showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                             showLoading(false);
+                            // JAVÍTVA: Megmutatjuk, ha hiba van
+                            if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
                         }
                     };
                     reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
