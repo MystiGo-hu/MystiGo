@@ -2211,15 +2211,23 @@ function endGame() {
             let lat, lng;
 
             if (appState.currentTaskIndex === 0) {
-                 if (appState.currentGame.taskOrder === 'explore') {
-                     const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
-                     lat = startLoc.lat;
-                     lng = startLoc.lng;
-                     showMessage('Navigálás a kezdőponthoz', 'A Start Helyszínre navigálunk. Innen a játék elindítása után választhatod ki a következő feladatot.');
-                 } else {
-                     return showMessage('Hiba', 'Nincs aktuális célpont a navigációhoz (Előbb induljon el a kaland a Start zónán belül).');
-                 }
+                 // A MÓDOSÍTÁS ITT TÖRTÉNIK:
+                 const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
+                 lat = startLoc.lat;
+                 lng = startLoc.lng;
+                 // Eltávolítottam a showMessage, hogy csendben működjön a navigáció
             } else {
+                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                 if (!task) {
+                      return showMessage('Hiba', 'Nincs aktuális feladat a navigációhoz.');
+                 }
+                 lat = task.location.lat;
+                 lng = task.location.lng;
+            }
+            
+            const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            window.open(mapUrl, '_blank');
+        }
                  const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                  if (!task) {
                       return showMessage('Hiba', 'Nincs aktuális feladat a navigációhoz.');
