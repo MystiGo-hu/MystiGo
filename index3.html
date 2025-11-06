@@ -334,14 +334,18 @@
                  <div id="main-header">
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
        
-       <img id="main-header-logo" src="./MystiGo_logo.png" alt="MystiGo Logó" class="w-full max-w-md mx-4">
+       <img id="left-asset" src="./MystiCat1.png" alt="Bal oldali ikon" class="side-header-asset-image"> 
+       
+       <img id="main-header-logo" src="./MystiGo_logo_cat.png" alt="MystiGo Logó" class="w-full max-w-xs mx-4">
+       
+       <img id="right-asset" src="./MystiCat2.png" alt="Jobb oldali ikon" class="side-header-asset-image">
        
    </div>
    <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot</h1>
 </div>
                  
                  <div id="game-header-logo-container" class="hidden">
-                    <img id="game-header-logo" src="./MystiGo_logo.png" alt="MystiGo Logó">
+                    <img id="game-header-logo" src="./MystiGo_logo_cat.png" alt="MystiGo Logó">
                  </div>
                  
                  <div id="center-header-content" class="hidden">
@@ -400,8 +404,8 @@
                                      Game Creator (Megnyitás)
                                 </button>
                                 
-                                <button onclick="loadLocalXlsx('games/games_full.xlsx')" class="main-button w-full text-sm block !bg-red-600 hover:!bg-red-700 my-4">
-                                     Teszt Adatbázis Betöltése (games_full.xlsx)
+                                <button onclick="loadLocalXlsx('games/games_full_kids.xlsx')" class="main-button w-full text-sm block !bg-red-600 hover:!bg-red-700 my-4">
+                                     Teszt Adatbázis Betöltése (games_full_kids.xlsx)
                                 </button>
                                 
                                 <fieldset id="game-mode-select-fieldset" class="mt-4 p-3 bg-white rounded-lg border border-gray-200">
@@ -662,7 +666,7 @@
         const RESCUE_TASK_CORRECT_ANSWER = '4'; 
         const RESCUE_TASK_SCORE = 0; 
         const LOCAL_STORAGE_KEY = 'MystiGoGameState'; 
-        const DEFAULT_GAME_FILE = 'games/games_free.xlsx'; 
+        const DEFAULT_GAME_FILE = 'games/games_free_kids.xlsx'; 
 
         // ÚJ: Avatar ikonok tárolása
         const AVATAR_ICONS = {
