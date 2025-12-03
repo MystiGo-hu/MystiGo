@@ -1903,7 +1903,7 @@ function endGame() {
                            checkGeofence();
                         }
                     },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000, frequency: 5000 }
                 );
             } else if (appState.isTestModeEnabled && !appState.isManualMock) {
                  const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
@@ -2351,7 +2351,7 @@ function endGame() {
                         startGame(gameId);
                     }
                 },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 } 
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000, frequency: 5000 } 
             );
         }
         
