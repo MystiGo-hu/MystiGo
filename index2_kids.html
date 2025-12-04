@@ -62,11 +62,11 @@
             font-weight: 600;
             padding: 1rem 2rem;
             border-radius: 9999px;
-            box-shadow: 0 10px 25px -5px
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
         .main-button:hover {
             transform: translateY(-4px);
-            box-shadow: 0 20px 35px -8px
+            box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.1);
         }
         .main-button:disabled {
             background-color: #9ca3af;
@@ -273,12 +273,12 @@
         /* --- LANDING PAGE (INDÍTÓ OLDAL) VISSZAÁLLÍTOTT STÍLUSAI --- */
         #landing-page .w-full.h-\[20vh\] {
             height: 20vh; 
-            padding-top: 8; 
+            padding-top: 2rem; 
         }
         
         /* Az SVG logó eredeti mérete (a HTML-ben w-48) */
         #landing-page svg {
-            width: 48; 
+            width: 12rem; 
             height: auto;
         }
         /* Mivel a korábbi kísérletben beillesztettük a #landing-logo-container-t, azt most eltávolítjuk
@@ -1599,7 +1599,7 @@ function startGame(gameId) {
  * JAVÍTVA: Helyes válasz kezelése - A normál/random mód most már a belső tömb indexét követi.
  */
 function handleCorrectAnswer() {
-    if (speechSynth.speaking) synth.cancel();
+    if (speechSynth.speaking) speechSynth.cancel();
     
     const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
     if (!currentTask) return;
@@ -1653,7 +1653,7 @@ function handleCorrectAnswer() {
  * JAVÍTVA: Összesítő képernyő frissítése és PDF letöltés aktiválása
  */
 function endGame() {
-    if (speechSynth.speaking) synth.cancel();
+    if (speechSynth.speaking) speechSynth.cancel();
     
     // --- Befejezési idő rögzítése és manuális formázása (YYYY.MM.DD ÓÓ:PP) ---
     const endTime = new Date();
@@ -2543,7 +2543,7 @@ function endGame() {
                 // MÓDOSÍTOTT LOGIKA: A segítség csak akkor kérhető, ha a feladat aktívvá vált (isTaskTimerActive=true)
                 if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
                  if (task.isStartTask) return; 
-                if (speechSynth.speaking) synth.cancel();
+                if (speechSynth.speaking) speechSynth.cancel();
                 
                 
                 if (task.hintsUsed < 1) { 
@@ -2563,7 +2563,7 @@ function endGame() {
                 // MÓDOSÍTOTT LOGIKA: A segítség csak akkor kérhető, ha a feladat aktívvá vált (isTaskTimerActive=true)
                 if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
                  if (task.isStartTask) return; 
-                if (speechSynth.speaking) synth.cancel();
+                if (speechSynth.speaking) speechSynth.cancel();
                 
                 
                 if (task.hintsUsed < 2) { 
@@ -2584,7 +2584,7 @@ function endGame() {
                 // MÓDOSÍTOTT LOGIKA: A megoldás csak akkor kérhető, ha a feladat aktívvá vált (isTaskTimerActive=true)
                 if (!task.isTaskTimerActive) { return showMessage(t('far_title'), t('far_body')); }
                  if (task.isStartTask) return; 
-                if (speechSynth.speaking) synth.cancel();
+                if (speechSynth.speaking) speechSynth.cancel();
                 
                 
                 const scoreLost = task.taskScore; 
@@ -2609,7 +2609,7 @@ function endGame() {
             document.addEventListener('visibilitychange', () => {
                 if (!appState.currentGame) return;
                 if (document.hidden) { 
-                    if (speechSynth.speaking) synth.cancel();
+                    if (speechSynth.speaking) speechSynth.cancel();
 
                     if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId); appState.geoWatchId = null; 
                 } 
