@@ -2176,7 +2176,7 @@ function endGame() {
                  // --- MÓDOSÍTÁS KEZDETE: 5 másodperces késleltetés ---
                  const now = Date.now();
                  // Csak akkor igazítson, ha eltelt 5000ms vagy ez az első alkalom (0)
-                 if (now - appState.lastAutoZoomTime > 5000 || appState.lastAutoZoomTime === 0) {
+                 if (now - appState.lastAutoZoomTime > 10000 || appState.lastAutoZoomTime === 0) {
                      appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
                      appState.lastAutoZoomTime = now; // Időbélyeg frissítése
                  }
