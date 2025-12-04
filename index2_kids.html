@@ -888,12 +888,20 @@
                     margin: 10,
                     filename: fileName, 
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+                    html2canvas: { 
+                        scale: 2, 
+                        logging: false, 
+                        dpi: 192, 
+                        letterRendering: true, 
+                        useCORS: true,
+                        scrollY: 0,   // <--- FONTOS: Megakadályozza az elcsúszást görgetésnél
+                        windowWidth: document.documentElement.offsetWidth
+                    },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).save().then(() => {
                     element.style.cssText = originalStyle;
                 });
-            }, 1000); 
+            }, 3000); [cite_start]// 3 másodperc türelem a tökéletes képért [cite: 40, 52] 
         }
 
 
@@ -1708,14 +1716,49 @@ function endGame() {
     // --- ÚTVONAL TÉRKÉP RAJZOLÁSA ---
     const routeMapDiv = document.getElementById('route-map');
     if (appState.routeCoordinates.length > 0) {
-        const endMap = L.map('route-map', { zoomControl: false });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO' }).addTo(endMap);
+        
+        // --- JAVÍTÁS: IE9 mód kényszerítése a PDF generáláshoz ---
+        const originalAny3d = L.Browser.any3d;
+        const originalIelt9 = L.Browser.ielt9;
+        
+        L.Browser.any3d = false;
+        L.Browser.ielt9 = true; // Ez a kulcs, hogy ne csússzon el a térkép!
+        
+        const endMap = L.map('route-map', { 
+            zoomControl: false,
+            fadeAnimation: false,
+            markerZoomAnimation: false,
+            preferCanvas: true 
+        });
+        
+        // Visszaállítjuk az eredeti értékeket
+        L.Browser.any3d = originalAny3d;
+        L.Browser.ielt9 = originalIelt9;
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { 
+            attribution: '© OpenStreetMap © CARTO',
+            crossOrigin: true 
+        }).addTo(endMap);
         
         const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
         
         endMap.fitBounds(polyline.getBounds().pad(0.2));
         
-        endMap.invalidateSize(true);
+        // Kényszerített frissítés
+       setTimeout(() => {
+            // 2. Jelezzük a térképnek, hogy most már teljes szélességű
+            endMap.invalidateSize();
+            
+            // 3. Újraigazítjuk a középpontot a HELYES mérethez
+            // A 'padding' segít, hogy ne lógjon le a szélére
+            endMap.fitBounds(polyline.getBounds(), {
+                padding: [20, 20], // Hagyunk egy kis helyet a széleken
+                maxZoom: 16,
+                animate: false
+            });
+            
+        }, 800); // 800ms várakozás a térkép javítására
+
         
         const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; 
         L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap)
