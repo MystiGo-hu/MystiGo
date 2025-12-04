@@ -1791,7 +1791,7 @@ function endGame() {
                         const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                         const currentTaskLoc = currentTask.location;
                         const bounds = L.latLngBounds(manualMarker.getLatLng(), L.latLng(currentTaskLoc.lat, currentTaskLoc.lng));
-                        appState.map.fitBounds(bounds.pad(0.2)); 
+                        appState.map.fitBounds(bounds.pad(0.1)); 
                     };
                     appState.map.on('click', appState.map.clickHandler);
                 }
@@ -1839,7 +1839,7 @@ function endGame() {
 
                 if (appState.geofenceCircle && appState.playerMarker) { 
                     const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
-                    appState.map.fitBounds(bounds.pad(0.2)); 
+                    appState.map.fitBounds(bounds.pad(0.1)); 
                 }
             }
             
@@ -1878,7 +1878,7 @@ function endGame() {
                 const currentPosition = playerMarkerForBounds.getLatLng();
                 
                 const bounds = L.latLngBounds(currentPosition, currentTaskLoc);
-                appState.map.fitBounds(bounds.pad(0.2)); 
+                appState.map.fitBounds(bounds.pad(0.1)); 
             } else {
                 appState.map.setView(currentTaskLoc, 16); 
             }
