@@ -816,7 +816,8 @@
         
         async function loadLocalXlsx(filePath) {
             showLoading(true);
-            document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
+            const loadingStatus = document.getElementById('loading-status');
+            if (loadingStatus) loadingStatus.textContent = `Adatbázis betöltése (${filePath})...`;
             
             try {
                 const response = await fetch(filePath);
@@ -835,7 +836,7 @@
                 document.getElementById('content-wrapper').classList.add('translate-y-full'); 
                 document.getElementById('content-wrapper').classList.add('hidden'); 
                 
-                document.getElementById('loading-status').textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
+                if (loadingStatus) loadingStatus.textContent = `Játékfájl betöltése sikertelen. (${error.message}). Kérem, válasszon fájlt!`;
                 
                 // JAVÍTVA: Mindig megmutatjuk a manuális fájlválasztót, ha az automatikus betöltés sikertelen
                 const manualInputLabel = document.getElementById('manual-file-select-label');
@@ -1265,6 +1266,8 @@
                     game.tasks.sort((a, b) => a.index - b.index); // Eredeti index szerinti rendezés a további logikához
                     validatedGames[gameId] = game;
                 }
+                
+		// ... (előző kód) ...
                 games = validatedGames;
                 
                 // JAVÍTÁS: Ha nincs érvényes játék, dobjunk hibát, hogy megjelenjen a manuális gomb!
@@ -1279,13 +1282,15 @@
 
             } catch (error) { 
                 
-	// Hiba esetén visszadobjuk a felhasználót a kezdőoldalra
+                // Hiba esetén visszadobjuk a felhasználót a kezdőoldalra
                 document.getElementById('landing-page').classList.remove('hidden');
                 document.getElementById('content-wrapper').classList.add('hidden');
                 document.getElementById('content-wrapper').classList.add('translate-y-full');
 
                 // Kiírjuk a hibát
-                document.getElementById('loading-status').textContent = `Adatbázis hiba: ${error.message}`;
+                const loadingStatus = document.getElementById('loading-status');
+                if (loadingStatus) loadingStatus.textContent = `Adatbázis hiba: ${error.message}`;
+                
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                 
                 // JAVÍTÁS: Kényszerítjük a manuális gomb megjelenését!
