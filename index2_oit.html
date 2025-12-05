@@ -1723,7 +1723,7 @@ function endGame() {
     const day = String(endTime.getDate()).padStart(2, '0');
     const hour = String(endTime.getHours()).padStart(2, '0');
     const minute = String(endTime.getMinutes()).padStart(2, '0');
-    const second = String(now.getSeconds()).padStart(2, '0'); // Másodperc hozzáadva
+    const second = String(endTime.getSeconds()).padStart(2, '0');
 
 
     // Kívánt formátum összeállítása: YYYY.MM.DD ÓÓ:PP (képernyőre)
