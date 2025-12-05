@@ -437,7 +437,7 @@
                         
                         <details id="game-type-explanation" class="story-details mb-4" style="background-color: #fefce8; border-color: #fde68a;">
     <summary style="font-weight: 800; color: var(--brand-blue); padding: 0.5rem; display: flex; align-items: center;">
-        <span class="text-xl mr-2"ℹ️</span> Hogyan működik a MystiGo?
+        <span class="text-xl mr-2"ℹ️</span> Hogyan működik a One Játék?
         <span style="position: absolute; right: 0.75rem; top: 0.8rem; font-size: 1.5rem;"></span>
     </summary>
                             <div class="story-content" style="border-top: 1px solid #fde68a; margin-top: 0.5rem; padding-top: 0.5rem;">
@@ -576,7 +576,7 @@
                             </div>
                     </div> 
                     
-                    <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban <strong>krisztian.topler@gmail.com</strong> címre!</p>
+                    <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban  a <strong>krisztian.topler@gmail.com</strong> címre!</p>
                     <div id="social-share-buttons" class="flex space-x-6 justify-center">
                         <button onclick="sharePdfViaEmail()" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Eredmény küldése Emailben (PDF)">
     <svg class="w-8 h-8 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -922,8 +922,8 @@ async function sharePdfViaEmail() {
             try {
                 await navigator.share({
                     files: [file],
-                    title: 'MystiGo Kaland Eredmény',
-                    text: `Sziasztok! Itt van a MystiGo kalandunk eredménye. Csapat: ${appState.teamName || 'Névtelen'}`
+                    title: 'One Játék Eredmény',
+                    text: `Sziasztok! Itt van a One Játékom eredménye. Csapat: ${appState.teamName || 'Névtelen'}`
                 });
                 console.log('Sikeres megosztás');
             } catch (error) {
@@ -943,7 +943,7 @@ async function sharePdfViaEmail() {
             URL.revokeObjectURL(url);
             
             setTimeout(() => {
-                window.location.href = `mailto:?subject=MystiGo Eredmény&body=Csatoltam az eredményt a letöltések közül.`;
+                window.location.href = `mailto:?subject=One Játék Eredmény&body=Csatoltam az eredményt a letöltések közül.`;
             }, 500);
             
             alert('A böngésződ nem támogatja a közvetlen csatolást. A PDF letöltésre került. Kérlek, csatold manuálisan a megnyíló levélhez!');
@@ -1035,7 +1035,7 @@ async function sharePdfViaEmail() {
                 if(mainHeaderLogoRow) mainHeaderLogoRow.classList.remove('hidden');
                 
                 const titles = { 'game-list-page': 'Válassz Kalandot', 'end-page': 'Játék Vége' };
-                document.getElementById('page-title').textContent = titles[pageId] || 'MystiGo';
+                document.getElementById('page-title').textContent = titles[pageId] || 'One Játék';
                 
                 if (pageId === 'game-list-page' && Object.keys(games).length > 0) {
                      document.getElementById('team-setup').classList.remove('hidden');
