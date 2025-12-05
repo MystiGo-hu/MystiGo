@@ -754,8 +754,10 @@
                 const state = JSON.parse(savedStateJson);
                 if (!state.gameId || state.gameId !== gameId) return false;
 
+                // 1. Alap objektum betöltése
                 appState.currentGame = JSON.parse(JSON.stringify(games[gameId]));
                 
+                // 2. Állapotok visszaállítása
                 appState.currentTaskIndex = state.currentTaskIndex;
                 appState.score = state.score;
                 appState.totalTime = state.totalTime;
@@ -768,7 +770,14 @@
                 appState.routeCoordinates = state.routeCoordinates || [];
                 appState.completedTasks = state.completedTasks || [];
                 appState.availableTasks = state.availableTasks || [];
+                
+                // JAVÍTÁS ITT:
+                // Visszaállítjuk a taskOrder változót ÉS beállítjuk a currentGame objektumon is!
+                // Enélkül a rendszer nem tudja, hogy ez egy Explore játék.
                 appState.taskOrder = state.taskOrder;
+                if (appState.currentGame) {
+                    appState.currentGame.taskOrder = state.taskOrder;
+                }
                 
                 if (state.tasks) {
                     appState.currentGame.tasks = state.tasks;
@@ -782,7 +791,6 @@
                     if(appState.isManualMock) {
                         toggleMapClickMock(true);
                     } else {
-                        // Ha nem mock, biztosítjuk, hogy a marker törlődjön és a GPS figyelés induljon
                         if (manualMarker) { manualMarker.remove(); manualMarker = null; }
                         watchPosition(); 
                     }
@@ -794,6 +802,7 @@
                         lastTimeUpdate = new Date().getTime(); 
                     }
                     
+                    // Most már a check helyes lesz, mert beállítottuk a taskOrder-t a fenti javításban
                     if (appState.currentGame.taskOrder === 'explore') {
                          if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
                              showTaskSelectionMap();
@@ -977,7 +986,7 @@
                 toggleMapClickMock(false); 
                 appState.map.remove(); appState.map = null; 
             }
-            if (manualMarker) { manualMarker.remove(); manualMarker = null; } // Biztos ami biztos
+            if (manualMarker) { manualMarker.remove(); manualMarker = null; } 
             
             document.getElementById('developer-options').classList.add('hidden');
             document.getElementById('secret-switches-container').classList.add('hidden');
@@ -1238,11 +1247,9 @@
             return array;
         }
 
-        // MÓDOSÍTÁS: Elfogadja a modeOverride paramétert, hogy ne olvassa újra a DOM-ot
         function startGame(gameId, modeOverride = null) {
             if (speechSynth.speaking) speechSynth.cancel();
             
-            // Ha van override, használjuk azt, különben olvassuk a DOM-ból (fallback)
             let gameMode;
             if (modeOverride) {
                 gameMode = modeOverride;
@@ -1254,7 +1261,6 @@
             appState.isTestModeEnabled = (gameMode === 'test' || gameMode === 'mock');
             appState.isManualMock = (gameMode === 'mock');
             
-            // BIZTONSÁGI TÖRLÉS: Ha nem mock módban indulunk, takarítsuk el a markert
             if (!appState.isManualMock && manualMarker) {
                 manualMarker.remove();
                 manualMarker = null;
@@ -1667,7 +1673,6 @@
                     if (!isStartTask && !currentTask.isTaskTimerActive) taskInteractionArea.classList.add('hidden');
                     else { taskInteractionArea.classList.remove('hidden'); document.getElementById('prompt').classList.remove('hidden'); }
                     
-                    // JAVÍTVA: A szöveg és a stílus a valós módnak megfelelően jelenik meg
                     if (appState.isManualMock) {
                         distEl.textContent = "Kattints a térképre a pozíció beállításához!";
                         distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
