@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-    <title>MystiGo - Városi Kalandjáték Platform</title>
+    <title>MystiGo - One Játék</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -595,10 +595,6 @@
                                 <img src="./revolut.png" alt="Revolut Logó" class="w-8 h-8">
                             </a>
                             
-                            <a href="https://paypal.me/mystigohu" target="_blank" title="Támogatás PayPalon"
-                            class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200">
-                                <img src="./paypal.png" alt="PayPal Logó" class="w-8 h-8">
-                            </a>
                     </div>                    
                      <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6 hidden">Eredmény letöltése (PDF)</button>
                      
@@ -872,9 +868,10 @@
             const day = String(now.getDate()).padStart(2, '0');
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
+	    const second = String(now.getSeconds()).padStart(2, '0'); // Másodperc hozzáadva
 
-            const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}`;
-            const fileName = `MystiGo_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
+            const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
+            const fileName = `One_játék_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
 
             setTimeout(() => {
                 html2pdf().from(element).set({
@@ -1661,7 +1658,7 @@ function endGame() {
     const formattedEndTime = `${year}.${month}.${day} ${hour}:${minute}`;
     // Fájlnévhez szükséges formátum (ÉÉÉÉ-HH-NN_ÓÓ:PP)
     const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}`;
-    const fileName = `MystiGo_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
+    const fileName = `One_Játék_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
     
     // --- Befejezési idő vége ---
     
@@ -2256,44 +2253,7 @@ function endGame() {
             speechSynth.speak(utterance);
         }
         
-        // --- KÖZÖSSÉGI MÉDIA MEGOSZTÁS LOGIKA ---
-        function shareResult(platform) {
-            const finalScore = document.getElementById('final-score').textContent;
-            const finalTime = document.getElementById('final-time').textContent;
-            const teamName = appState.teamName || "Csapat";
-            const gameTitle = appState.currentGame ? appState.currentGame.title : "Kaland";
-            
-            const text = `Éppen most fejeztem be a(z) ${gameTitle} kalandot a(z) ${teamName} csapattal! 🏆 Pontszám: ${finalScore}, Teljes idő: ${finalTime}. Próbáld ki te is! #MystiGo #VárosiKaland #KalandJáték`;
-            
-            const url = 'https://www.mystigo.hu/'; 
-
-            let shareUrl = '';
-
-            switch (platform) {
-                case 'facebook':
-                    shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
-                    break;
-                case 'system':
-                    if (navigator.share) {
-                        navigator.share({
-                            title: 'MystiGo Kaland Teljesítve!',
-                            text: text,
-                            url: url,
-                        }).catch(error => console.log('Megosztás megszakítva vagy hiba történt', error));
-                        return; 
-                    } 
-                    
-                    shareUrl = `mailto:?subject=MystiGo Kaland&body=${encodeURIComponent(text + " " + url)}`;
-                    
-                    break;
-                default:
-                    return;
-            }
-
-            if (shareUrl) {
-                window.open(shareUrl, '_blank');
-            }
-        }
+       
         
         // --- Válasz-ellenőrzési logika ---
         function normalizeAnswer(str) { 
