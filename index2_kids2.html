@@ -663,12 +663,10 @@
         const DEFAULT_SCORE_PER_TASK = 50; 
         const HINT1_PENALTY = 10; 
         const HINT2_PENALTY = 20; 
-        const SOLUTION_PENALTY_IGNORED = 50; 
         const WRONG_ANSWER_PENALTY = 1; 
         const RESCUE_TASK_CORRECT_ANSWER = '4'; 
         const RESCUE_TASK_SCORE = 0; 
         
-        // MÓDOSÍTÁS 1: Prefix a mentésekhez, hogy több játékot lehessen tárolni
         const LOCAL_STORAGE_PREFIX = 'MystiGoGameState_'; 
         const DEFAULT_GAME_FILE = 'games/games_free_kids.xlsx'; 
 
@@ -715,9 +713,7 @@
             };
         }
 
-        // --- LOCAL STORAGE LOGIC (MÓDOSÍTOTT) ---
-        
-        // Segédfüggvény a kulcs generálásához
+        // --- LOCAL STORAGE LOGIC ---
         function getStorageKey(gameId) {
             return LOCAL_STORAGE_PREFIX + gameId;
         }
@@ -726,7 +722,7 @@
             if (!appState.currentGame) return;
 
             const stateToSave = {
-                gameId: appState.currentGame.id, // Mentjük az ID-t azonosításhoz
+                gameId: appState.currentGame.id, 
                 currentTaskIndex: appState.currentTaskIndex,
                 score: appState.score,
                 totalTime: appState.totalTime,
@@ -739,37 +735,27 @@
                 routeCoordinates: appState.routeCoordinates,
                 completedTasks: appState.completedTasks,
                 availableTasks: appState.availableTasks,
-                // Fontos: a taskOrder-t és a kevert sorrendet is el kell menteni, ha random módban vagyunk!
                 taskOrder: appState.taskOrder,
-                tasks: appState.currentGame.tasks // A módosított (pl. kevert) task listát mentjük
+                tasks: appState.currentGame.tasks 
             };
             
             try {
-                // Egyedi kulcsra mentünk a játék ID alapján
                 localStorage.setItem(getStorageKey(appState.currentGame.id), JSON.stringify(stateToSave));
-                // Frissítjük a listát a háttérben, ha visszalépne
-                // (Opcionális, de a restart gomb miatt hasznos lehet később)
             } catch (e) {
                 console.error("Hiba az állapot mentésekor:", e);
             }
         }
 
-        // Adott játék betöltése ID alapján
         function loadGameById(gameId) {
             try {
                 const savedStateJson = localStorage.getItem(getStorageKey(gameId));
                 if (!savedStateJson) return false;
 
                 const state = JSON.parse(savedStateJson);
-                
-                // Ellenőrzés, hogy a mentés verziója kompatibilis-e (itt egyszerűsítve)
                 if (!state.gameId || state.gameId !== gameId) return false;
 
-                // Betöltjük a játék alap adatait az Excelből (hogy meglegyenek a statikus adatok)
-                // Majd felülírjuk a dinamikus adatokkal
                 appState.currentGame = JSON.parse(JSON.stringify(games[gameId]));
                 
-                // Állapotok visszaállítása
                 appState.currentTaskIndex = state.currentTaskIndex;
                 appState.score = state.score;
                 appState.totalTime = state.totalTime;
@@ -784,7 +770,6 @@
                 appState.availableTasks = state.availableTasks || [];
                 appState.taskOrder = state.taskOrder;
                 
-                // A kevert/módosított task lista visszaállítása nagyon fontos!
                 if (state.tasks) {
                     appState.currentGame.tasks = state.tasks;
                 }
@@ -794,10 +779,11 @@
                 setTimeout(() => {
                     initializeMap();
                     
-                    // Ha volt GPS figyelés vagy mock, visszaállítjuk
                     if(appState.isManualMock) {
                         toggleMapClickMock(true);
                     } else {
+                        // Ha nem mock, biztosítjuk, hogy a marker törlődjön és a GPS figyelés induljon
+                        if (manualMarker) { manualMarker.remove(); manualMarker = null; }
                         watchPosition(); 
                     }
                     
@@ -808,9 +794,6 @@
                         lastTimeUpdate = new Date().getTime(); 
                     }
                     
-                    const totalTasks = appState.currentGame.tasks.length - 1; 
-
-                    // EXPLORE MÓD folytatása:
                     if (appState.currentGame.taskOrder === 'explore') {
                          if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
                              showTaskSelectionMap();
@@ -834,19 +817,9 @@
             }
         }
 
-        // Egy konkrét játék törlése
         function deleteSavedGame(gameId) {
             localStorage.removeItem(getStorageKey(gameId));
-            renderGameList(); // Lista frissítése a törlés után
-        }
-        
-        // Minden mentés törlése (fejlesztői célokra)
-        function clearAllSavedStates() {
-            Object.keys(localStorage).forEach(key => {
-                if(key.startsWith(LOCAL_STORAGE_PREFIX)) {
-                    localStorage.removeItem(key);
-                }
-            });
+            renderGameList(); 
         }
         
         async function loadLocalXlsx(filePath) {
@@ -976,7 +949,6 @@
                 document.getElementById('page-title').textContent = titles[pageId] || 'MystiGo';
                 
                 if (pageId === 'game-list-page') {
-                     // Lista újrarajzolása, hogy frissüljenek a "Folytatás" gombok
                      if (Object.keys(games).length > 0) renderGameList();
                      if (Object.keys(games).length > 0) document.getElementById('team-setup').classList.remove('hidden');
                 } else {
@@ -1005,18 +977,17 @@
                 toggleMapClickMock(false); 
                 appState.map.remove(); appState.map = null; 
             }
+            if (manualMarker) { manualMarker.remove(); manualMarker = null; } // Biztos ami biztos
             
             document.getElementById('developer-options').classList.add('hidden');
             document.getElementById('secret-switches-container').classList.add('hidden');
 
             initializeState();
-            // NEM töröljük a LocalStorage-t globálisan itt, hogy a listában megmaradjanak a mentések!
             
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('content-wrapper').classList.remove('hidden');
             document.getElementById('content-wrapper').classList.remove('translate-y-full');
 
-            // Megpróbáljuk betölteni az alapértelmezett fájlt, majd renderelni a listát
             loadLocalXlsx(DEFAULT_GAME_FILE);
             showPage('game-list-page'); 
         }
@@ -1132,7 +1103,7 @@
             }
         }
         
-        // --- UI RENDERING (MÓDOSÍTOTT) ---
+        // --- UI RENDERING ---
         function renderGameList() {
             const listEl = document.getElementById('game-list');
             listEl.innerHTML = '';
@@ -1151,7 +1122,6 @@
                 const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
                 const gameTitleForMessage = game.title.replace(/'/g, "\\'");
                 
-                // MÓDOSÍTÁS: Ellenőrizzük, van-e mentés ehhez a játékhoz
                 const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
                 
                 let buttonText = "Kaland Indítása";
@@ -1164,7 +1134,6 @@
                     cardBorder = "border-2 border-brand-orange";
                 }
 
-                // Gomb a mentés törléséhez (Restart)
                 let deleteButtonHtml = "";
                 if (hasSave) {
                     deleteButtonHtml = `
@@ -1193,13 +1162,10 @@
             });
         }
         
-        // MÓDOSÍTÁS: Új kezelő a játék választáshoz
         function handleGameSelect(gameId, title, type, price, hasSave) {
             if (hasSave) {
-                 // Ha van mentés, betöltjük és nem kérdezünk GPS-t (feltételezzük, hogy már engedélyezte korábban, vagy majd a böngésző kéri)
                  loadGameById(gameId);
             } else {
-                 // Ha nincs mentés, normál indítási folyamat
                  showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot? Játék típusa: ${type}. Ár: ${price}`, () => requestGpsAndStart(gameId), true);
             }
         }
@@ -1229,7 +1195,7 @@
             }
             if (appState.map) checkGeofence();
             updateStatusDisplays(); 
-            saveGameState(); // Azonnal mentünk indításkor
+            saveGameState(); 
         }
 
         let lastTimeUpdate = new Date().getTime();
@@ -1247,7 +1213,7 @@
             }
             document.getElementById('geofence-timer-display').textContent = formatTime(appState.geofenceTime);
             lastTimeUpdate = now;
-            saveGameState(); // Időzítőnként mentünk (1 mp)
+            saveGameState(); 
         }
         
         function updateStatusDisplays() {
@@ -1272,16 +1238,28 @@
             return array;
         }
 
-        function startGame(gameId) {
-            // Nem törlünk globálisan mindent, csak a memóriát reseteljük az új játékhoz
+        // MÓDOSÍTÁS: Elfogadja a modeOverride paramétert, hogy ne olvassa újra a DOM-ot
+        function startGame(gameId, modeOverride = null) {
             if (speechSynth.speaking) speechSynth.cancel();
             
-            const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
-            const gameMode = selectedMode ? selectedMode.value : 'normal'; 
+            // Ha van override, használjuk azt, különben olvassuk a DOM-ból (fallback)
+            let gameMode;
+            if (modeOverride) {
+                gameMode = modeOverride;
+            } else {
+                const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
+                gameMode = selectedMode ? selectedMode.value : 'normal'; 
+            }
             
             appState.isTestModeEnabled = (gameMode === 'test' || gameMode === 'mock');
             appState.isManualMock = (gameMode === 'mock');
             
+            // BIZTONSÁGI TÖRLÉS: Ha nem mock módban indulunk, takarítsuk el a markert
+            if (!appState.isManualMock && manualMarker) {
+                manualMarker.remove();
+                manualMarker = null;
+            }
+
             appState.currentGame = JSON.parse(JSON.stringify(games[gameId])); 
             appState.taskOrder = document.getElementById('task-order-select').value;
             
@@ -1336,7 +1314,7 @@
                 loadTask(appState.currentTaskIndex);
                 watchPosition(); 
                 updateStatusDisplays(); 
-                saveGameState(); // Kezdőállapot mentése
+                saveGameState(); 
             }, 100);
         }
 
@@ -1507,7 +1485,6 @@
                  routeMapDiv.innerHTML = `<p class="p-4 text-gray-500">Nem sikerült útvonalat rögzíteni.</p>`;
             }
             downloadPDF(); 
-            // MÓDOSÍTÁS: Töröljük a mentést a befejezéskor
             deleteSavedGame(appState.currentGame.id);
             appState.currentGame = null;
         }
@@ -1689,8 +1666,16 @@
                     document.getElementById('answer-input').disabled = true;
                     if (!isStartTask && !currentTask.isTaskTimerActive) taskInteractionArea.classList.add('hidden');
                     else { taskInteractionArea.classList.remove('hidden'); document.getElementById('prompt').classList.remove('hidden'); }
-                    distEl.textContent = appState.isManualMock ? "Kattints a térképre a pozíció beállításához!" : "Helyzet meghatározása...";
-                    distEl.className = appState.isManualMock ? 'text-center text-xs font-bold mt-2 text-brand-orange-500' : 'text-center text-xs font-bold mt-2 text-gray-500';
+                    
+                    // JAVÍTVA: A szöveg és a stílus a valós módnak megfelelően jelenik meg
+                    if (appState.isManualMock) {
+                        distEl.textContent = "Kattints a térképre a pozíció beállításához!";
+                        distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
+                    } else {
+                        distEl.textContent = "Helyzet meghatározása...";
+                        distEl.className='text-center text-xs font-bold mt-2 text-gray-500';
+                    }
+                    
                     if (appState.geofenceCircle) { appState.geofenceCircle.setRadius(currentRadius); appState.geofenceCircle.setStyle({ color: 'red', fillColor: 'red', fillOpacity: 0.1 }); }
                     return; 
                 }
@@ -1855,11 +1840,12 @@
             return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
         }
 
+        // MÓDOSÍTÁS: A kiválasztott mode-ot továbbítja a startGame-nek
         function requestGpsAndStart(gameId) {
             const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
             const gameMode = selectedMode ? selectedMode.value : 'normal';
 
-            if (gameMode === 'mock') { startGame(gameId); return; }
+            if (gameMode === 'mock') { startGame(gameId, 'mock'); return; }
             if (!navigator.geolocation) { showMessage('Hiba', 'A böngésződ nem támogatja a helymeghatározást. Kérjük, engedélyezd a Manuális Pozíció Beállítást a teszteléshez.'); return; }
             
             showLoading(true);
@@ -1867,7 +1853,8 @@
                 (pos) => { 
                     showLoading(false);
                     updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
-                    startGame(gameId);
+                    // Ha sikeres a GPS, akkor 'normal' módban indítjuk
+                    startGame(gameId, 'normal');
                 },
                 (err) => { 
                     showLoading(false);
@@ -1877,7 +1864,11 @@
                     else if (err.code === 3) errorMessage = 'Időtúllépés: A GPS jel gyenge volt. Próbálj jobb helyre menni, és próbáld újra!';
                     
                     if (gameMode === 'normal') showMessage('GPS Teszt Sikertelen', errorMessage, () => {});
-                    else { showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód miatt a játék elindul.'); startGame(gameId); }
+                    else { 
+                        showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód miatt a játék elindul.'); 
+                        // Fallback 'test' módra
+                        startGame(gameId, 'test'); 
+                    }
                 },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000, frequency: 3000 } 
             );
@@ -1886,9 +1877,6 @@
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
             initializeState();
-            
-            // MÓDOSÍTÁS: Nincs automatikus loadGameState hívás!
-            // Csak az adatbázist töltjük be, és a listát jelenítjük meg.
             loadLocalXlsx(DEFAULT_GAME_FILE);
 
             const logoO = document.getElementById('logo-o'); 
