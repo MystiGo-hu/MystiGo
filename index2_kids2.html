@@ -754,10 +754,8 @@
                 const state = JSON.parse(savedStateJson);
                 if (!state.gameId || state.gameId !== gameId) return false;
 
-                // 1. Alap objektum betöltése
                 appState.currentGame = JSON.parse(JSON.stringify(games[gameId]));
                 
-                // 2. Állapotok visszaállítása
                 appState.currentTaskIndex = state.currentTaskIndex;
                 appState.score = state.score;
                 appState.totalTime = state.totalTime;
@@ -771,9 +769,7 @@
                 appState.completedTasks = state.completedTasks || [];
                 appState.availableTasks = state.availableTasks || [];
                 
-                // JAVÍTÁS ITT:
-                // Visszaállítjuk a taskOrder változót ÉS beállítjuk a currentGame objektumon is!
-                // Enélkül a rendszer nem tudja, hogy ez egy Explore játék.
+                // TaskOrder helyreállítása
                 appState.taskOrder = state.taskOrder;
                 if (appState.currentGame) {
                     appState.currentGame.taskOrder = state.taskOrder;
@@ -802,7 +798,6 @@
                         lastTimeUpdate = new Date().getTime(); 
                     }
                     
-                    // Most már a check helyes lesz, mert beállítottuk a taskOrder-t a fenti javításban
                     if (appState.currentGame.taskOrder === 'explore') {
                          if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
                              showTaskSelectionMap();
@@ -872,23 +867,42 @@
         };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
-        // --- PDF GENERATION ---
+        // --- PDF GENERATION (MÓDOSÍTOTT) ---
         function downloadPDF() {
             const element = document.getElementById('pdf-content');
+            if (!element) return;
+            
             const originalStyle = element.style.cssText;
             element.style.padding = '20px'; 
             element.style.backgroundColor = '#ffffff';
 
             const now = new Date();
-            const fileNameTimestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-            const fileName = `MystiGo_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
+            // Dátum és idő komponensek
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = String(now.getHours()).padStart(2, '0');
+            const minute = String(now.getMinutes()).padStart(2, '0');
+            const second = String(now.getSeconds()).padStart(2, '0'); // Másodperc hozzáadva
 
+            // Összefűzés: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP formátumban
+            const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
+            // Biztonságos csapatnév lekérés (ha az appState már törlődött volna, de itt még megvan)
+            const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'Csapat';
+            const fileName = `MystiGo_Eredmény_${safeTeamName}_${fileNameTimestamp}.pdf`;
+
+            // 3 másodperc várakozás a térkép renderelésre, utána mentés
             setTimeout(() => {
                 html2pdf().from(element).set({
-                    margin: 10, filename: fileName, image: { type: 'jpeg', quality: 0.98 },
+                    margin: 10, 
+                    filename: fileName, 
+                    image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, logging: false, useCORS: true, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).save().then(() => {
+                    element.style.cssText = originalStyle;
+                }).catch(err => {
+                    console.error("PDF generálási hiba:", err);
                     element.style.cssText = originalStyle;
                 });
             }, 3000); 
@@ -1438,6 +1452,7 @@
             saveGameState(); 
         }
         
+        // --- END GAME (MÓDOSÍTOTT) ---
         function endGame() {
             if (speechSynth.speaking) speechSynth.cancel();
             const endTime = new Date();
@@ -1459,6 +1474,10 @@
             document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime);
             
             showContentPage('end-page');
+            
+            // JAVÍTÁS: A kézi letöltés gomb láthatóvá tétele (fallback)
+            const manualPdfBtn = document.querySelector('button[onclick="downloadPDF()"]');
+            if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
             
             const routeMapDiv = document.getElementById('route-map');
             if (appState.routeCoordinates.length > 0) {
@@ -1490,8 +1509,14 @@
             } else {
                  routeMapDiv.innerHTML = `<p class="p-4 text-gray-500">Nem sikerült útvonalat rögzíteni.</p>`;
             }
+            
+            // JAVÍTÁS: Automatikus letöltés indítása
             downloadPDF(); 
-            deleteSavedGame(appState.currentGame.id);
+            
+            // JAVÍTÁS: Mentés törlése a játék végén
+            if(appState.currentGame) {
+                deleteSavedGame(appState.currentGame.id);
+            }
             appState.currentGame = null;
         }
         
@@ -1845,7 +1870,6 @@
             return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
         }
 
-        // MÓDOSÍTÁS: A kiválasztott mode-ot továbbítja a startGame-nek
         function requestGpsAndStart(gameId) {
             const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
             const gameMode = selectedMode ? selectedMode.value : 'normal';
