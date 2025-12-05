@@ -576,14 +576,13 @@
                             </div>
                     </div> 
                     
-                    <p class="text-sm text-gray-500 mb-4 mt-4 font-semibold">Oszd meg a teljesítésed a közösségi médián:</p>
+                    <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban <strong>krisztian.topler@gmail.com</strong> címre!</p>
                     <div id="social-share-buttons" class="flex space-x-6 justify-center">
-                        <button onclick="shareResult('facebook')" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Megosztás Facebookon">
-                            <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.35c0 .732.593 1.325 1.325 1.325h11.495v-9.294h-3.143v-3.626h3.143v-2.128c0-3.12 1.847-4.815 4.673-4.815 1.326 0 2.464.099 2.802.143v3.25l-1.921.001c-1.503 0-1.802.714-1.802 1.768v2.316h3.618l-.471 3.626h-3.147v9.294h6.115c.732 0 1.325-.593 1.325-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>
-                        </button>
-                        <button onclick="shareResult('system')" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Megosztás Instagramon/TikTokon/Egyebek">
-                            <img src="social_share2.png" alt="Általános megosztás" class="w-8 h-8">
-                        </button>
+                        <button onclick="sharePdfViaEmail()" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Eredmény küldése Emailben (PDF)">
+    <svg class="w-8 h-8 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+</button>
                     </div>
 <p></p>
 <p></p>
@@ -598,7 +597,7 @@
                     </div>                    
                      <button onclick="downloadPDF()" class="main-button w-full max-w-xs !text-base mb-4 mt-6 hidden">Eredmény letöltése (PDF)</button>
                      
-                     <a href="https://docs.google.com/forms/d/e/1FAIpQLScl1wQ2h7Gln_Pf9orPz2OnOz7Jridw7GWLALCTY9kkwDfflw/viewform?usp=dialog" 
+                     <a href="https://forms.office.com/e/M9RWUkYtjW" 
     target="_blank" 
     class="main-button w-full max-w-xs !text-base hover:!bg-cyan-600 !text-white !font-extrabold mt-4 mb-4"
     style="background-color: var(--brand-cyan) !important;"
@@ -886,6 +885,77 @@
             }, 1000); 
         }
 
+
+async function sharePdfViaEmail() {
+    // 1. Elemek és stílusok előkészítése (ugyanaz, mint a letöltésnél)
+    const element = document.getElementById('pdf-content');
+    const originalStyle = element.style.cssText;
+    element.style.padding = '20px';
+    element.style.backgroundColor = '#ffffff';
+    
+    // Fájlnév generálás
+    const now = new Date();
+    const fileNameTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const fileName = `One_jatek_Eredmeny_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
+
+    showLoading(true); // Töltőképernyő bekapcsolása, mert a generálás időbe telik
+
+    try {
+        // 2. PDF generálása Blob-ként (memóriában lévő fájl)
+        const pdfBlob = await html2pdf().from(element).set({
+            margin: 10,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).output('blob');
+
+        // 3. Fájl objektum létrehozása
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+        // 4. Stílusok visszaállítása
+        element.style.cssText = originalStyle;
+        showLoading(false);
+
+        // 5. Megosztás ellenőrzése és indítása
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'MystiGo Kaland Eredmény',
+                    text: `Sziasztok! Itt van a MystiGo kalandunk eredménye. Csapat: ${appState.teamName || 'Névtelen'}`
+                });
+                console.log('Sikeres megosztás');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Hiba a megosztás során:', error);
+                    alert('Nem sikerült megnyitni a megosztást.');
+                }
+            }
+        } else {
+            // Fallback: Ha a böngésző nem támogatja a fájlmegosztást (pl. asztali Chrome)
+            // Akkor letöltjük a fájlt és kérjük, hogy csatolja manuálisan
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            setTimeout(() => {
+                window.location.href = `mailto:?subject=MystiGo Eredmény&body=Csatoltam az eredményt a letöltések közül.`;
+            }, 500);
+            
+            alert('A böngésződ nem támogatja a közvetlen csatolást. A PDF letöltésre került. Kérlek, csatold manuálisan a megnyíló levélhez!');
+        }
+
+    } catch (err) {
+        console.error("PDF Generálási hiba:", err);
+        element.style.cssText = originalStyle;
+        showLoading(false);
+        alert("Hiba történt a PDF előállítása közben.");
+    }
+}
 
         // --- CORE APP & PAGE LOGIC ---
         function showPage(pageId) {
