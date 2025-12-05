@@ -719,7 +719,8 @@
                 completedTasks: [], 
                 availableTasks: [], 
                 taskMarkers: {},
-		lastAutoZoomTime: 0
+		lastAutoZoomTime: 0,
+		endMap: null
             };
         }
 
@@ -1265,13 +1266,34 @@
                     validatedGames[gameId] = game;
                 }
                 games = validatedGames;
+                
+                // JAVÍTÁS: Ha nincs érvényes játék, dobjunk hibát, hogy megjelenjen a manuális gomb!
+                if (Object.keys(games).length === 0) {
+                    throw new Error("Az adatbázis nem tartalmaz érvényes ('normal', 'kids', 'team', 'explore' típusú) játékot.");
+                }
+
                 renderGameList();
                 
                 showLoading(false);
                 showPage('game-list-page');
 
-            } catch (error) {
+            } catch (error) { 
+                
+	// Hiba esetén visszadobjuk a felhasználót a kezdőoldalra
+                document.getElementById('landing-page').classList.remove('hidden');
+                document.getElementById('content-wrapper').classList.add('hidden');
+                document.getElementById('content-wrapper').classList.add('translate-y-full');
+
+                // Kiírjuk a hibát
+                document.getElementById('loading-status').textContent = `Adatbázis hiba: ${error.message}`;
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                
+                // JAVÍTÁS: Kényszerítjük a manuális gomb megjelenését!
+                const manualInputLabel = document.getElementById('manual-file-select-label');
+                if (manualInputLabel) {
+                    manualInputLabel.classList.remove('hidden');
+                }
+                
                 showLoading(false);
             }
         }
@@ -1280,10 +1302,19 @@
         function renderGameList() {
             const listEl = document.getElementById('game-list');
             listEl.innerHTML = '';
+            
+            // Ha nincs játék, jelezzük a hibát és megmutatjuk a manuális gombot
             if (Object.keys(games).length === 0) {
-                 listEl.innerHTML = `<div class="text-center p-4 bg-gray-100 rounded-lg"><p>Nem található érvényes játék az adatfájlban.</p></div>`; return;
+                 listEl.innerHTML = `<div class="text-center p-4 bg-gray-100 rounded-lg"><p>Nem található érvényes játék az adatfájlban.</p></div>`;
+                 
+                 // Gomb megjelenítése a landing oldalon, ha esetleg visszalépne
+                 const manualInputLabel = document.getElementById('manual-file-select-label');
+                 if (manualInputLabel) manualInputLabel.classList.remove('hidden');
+                 
+                 return;
             }
-            Object.values(games).forEach(game => {
+            
+	    Object.values(games).forEach(game => {
                 // ... (kép, badge, ár generálás marad) ...
 
                 // ELLENŐRIZZÜK, VAN-E MENTÉS EHHEZ A JÁTÉKHOZ
@@ -1315,10 +1346,10 @@
                             </div>
                             <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás.'}</p>
                             <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
-                 				       </div>
-      					              </div>`;
-		            });
-  				      } // <--- EZ A ZÁRÓJEL HIÁNYZOTT!
+                 	</div>
+      		     </div>`;
+		 });
+  		}		      }
         
         function formatTime(seconds) {
             const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -1777,8 +1808,9 @@ function endGame() {
         L.Browser.any3d = false;
         L.Browser.ielt9 = true; // Ez a kulcs, hogy ne csússzon el a térkép!
         
-        const endMap = L.map('route-map', { 
-            zoomControl: false,
+       		 // JAVÍTÁS: Globális változóba mentjük, hogy a PDF generáló elérje!
+      		  appState.endMap = L.map('route-map', { 
+            		  zoomControl: false,
             fadeAnimation: false,
             markerZoomAnimation: false,
             preferCanvas: true 
@@ -1791,20 +1823,20 @@ function endGame() {
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { 
             attribution: '© OpenStreetMap © CARTO',
             crossOrigin: true 
-        }).addTo(endMap);
+        }).addTo(appState.endMap);
         
-        const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
+        const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(appState.endMap);
         
-        endMap.fitBounds(polyline.getBounds().pad(0.2));
+        appState.endMap.fitBounds(polyline.getBounds().pad(0.2));
         
         // Kényszerített frissítés
        setTimeout(() => {
             // 2. Jelezzük a térképnek, hogy most már teljes szélességű
-            endMap.invalidateSize();
+            appState.endMap.invalidateSize();
             
             // 3. Újraigazítjuk a középpontot a HELYES mérethez
             // A 'padding' segít, hogy ne lógjon le a szélére
-            endMap.fitBounds(polyline.getBounds(), {
+            appState.endMap.fitBounds(polyline.getBounds(), {
                 padding: [20, 20], // Hagyunk egy kis helyet a széleken
                 maxZoom: 16,
                 animate: false
@@ -1814,7 +1846,7 @@ function endGame() {
 
         
         const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; 
-        L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap)
+        L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(appState.endMap)
             .bindPopup('<b>Start Helyszín</b>').openPopup();
 
         appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
@@ -1832,7 +1864,7 @@ function endGame() {
                     style: isCompleted ? 'background-color: green;' : 'background-color: var(--brand-cyan);'
                 });
 
-                L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(endMap)
+                L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(appState.endMap)
                    .bindPopup(`<b>Feladat ${task.index}</b>`);
             }
         });
