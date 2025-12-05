@@ -1354,7 +1354,7 @@
                  	</div>
       		     </div>`;
 		 });
-  		}		      }
+  		}
         
         function formatTime(seconds) {
             const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -2540,13 +2540,8 @@ function endGame() {
 
 
             initializeState();
-
-            const continued = loadGameState();
-
-            if (!continued) {
-                // Módosítva a logikát, hogy a resetApp hívja meg a loadLocalXlsx-et
-                loadLocalXlsx(DEFAULT_GAME_FILE);
-            }
+            loadLocalXlsx(DEFAULT_GAME_FILE);
+           
 
 
             document.getElementById('modal-ok-button').onclick = hideMessage;
