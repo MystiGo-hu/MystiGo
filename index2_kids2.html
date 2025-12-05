@@ -1305,56 +1305,71 @@
         
         // --- UI RENDERING & STATUS ---
         function renderGameList() {
-            const listEl = document.getElementById('game-list');
-            listEl.innerHTML = '';
-            
-            // Ha nincs játék, jelezzük a hibát és megmutatjuk a manuális gombot
-            if (Object.keys(games).length === 0) {
-                 listEl.innerHTML = `<div class="text-center p-4 bg-gray-100 rounded-lg"><p>Nem található érvényes játék az adatfájlban.</p></div>`;
-                 
-                 // Gomb megjelenítése a landing oldalon, ha esetleg visszalépne
-                 const manualInputLabel = document.getElementById('manual-file-select-label');
-                 if (manualInputLabel) manualInputLabel.classList.remove('hidden');
-                 
-                 return;
-            }
-            
-	    Object.values(games).forEach(game => {
-                // ... (kép, badge, ár generálás marad) ...
+    const listEl = document.getElementById('game-list');
+    listEl.innerHTML = '';
 
-                // ELLENŐRIZZÜK, VAN-E MENTÉS EHHEZ A JÁTÉKHOZ
-                const uniqueKey = `MystiGoSave_${game.id}`;
-                const hasSave = localStorage.getItem(uniqueKey) !== null;
-                
-                let actionButton = '';
-                let clickAction = '';
+    // Ha nincs játék, jelezzük a hibát és megmutatjuk a manuális gombot
+    if (Object.keys(games).length === 0) {
+        listEl.innerHTML = `<div class="text-center p-4 bg-gray-100 rounded-lg"><p>Nem található érvényes játék az adatfájlban.</p></div>`;
 
-                // Ha van mentés, más kérdést teszünk fel kattintáskor
-                if (hasSave) {
-                     clickAction = `showResumeOrNewGameDialog('${game.id}', '${game.title.replace(/'/g, "\\'")}')`;
-                     // Opcionális: Jelezhetjük vizuálisan is, pl. egy kis ikonnal
-                     gameTypeBadge += ` <span class="ml-2 text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Folytatható 💾</span>`;
-                } else {
-                     clickAction = `showMessage('Kaland Indítása', 'Biztosan elindítod a(z) <strong>${game.title.replace(/'/g, "\\'")}</strong> kalandot?', () => requestGpsAndStart('${game.id}'), true)`;
-                }
+        // Gomb megjelenítése a landing oldalon, ha esetleg visszalépne
+        const manualInputLabel = document.getElementById('manual-file-select-label');
+        if (manualInputLabel) manualInputLabel.classList.remove('hidden');
 
-                const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
-                
-                listEl.innerHTML += `
-                    <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow" 
-                         onclick="${clickAction}">
-                        <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover">
-                        <div class="p-5">
-                            <div class="flex justify-between items-start flex-wrap gap-2">
-                                <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
-                                <div>${gameTypeBadge}</div>
-                            </div>
-                            <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás.'}</p>
-                            <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
-                 	</div>
-      		     </div>`;
-		 });
-  		}
+        return;
+    }
+
+    Object.values(games).forEach(game => {
+
+        // 1. Kép helyörző definiálása (CSAK EGYSZER!)
+        const placeholderImage = 'https://placehold.co/600x400/e2e8f0/1e293b?text=MystiGo+Kaland';
+
+        // 2. Badge (Címke) és szín beállítása a típus alapján
+        let typeLabel = '';
+        let typeColor = '';
+        switch (game.type) {
+            case 'kids': typeLabel = '👶 Kids'; typeColor = 'bg-pink-100 text-pink-800'; break;
+            case 'team': typeLabel = '🧑‍🤝‍🧑 Team'; typeColor = 'bg-purple-100 text-purple-800'; break;
+            case 'explore': typeLabel = '🌍 Explore'; typeColor = 'bg-green-100 text-green-800'; break;
+            default: typeLabel = '🧭 Normal'; typeColor = 'bg-blue-100 text-blue-800';
+        }
+
+        let gameTypeBadge = `<span class="inline-block px-2 py-1 rounded-full text-xs font-bold ${typeColor} mb-1">${typeLabel}</span>`;
+
+        // ELLENŐRIZZÜK, VAN-E MENTÉS EHHEZ A JÁTÉKHOZ
+        const uniqueKey = `MystiGoSave_${game.id}`;
+        const hasSave = localStorage.getItem(uniqueKey) !== null;
+        
+        // ITT VOLT A HIBA: A MÁSODIK 'const placeholderImage' SORT TÖRÖLTEM
+
+        let actionButton = '';
+        let clickAction = '';
+
+        // Ha van mentés, más kérdést teszünk fel kattintáskor
+        if (hasSave) {
+            clickAction = `showResumeOrNewGameDialog('${game.id}', '${game.title.replace(/'/g, "\\'")}')`;
+            gameTypeBadge += ` <span class="ml-2 text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Folytatható 💾</span>`;
+        } else {
+            clickAction = `showMessage('Kaland Indítása', 'Biztosan elindítod a(z) <strong>${game.title.replace(/'/g, "\\'")}</strong> kalandot?', () => requestGpsAndStart('${game.id}'), true)`;
+        }
+
+        const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
+
+        listEl.innerHTML += `
+            <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow" 
+                 onclick="${clickAction}">
+                <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover">
+                <div class="p-5">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
+                        <div>${gameTypeBadge}</div>
+                    </div>
+                    <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás.'}</p>
+                    <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
+                </div>
+             </div>`;
+    });
+}
         
         function formatTime(seconds) {
             const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
