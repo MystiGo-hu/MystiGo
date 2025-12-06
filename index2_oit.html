@@ -854,35 +854,45 @@
         };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
-        // --- PDF GENERATION ---
+ // --- PDF GENERATION (JAVÍTOTT VERZIÓ) ---
         function downloadPDF() {
             const element = document.getElementById('pdf-content');
+            if (!element) return;
+            
             const originalStyle = element.style.cssText;
             element.style.padding = '20px'; 
             element.style.backgroundColor = '#ffffff';
 
             const now = new Date();
+            // Dátum és idő komponensek
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
-	    const second = String(now.getSeconds()).padStart(2, '0'); // Másodperc hozzáadva
+            const second = String(now.getSeconds()).padStart(2, '0');
 
+            // Összefűzés: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP formátumban
             const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-            const fileName = `One_játék_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
+            // Biztonságos csapatnév lekérés
+            const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'Csapat';
+            const fileName = `One_Jatek_Eredmeny_${safeTeamName}_${fileNameTimestamp}.pdf`;
 
+            // 3 másodperc várakozás a térkép renderelésre, utána mentés
             setTimeout(() => {
                 html2pdf().from(element).set({
-                    margin: 10,
+                    margin: 10, 
                     filename: fileName, 
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+                    html2canvas: { scale: 2, logging: false, useCORS: true, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).save().then(() => {
                     element.style.cssText = originalStyle;
+                }).catch(err => {
+                    console.error("PDF generálási hiba:", err);
+                    element.style.cssText = originalStyle;
                 });
-            }, 1000); 
+            }, 3000); 
         }
 
 
@@ -1706,111 +1716,135 @@ function handleCorrectAnswer() {
     saveGameState(); 
 }
         
-        /**
- * JAVÍTVA: Összesítő képernyő frissítése és PDF letöltés aktiválása
- */
-function endGame() {
-    if (speechSynth.speaking) synth.cancel();
-    
-    // --- Befejezési idő rögzítése és manuális formázása (YYYY.MM.DD ÓÓ:PP) ---
-    const endTime = new Date();
-    
-    const year = endTime.getFullYear();
-    const month = String(endTime.getMonth() + 1).padStart(2, '0');
-    const day = String(endTime.getDate()).padStart(2, '0');
-    const hour = String(endTime.getHours()).padStart(2, '0');
-    const minute = String(endTime.getMinutes()).padStart(2, '0');
-    const second = String(endTime.getSeconds()).padStart(2, '0');
-
-
-    // Kívánt formátum összeállítása: YYYY.MM.DD ÓÓ:PP (képernyőre)
-    const formattedEndTime = `${year}.${month}.${day} ${hour}:${minute}`;
-    // Fájlnévhez szükséges formátum (ÉÉÉÉ-HH-NN_ÓÓ:PP)
-    const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-    const fileName = `One_Játék_Eredmény_${appState.teamName || 'Csapat'}_${fileNameTimestamp}.pdf`;
-    
-    // --- Befejezési idő vége ---
-    
-    clearInterval(appState.timerInterval);
-    if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
-    if (appState.map) { 
-         appState.map.remove(); // Eltávolítjuk a játék közbeni térképet
-         appState.map = null;
-    }
-    if (manualMarker) manualMarker.remove(); 
-
-    // Összes VALÓDI feladatra fordított idő kiszámítása (index > 0)
-    const totalTaskTime = appState.currentGame.tasks
-                        .filter(t => !t.isStartTask)
-                        .reduce((sum, task) => sum + (task.timeSpent || 0), 0);
-    
-    document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
-    document.getElementById('final-score').textContent = appState.score;
-    document.getElementById('final-time').textContent = formatTime(appState.totalTime); // Teljes idő
-    
-    // Csapat adatok megjelenítése (Avatar is)
-    const teamName = appState.teamName || "Névtelen Csapat";
-    const teamAvatarKey = appState.teamAvatar || null;
-    const avatarIcon = teamAvatarKey && AVATAR_ICONS[teamAvatarKey] ? AVATAR_ICONS[teamAvatarKey] : '';
-    
-    document.getElementById('final-team-display').textContent = teamName;
-    document.getElementById('final-team-avatar-icon').textContent = avatarIcon; // Avatar megjelenítése
-    
-    // *** Időbélyeg beillesztése a befejezési oldalra ***
-    document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
-    // *** Időbélyeg beillesztése vége ***
-
-    document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime); // Feladatra fordított idő
-    
-    showContentPage('end-page');
-    
-    // --- ÚTVONAL TÉRKÉP RAJZOLÁSA ---
-    const routeMapDiv = document.getElementById('route-map');
-    if (appState.routeCoordinates.length > 0) {
-        const endMap = L.map('route-map', { zoomControl: false });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO' }).addTo(endMap);
-        
-        const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
-        
-        endMap.fitBounds(polyline.getBounds().pad(0.1));
-        
-        endMap.invalidateSize(true);
-        
-        const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; 
-        L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap)
-            .bindPopup('<b>Start Helyszín</b>').openPopup();
-
-        appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
-            if (task.location) {
-                const isCompleted = appState.currentGame.taskOrder === 'explore' 
-                    ? appState.completedTasks.includes(task.index)
-                    : true; // Normal/Random módban feltételezzük, hogy befejezett
-                
-                const taskMarkerIcon = L.divIcon({
-                    className: isCompleted ? 'task-selector-marker' : 'task-selector-marker', 
-                    html: isCompleted ? '✅' : task.index.toString(),
-                    iconSize: isCompleted ? [30, 30] : [30, 30],
-                    iconAnchor: [15, 30],
-                    popupAnchor: [0, -30],
-                    style: isCompleted ? 'background-color: green;' : 'background-color: var(--brand-cyan);'
-                });
-
-                L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(endMap)
-                   .bindPopup(`<b>Feladat ${task.index}</b>`);
+// --- END GAME (JAVÍTOTT VERZIÓ) ---
+        function endGame() {
+            if (speechSynth.speaking) speechSynth.cancel();
+            
+            // Jelenlegi idő meghatározása
+            const endTime = new Date();
+            const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
+            
+            // Játék közbeni időzítők és figyelők leállítása
+            clearInterval(appState.timerInterval);
+            if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
+            
+            // Játék közbeni térkép (nagy térkép) törlése, ha létezik
+            if (appState.map) { 
+                 appState.map.remove(); 
+                 appState.map = null; 
             }
-        });
-    } else {
-         routeMapDiv.innerHTML = `<p class="p-4 text-gray-500">Nem sikerült útvonalat rögzíteni (talán Teszt módban volt a játék, vagy nem volt GPS jel?).</p>`;
-    }
-    // --- ÚTVONAL TÉRKÉP RAJZOLÁSA VÉGE ---
+            if (manualMarker) { manualMarker.remove(); manualMarker = null; }
 
-    // *** AUTOMATIKUS PDF LETÖLTÉS AKTIVÁLVA ***
-    downloadPDF(); 
-    // *** VÉGE ***
-    
-    clearSavedState(); 
-    appState.currentGame = null;
-}
+            // Idők számítása
+            // Összes VALÓDI feladatra fordított idő (index > 0)
+            const totalTaskTime = appState.currentGame.tasks
+                                .filter(t => !t.isStartTask)
+                                .reduce((sum, task) => sum + (task.timeSpent || 0), 0);
+            
+            // HTML elemek kitöltése az eredményekkel
+            document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
+            document.getElementById('final-score').textContent = appState.score;
+            document.getElementById('final-time').textContent = formatTime(appState.totalTime); 
+            
+            // Csapat adatok megjelenítése
+            const teamName = appState.teamName || "Névtelen Csapat";
+            const teamAvatarKey = appState.teamAvatar || null;
+            const avatarIcon = teamAvatarKey && AVATAR_ICONS[teamAvatarKey] ? AVATAR_ICONS[teamAvatarKey] : '';
+            
+            document.getElementById('final-team-display').textContent = teamName;
+            document.getElementById('final-team-avatar-icon').textContent = avatarIcon;
+            
+            document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
+            document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime);
+            
+            // Megjelenítjük a végső oldalt
+            showContentPage('end-page');
+            
+            // Kézi letöltés gomb láthatóvá tétele (ha van ilyen gomb elrejtve)
+            const manualPdfBtn = document.querySelector('button[onclick="downloadPDF()"]');
+            if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
+            
+            // --- TÉRKÉP RAJZOLÁSA BIZTONSÁGOSAN ---
+            const routeMapDiv = document.getElementById('route-map');
+            
+            // 1. LÉPÉS: Térkép konténer takarítása (Kritikus javítás)
+            // Ha már volt rajta térkép (előző játékból), töröljük a Leaflet azonosítót és a tartalmat
+            if (routeMapDiv) {
+                if (routeMapDiv._leaflet_id) {
+                    routeMapDiv._leaflet_id = null; // Leaflet hack: ID törlése
+                }
+                routeMapDiv.innerHTML = ""; // HTML tartalom törlése
+            }
+
+            try {
+                if (appState.routeCoordinates.length > 0) {
+                    // Hack a PDF generáláshoz (Webgl letiltása a snapshot idejére)
+                    const originalAny3d = L.Browser.any3d; 
+                    const originalIelt9 = L.Browser.ielt9;
+                    L.Browser.any3d = false; 
+                    L.Browser.ielt9 = true; 
+                    
+                    // Térkép létrehozása
+                    const endMap = L.map('route-map', { 
+                        zoomControl: false, 
+                        fadeAnimation: false, 
+                        markerZoomAnimation: false, 
+                        preferCanvas: true 
+                    });
+                    
+                    // Visszaállítjuk a böngésző flag-eket
+                    L.Browser.any3d = originalAny3d; 
+                    L.Browser.ielt9 = originalIelt9;
+                    
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', crossOrigin: true }).addTo(endMap);
+                    
+                    const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
+                    
+                    // Kis késleltetés a fitBounds előtt
+                    setTimeout(() => { 
+                        try {
+                            endMap.invalidateSize(); 
+                            endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 16, animate: false }); 
+                        } catch(e) { console.log("Térkép méretezési hiba (figyelmen kívül hagyható)"); }
+                    }, 800);
+
+                    // Start pont
+                    const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; 
+                    L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap).bindPopup('<b>Start Helyszín</b>');
+
+                    // Feladatok jelölése
+                    appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
+                        if (task.location) {
+                            const isCompleted = appState.currentGame.taskOrder === 'explore' ? appState.completedTasks.includes(task.index) : true;
+                            const taskMarkerIcon = L.divIcon({
+                                className: 'task-selector-marker', html: isCompleted ? '✅' : task.index.toString(),
+                                iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30],
+                                style: isCompleted ? 'background-color: green;' : 'background-color: var(--brand-cyan);'
+                            });
+                            L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(endMap).bindPopup(`<b>Feladat ${task.index}</b>`);
+                        }
+                    });
+                } else {
+                     routeMapDiv.innerHTML = `<p class="p-4 text-gray-500">Nem sikerült útvonalat rögzíteni (nincs GPS adat).</p>`;
+                }
+            } catch (err) {
+                console.error("Hiba az eredményjelző térkép rajzolásakor:", err);
+                routeMapDiv.innerHTML = `<p class="p-4 text-red-500">Térkép betöltési hiba.</p>`;
+            }
+            
+            // --- FONTOS MŰVELETEK A TÉRKÉP UTÁN ---
+            
+            // 1. PDF Automatikus letöltés indítása
+            setTimeout(() => {
+                downloadPDF();
+            }, 1000); 
+            
+            // 2. Mentés törlése
+            clearSavedState(); 
+            
+            // 3. Játék állapot kinullázása
+            appState.currentGame = null;
+        }
         
         function toggleMapClickMock(enable) {
             if (!appState.map) return;
