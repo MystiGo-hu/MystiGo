@@ -867,7 +867,7 @@
         };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
-        // --- PDF GENERATION (MÓDOSÍTOTT) ---
+ // --- PDF GENERATION (Avatarral kiegészítve) ---
         function downloadPDF() {
             const element = document.getElementById('pdf-content');
             if (!element) return;
@@ -883,13 +883,21 @@
             const day = String(now.getDate()).padStart(2, '0');
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
-            const second = String(now.getSeconds()).padStart(2, '0'); // Másodperc hozzáadva
+            const second = String(now.getSeconds()).padStart(2, '0'); 
 
             // Összefűzés: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP formátumban
             const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-            // Biztonságos csapatnév lekérés (ha az appState már törlődött volna, de itt még megvan)
+            
+            // Biztonságos csapatnév lekérés
             const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'Csapat';
-            const fileName = `MystiGo_Eredmény_${safeTeamName}_${fileNameTimestamp}.pdf`;
+            
+            // --- ÚJ RÉSZ: Avatar lekérése ---
+            // Ha van kiválasztott avatar, azt használja, ha nincs, akkor 'nincs-avatar'
+            const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+
+            // --- MÓDOSÍTOTT FÁJLNÉV ---
+            // Beillesztettük a safeAvatar változót a névbe
+            const fileName = `MystiGo_Eredmény_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
 
             // 3 másodperc várakozás a térkép renderelésre, utána mentés
             setTimeout(() => {

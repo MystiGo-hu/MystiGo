@@ -854,7 +854,7 @@
         };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
- // --- PDF GENERATION (JAVÍTOTT VERZIÓ) ---
+ // --- PDF GENERATION (Avatarral kiegészítve) ---
         function downloadPDF() {
             const element = document.getElementById('pdf-content');
             if (!element) return;
@@ -872,11 +872,16 @@
             const minute = String(now.getMinutes()).padStart(2, '0');
             const second = String(now.getSeconds()).padStart(2, '0');
 
-            // Összefűzés: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP formátumban
+            // Időbélyeg: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP
             const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-            // Biztonságos csapatnév lekérés
+            
+            // Biztonságos csapatnév és avatar lekérés
             const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'Csapat';
-            const fileName = `One_Jatek_Eredmeny_${safeTeamName}_${fileNameTimestamp}.pdf`;
+            // Itt kérjük le az avatart (pl. "cat", "wizard"), ha nincs, akkor "nincs-avatar" lesz
+            const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+
+            // Fájlnév összeállítása az avatarral
+            const fileName = `One_Jatek_Eredmeny_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
 
             // 3 másodperc várakozás a térkép renderelésre, utána mentés
             setTimeout(() => {
@@ -909,7 +914,8 @@ async function sharePdfViaEmail() {
     const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
     
     // Itt fűzzük össze a dátumot ÉS az időt
-    const fileName = `One_jatek_Eredmeny_${appState.teamName || 'Csapat'}_${dateStr}_${timeStr}.pdf`;
+    const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+    const fileName = `One_jatek_Eredmeny_${appState.teamName || 'Csapat'}_${safeAvatar}_${dateStr}_${timeStr}.pdf`;
     // --- FÁJLNÉV GENERÁLÁS VÉGE ---
 
     // Debug: Kiírjuk a konzolra és egy alertben is, hogy lásd, tényleg az új kód fut-e
