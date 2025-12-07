@@ -1174,7 +1174,21 @@ async function sharePdfViaEmail() {
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
         function showMessage(title, body, onClose, showCancel = false) {
-            document.getElementById('message-title').textContent = title;
+            // --- iPad / Mobil FIX KEZDIDE ---
+    		        // 1. Ha nyitva a billentyűzet (mert a beviteli mezőn van a fókusz), bezárjuk
+ 		           if (document.activeElement instanceof HTMLElement) {
+ 		               document.activeElement.blur();
+     		       }
+            
+       			     // 2. Azonnal a tartalom tetejére görgetünk, hogy az ablak biztosan látható legyen
+	              window.scrollTo(0, 0);
+   				         const contentWrapper = document.getElementById('content-page-wrapper');
+ 				           if (contentWrapper) {
+ 			               contentWrapper.scrollTo({ top: 0, behavior: 'instant' });
+    				        }
+          				  // --- iPad / Mobil FIX VÉGE ---
+
+	    document.getElementById('message-title').textContent = title;
             document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p', 'br'] }); 
             const okButton = document.getElementById('modal-ok-button');
             const cancelButton = document.getElementById('modal-cancel-button');
