@@ -1309,69 +1309,97 @@ async function sharePdfViaEmail() {
             if (missing.length > 0) throw new Error(`'${ctx}' munkalap hiba: A(z) ${missing.map(m => `"${m}"`).join(', ')} mező(k) hiányzik/üres.`);
         }
 
-        function processExcelData(workbook) {
+  function processExcelData(workbook) {
+    try {
+        // Rugalmas munkalap keresés (kisbetű/nagybetű nem számít)
+        const sheetNames = workbook.SheetNames;
+        const gamesSheetName = sheetNames.find(n => n.toLowerCase().trim() === 'games');
+        const tasksSheetName = sheetNames.find(n => n.toLowerCase().trim() === 'tasks');
+
+        if (!gamesSheetName || !tasksSheetName) {
+            throw new Error("Hiányzó 'games' vagy 'tasks' munkalap!");
+        }
+
+        const gamesSheet = workbook.Sheets[gamesSheetName];
+        const tasksSheet = workbook.Sheets[tasksSheetName];
+        
+        // --- MEMÓRIAVÉDELEM ---
+        // Csak az első 2000/5000 sort olvassuk be, és kihagyjuk az üres sorokat.
+        // Ez akadályozza meg az összeomlást!
+        const parsedGames = XLSX.utils.sheet_to_json(gamesSheet, { blankrows: false, defval: "", sheetRows: 2000 });
+        const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet, { blankrows: false, defval: "", sheetRows: 5000 });
+        
+        const combinedGames = {};
+        
+        // Játékok feldolgozása
+        parsedGames.forEach(game => {
+            if (!game.id) return; // Ha nincs ID, átugorjuk
             try {
-                const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
-                if (!gamesSheet || !tasksSheet) throw new Error("A 'games' vagy 'tasks' munkalap hiányzik.");
-                const parsedGames = XLSX.utils.sheet_to_json(gamesSheet);
-                const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet);
-                const combinedGames = {};
-                parsedGames.forEach(game => {
-                    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
-                    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
-                    combinedGames[game.id] = { 
-    ...game, 
-    type: String(game.type || 'normal').trim().toLowerCase(), 
-    price: parseFloat(game.price || 0), 
-    description: DOMPurify.sanitize(game.description || ''), 
-    endStory: DOMPurify.sanitize(game.endStory || ''), 
-    startLocation: { lat, lng }, 
-    locationTag: String(game.location || '').trim(), // <--- EZT A SORT ADTUK HOZZÁ
-    tasks: [] 
-};
-                });
-                parsedTasks.forEach(task => {
-                    if (!combinedGames[task.gameId]) return;
-                    const lat = parseFloat(task.locationLat), lng = parseFloat(task.locationLng);
-                    
-                    let allSolutions = [];
-                    if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
-                    if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
-                    if (task.synonyms) allSolutions.push(...String(task.synonyms).split(';').map(s => s.trim()));
-                    const acceptedAnswers = Array.from(new Set(allSolutions.filter(Boolean).map(a => normalizeAnswer(a))));
-                    
-                    combinedGames[task.gameId].tasks.push({ 
-                        ...task, index: parseInt(task.index, 10), isStartTask: false, 
-                        story: DOMPurify.sanitize(task.story || ''), location: { lat, lng }, 
-                        geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
-                        hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
-                        solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers,
-		disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'), 
-                        hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
-                    }); 
-                });
-
-                const validatedGames = {};
-                for (const gameId in combinedGames) {
-                    const game = combinedGames[gameId];
-                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) continue;
-                    if (game.tasks.length === 0) continue;
-                    game.tasks.sort((a, b) => a.index - b.index);
-                    validatedGames[gameId] = game;
-                }
-                games = validatedGames;
-                renderGameList();
-                populateLocationFilter(); 
-		initFilters();
-
-		showLoading(false);
+                combinedGames[game.id] = { 
+                    ...game, 
+                    type: String(game.type || 'normal').trim().toLowerCase(), 
+                    price: parseFloat(game.price || 0), 
+                    description: DOMPurify.sanitize(game.description || ''), 
+                    endStory: DOMPurify.sanitize(game.endStory || ''), 
+                    startLocation: { lat: parseFloat(game.startLocationLat), lng: parseFloat(game.startLocationLng) }, 
+                    locationTag: String(game.location || '').trim(), 
+                    tasks: [] 
+                };
+            } catch (e) { console.warn("Sor hiba (games):", e); }
+        });
+        
+        // Feladatok feldolgozása
+        parsedTasks.forEach(task => {
+            if (!task.gameId || !combinedGames[task.gameId]) return;
+            try {
+                let allSolutions = [];
+                if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
+                if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
+                if (task.synonyms) allSolutions.push(...String(task.synonyms).split(';').map(s => s.trim())); // Szinonimák kezelése
                 
-		showPage('game-list-page');
-            } catch (error) {
-                showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                showLoading(false);
+                const acceptedAnswers = Array.from(new Set(allSolutions.filter(Boolean).map(a => normalizeAnswer(a))));
+
+                combinedGames[task.gameId].tasks.push({ 
+                    ...task, 
+                    index: parseInt(task.index, 10), 
+                    isStartTask: false, 
+                    location: { lat: parseFloat(task.locationLat), lng: parseFloat(task.locationLng) }, 
+                    geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
+                    hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
+                    solution: String(task.solution || ''), 
+                    acceptedAnswers: acceptedAnswers,
+                    disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'),
+                    hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
+                }); 
+            } catch (e) { console.warn("Sor hiba (tasks):", e); }
+        });
+
+        const validatedGames = {};
+        for (const gameId in combinedGames) {
+            const game = combinedGames[gameId];
+            if (['normal', 'kids', 'team', 'explore'].includes(game.type) && game.tasks.length > 0) {
+                game.tasks.sort((a, b) => a.index - b.index);
+                validatedGames[gameId] = game;
             }
         }
+        
+        if (Object.keys(validatedGames).length === 0) throw new Error("Nincs érvényes játék az Excelben.");
+
+        games = validatedGames;
+        
+        // UI frissítése
+        renderGameList();          
+        populateLocationFilter(); // Filterek újratöltése
+        initFilters();            // Gombok aktiválása
+        
+        showLoading(false);
+        showPage('game-list-page');
+
+    } catch (error) {
+        console.error("Feldolgozási hiba:", error);
+        throw error; // Továbbdobjuk, hogy a hívó fél kezelhesse
+    }
+}
         
         // --- UI RENDERING ---
 function renderGameList(gamesToRender = null) {
@@ -2420,46 +2448,89 @@ function requestGpsAndStart(gameId) {
                 mainHeaderLogoContainer.addEventListener('click', () => { resetApp(); });
             }
 
-            if (manualFileInput) {
-                 manualFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; if (!file) return; 
-                    showLoading(true);
+           
+
+// --- EGYSÉGESÍTETT, BIZTONSÁGOS FÁJLKEZELÉS (EDGE FIX) ---
+            
+            const handleSafeFileLoad = (event, hideLabelId = null) => {
+                const file = event.target.files[0]; 
+                if (!file) return; 
+                
+                // Input ürítése, hogy újra ki lehessen választani ugyanazt
+                event.target.value = ''; 
+                showLoading(true);
+                
+                // Késleltetés, hogy a UI (Loading spinner) megjelenhessen a fagyás előtt
+                setTimeout(() => {
                     const reader = new FileReader();
+                    
                     reader.onload = (e) => { 
                         try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                            processExcelData(wb);
-                            if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
+                            const data = new Uint8Array(e.target.result);
+                            
+                            // MAXIMÁLIS MEMÓRIAVÉDELEM BEÁLLÍTÁSOK
+                            const options = {
+                                type: 'array',
+                                dense: true,        // Tömörített mód (KULCSFONTOSSÁGÚ!)
+                                cellStyles: false,  // Stílusok/színek kihagyása (MEMÓRIA SPÓROLÁS)
+                                cellHTML: false,    
+                                cellFormula: false, 
+                                cellDates: true,    
+                                sheetRows: 4000     // 4000 sorra csökkentve a stabilitásért
+                            };
+
+                            // Itt olvassuk be biztonságosan
+                            const wb = XLSX.read(data, options); 
+                            
+                            // Újabb pihenő a feldolgozás előtt
+                            setTimeout(() => {
+                                try {
+                                    processExcelData(wb);
+                                    
+                                    // Ha a piros gombbal töltöttük be, és volt hibaüzenet, tüntessük el a gombot
+                                    if (hideLabelId) {
+                                        const label = document.getElementById(hideLabelId);
+                                        if (label) label.classList.add('hidden');
+                                    }
+                                } catch (procError) {
+                                    console.error("Feldolgozási hiba:", procError);
+                                    showMessage('Feldolgozási Hiba', `Sérült adat vagy formátum: ${procError.message}`);
+                                    showLoading(false);
+                                    // Hiba esetén visszakapcsoljuk a gombot
+                                    if (hideLabelId) document.getElementById(hideLabelId).classList.remove('hidden');
+                                }
+                            }, 50);
+                            
                         } catch (error) {
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                            console.error("Olvasási hiba (XLSX):", error);
+                            showMessage('Memória Hiba', 'A fájl túl nagy ennek a böngészőnek. (Edge/Mobile limit).');
                             showLoading(false);
-                            if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
+                            if (hideLabelId) document.getElementById(hideLabelId).classList.remove('hidden');
                         }
                     };
-                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
+                    
+                    reader.onerror = () => { 
+                        showMessage('Hiba', 'Fájl olvasási hiba.'); 
+                        showLoading(false); 
+                        if (hideLabelId) document.getElementById(hideLabelId).classList.remove('hidden');
+                    };
+                    
                     reader.readAsArrayBuffer(file);
-                });
+                }, 100);
+            };
+
+            // 1. Eseményfigyelő: A piros "Manuális Betöltés" gombhoz
+            if (manualFileInput) {
+                 manualFileInput.addEventListener('change', (e) => handleSafeFileLoad(e, 'manual-file-select-label'));
             }
             
+            // 2. Eseményfigyelő: A Fejlesztői Menü fájlválasztójához
             const excelFileInput = document.getElementById('excel-file-input');
             if (excelFileInput) {
-                excelFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; if (!file) return; 
-                    showLoading(true);
-                    const reader = new FileReader();
-                    reader.onload = (e) => { 
-                        try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                            processExcelData(wb);
-                        } catch (error) {
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                            showLoading(false);
-                        }
-                    };
-                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                    reader.readAsArrayBuffer(file);
-                });
+                excelFileInput.addEventListener('change', (e) => handleSafeFileLoad(e, null));
             }
+            
+         
 
             document.body.addEventListener('click', (e) => {
                  if (e.target && e.target.id === 'secret-trigger') {
