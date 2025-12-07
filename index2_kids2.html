@@ -247,7 +247,47 @@
             z-index: 9999; 
             background-color: rgba(0, 0, 0, 0.7);
         }
-        #report-error-modal-content {
+      
+
+<div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+            <h2 class="text-lg font-bold text-red-600 flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                GPS Hiba / Beállítás
+            </h2>
+        </div>
+        
+        <p class="text-sm text-gray-700 mb-4 font-semibold">Nem sikerült lekérni a pontos helyzeted. Kérlek, ellenőrizd az alábbiakat:</p>
+
+        <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <h3 class="font-bold text-brand-blue mb-2 flex items-center text-sm">
+                <span>🍎 iPhone (iOS)</span>
+            </h3>
+            <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
+                <li>Beállítások > <strong>Adatvédelem és biztonság</strong></li>
+                <li>Helymeghatározás > <strong>Bekapcsolva</strong></li>
+                <li>Keresd meg a listában a böngészőt (Safari/Chrome)</li>
+                <li>Válaszd: <strong>"Az alkalmazás használata közben"</strong></li>
+                <li>Kapcsold be: <strong>"Pontos helyzet"</strong></li>
+            </ul>
+        </div>
+
+        <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <h3 class="font-bold text-brand-blue mb-2 flex items-center text-sm">
+                <span>🤖 Android (Samsung, Xiaomi, stb.)</span>
+            </h3>
+            <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
+                <li>Húzd le az értesítési sávot és kapcsold be a <strong>Helyzet / GPS</strong> ikont.</li>
+                <li>Ha ez megvan: Tartsd nyomva a Chrome ikont > App infó > Engedélyek > Hely > <strong>Engedélyezés</strong>.</li>
+            </ul>
+        </div>
+
+        <button onclick="document.getElementById('gps-help-modal').classList.add('hidden')" class="main-button w-full !text-sm !py-3">Értem, megpróbálom újra</button>
+    </div>
+</div>
+
+	 #report-error-modal-content {
             background-color: white;
             border-radius: 1rem;
             padding: 1.5rem;
@@ -475,19 +515,39 @@
                             <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
                             <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
                                 <option value="">Válassz Avatart (opcionális)</option>
-				    <option value="cat">Mysti 🐈</option>
+				    <option value="cat">Mysti 🐱</option>
+				    <option value="dog">Kutya 🐶</option>
+				    <option value="panda">Panda 🐼</option>
+				    <option value="monkey">Majom 🐵</option>
 				    <option value="detective">Nyomozó 🕵️</option>
 				    <option value="explorer">Felfedező 🧭</option>
 				    <option value="wizard">Varázsló 🧙</option>
 				    <option value="robot">Robot 🤖</option>
 				    <option value="ghost">Szellem 👻</option>
-				    <option value="lock">Lakat 🔐</option>
+				    <option value="lock">Lakat 🔒</option>
 				    <option value="magician">Bűvész 🎩</option>
 				    <option value="mask">Álarc 🎭</option>
 				    <option value="fire">Tűz 🔥</option>
 				    <option value="knight">Lovag ⚔️</option>
-                            </select>
-                        </div>
+				    <option value="smile">Smile 😎</option>
+				    <option value="zombie">Zombi 🧟‍♂️</option>
+				    <option value="ballerina">Belerina 🩰</option>
+				    <option value="police">Rendőr 🚓</option>
+				    <option value="firefighter">Tűzoltó 🚒</option>
+				    <option value="ambulance">Mentő 🚑</option>
+				    <option value="star">Csillag ⭐️</option>
+				    <option value="floppy">Floppy 💾</option>
+			     </select>
+         
+               <button onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+    GPS Működésének Tesztelése
+</button>
+
+			</div>
                         
                     </div>
                     <div id="game-list" class="space-y-6"></div>
@@ -523,7 +583,15 @@
                     <div id="task-interaction-area"> 
                         <div id="normal-task-content">
                             <div class="content-card p-5">
-                                <details id="story-details" class="story-details mb-4" open>
+                                
+<button id="back-to-map-btn" onclick="backToExploreMap()" class="hidden mb-4 text-xs font-bold text-gray-500 hover:text-brand-blue flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Vissza a térképre (Később oldom meg)
+            </button>
+
+				<details id="story-details" class="story-details mb-4" open>
                                     <summary>
                                         Történet Olvasása
                                         <button id="speak-story-btn" onclick="speakStory(event)" class="p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition" title="Felolvasás indítása">
@@ -867,7 +935,7 @@
         };
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
-        // --- PDF GENERATION (MÓDOSÍTOTT) ---
+ // --- PDF GENERATION (Avatarral kiegészítve) ---
         function downloadPDF() {
             const element = document.getElementById('pdf-content');
             if (!element) return;
@@ -883,13 +951,21 @@
             const day = String(now.getDate()).padStart(2, '0');
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
-            const second = String(now.getSeconds()).padStart(2, '0'); // Másodperc hozzáadva
+            const second = String(now.getSeconds()).padStart(2, '0'); 
 
             // Összefűzés: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP formátumban
             const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-            // Biztonságos csapatnév lekérés (ha az appState már törlődött volna, de itt még megvan)
+            
+            // Biztonságos csapatnév lekérés
             const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'Csapat';
-            const fileName = `MystiGo_Eredmény_${safeTeamName}_${fileNameTimestamp}.pdf`;
+            
+            // --- ÚJ RÉSZ: Avatar lekérése ---
+            // Ha van kiválasztott avatar, azt használja, ha nincs, akkor 'nincs-avatar'
+            const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+
+            // --- MÓDOSÍTOTT FÁJLNÉV ---
+            // Beillesztettük a safeAvatar változót a névbe
+            const fileName = `MystiGo_Eredmény_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
 
             // 3 másodperc várakozás a térkép renderelésre, utána mentés
             setTimeout(() => {
@@ -1103,7 +1179,8 @@
                         story: DOMPurify.sanitize(task.story || ''), location: { lat, lng }, 
                         geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
                         hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
-                        solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers, 
+                        solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers,
+		disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'), 
                         hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
                     }); 
                 });
@@ -1355,9 +1432,19 @@
             hint1Btn.disabled = !hasHint1 || applyHintState(hint1Btn, 1);
             hint2Btn.disabled = !hasHint2 || applyHintState(hint2Btn, 2);
             const isFinalTaskInExplore = appState.currentGame.taskOrder === 'explore' && appState.availableTasks.length === 1; 
-            solutionBtn.disabled = (task.hintsUsed < maxHints || isFinalTaskInExplore);
+
+	    if (task.disableSolution) {
+        solutionBtn.style.display = 'none'; // Teljesen eltünteti
+    } else {
+        solutionBtn.style.display = 'inline-block'; // Megjeleníti
+        // Csak akkor aktív, ha elfogytak a segítségek
+        solutionBtn.disabled = (task.hintsUsed < maxHints || isFinalTaskInExplore);
+    }            
+
             if (!appState.isTestModeEnabled && !task.isTaskTimerActive) { 
-                hint1Btn.disabled = true; hint2Btn.disabled = true; solutionBtn.disabled = true;
+        hint1Btn.disabled = true;
+        hint2Btn.disabled = true;
+        solutionBtn.disabled = true;
             }
         }
 
@@ -1378,7 +1465,16 @@
             document.getElementById('start-task-button-container').classList.add('hidden');
             document.getElementById('google-maps-btn').classList.remove('hidden'); 
             document.getElementById('report-error-btn').classList.remove('hidden');
-            
+
+const backBtn = document.getElementById('back-to-map-btn');
+    if (backBtn) {
+        if (appState.currentGame.taskOrder === 'explore' && !isStartTask) {
+            backBtn.classList.remove('hidden');
+        } else {
+            backBtn.classList.add('hidden');
+        }
+    }            
+
             const speakBtn = document.getElementById('speak-story-btn');
             if (speakBtn && ('speechSynthesis' in window)) speakBtn.style.display = 'block'; 
             else if (speakBtn && speakBtn.parentElement) speakBtn.remove();
@@ -1802,6 +1898,31 @@
             if (appState.isManualMock) toggleMapClickMock(true); 
         }
         
+// --- ÚJ FÜGGVÉNY: Visszalépés a térképre ---
+function backToExploreMap() {
+    // Csak Explore módban értelmezett
+    if (appState.currentGame.taskOrder !== 'explore') return;
+
+    // Elrejtjük a feladat interakciós felületet
+    document.getElementById('task-interaction-area').classList.add('hidden');
+    
+    // Megjelenítjük a választó felületet
+    document.getElementById('explore-selection-container').classList.remove('hidden');
+    
+    // Térkép visszaállítása választó módba
+    showTaskSelectionMap();
+    
+    // Az aktuális task indexét visszaállítjuk 0-ra (vagyis "választás alatt" állapotra)
+    appState.currentTaskIndex = 0;
+    
+    // Térkép frissítése (hogy a mock click handler rendben legyen)
+    if (appState.isManualMock) {
+        toggleMapClickMock(true);
+    }
+}
+
+
+
         function renderTaskMarkers() {
             if (!appState.map || appState.currentGame.taskOrder !== 'explore') return;
             Object.values(appState.taskMarkers).forEach(m => m.remove());
@@ -1912,6 +2033,41 @@
             if (typeof str !== 'string') return '';
             return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
         }
+
+
+function testGpsConnection() {
+            showLoading(true);
+            
+            if (!navigator.geolocation) {
+                showLoading(false);
+                document.getElementById('gps-help-modal').classList.remove('hidden');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    showLoading(false);
+                    // Sikeres GPS lekérés
+                    const accuracy = Math.round(pos.coords.accuracy);
+                    showMessage(
+                        '✅ GPS Működik!', 
+                        `Sikeresen meghatároztuk a helyzetedet!<br><br>Pontosság: <strong>kb. ${accuracy} méter</strong>.<br>Készen állsz a játékra.`
+                    );
+                },
+                (err) => {
+                    showLoading(false);
+                    console.warn("GPS Teszt Hiba:", err);
+                    // Hiba esetén megnyitjuk a segítő ablakot
+                    document.getElementById('gps-help-modal').classList.remove('hidden');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                    maximumAge: 0
+                }
+            );
+        }
+
 
         function requestGpsAndStart(gameId) {
             const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
