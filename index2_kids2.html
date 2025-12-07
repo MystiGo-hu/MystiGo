@@ -330,7 +330,9 @@
     <div class="w-full flex flex-col items-center justify-center"> 
         <p id="loading-status" class="text-gray-600 font-semibold my-4 h-5">Adatbázis automatikus betöltése...</p>
         
-        <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full max-w-xs text-sm block cursor-pointer my-4 !bg-red-600 hover:!bg-red-700 hidden animate-pulse">
+        <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full max-w-xs text-sm block cursor-pointer my-4 !bg-red-600 hover:!bg-red-700 animate-pulse">
+    ⚠️ Adatbázis betöltése... (vagy kattints ide)
+</label>
             ⚠️ Hiba történt. Kattints ide a manuális betöltéshez!
         </label>
         <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
@@ -944,61 +946,44 @@
         }
         
         async function loadLocalXlsx(filePath) {
-    // 1. Alapállapot beállítása
     showLoading(true);
     const statusText = document.getElementById('loading-status');
+    // Itt keressük meg a gombot:
     const manualInputLabel = document.getElementById('manual-file-select-label');
     
     if(statusText) statusText.textContent = `Adatbázis betöltése folyamatban...`;
 
-    // 2. BIZTONSÁGI IDŐZÍTŐ: Ha 1 másodperc alatt nem végez, mindenképp kirakjuk a gombot
-    // Ez védi ki, ha "eltűnik" a gomb, mert beragad a betöltés.
-    const safetyTimeout = setTimeout(() => {
-        if (manualInputLabel) {
-            manualInputLabel.classList.remove('hidden');
-            manualInputLabel.classList.add('animate-pulse');
-            if(statusText) statusText.textContent = "A betöltés lassú, vagy a fájl nem található. Használhatod a manuális gombot.";
-        }
-    }, 1000);
-
     try {
         const response = await fetch(filePath);
-        
-        // Ha a fájl nincs meg (404), dobunk egy hibát
         if (!response.ok) throw new Error(`A fájl nem található (${response.status})`);
         
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
-        
-        // Excel olvasása
         const wb = XLSX.read(data, {type:'array'}); 
         
-        // Adatok feldolgozása (Ez dob hibát, ha baj van)
+        // Feldolgozás
         processExcelData(wb); 
         
-        // HA SIKERES VOLT:
-        clearTimeout(safetyTimeout); // Töröljük a biztonsági időzítőt, már nem kell
-        // A gombot elrejtjük, ha esetleg már megjelent volna
-        if (manualInputLabel) manualInputLabel.classList.add('hidden');
+        // --- SIKER! ---
+        // Csak ekkor tüntetjük el a gombot:
+        if (manualInputLabel) {
+            manualInputLabel.classList.add('hidden'); // ELREJTJÜK
+            manualInputLabel.classList.remove('animate-pulse');
+        }
         
     } catch (error) {
-        // HA HIBA TÖRTÉNT:
-        clearTimeout(safetyTimeout); // Töröljük az időzítőt, mert most kézzel kezeljük a hibát
+        // --- HIBA VAGY ÖSSZEOMLÁS ---
+        // Nem csinálunk semmit a gombbal, ÍGY OTT MARAD LÁTHATÓ!
         console.error("Betöltési hiba:", error);
         showLoading(false);
         
-        // 1. Biztosítjuk, hogy az indító oldal látszódjon
         document.getElementById('landing-page').classList.remove('hidden');
         document.getElementById('content-wrapper').classList.add('hidden'); 
         
-        // 2. Kiírjuk a hibát
         if(statusText) statusText.textContent = `Hiba: ${error.message}`;
         
-        // 3. KÉNYSZERÍTVE MEGJELENÍTJÜK A GOMBOT
-        if (manualInputLabel) {
-            manualInputLabel.classList.remove('hidden'); // Levesszük a rejtést
-            manualInputLabel.classList.add('animate-pulse'); // Villogjon
-        }
+        // Biztonság kedvéért, ha mégis rejtve lenne, levesszük róla:
+        if (manualInputLabel) manualInputLabel.classList.remove('hidden');
     }
 }
 
