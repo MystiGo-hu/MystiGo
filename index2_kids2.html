@@ -944,25 +944,63 @@
         }
         
         async function loadLocalXlsx(filePath) {
-            showLoading(true);
-            document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
-            
-            try {
-                const response = await fetch(filePath);
-                if (!response.ok) throw new Error(`Hiba: ${response.status}`);
-                const arrayBuffer = await response.arrayBuffer();
-                const data = new Uint8Array(arrayBuffer);
-                const wb = XLSX.read(data, {type:'array'}); 
-                processExcelData(wb); 
-            } catch (error) {
-                document.getElementById('landing-page').classList.remove('hidden');
-                document.getElementById('content-wrapper').classList.add('hidden'); 
-                document.getElementById('loading-status').textContent = `Betöltés sikertelen. (${error.message})`;
-                const manualInputLabel = document.getElementById('manual-file-select-label');
-                if (manualInputLabel) manualInputLabel.classList.remove('hidden');
-                showLoading(false);
-            }
+    // 1. Alapállapot beállítása
+    showLoading(true);
+    const statusText = document.getElementById('loading-status');
+    const manualInputLabel = document.getElementById('manual-file-select-label');
+    
+    if(statusText) statusText.textContent = `Adatbázis betöltése folyamatban...`;
+
+    // 2. BIZTONSÁGI IDŐZÍTŐ: Ha 1 másodperc alatt nem végez, mindenképp kirakjuk a gombot
+    // Ez védi ki, ha "eltűnik" a gomb, mert beragad a betöltés.
+    const safetyTimeout = setTimeout(() => {
+        if (manualInputLabel) {
+            manualInputLabel.classList.remove('hidden');
+            manualInputLabel.classList.add('animate-pulse');
+            if(statusText) statusText.textContent = "A betöltés lassú, vagy a fájl nem található. Használhatod a manuális gombot.";
         }
+    }, 1000);
+
+    try {
+        const response = await fetch(filePath);
+        
+        // Ha a fájl nincs meg (404), dobunk egy hibát
+        if (!response.ok) throw new Error(`A fájl nem található (${response.status})`);
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const data = new Uint8Array(arrayBuffer);
+        
+        // Excel olvasása
+        const wb = XLSX.read(data, {type:'array'}); 
+        
+        // Adatok feldolgozása (Ez dob hibát, ha baj van)
+        processExcelData(wb); 
+        
+        // HA SIKERES VOLT:
+        clearTimeout(safetyTimeout); // Töröljük a biztonsági időzítőt, már nem kell
+        // A gombot elrejtjük, ha esetleg már megjelent volna
+        if (manualInputLabel) manualInputLabel.classList.add('hidden');
+        
+    } catch (error) {
+        // HA HIBA TÖRTÉNT:
+        clearTimeout(safetyTimeout); // Töröljük az időzítőt, mert most kézzel kezeljük a hibát
+        console.error("Betöltési hiba:", error);
+        showLoading(false);
+        
+        // 1. Biztosítjuk, hogy az indító oldal látszódjon
+        document.getElementById('landing-page').classList.remove('hidden');
+        document.getElementById('content-wrapper').classList.add('hidden'); 
+        
+        // 2. Kiírjuk a hibát
+        if(statusText) statusText.textContent = `Hiba: ${error.message}`;
+        
+        // 3. KÉNYSZERÍTVE MEGJELENÍTJÜK A GOMBOT
+        if (manualInputLabel) {
+            manualInputLabel.classList.remove('hidden'); // Levesszük a rejtést
+            manualInputLabel.classList.add('animate-pulse'); // Villogjon
+        }
+    }
+}
 
         // --- I18N ---
         const I18N = { 
@@ -1307,75 +1345,85 @@ async function sharePdfViaEmail() {
             if (missing.length > 0) throw new Error(`'${ctx}' munkalap hiba: A(z) ${missing.map(m => `"${m}"`).join(', ')} mező(k) hiányzik/üres.`);
         }
 
-        function processExcelData(workbook) {
-            try {
-                const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
-                if (!gamesSheet || !tasksSheet) throw new Error("A 'games' vagy 'tasks' munkalap hiányzik.");
-                const parsedGames = XLSX.utils.sheet_to_json(gamesSheet);
-                const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet);
-                const combinedGames = {};
-                parsedGames.forEach(game => {
-                    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
-                    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
-                    combinedGames[game.id] = { 
-                        ...game, type: String(game.type || 'normal').trim().toLowerCase(), 
-                        price: parseFloat(game.price || 0), description: DOMPurify.sanitize(game.description || ''), 
-                        endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: []
-			locationTag: String(game.location || '').trim(), // <--- EZT A SORT IDE 
-                    };
-                });
-                parsedTasks.forEach(task => {
-                    if (!combinedGames[task.gameId]) return;
-                    const lat = parseFloat(task.locationLat), lng = parseFloat(task.locationLng);
-                    
-                    let allSolutions = [];
-                    if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
-                    if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
-                    if (task.synonyms) allSolutions.push(...String(task.synonyms).split(';').map(s => s.trim()));
-                    const acceptedAnswers = Array.from(new Set(allSolutions.filter(Boolean).map(a => normalizeAnswer(a))));
-                    
-                    combinedGames[task.gameId].tasks.push({ 
-                        ...task, index: parseInt(task.index, 10), isStartTask: false, 
-                        story: DOMPurify.sanitize(task.story || ''), location: { lat, lng }, 
-                        geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
-                        hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
-                        solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers,
-		disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'), 
-                        hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
-                    }); 
-                });
+function processExcelData(workbook) {
+    try {
+        // --- JAVÍTÁS: Munkalap nevek rugalmas keresése (kis/nagybetű független) ---
+        const sheetNames = workbook.SheetNames;
+        const gamesSheetName = sheetNames.find(n => n.toLowerCase().trim() === 'games');
+        const tasksSheetName = sheetNames.find(n => n.toLowerCase().trim() === 'tasks');
 
-                const validatedGames = {};
-                for (const gameId in combinedGames) {
-                    const game = combinedGames[gameId];
-                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) continue;
-                    if (game.tasks.length === 0) continue;
-                    game.tasks.sort((a, b) => a.index - b.index);
-                    validatedGames[gameId] = game;
-                }
-                games = validatedGames;
+        if (!gamesSheetName || !tasksSheetName) {
+            throw new Error("Hiányzó munkalapok! Ellenőrizd, hogy létezik-e 'games' és 'tasks' nevű fül.");
+        }
+
+        const gamesSheet = workbook.Sheets[gamesSheetName];
+        const tasksSheet = workbook.Sheets[tasksSheetName];
+        
+        // Memória védelem: Csak az adatokkal teli sorokat olvassuk be
+        const parsedGames = XLSX.utils.sheet_to_json(gamesSheet, { blankrows: false, defval: "" });
+        const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet, { blankrows: false, defval: "" });
+        
+     
+        const parsedGames = XLSX.utils.sheet_to_json(gamesSheet);
+        const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet);
+        const combinedGames = {};
+        
+        parsedGames.forEach(game => {
+            assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
+            const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
+            combinedGames[game.id] = { 
+                ...game, type: String(game.type || 'normal').trim().toLowerCase(), 
+                price: parseFloat(game.price || 0), description: DOMPurify.sanitize(game.description || ''), 
+                endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: [],
+                locationTag: String(game.location || '').trim() 
+            };
+        });
+        
+        parsedTasks.forEach(task => {
+            if (!combinedGames[task.gameId]) return;
+            const lat = parseFloat(task.locationLat), lng = parseFloat(task.locationLng);
+            
+            let allSolutions = [];
+            if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
+            if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
+            if (task.synonyms) allSolutions.push(...String(task.synonyms).split(';').map(s => s.trim()));
+            const acceptedAnswers = Array.from(new Set(allSolutions.filter(Boolean).map(a => normalizeAnswer(a))));
+            
+            combinedGames[task.gameId].tasks.push({ 
+                ...task, index: parseInt(task.index, 10), isStartTask: false, 
+                story: DOMPurify.sanitize(task.story || ''), location: { lat, lng }, 
+                geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
+                hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
+                solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers,
+                disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'), 
+                hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
+            }); 
+        });
+
+        const validatedGames = {};
+        for (const gameId in combinedGames) {
+            const game = combinedGames[gameId];
+            if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) continue;
+            if (game.tasks.length === 0) continue;
+            game.tasks.sort((a, b) => a.index - b.index);
+            validatedGames[gameId] = game;
+        }
+        
+        // Ha nincs érvényes játék, dobjunk hibát
+        if (Object.keys(validatedGames).length === 0) {
+            throw new Error("Az Excel fájl nem tartalmaz érvényes játékot.");
+        }
+
+        games = validatedGames;
         renderGameList();          
         populateLocationFilter();  
         initFilters();             
         showLoading(false);
         showPage('game-list-page');
 
-    } catch (error) {
-        console.error("Adatbázis hiba:", error);
-        showLoading(false);
-        
-        // 1. Üzenet a felhasználónak
-        showMessage('Adatbázis Hiba', `Nem sikerült betölteni a játékokat.\n\nOk: ${error.message}\n\nKérlek, töltsd be manuálisan a fájlt.`);
-        
-        // 2. Szöveg frissítése az indító oldalon
-        const statusText = document.getElementById('loading-status');
-        if(statusText) statusText.textContent = "Az automatikus betöltés sikertelen.";
-
-        // 3. A MANUÁLIS GOMB MEGJELENÍTÉSE (Ez hiányzott eddig)
-        const manualInputLabel = document.getElementById('manual-file-select-label');
-        if (manualInputLabel) {
-            manualInputLabel.classList.remove('hidden'); // Levesszük a rejtést
-        }
+   } catch (error) {
+        console.error("Feldolgozási hiba:", error);
+        throw error; // <--- EZ A KULCS! Ez szól a gombnak, hogy jelenjen meg.
     }
 }
         
