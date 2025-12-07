@@ -1434,25 +1434,30 @@ async function sharePdfViaEmail() {
             const locationSelect = document.getElementById('filter-location');
             if (!locationSelect) return;
 
+            // Megjegyezzük, mi volt kiválasztva, hogy ne ugorjon vissza
             const currentValue = locationSelect.value;
             const locations = new Set();
             
             Object.values(games).forEach(game => {
-                // JAVÍTÁS: String() függvénnyel biztosítjuk, hogy szöveg legyen
-                // Ha nincs adat, akkor üres string lesz
+                // Biztonságos szöveggé alakítás (hogy ne legyen .split hiba)
                 const rawLocation = String(game.location || "");
 
                 if (rawLocation && rawLocation !== 'Egyéb' && rawLocation !== 'undefined') {
-                    // Most már biztosan szöveg, működni fog a split
+                    // ITT TÖRTÉNIK A VARÁZSLAT:
+                    // 1. split(','): Szétvágjuk a vesszőknél
+                    // 2. forEach: Minden darabon végigmegyünk
                     const parts = rawLocation.split(','); 
+                    
                     parts.forEach(part => {
+                        // trim(): Levágjuk a felesleges szóközöket az elejéről/végéről
                         const cleanLoc = part.trim();
+                        // Ha maradt szöveg, hozzáadjuk a listához
                         if (cleanLoc) locations.add(cleanLoc);
                     });
                 }
             });
 
-            // Opciók újraépítése
+            // Opciók újraépítése ABC sorrendben
             locationSelect.innerHTML = '<option value="all">Összes Helyszín</option>';
             Array.from(locations).sort().forEach(loc => {
                 const option = document.createElement('option');
@@ -1461,7 +1466,7 @@ async function sharePdfViaEmail() {
                 locationSelect.appendChild(option);
             });
 
-            // Korábbi kiválasztás visszaállítása
+            // Visszaállítjuk a kiválasztást, ha még létezik az opció
             if (Array.from(locationSelect.options).some(option => option.value === currentValue)) {
                 locationSelect.value = currentValue;
             } else {
@@ -1476,21 +1481,24 @@ async function sharePdfViaEmail() {
             const filteredGames = {};
 
             Object.values(games).forEach(game => {
-                // Típus szűrés
+                // Típus szűrés (ez marad a régi)
                 const matchesType = (typeFilter === 'all') || (game.type === typeFilter);
                 
                 // Helyszín szűrés
                 let matchesLocation = false;
                 
-                // JAVÍTÁS: Itt is kényszerítjük a szöveg típust
+                // Biztonsági átalakítás szöveggé
                 const rawLocation = String(game.location || "");
 
                 if (locationFilter === 'all') {
                     matchesLocation = true;
                 } else {
-                    // Biztonságos darabolás
-                    const gameLocations = rawLocation.split(',').map(s => s.trim());
-                    matchesLocation = gameLocations.includes(locationFilter);
+                    // 1. Szétvágjuk a játék helyszíneit listára (pl. ["Budapest", "Margitsziget"])
+                    const gameLocationsList = rawLocation.split(',').map(s => s.trim());
+
+                    // 2. Megnézzük, hogy a listában szerepel-e a kiválasztott szűrő
+                    // (pl. ha "Budapest"-et keresünk, megtalálja ebben a listában)
+                    matchesLocation = gameLocationsList.includes(locationFilter);
                 }
 
                 if (matchesType && matchesLocation) {
@@ -2332,7 +2340,7 @@ function testGpsConnection() {
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 8000,
+                    timeout: 15000,
                     maximumAge: 0
                 }
             );
