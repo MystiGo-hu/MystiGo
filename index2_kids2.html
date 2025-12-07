@@ -310,13 +310,10 @@
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
         <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
-            <div class="w-full h-[20vh] flex items-center justify-center pt-8">
-                <svg class="w-48" viewBox="0 0 245 197" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M122.5 13.0031C122.5 13.0031 163 -14.9969 187 13.0031C211 41.0031 187 63.0031 187 63.0031M122.5 13.0031C122.5 13.0031 82 -14.9969 58 13.0031C34 41.0031 58 63.0031 58 63.0031" stroke="var(--brand-blue)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M122.5 194.003C158.33 194.003 187 165.333 187 129.503C187 93.6731 158.33 65.0031 122.5 65.0031C86.67
-             65.0031 58 93.6731 58 129.503C58 165.333 86.67 194.003 122.5 194.003Z" fill="var(--brand-orange)"/><path d="M110.5 101.003H134.5V113.003C134.5 119.633 129.13 125.003 122.5 125.003C115.87 125.003 110.5 119.633 110.5 113.003V101.003Z" fill="var(--brand-blue)"/><rect x="94" y="125.003" width="57" height="42" rx="4" fill="var(--brand-blue)"/><rect x="102" y="132.003" width="8" height="12" rx="2" fill="var(--brand-orange)"/><rect x="118" y="132.00000000000001" width="8" height="20" rx="2" fill="var(--brand-orange)"/><rect x="134" y="132.00000000000001" width="8" height="12" rx="2" fill="var(--brand-orange)"/><circle cx="122.5" cy="65.0031" r="58.5" stroke="var(--brand-cyan)" stroke-width="8"/><path d="M181 125.003L237 181.003" stroke="var(--brand-cyan)" stroke-width="8" stroke-linecap="round"/></svg>
-            </div>
+            
             <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
-                <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);">Mysti<span id="logo-o" class="text-brand-orange-500 cursor-pointer">Go</span></h1>
-                <p id="landing-subtitle" class="mt-2 text-lg text-text-dark/80">A valós helyszínes, GPS-alapú városi kalandjáték</p>
+                <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
+                
             </div>
             
             <div class="w-full flex flex-col justify-start flex-grow"> 
@@ -531,7 +528,14 @@
                                 Feladat átugrása
                             </button>
                         </div>
-                        
+
+	    <button id="back-to-map-btn" onclick="backToExploreMap()" class="hidden mb-4 text-xs font-bold text-gray-500 hover:text-brand-blue flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Vissza a térképre (Később oldom meg)
+            </button>                        
+
                         <div id="start-task-button-container" class="mt-4 hidden">
                             <button id="start-game-btn" class="main-button w-full !text-lg !py-3 disabled:!bg-gray-400">
                                 🚀 Kaland Indítása (Időmérés elindul)
@@ -547,13 +551,6 @@
                         <div id="normal-task-content">
                             <div class="content-card p-5">
                                 
-<button id="back-to-map-btn" onclick="backToExploreMap()" class="hidden mb-4 text-xs font-bold text-gray-500 hover:text-brand-blue flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Vissza a térképre (Később oldom meg)
-            </button>
-
 				<details id="story-details" class="story-details mb-4" open>
                                     <summary>
                                         Történet Olvasása
@@ -567,6 +564,7 @@
                                 </details>
                                 
                                  <p id="prompt" class="font-bold text-lg text-text-heading mb-4"></p>
+
 
                                  <div id="answer-input-container" class="flex items-center gap-2">
                                    <input type="text" id="answer-input" placeholder="Írd be a megoldást..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
@@ -610,6 +608,16 @@
                         <div class="flex justify-center mt-10">
                             </div>
                     </div> 
+
+ <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban  a <strong>mystigo.net@gmail.com</strong> címre!</p>
+                    <div id="social-share-buttons" class="flex space-x-6 justify-center">
+                        <button onclick="sharePdfViaEmail()" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Eredmény küldése Emailben (PDF)">
+    <svg class="w-8 h-8 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+</button>
+                    </div>
+
                     
                     <p class="text-sm text-gray-500 mb-4 mt-4 font-semibold">Oszd meg a teljesítésed a közösségi médián:</p>
                     <div id="social-share-buttons" class="flex space-x-6 justify-center">
@@ -674,13 +682,11 @@
     <div id="report-error-modal" class="modal-overlay fixed inset-0 hidden items-center justify-center p-4">
         <div id="report-error-modal-content" class="content-card p-5 bg-red-50 border-red-200 border">
             <h2 class="text-xl font-bold text-red-600 mb-2">Feladat átugrása</h2>
-            <p class="text-sm text-gray-700 mb-4">Amennyiben a helyszín valami okból kifolyólag nem elérhető, írd le részletesen a problémát. A feladat **0 ponttal** teljesítettnek minősül.</p>
-
-            <textarea id="error-description-input" placeholder="Részletes leírás (pl. építkezés, eltűnt tárgy)..." rows="4" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-4 text-sm"></textarea>
+            <p class="text-sm text-gray-700 mb-4">Amennyiben a helyszín valami okból kifolyólag nem elérhető, átugorhatod az adott feladatot. A feladat ebben az esetben *0 ponttal* teljesítettnek minősül.</p>
 
             <div class="flex justify-between gap-4 mt-4">
                 <button onclick="hideReportModal()" class="main-button flex-1 !text-sm !bg-gray-400 hover:!bg-gray-500">Mégse</button>
-                <button id="submit-error-report" onclick="handleSubmitError()" class="main-button flex-1 !text-sm !bg-red-600 hover:!bg-red-700">Elküld & Tovább</button>
+                <button id="submit-error-report" onclick="handleSubmitError()" class="main-button flex-1 !text-sm !bg-red-600 hover:!bg-red-700">Igen szeretném átugrani</button>
             </div>
         </div>
     </div>
@@ -690,7 +696,7 @@
         <div id="report-error-modal-content" class="content-card p-5 bg-red-50 border-red-200 border">
              <div class="flex justify-between gap-4 mt-4">
                 <button onclick="hideReportModal()" class="main-button flex-1 !text-sm !bg-gray-400 hover:!bg-gray-500">Mégse</button>
-                <button id="submit-error-report" onclick="handleSubmitError()" class="main-button flex-1 !text-sm !bg-red-600 hover:!bg-red-700">Elküld & Tovább</button>
+                <button id="submit-error-report" onclick="handleSubmitError()" class="main-button flex-1 !text-sm !bg-red-600 hover:!bg-red-700">Igen szeretném átugrani</button>
             </div>
         </div>
     </div>
@@ -993,6 +999,79 @@
             }, 3000); 
         }
 
+
+async function sharePdfViaEmail() {
+    // 1. Elemek és stílusok előkészítése
+    const element = document.getElementById('pdf-content');
+    const originalStyle = element.style.cssText;
+    element.style.padding = '20px';
+    element.style.backgroundColor = '#ffffff';
+    
+    // --- FÁJLNÉV GENERÁLÁS KEZDETE ---
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // Itt fűzzük össze a dátumot ÉS az időt
+    const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+    const fileName = `Jatek_Eredmeny_${appState.teamName || 'Csapat'}_${safeAvatar}_${dateStr}_${timeStr}.pdf`;
+    // --- FÁJLNÉV GENERÁLÁS VÉGE ---
+
+    // Debug: Kiírjuk a konzolra és egy alertben is, hogy lásd, tényleg az új kód fut-e
+    console.log("Tervezett fájlnév:", fileName);
+    // alert("Fájlnév teszt: " + fileName); // Ezt a sort kiveheted, ha már működik
+
+    showLoading(true); 
+
+    try {
+        // 2. PDF generálása Blob-ként
+        const pdfBlob = await html2pdf().from(element).set({
+            margin: 10,
+            filename: fileName, // Itt használjuk a fenti változót
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).output('blob');
+
+        // 3. Fájl objektum létrehozása
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+        // 4. Stílusok visszaállítása
+        element.style.cssText = originalStyle;
+        showLoading(false);
+
+        // 5. Megosztás
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Játék Eredmény',
+                    text: `Sziasztok! Itt van a Játékom eredménye. Csapat: ${appState.teamName || 'Névtelen'}`
+                });
+            } catch (error) {
+                if (error.name !== 'AbortError') console.error(error);
+            }
+        } else {
+            // Fallback letöltés
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('A PDF letöltésre került (megosztás nem támogatott).');
+        }
+
+    } catch (err) {
+        console.error("Hiba:", err);
+        element.style.cssText = originalStyle;
+        showLoading(false);
+    }
+}
+
+
+
+
         // --- CORE APP & PAGE LOGIC ---
         function showPage(pageId) {
             // --- GA4 Virtual Pageview ---
@@ -1110,7 +1189,20 @@
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
         function showMessage(title, body, onClose, showCancel = false) {
-            document.getElementById('message-title').textContent = title;
+            // --- iPad / Mobil FIX KEZDIDE ---
+    		        // 1. Ha nyitva a billentyűzet (mert a beviteli mezőn van a fókusz), bezárjuk
+ 		           if (document.activeElement instanceof HTMLElement) {
+ 		               document.activeElement.blur();
+     		       }
+            
+       			     // 2. Azonnal a tartalom tetejére görgetünk, hogy az ablak biztosan látható legyen
+	              window.scrollTo(0, 0);
+   				         const contentWrapper = document.getElementById('content-page-wrapper');
+ 				           if (contentWrapper) {
+ 			               contentWrapper.scrollTo({ top: 0, behavior: 'instant' });
+    				        }
+          				  // --- iPad / Mobil FIX VÉGE ---
+	    document.getElementById('message-title').textContent = title;
             document.getElementById('message-body').innerHTML = DOMPurify.sanitize(body, { ADD_ATTR: ['style'], ADD_TAGS: ['strong', 'em', 'p', 'br'] }); 
             const okButton = document.getElementById('modal-ok-button');
             const cancelButton = document.getElementById('modal-cancel-button');
@@ -1144,13 +1236,30 @@
         function hideReportModal() { document.getElementById('report-error-modal').classList.add('hidden'); }
 
         function handleSubmitError() {
-            if (!appState.currentGame) return;
-            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
-            if (!currentTask) return;
-            currentTask.taskScore = 0; 
-            updateStatusDisplays(); hideReportModal();
-            showMessage("Hiba Rögzítve", "A hibát rögzítettük és a feladatot teljesítettnek jelöltük (0 pont). A játék folytatódik.", () => { handleCorrectAnswer(); });
-        }
+    if (!appState.currentGame) return;
+    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
+    if (!currentTask) return;
+
+    // --- MÓDOSÍTÁS KEZDETE ---
+    // Ha a 0. feladatot (Start pont) ugorjuk át, akkor el kell indítani a rendszert!
+    if (currentTask.index === 0) {
+        // Ez a függvény elindítja az időt, a GPS rögzítést, és betölti a következő feladatot (Task 1)
+        startTimersAndGPS();
+        
+        hideReportModal();
+        
+        // Jelzünk a felhasználónak, de NEM hívjuk meg a handleCorrectAnswer-t,
+        // mert a startTimersAndGPS() már elvégezte a lapozást.
+        showMessage("Játék Elindítva", "A kezdőpontot átugrottad. A játék és az időmérés elindult!", null);
+        return; 
+    }
+    // --- MÓDOSÍTÁS VÉGE ---
+
+    // Ez marad a régi a többi feladathoz:
+    currentTask.taskScore = 0; 
+    updateStatusDisplays(); hideReportModal();
+    showMessage("Átugorva", "A feladatot teljesítettnek jelöltük (0 pont). A játék folytatódik.", () => { handleCorrectAnswer(); });
+}
         
         function handleExitGame() { resetApp(); }
 
@@ -1576,7 +1685,8 @@ const backBtn = document.getElementById('back-to-map-btn');
                     endGame();
                 }
             }
-            saveGameState(); 
+            updateStatusDisplays();
+	    saveGameState(); 
         }
         
 // --- END GAME (JAVÍTOTT VERZIÓ) ---
