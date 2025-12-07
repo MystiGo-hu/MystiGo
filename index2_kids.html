@@ -607,6 +607,16 @@
                         <div class="flex justify-center mt-10">
                             </div>
                     </div> 
+
+ <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban  a <strong>mystigo.net@gmail.com</strong> címre!</p>
+                    <div id="social-share-buttons" class="flex space-x-6 justify-center">
+                        <button onclick="sharePdfViaEmail()" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Eredmény küldése Emailben (PDF)">
+    <svg class="w-8 h-8 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+</button>
+                    </div>
+
                     
                     <p class="text-sm text-gray-500 mb-4 mt-4 font-semibold">Oszd meg a teljesítésed a közösségi médián:</p>
                     <div id="social-share-buttons" class="flex space-x-6 justify-center">
@@ -987,6 +997,79 @@
                 });
             }, 3000); 
         }
+
+
+async function sharePdfViaEmail() {
+    // 1. Elemek és stílusok előkészítése
+    const element = document.getElementById('pdf-content');
+    const originalStyle = element.style.cssText;
+    element.style.padding = '20px';
+    element.style.backgroundColor = '#ffffff';
+    
+    // --- FÁJLNÉV GENERÁLÁS KEZDETE ---
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // Itt fűzzük össze a dátumot ÉS az időt
+    const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+    const fileName = `Jatek_Eredmeny_${appState.teamName || 'Csapat'}_${safeAvatar}_${dateStr}_${timeStr}.pdf`;
+    // --- FÁJLNÉV GENERÁLÁS VÉGE ---
+
+    // Debug: Kiírjuk a konzolra és egy alertben is, hogy lásd, tényleg az új kód fut-e
+    console.log("Tervezett fájlnév:", fileName);
+    // alert("Fájlnév teszt: " + fileName); // Ezt a sort kiveheted, ha már működik
+
+    showLoading(true); 
+
+    try {
+        // 2. PDF generálása Blob-ként
+        const pdfBlob = await html2pdf().from(element).set({
+            margin: 10,
+            filename: fileName, // Itt használjuk a fenti változót
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).output('blob');
+
+        // 3. Fájl objektum létrehozása
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+        // 4. Stílusok visszaállítása
+        element.style.cssText = originalStyle;
+        showLoading(false);
+
+        // 5. Megosztás
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Játék Eredmény',
+                    text: `Sziasztok! Itt van a Játékom eredménye. Csapat: ${appState.teamName || 'Névtelen'}`
+                });
+            } catch (error) {
+                if (error.name !== 'AbortError') console.error(error);
+            }
+        } else {
+            // Fallback letöltés
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('A PDF letöltésre került (megosztás nem támogatott).');
+        }
+
+    } catch (err) {
+        console.error("Hiba:", err);
+        element.style.cssText = originalStyle;
+        showLoading(false);
+    }
+}
+
+
+
 
         // --- CORE APP & PAGE LOGIC ---
         function showPage(pageId) {
