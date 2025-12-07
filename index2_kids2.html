@@ -249,43 +249,6 @@
         }
       
 
-<div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-start mb-4">
-            <h2 class="text-lg font-bold text-red-600 flex items-center">
-                <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                GPS Hiba / Beállítás
-            </h2>
-        </div>
-        
-        <p class="text-sm text-gray-700 mb-4 font-semibold">Nem sikerült lekérni a pontos helyzeted. Kérlek, ellenőrizd az alábbiakat:</p>
-
-        <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
-            <h3 class="font-bold text-brand-blue mb-2 flex items-center text-sm">
-                <span>🍎 iPhone (iOS)</span>
-            </h3>
-            <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
-                <li>Beállítások > <strong>Adatvédelem és biztonság</strong></li>
-                <li>Helymeghatározás > <strong>Bekapcsolva</strong></li>
-                <li>Keresd meg a listában a böngészőt (Safari/Chrome)</li>
-                <li>Válaszd: <strong>"Az alkalmazás használata közben"</strong></li>
-                <li>Kapcsold be: <strong>"Pontos helyzet"</strong></li>
-            </ul>
-        </div>
-
-        <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
-            <h3 class="font-bold text-brand-blue mb-2 flex items-center text-sm">
-                <span>🤖 Android (Samsung, Xiaomi, stb.)</span>
-            </h3>
-            <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
-                <li>Húzd le az értesítési sávot és kapcsold be a <strong>Helyzet / GPS</strong> ikont.</li>
-                <li>Ha ez megvan: Tartsd nyomva a Chrome ikont > App infó > Engedélyek > Hely > <strong>Engedélyezés</strong>.</li>
-            </ul>
-        </div>
-
-        <button onclick="document.getElementById('gps-help-modal').classList.add('hidden')" class="main-button w-full !text-sm !py-3">Értem, megpróbálom újra</button>
-    </div>
-</div>
 
 	 #report-error-modal-content {
             background-color: white;
@@ -511,8 +474,8 @@
                             </div>
                         </details>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <h2 class="text-xl font-bold text-text-heading mb-3">Csapat Beállítás</p>
-                            <input type="text" id="team-name-input" placeholder="Csapatnév" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
+                            <h2 class="text-xl font-bold text-text-heading mb-3">Név Beállítás</p>
+                            <input type="text" id="team-name-input" placeholder="Név" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
                             <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
                                 <option value="">Válassz Avatart (opcionális)</option>
 				    <option value="cat">Mysti 🐱</option>
@@ -639,7 +602,7 @@
 <div class="mt-20 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md">
     <p class="text-lg font-bold text-text-heading mb-1">
         <span id="final-team-avatar-icon" class="avatar-icon"></span>
-        Csapat: <span id="final-team-display"></span>
+        Név: <span id="final-team-display"></span>
     </p> 
     <p class="block">Teljes Idő: <strong id="final-time">00:00</strong></p> 
     <p class="block">Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
@@ -722,7 +685,53 @@
         </div>
     </div>
 
+
+<div id="report-error-modal" class="modal-overlay fixed inset-0 hidden items-center justify-center p-4">
+        <div id="report-error-modal-content" class="content-card p-5 bg-red-50 border-red-200 border">
+             <div class="flex justify-between gap-4 mt-4">
+                <button onclick="hideReportModal()" class="main-button flex-1 !text-sm !bg-gray-400 hover:!bg-gray-500">Mégse</button>
+                <button id="submit-error-report" onclick="handleSubmitError()" class="main-button flex-1 !text-sm !bg-red-600 hover:!bg-red-700">Elküld & Tovább</button>
+            </div>
+        </div>
+    </div>
+    <div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-lg font-bold text-red-600 flex items-center">
+                    <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    GPS Hiba / Beállítás
+                </h2>
+            </div>
+            
+            <p class="text-sm text-gray-700 mb-4 font-semibold">Nem sikerült lekérni a pontos helyzeted. Kérlek, ellenőrizd az alábbiakat:</p>
     
+            <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <h3 class="font-bold text-brand-blue mb-2 flex items-center text-sm">
+                    <span>🍎 iPhone (iOS)</span>
+                </h3>
+                <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
+                    <li>Beállítások > <strong>Adatvédelem és biztonság</strong></li>
+                    <li>Helymeghatározás > <strong>Bekapcsolva</strong></li>
+                    <li>Keresd meg a listában a böngészőt (Safari/Chrome)</li>
+                    <li>Válaszd: <strong>"Az alkalmazás használata közben"</strong></li>
+                    <li>Kapcsold be: <strong>"Pontos helyzet"</strong></li>
+                </ul>
+            </div>
+    
+            <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <h3 class="font-bold text-brand-blue mb-2 flex items-center text-sm">
+                    <span>🤖 Android (Samsung, Xiaomi, stb.)</span>
+                </h3>
+                <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
+                    <li>Húzd le az értesítési sávot és kapcsold be a <strong>Helyzet / GPS</strong> ikont.</li>
+                    <li>Ha ez megvan: Tartsd nyomva a Chrome ikont > App infó > Engedélyek > Hely > <strong>Engedélyezés</strong>.</li>
+                </ul>
+            </div>
+    
+            <button onclick="document.getElementById('gps-help-modal').classList.add('hidden')" class="main-button w-full !text-sm !py-3">Értem, megpróbálom újra</button>
+        </div>
+    </div>
+       
 <script>
         // --- GLOBAL STATE & CONSTANTS ---
         let games = {};
@@ -869,14 +878,14 @@
                     if (appState.currentGame.taskOrder === 'explore') {
                          if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
                              showTaskSelectionMap();
-                             showMessage("Visszatérés", `Üdv újra, ${appState.teamName || 'Csapat'}! A játék folytatódik a térképes választónál.`);
+                             showMessage("Visszatérés", `Üdv újra, ${appState.teamName || ''}! A játék folytatódik a térképes választónál.`);
                              return true; 
                          }
                     } 
                     
                     loadTask(appState.currentTaskIndex); 
                     
-                    let msg = `Üdv újra, ${appState.teamName || 'Csapat'}! A játék folytatódik.`;
+                    let msg = `Üdv újra, ${appState.teamName || ''}! A játék folytatódik.`;
                     showMessage("Folytatás", msg, null);
 
                 }, 100);
@@ -957,7 +966,7 @@
             const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
             
             // Biztonságos csapatnév lekérés
-            const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'Csapat';
+            const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
             
             // --- ÚJ RÉSZ: Avatar lekérése ---
             // Ha van kiválasztott avatar, azt használja, ha nincs, akkor 'nincs-avatar'
@@ -2014,7 +2023,7 @@ function backToExploreMap() {
         function shareResult(platform) {
             const finalScore = document.getElementById('final-score').textContent;
             const finalTime = document.getElementById('final-time').textContent;
-            const teamName = appState.teamName || "Csapat";
+            const teamName = appState.teamName || "Név";
             const gameTitle = appState.currentGame ? appState.currentGame.title : "Kaland";
             const text = `Éppen most fejeztem be a(z) ${gameTitle} kalandot a(z) ${teamName} csapattal! 🏆 Pontszám: ${finalScore}, Teljes idő: ${finalTime}. Próbáld ki te is! #MystiGo #VárosiKaland #KalandJáték`;
             const url = 'https://www.mystigo.hu/'; 
@@ -2069,32 +2078,34 @@ function testGpsConnection() {
         }
 
 
-        function requestGpsAndStart(gameId) {
+function requestGpsAndStart(gameId) {
             const selectedMode = document.querySelector('input[name="game_mode_selection"]:checked');
             const gameMode = selectedMode ? selectedMode.value : 'normal';
 
             if (gameMode === 'mock') { startGame(gameId, 'mock'); return; }
-            if (!navigator.geolocation) { showMessage('Hiba', 'A böngésződ nem támogatja a helymeghatározást. Kérjük, engedélyezd a Manuális Pozíció Beállítást a teszteléshez.'); return; }
+            
+            if (!navigator.geolocation) { 
+                // Ha a böngésző egyáltalán nem támogatja, akkor is jöhet a help ablak
+                document.getElementById('gps-help-modal').classList.remove('hidden');
+                return; 
+            }
             
             showLoading(true);
             navigator.geolocation.getCurrentPosition(
                 (pos) => { 
                     showLoading(false);
                     updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
-                    // Ha sikeres a GPS, akkor 'normal' módban indítjuk
                     startGame(gameId, 'normal');
                 },
                 (err) => { 
                     showLoading(false);
-                    let errorMessage = t('gps_required'); 
-                    if (err.code === 1) errorMessage = 'Engedély Megtagadva: A kaland indításához engedélyezned kell a helymeghatározást a böngésző/eszköz beállításaiban. Kérlek, engedélyezd és próbáld újra!';
-                    else if (err.code === 2) errorMessage = 'Pozíció nem elérhető: Kérlek, ellenőrizd, hogy a GPS/Helymeghatározás be van-e kapcsolva az eszközödön, és van-e tiszta rálátásod az égre.';
-                    else if (err.code === 3) errorMessage = 'Időtúllépés: A GPS jel gyenge volt. Próbálj jobb helyre menni, és próbáld újra!';
                     
-                    if (gameMode === 'normal') showMessage('GPS Teszt Sikertelen', errorMessage, () => {});
+                    if (gameMode === 'normal') {
+                        // JAVÍTÁS: Itt most már a szép ablakot nyitjuk meg a showMessage helyett!
+                        document.getElementById('gps-help-modal').classList.remove('hidden');
+                    }
                     else { 
                         showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód miatt a játék elindul.'); 
-                        // Fallback 'test' módra
                         startGame(gameId, 'test'); 
                     }
                 },
