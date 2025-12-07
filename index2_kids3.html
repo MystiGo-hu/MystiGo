@@ -1448,7 +1448,85 @@ function renderGameList(gamesToRender = null) {
     });
 
     listEl.innerHTML = htmlBuffer;
-}        
+}       
+
+function populateLocationFilter() {
+    const locationSelect = document.getElementById('filter-location');
+    if (!locationSelect) return;
+    const allGames = Object.values(games);
+    const locations = new Set();
+    
+    allGames.forEach(game => {
+        if (game.locationTag && game.locationTag !== '') {
+            const tags = game.locationTag.split(',').map(tag => tag.trim());
+            tags.forEach(tag => { if(tag.length > 0) locations.add(tag); });
+        }
+    });
+
+    locationSelect.innerHTML = '<option value="all">📍 Helyszín: Összes</option>';
+    Array.from(locations).sort().forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc;
+        option.textContent = `📍 ${loc}`;
+        locationSelect.appendChild(option);
+    });
+}
+
+function filterGames() {
+    const searchTerm = document.getElementById('filter-search').value.toLowerCase();
+    const locationFilter = document.getElementById('filter-location').value;
+    const activeBtn = document.querySelector('.filter-btn.active');
+    const activeCategory = activeBtn ? activeBtn.dataset.filter : 'all';
+    const allGames = Object.values(games);
+
+    const filtered = allGames.filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchTerm);
+        let matchesCategory = true;
+        if (activeCategory !== 'all') matchesCategory = (game.type === activeCategory);
+
+        let matchesLocation = true;
+        if (locationFilter !== 'all') {
+            if (!game.locationTag) matchesLocation = false;
+            else {
+                const gameTags = game.locationTag.split(',').map(t => t.trim());
+                matchesLocation = gameTags.includes(locationFilter);
+            }
+        }
+        return matchesSearch && matchesCategory && matchesLocation;
+    });
+    renderGameList(filtered);
+}
+
+function initFilters() {
+    const searchInput = document.getElementById('filter-search');
+    const locationSelect = document.getElementById('filter-location');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+
+    if (searchInput) searchInput.addEventListener('input', filterGames);
+    if (locationSelect) locationSelect.addEventListener('change', filterGames);
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            filterBtns.forEach(b => {
+                b.classList.remove('active', 'bg-brand-blue', 'text-white', 'border-brand-blue');
+                b.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
+            });
+            e.target.classList.add('active', 'bg-brand-blue', 'text-white', 'border-brand-blue');
+            e.target.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
+            filterGames();
+        });
+    });
+}
+
+window.resetFilters = function() {
+    const searchInput = document.getElementById('filter-search');
+    const locationSelect = document.getElementById('filter-location');
+    const allBtn = document.querySelector('[data-filter="all"]');
+    if(searchInput) searchInput.value = '';
+    if(locationSelect) locationSelect.value = 'all';
+    if(allBtn) allBtn.click();
+};
+ 
         function handleGameSelect(gameId, title, type, price, hasSave) {
             if (hasSave) {
                  loadGameById(gameId);
