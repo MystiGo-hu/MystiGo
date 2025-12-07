@@ -303,41 +303,31 @@
             font-size: 14px;
             cursor: pointer;
         }
-   
-/* --- SZŰRŐ STÍLUSOK --- */
-.filter-btn.active {
-    background-color: var(--brand-blue) !important;
-    color: white !important;
-    border-color: var(--brand-blue) !important;
-    box-shadow: 0 4px 6px -1px rgba(13, 43, 69, 0.2);
-}
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-
-     </style>
+    </style>
 </head>
 <body class="overflow-hidden">
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="flex flex-col items-center justify-center text-center text-brand-blue h-full p-8">
-    
-    <div class="mb-8">
-        <img src="./MystiGo_logo_cat.png" alt="MystiGo" class="w-32 h-auto mx-auto animate-bounce">
-    </div>
-    
-    <div class="w-full flex flex-col items-center justify-center"> 
-        <p id="loading-status" class="text-gray-600 font-semibold my-4 h-5">Adatbázis automatikus betöltése...</p>
-        
-        <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full max-w-xs text-sm block cursor-pointer my-4 !bg-red-600 hover:!bg-red-700 hidden animate-pulse">
-    ⚠️ Hiba történt. Kattints ide a manuális betöltéshez!
-</label>
-<input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
-        
-        </div>
-    
-</main>
+        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
+            
+            <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
+                <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
+                
+            </div>
+            
+            <div class="w-full flex flex-col justify-start flex-grow"> 
+                <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
+                
+                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
+                    Manuális Játékfájl Kiválasztása
+                </label>
+                <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
+                <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
+                <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
+            </div>
+            
+            </main>
         
         <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
             <div id="header" class="relative text-text-heading text-center pt-1 pb-16">
@@ -521,30 +511,33 @@
                         
                     </div>
                     
-
-<div id="game-filters" class="mb-6 space-y-4 sticky top-0 bg-white/95 backdrop-blur-sm z-30 py-4 -mx-6 px-6 shadow-md border-b border-gray-100">
-    <div class="flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-grow">
-            <input type="text" id="filter-search" placeholder="🔍 Keresés név alapján..." 
-                class="w-full px-4 py-3 pl-10 border-2 border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm shadow-sm">
-        </div>
-        <div class="relative sm:w-1/3 min-w-[150px]">
-            <select id="filter-location" class="w-full h-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm bg-white text-gray-700 font-semibold cursor-pointer">
-                <option value="all">📍 Helyszín: Összes</option>
+<div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+    <h3 class="text-sm font-bold text-brand-blue mb-3 flex items-center">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+        Kaland Szűrése
+    </h3>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Helyszín</label>
+            <select id="filter-location" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                <option value="all">Összes Helyszín</option>
             </select>
         </div>
-    </div>
-    <div class="flex overflow-x-auto pb-1 gap-2 no-scrollbar" style="-webkit-overflow-scrolling: touch;">
-        <button class="filter-btn active px-4 py-2 rounded-full text-xs font-bold border transition-all bg-brand-blue text-white border-brand-blue shadow-md" data-filter="all">Összes</button>
-        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="kids">Gyerek 👶</button>
-        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="normal">Normal 🧭</button>
-        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="team">Csapat 🧑‍🤝‍🧑</button>
-        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="explore">Explore 🌍</button>
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Típus</label>
+            <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                <option value="all">Összes Típus</option>
+                <option value="normal">Normal 🧭</option>
+                <option value="kids">Kids 👶</option>
+                <option value="team">Csapat 🧑‍🤝‍🧑</option>
+                <option value="explore">Explore 🌍</option>
+            </select>
+        </div>
     </div>
 </div>
 
 
-			<div id="game-list" class="space-y-6"></div>
+		<div id="game-list" class="space-y-6"></div>
                 </section>
                 
                 <section id="game-page" class="hidden space-y-6">
@@ -944,45 +937,25 @@
         }
         
         async function loadLocalXlsx(filePath) {
-    showLoading(true);
-    const statusText = document.getElementById('loading-status');
-    const manualInputLabel = document.getElementById('manual-file-select-label');
-    
-    if(statusText) statusText.textContent = `Adatbázis betöltése...`;
-
-    try {
-        const response = await fetch(filePath);
-        if (!response.ok) throw new Error(`Fájl hiba: ${response.status}`);
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const data = new Uint8Array(arrayBuffer);
-        
-        // Memóriakímélő olvasás
-        const wb = XLSX.read(data, {type:'array', dense: true}); 
-        
-        processExcelData(wb); 
-        
-        // Ha eljutunk ide, SIKERÜLT -> Rejtsük el a gombot (ha esetleg kint lenne)
-        if (manualInputLabel) manualInputLabel.classList.add('hidden');
-
-    } catch (error) {
-        console.error("Automatikus betöltés hiba:", error);
-        showLoading(false);
-        
-        // Vissza a kezdőképernyőre
-        document.getElementById('landing-page').classList.remove('hidden');
-        document.getElementById('content-wrapper').classList.add('hidden'); 
-        
-        if(statusText) statusText.textContent = "Az automatikus betöltés nem sikerült.";
-        
-        // A GOMB MEGJELENÍTÉSE (Ez a lényeg!)
-        if (manualInputLabel) {
-            manualInputLabel.classList.remove('hidden'); 
+            showLoading(true);
+            document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
+            
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) throw new Error(`Hiba: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                const wb = XLSX.read(data, {type:'array'}); 
+                processExcelData(wb); 
+            } catch (error) {
+                document.getElementById('landing-page').classList.remove('hidden');
+                document.getElementById('content-wrapper').classList.add('hidden'); 
+                document.getElementById('loading-status').textContent = `Betöltés sikertelen. (${error.message})`;
+                const manualInputLabel = document.getElementById('manual-file-select-label');
+                if (manualInputLabel) manualInputLabel.classList.remove('hidden');
+                showLoading(false);
+            }
         }
-        
-        showMessage('Betöltési Hiba', 'Nem sikerült betölteni az adatbázist automatikusan.<br>Kérlek, használd a piros gombot a fájl kiválasztásához!');
-    }
-}
 
         // --- I18N ---
         const I18N = { 
@@ -1327,170 +1300,214 @@ async function sharePdfViaEmail() {
             if (missing.length > 0) throw new Error(`'${ctx}' munkalap hiba: A(z) ${missing.map(m => `"${m}"`).join(', ')} mező(k) hiányzik/üres.`);
         }
 
-function processExcelData(workbook) {
-    try {
-        // Rugalmas munkalap keresés (kisbetű/nagybetű nem számít)
-        const sheetNames = workbook.SheetNames;
-        const gamesSheetName = sheetNames.find(n => n.toLowerCase().trim() === 'games');
-        const tasksSheetName = sheetNames.find(n => n.toLowerCase().trim() === 'tasks');
-
-        if (!gamesSheetName || !tasksSheetName) {
-            throw new Error("Hiányzó 'games' vagy 'tasks' munkalap!");
-        }
-
-        const gamesSheet = workbook.Sheets[gamesSheetName];
-        const tasksSheet = workbook.Sheets[tasksSheetName];
-        
-        // MEMÓRIAVÉDELEM: Csak az első 2000 sort olvassuk be!
-        // Ez megakadályozza az összeomlást hibás Excel fájloknál.
-        const parsedGames = XLSX.utils.sheet_to_json(gamesSheet, { blankrows: false, defval: "", sheetRows: 2000 });
-        const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet, { blankrows: false, defval: "", sheetRows: 5000 });
-        
-        const combinedGames = {};
-        
-        // Játékok feldolgozása (Szűrőkkel együtt)
-        parsedGames.forEach(game => {
-            if (!game.id) return;
+        function processExcelData(workbook) {
             try {
-                // Itt a locationTag az új szűréshez!
-                combinedGames[game.id] = { 
-                    ...game, 
-                    type: String(game.type || 'normal').trim().toLowerCase(), 
-                    price: parseFloat(game.price || 0), 
-                    description: DOMPurify.sanitize(game.description || ''), 
-                    endStory: DOMPurify.sanitize(game.endStory || ''), 
-                    startLocation: { lat: parseFloat(game.startLocationLat), lng: parseFloat(game.startLocationLng) }, 
-                    locationTag: String(game.location || '').trim(), // ÚJ SOR
-                    tasks: [] 
-                };
-            } catch (e) { console.warn("Sor hiba", e); }
-        });
-        
-        // Feladatok feldolgozása
-        parsedTasks.forEach(task => {
-            if (!task.gameId || !combinedGames[task.gameId]) return;
-            try {
-                let allSolutions = [];
-                if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
-                if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
-                
-                combinedGames[task.gameId].tasks.push({ 
-                    ...task, 
-                    index: parseInt(task.index, 10), 
-                    isStartTask: false, 
-                    location: { lat: parseFloat(task.locationLat), lng: parseFloat(task.locationLng) }, 
-                    geofenceRadius: parseFloat(task.geofenceRadius || 30), 
-                    hints: [task.hint1, task.hint2].filter(Boolean), 
-                    solution: String(task.solution || ''), 
-                    acceptedAnswers: allSolutions,
-                    taskScore: 0
-                }); 
-            } catch (e) { console.warn("Feladat hiba", e); }
-        });
+                const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
+                if (!gamesSheet || !tasksSheet) throw new Error("A 'games' vagy 'tasks' munkalap hiányzik.");
+                const parsedGames = XLSX.utils.sheet_to_json(gamesSheet);
+                const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet);
+                const combinedGames = {};
+                parsedGames.forEach(game => {
+                    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
+                    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
+                    combinedGames[game.id] = { 
+                        ...game, type: String(game.type || 'normal').trim().toLowerCase(), 
+                        price: parseFloat(game.price || 0), description: DOMPurify.sanitize(game.description || ''), 
+                        endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: [] 
+                    };
+                });
+                parsedTasks.forEach(task => {
+                    if (!combinedGames[task.gameId]) return;
+                    const lat = parseFloat(task.locationLat), lng = parseFloat(task.locationLng);
+                    
+                    let allSolutions = [];
+                    if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
+                    if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
+                    if (task.synonyms) allSolutions.push(...String(task.synonyms).split(';').map(s => s.trim()));
+                    const acceptedAnswers = Array.from(new Set(allSolutions.filter(Boolean).map(a => normalizeAnswer(a))));
+                    
+                    combinedGames[task.gameId].tasks.push({ 
+                        ...task, index: parseInt(task.index, 10), isStartTask: false, 
+                        story: DOMPurify.sanitize(task.story || ''), location: { lat, lng }, 
+                        geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
+                        hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
+                        solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers,
+		disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'), 
+                        hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
+                    }); 
+                });
 
-        const validatedGames = {};
-        for (const gameId in combinedGames) {
-            const game = combinedGames[gameId];
-            if (game.tasks.length > 0) {
-                game.tasks.sort((a, b) => a.index - b.index);
-                validatedGames[gameId] = game;
+                const validatedGames = {};
+                for (const gameId in combinedGames) {
+                    const game = combinedGames[gameId];
+                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) continue;
+                    if (game.tasks.length === 0) continue;
+                    game.tasks.sort((a, b) => a.index - b.index);
+                    validatedGames[gameId] = game;
+                }
+                games = validatedGames;
+                renderGameList();
+                showLoading(false);
+                showPage('game-list-page');
+            } catch (error) {
+                showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                showLoading(false);
             }
         }
         
-        if (Object.keys(validatedGames).length === 0) throw new Error("Nincs érvényes játék az Excelben.");
-
-        games = validatedGames;
-        
-        // UI frissítése
-        renderGameList();          
-        populateLocationFilter(); // Új filterek betöltése
-        initFilters();            // Gombok aktiválása
-        
-        showLoading(false);
-        showPage('game-list-page');
-
-    } catch (error) {
-        // TOVÁBBADJUK A HIBÁT, hogy a loadLocalXlsx elkaphassa és kitegye a gombot!
-        throw error;
-    }
-}
-        
         // --- UI RENDERING ---
         function renderGameList(gamesToRender = null) {
-    const listEl = document.getElementById('game-list');
-    listEl.innerHTML = '';
-    
-    // Ha nincs paraméter, akkor az összes játékot vesszük
-    const sourceGames = gamesToRender || Object.values(games);
+            const listEl = document.getElementById('game-list');
+            listEl.innerHTML = '';
+            
+            // Itt döntjük el, hogy a szűrt vagy az eredeti listát mutatjuk
+            const sourceData = gamesToRender || games;
 
-    if (sourceGames.length === 0) {
-        listEl.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-center">
-            <div class="text-4xl mb-3">🔍</div>
-            <p class="text-gray-600 font-bold mb-1">Nincs ilyen találat.</p>
-            <button onclick="resetFilters()" class="mt-3 px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 transition">Szűrők törlése</button>
-        </div>`; 
-        return;
-    }
-    
-    sourceGames.forEach(game => {
-        const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
-        
-        // Címkék generálása
-        let badgesHtml = '';
-        if (game.type === 'kids') badgesHtml += `<span class="inline-flex items-center rounded-md bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800 mr-2">Kids 👶</span>`;
-        else if (game.type === 'team') badgesHtml += `<span class="inline-flex items-center rounded-md bg-indigo-100 px-2 py-1 text-xs font-bold text-indigo-800 mr-2">Csapat 🧑‍🤝‍🧑</span>`;
-        else if (game.type === 'explore') badgesHtml += `<span class="inline-flex items-center rounded-md bg-cyan-100 px-2 py-1 text-xs font-bold text-cyan-800 mr-2">Explore 🌍</span>`;
-        else badgesHtml += `<span class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-bold text-green-800 mr-2">Normal 🧭</span>`;
+            // Ha nincs találat
+            if (Object.keys(sourceData).length === 0) {
+                 listEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-xl border border-gray-200">
+                    <p class="text-gray-500 font-semibold">Nincs a szűrésnek megfelelő játék.</p>
+                    <button onclick="resetFilters()" class="text-brand-blue underline mt-2 text-sm">Szűrők törlése</button>
+                 </div>`; 
+                 return;
+            }
+            
+            // Ha ez az első betöltés (nincs szűrő megadva), töltsük fel a helyszín listát
+            if (!gamesToRender) {
+                populateLocationFilter();
+            }
+            
+            Object.values(sourceData).forEach(game => {
+                const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+                let gameTypeBadge = '';
+                if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
+                else if (game.type === 'team') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
+                else if (game.type === 'explore') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800">Explore (Felfedező) 🌍</span>`;
+                else gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">Normal 🧭</span>`;
 
-        // Helyszín címke megjelenítése a kártyán
-        if (game.locationTag) {
-            const mainLoc = game.locationTag.split(',')[0]; 
-            badgesHtml += `<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">📍 ${mainLoc}</span>`;
+                const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
+                const gameTitleForMessage = game.title.replace(/'/g, "\\'");
+                
+                const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
+                
+                let saveIndicator = "";
+                let cardBorder = "";
+                
+                if (hasSave) {
+                    saveIndicator = `<div class="bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md">MENTVE</div>`;
+                    cardBorder = "border-2 border-brand-orange";
+                }
+
+                let deleteButtonHtml = "";
+                if (hasSave) {
+                    deleteButtonHtml = `
+                        <button onclick="event.stopPropagation(); deleteSavedGame('${game.id}');" class="absolute top-2 left-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md z-10" title="Újrakezdés (Mentés törlése)">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    `;
+                }
+
+                const locationBadge = game.location ? `<span class="text-xs text-gray-500 font-semibold flex items-center mt-1"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>${game.location}</span>` : '';
+
+                listEl.innerHTML += `
+                    <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow relative ${cardBorder}" 
+                         onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
+                        ${saveIndicator}
+                        ${deleteButtonHtml}
+                        <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover" onerror="this.onerror=null;this.src='${placeholderImage}';">
+                        <div class="p-5">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
+                                ${gameTypeBadge}
+                            </div>
+                            ${locationBadge}
+                            <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás megadva.'}</p>
+                            <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
+                            ${hasSave ? '<p class="text-xs font-bold text-green-600 mt-2">Kattints a folytatáshoz!</p>' : ''}
+                        </div>
+                    </div>`;
+            });
+        }
+  
+// --- ÚJ SZŰRŐ FÜGGVÉNYEK ---
+       function populateLocationFilter() {
+            const locationSelect = document.getElementById('filter-location');
+            if (!locationSelect) return;
+
+            const currentValue = locationSelect.value;
+            const locations = new Set();
+            
+            Object.values(games).forEach(game => {
+                // JAVÍTÁS: String() függvénnyel biztosítjuk, hogy szöveg legyen
+                // Ha nincs adat, akkor üres string lesz
+                const rawLocation = String(game.location || "");
+
+                if (rawLocation && rawLocation !== 'Egyéb' && rawLocation !== 'undefined') {
+                    // Most már biztosan szöveg, működni fog a split
+                    const parts = rawLocation.split(','); 
+                    parts.forEach(part => {
+                        const cleanLoc = part.trim();
+                        if (cleanLoc) locations.add(cleanLoc);
+                    });
+                }
+            });
+
+            // Opciók újraépítése
+            locationSelect.innerHTML = '<option value="all">Összes Helyszín</option>';
+            Array.from(locations).sort().forEach(loc => {
+                const option = document.createElement('option');
+                option.value = loc;
+                option.textContent = loc;
+                locationSelect.appendChild(option);
+            });
+
+            // Korábbi kiválasztás visszaállítása
+            if (Array.from(locationSelect.options).some(option => option.value === currentValue)) {
+                locationSelect.value = currentValue;
+            } else {
+                locationSelect.value = 'all';
+            }
         }
 
-        const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
-        const gameTitleForMessage = game.title.replace(/'/g, "\\'");
-        const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
-        
-        let saveIndicator = hasSave ? `<div class="bg-brand-orange text-white text-[10px] font-extrabold px-2 py-1 rounded absolute top-3 right-3 shadow-md tracking-wider">MENTVE</div>` : "";
-        let cardBorder = hasSave ? "border-2 border-brand-orange" : "border border-transparent";
+      function applyFilters() {
+            const typeFilter = document.getElementById('filter-type').value;
+            const locationFilter = document.getElementById('filter-location').value;
 
-        let deleteButtonHtml = "";
-        if (hasSave) {
-            deleteButtonHtml = `
-                <button onclick="event.stopPropagation(); deleteSavedGame('${game.id}');" class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-red-500 p-1.5 rounded-full hover:bg-red-100 shadow-sm z-10 border border-gray-200 transition-transform hover:scale-110" title="Mentés törlése">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-            `;
+            const filteredGames = {};
+
+            Object.values(games).forEach(game => {
+                // Típus szűrés
+                const matchesType = (typeFilter === 'all') || (game.type === typeFilter);
+                
+                // Helyszín szűrés
+                let matchesLocation = false;
+                
+                // JAVÍTÁS: Itt is kényszerítjük a szöveg típust
+                const rawLocation = String(game.location || "");
+
+                if (locationFilter === 'all') {
+                    matchesLocation = true;
+                } else {
+                    // Biztonságos darabolás
+                    const gameLocations = rawLocation.split(',').map(s => s.trim());
+                    matchesLocation = gameLocations.includes(locationFilter);
+                }
+
+                if (matchesType && matchesLocation) {
+                    filteredGames[game.id] = game;
+                }
+            });
+
+            renderGameList(filteredGames);
         }
 
-        listEl.innerHTML += `
-            <div class="content-card overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-300 relative ${cardBorder} transform hover:-translate-y-1" 
-                    onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
-                ${saveIndicator}
-                ${deleteButtonHtml}
-                <div class="relative h-44 overflow-hidden">
-                    <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null;this.src='${placeholderImage}';">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                    <div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
-                         <h3 class="text-white text-xl font-bold leading-tight shadow-black drop-shadow-md">${game.title}</h3>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div class="flex flex-wrap mb-3 gap-y-2">
-                        ${badgesHtml}
-                    </div>
-                    <p class="text-gray-600 text-sm line-clamp-2 leading-relaxed">${game.description || 'Nincs leírás megadva.'}</p>
-                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <p class="text-sm font-bold text-brand-orange-500">${priceText}</p>
-                        ${hasSave ? '<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">▶ Folytatás</span>' : '<span class="text-xs font-bold text-brand-blue group-hover:translate-x-1 transition-transform">Indítás →</span>'}
-                    </div>
-                </div>
-            </div>`;
-    });
-}
-        
+        function resetFilters() {
+            document.getElementById('filter-type').value = 'all';
+            document.getElementById('filter-location').value = 'all';
+            applyFilters();
+        }
+
+      
         function handleGameSelect(gameId, title, type, price, hasSave) {
             if (hasSave) {
                  loadGameById(gameId);
@@ -2358,144 +2375,53 @@ function requestGpsAndStart(gameId) {
         }
         
         // --- EVENT LISTENERS ---
-
-// === ÚJ SZŰRŐ ÉS KERESŐ LOGIKA (Ide illesztve) ===
-
-function populateLocationFilter() {
-    const locationSelect = document.getElementById('filter-location');
-    if (!locationSelect) return;
-    const allGames = Object.values(games);
-    const locations = new Set();
-    
-    allGames.forEach(game => {
-        if (game.locationTag && game.locationTag !== '') {
-            const tags = game.locationTag.split(',').map(tag => tag.trim());
-            tags.forEach(tag => { if(tag.length > 0) locations.add(tag); });
-        }
-    });
-
-    locationSelect.innerHTML = '<option value="all">📍 Helyszín: Összes</option>';
-    Array.from(locations).sort().forEach(loc => {
-        const option = document.createElement('option');
-        option.value = loc;
-        option.textContent = `📍 ${loc}`;
-        locationSelect.appendChild(option);
-    });
-}
-
-function filterGames() {
-    const searchTerm = document.getElementById('filter-search').value.toLowerCase();
-    const locationFilter = document.getElementById('filter-location').value;
-    const activeBtn = document.querySelector('.filter-btn.active');
-    const activeCategory = activeBtn ? activeBtn.dataset.filter : 'all';
-    const allGames = Object.values(games);
-
-    const filtered = allGames.filter(game => {
-        const matchesSearch = game.title.toLowerCase().includes(searchTerm);
-        let matchesCategory = true;
-        if (activeCategory !== 'all') matchesCategory = (game.type === activeCategory);
-
-        let matchesLocation = true;
-        if (locationFilter !== 'all') {
-            if (!game.locationTag) matchesLocation = false;
-            else {
-                const gameTags = game.locationTag.split(',').map(t => t.trim());
-                matchesLocation = gameTags.includes(locationFilter);
-            }
-        }
-        return matchesSearch && matchesCategory && matchesLocation;
-    });
-    renderGameList(filtered);
-}
-
-function initFilters() {
-    const searchInput = document.getElementById('filter-search');
-    const locationSelect = document.getElementById('filter-location');
-    const filterBtns = document.querySelectorAll('.filter-btn');
-
-    if (searchInput) searchInput.addEventListener('input', filterGames);
-    if (locationSelect) locationSelect.addEventListener('change', filterGames);
-
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            filterBtns.forEach(b => {
-                b.classList.remove('active', 'bg-brand-blue', 'text-white', 'border-brand-blue');
-                b.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
-            });
-            e.target.classList.add('active', 'bg-brand-blue', 'text-white', 'border-brand-blue');
-            e.target.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
-            filterGames();
-        });
-    });
-}
-
-window.resetFilters = function() {
-    const searchInput = document.getElementById('filter-search');
-    const locationSelect = document.getElementById('filter-location');
-    const allBtn = document.querySelector('[data-filter="all"]');
-    if(searchInput) searchInput.value = '';
-    if(locationSelect) locationSelect.value = 'all';
-    if(allBtn) allBtn.click();
-};
-
-
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Alapállapot beállítása
             initializeState();
-            
-            // 2. Automatikus betöltés indítása
             loadLocalXlsx(DEFAULT_GAME_FILE);
 
-            // 3. Elemek megkeresése
+            const logoO = document.getElementById('logo-o'); 
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
             const manualFileInput = document.getElementById('excel-file-input-manual'); 
-            const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
+            const devOptions = document.getElementById('developer-options');
+            const devToggle = document.getElementById('developer-tools-toggle');
 
-            // 4. Modal gombok eseményei
-            const modalOkBtn = document.getElementById('modal-ok-button');
-            const modalCancelBtn = document.getElementById('modal-cancel-button');
-            if(modalOkBtn) modalOkBtn.onclick = hideMessage;
-            if(modalCancelBtn) modalCancelBtn.onclick = hideMessage;
-                              
-            // 5. Fejléc logó kattintás (Reset)
+            document.getElementById('modal-ok-button').onclick = hideMessage;
+            document.getElementById('modal-cancel-button').onclick = hideMessage;
+            
+            logoO.addEventListener('click', () => {
+                 const switchesContainer = document.getElementById('secret-switches-container');
+                 if (switchesContainer) {
+                    if (!document.getElementById('game-list-page').classList.contains('hidden')) switchesContainer.classList.toggle('hidden');
+                 }
+            });
+            
+            const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
             if (mainHeaderLogoContainer) {
                 mainHeaderLogoContainer.style.cursor = 'pointer'; 
                 mainHeaderLogoContainer.addEventListener('click', () => { resetApp(); });
             }
 
-            // 6. Manuális fájl feltöltés eseménye (EZ A FONTOS RÉSZ A GOMBHOZ)
             if (manualFileInput) {
                  manualFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; 
-                    if (!file) return; 
-                    
+                    const file = event.target.files[0]; if (!file) return; 
                     showLoading(true);
                     const reader = new FileReader();
-                    
                     reader.onload = (e) => { 
                         try {
                             const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
                             processExcelData(wb);
-                            // Ha sikerült, elrejtjük a gombot
                             if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
                         } catch (error) {
                             showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                             showLoading(false);
-                            // Ha hiba van, biztosítjuk, hogy látszódjon a gomb
                             if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
                         }
                     };
-                    
-                    reader.onerror = () => { 
-                        showMessage('Hiba', 'Fájl olvasási hiba.'); 
-                        showLoading(false); 
-                    };
-                    
+                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
                     reader.readAsArrayBuffer(file);
                 });
             }
             
-            // 7. Fejlesztői fájl input (Ha maradt még a kódban rejtve)
             const excelFileInput = document.getElementById('excel-file-input');
             if (excelFileInput) {
                 excelFileInput.addEventListener('change', (event) => {
@@ -2516,17 +2442,21 @@ window.resetFilters = function() {
                 });
             }
 
-            // 8. Secret trigger (titkos kapcsoló) eseménye
             document.body.addEventListener('click', (e) => {
                  if (e.target && e.target.id === 'secret-trigger') {
                     const container = document.getElementById('secret-switches-container');
                     if (container) container.classList.toggle('hidden');
                  }
             });
+            
+            if (devToggle && devOptions) {
+                devToggle.addEventListener('click', () => {
+                    devOptions.classList.toggle('hidden');
+                    devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
+                });
+            }
 
-            // 9. Játék gombok eseményei
-            const submitBtn = document.getElementById('submit-answer-btn');
-            if(submitBtn) submitBtn.addEventListener('click', () => {
+            document.getElementById('submit-answer-btn').addEventListener('click', () => {
                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                 if (!task) return;
                 if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
@@ -2544,9 +2474,7 @@ window.resetFilters = function() {
                 updateStatusDisplays();
             });
 
-            // Segítség gombok
-            const hint1Btn = document.getElementById('hint1-btn');
-            if(hint1Btn) hint1Btn.addEventListener('click', (e) => {
+            document.getElementById('hint1-btn').addEventListener('click', (e) => {
                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                 if (!task) return;
                 if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
@@ -2555,13 +2483,20 @@ window.resetFilters = function() {
                 if (task.hintsUsed < 1) { 
                     task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); 
                     task.hintsUsed = 1;
-		            updateStatusDisplays(); saveGameState(); 
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'hint_used', {
+                            'game_id': appState.currentGame.id,
+                            'level_index': appState.currentTaskIndex,
+                            'hint_type': 'hint_1',
+                            'team_name': appState.teamName || 'unknown'
+                        });
+                    }
+		    updateStatusDisplays(); saveGameState(); 
                 }
                 showMessage('1. Segítség', t('hint1_body', task.hints[0]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => { updateHintButtons(task); });
             });
 
-            const hint2Btn = document.getElementById('hint2-btn');
-            if(hint2Btn) hint2Btn.addEventListener('click', (e) => {
+            document.getElementById('hint2-btn').addEventListener('click', (e) => {
                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                 if (!task) return;
                 if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
@@ -2569,40 +2504,47 @@ window.resetFilters = function() {
                 if (speechSynth.speaking) speechSynth.cancel();
                 if (task.hintsUsed < 2) { 
                     task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); 
-                    task.hintsUsed = 2;              
-    		        updateStatusDisplays(); saveGameState(); 
+                    task.hintsUsed = 2;
+		if (typeof gtag === 'function') {
+                        gtag('event', 'hint_used', {
+                            'game_id': appState.currentGame.id,
+                            'level_index': appState.currentTaskIndex,
+                            'hint_type': 'hint_2',
+                            'team_name': appState.teamName || 'unknown'
+                        });
+                    }                
+    		updateStatusDisplays(); saveGameState(); 
                 }
                 showMessage('2. Segítség', t('hint2_body', task.hints[1]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => { updateHintButtons(task); });
             });
             
-            const solutionBtn = document.getElementById('solution-btn');
-            if(solutionBtn) solutionBtn.addEventListener('click', () => {
+            document.getElementById('solution-btn').addEventListener('click', () => {
                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                 if (!task) return;
                 if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
                 if (task.isStartTask) return; 
                 if (speechSynth.speaking) speechSynth.cancel();
+                const scoreLost = task.taskScore; 
                 task.taskScore = 0; 
-        		showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
+                if (typeof gtag === 'function') {
+                    gtag('event', 'hint_used', {
+                        'game_id': appState.currentGame.id,
+                        'level_index': appState.currentTaskIndex,
+                        'hint_type': 'solution_reveal', // Itt más típust adunk meg
+                        'team_name': appState.teamName || 'unknown'
+                    });
+                }
+		showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
                     handleCorrectAnswer(); updateStatusDisplays();
                 });
                 saveGameState(); 
             });
             
-            // Egyéb vezérlők
-            const startBtn = document.getElementById('start-game-btn');
-            if(startBtn) startBtn.addEventListener('click', startTimersAndGPS);
-            
-            const exitBtn = document.getElementById('exit-game-btn');
-            if(exitBtn) exitBtn.addEventListener('click', showExitConfirmation);
-            
-            const reportBtn = document.getElementById('report-error-btn');
-            if(reportBtn) reportBtn.addEventListener('click', showReportModal);
-            
-            const submitErrorBtn = document.getElementById('submit-error-report');
-            if(submitErrorBtn) submitErrorBtn.addEventListener('click', handleSubmitError); 
+            document.getElementById('start-game-btn').addEventListener('click', startTimersAndGPS);
+            document.getElementById('exit-game-btn').addEventListener('click', showExitConfirmation);
+            document.getElementById('report-error-btn').addEventListener('click', showReportModal); 
+            document.getElementById('submit-error-report').addEventListener('click', handleSubmitError); 
 
-            // Láthatóság és fókusz kezelés
             document.addEventListener('visibilitychange', () => {
                 if (!appState.currentGame) return;
                 if (document.hidden) { 
@@ -2612,8 +2554,7 @@ window.resetFilters = function() {
                 else if (!appState.geoWatchId) { watchPosition(); }
             });
 
-            const answerInput = document.getElementById('answer-input');
-            if(answerInput) answerInput.addEventListener('focus', (e) => {
+            document.getElementById('answer-input').addEventListener('focus', (e) => {
                 const inputElement = e.target;
                 inputElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 setTimeout(() => {
