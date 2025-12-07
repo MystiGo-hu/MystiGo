@@ -724,7 +724,7 @@
                 </h3>
                 <ul class="list-disc pl-5 text-xs text-gray-600 space-y-1">
                     <li>Húzd le az értesítési sávot és kapcsold be a <strong>Helyzet / GPS</strong> ikont.</li>
-                    <li>Ha ez megvan: Tartsd nyomva a Chrome ikont > App infó > Engedélyek > Hely > <strong>Engedélyezés</strong>.</li>
+                    <li>Ha ez megvan: Chrome beállítások > Webhelybeállítások > Tartózkodási hely. "A webhelyek lekérhetik az Ön helyadatait" legyen bekapcsolva. A "Nincs engedélyezve" listában ne legyen ott a https://mystigo.hu. Esetleg még itt is ellenőrizd: Tartsd nyomva a Chrome ikont > App infó > Engedélyek > Hely > <strong>Engedélyezés</strong>.</li>
                 </ul>
             </div>
     
@@ -748,8 +748,8 @@
         const DEFAULT_GAME_FILE = 'games/games_free_kids.xlsx'; 
 
         const AVATAR_ICONS = {
-            cat: '🐈', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-            ghost: '👻', lock: '🔐', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️',
+            cat: '🐱',dog: '🐶',panda: '🐼',monkey: '🐵', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
+            ghost: '👻', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️',smile: '😎',zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️',floppy: '💾',
         };
 
         let appState = {};
@@ -995,7 +995,14 @@
 
         // --- CORE APP & PAGE LOGIC ---
         function showPage(pageId) {
-            const landingPage = document.getElementById('landing-page');
+            // --- GA4 Virtual Pageview ---
+    if (typeof gtag === 'function') {
+        gtag('event', 'page_view', {
+            'page_title': pageId,
+            'page_location': window.location.href + '#' + pageId
+        });
+    }
+	    const landingPage = document.getElementById('landing-page');
             const contentWrapper = document.getElementById('content-wrapper');
             
             if (pageId === 'landing-page') {
@@ -1348,8 +1355,15 @@
         }
 
         function startGame(gameId, modeOverride = null) {
+// --- GOOGLE ANALYTICS MÉRÉS BEILLESZTÉSE ---
+    if (typeof gtag === 'function') {
+        gtag('event', 'game_start', {
+            'game_id': gameId,
+            'game_mode': modeOverride || 'normal',
+            'team_name': document.getElementById('team-name-input').value || 'unknown'
+        });
+    }
             if (speechSynth.speaking) speechSynth.cancel();
-            
             let gameMode;
             if (modeOverride) {
                 gameMode = modeOverride;
@@ -1526,7 +1540,15 @@ const backBtn = document.getElementById('back-to-map-btn');
         }
 
         function handleCorrectAnswer() {
-            if (speechSynth.speaking) speechSynth.cancel();
+// --- GOOGLE ANALYTICS MÉRÉS BEILLESZTÉSE ---
+    if (typeof gtag === 'function') {
+        gtag('event', 'level_up', {
+            'level': appState.currentTaskIndex,
+            'character': appState.teamAvatar || 'none',
+            'score': appState.score
+        });
+    }            
+	    if (speechSynth.speaking) speechSynth.cancel();
             const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
             if (!currentTask) return;
             currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
@@ -1559,7 +1581,15 @@ const backBtn = document.getElementById('back-to-map-btn');
         
 // --- END GAME (JAVÍTOTT VERZIÓ) ---
         function endGame() {
-            if (speechSynth.speaking) speechSynth.cancel();
+   if (typeof gtag === 'function') {
+        gtag('event', 'game_complete', {
+            'game_id': appState.currentGame ? appState.currentGame.id : 'unknown',
+            'score': appState.score,
+            'total_time': appState.totalTime,
+            'team_name': appState.teamName
+        });
+    }
+	    if (speechSynth.speaking) speechSynth.cancel();
             
             // Jelenlegi idő meghatározása
             const endTime = new Date();
