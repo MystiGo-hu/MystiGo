@@ -303,31 +303,41 @@
             font-size: 14px;
             cursor: pointer;
         }
-    </style>
+   
+/* --- SZŰRŐ STÍLUSOK --- */
+.filter-btn.active {
+    background-color: var(--brand-blue) !important;
+    color: white !important;
+    border-color: var(--brand-blue) !important;
+    box-shadow: 0 4px 6px -1px rgba(13, 43, 69, 0.2);
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+
+     </style>
 </head>
 <body class="overflow-hidden">
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
-            
-            <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
-                <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
-                
-            </div>
-            
-            <div class="w-full flex flex-col justify-start flex-grow"> 
-                <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
-                
-                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
-                    Manuális Játékfájl Kiválasztása
-                </label>
-                <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
-                <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
-                <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
-            </div>
-            
-            </main>
+        <main id="landing-page" class="flex flex-col items-center justify-center text-center text-brand-blue h-full p-8">
+    
+    <div class="mb-8">
+        <img src="./MystiGo_logo_cat.png" alt="MystiGo" class="w-32 h-auto mx-auto animate-bounce">
+    </div>
+    
+    <div class="w-full flex flex-col items-center justify-center"> 
+        <p id="loading-status" class="text-gray-600 font-semibold my-4 h-5">Adatbázis automatikus betöltése...</p>
+        
+        <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full max-w-xs text-sm block cursor-pointer my-4 !bg-red-600 hover:!bg-red-700 hidden animate-pulse">
+            ⚠️ Hiba történt. Kattints ide a manuális betöltéshez!
+        </label>
+        <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
+        
+        </div>
+    
+</main>
         
         <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
             <div id="header" class="relative text-text-heading text-center pt-1 pb-16">
@@ -510,7 +520,31 @@
 			</div>
                         
                     </div>
-                    <div id="game-list" class="space-y-6"></div>
+                    
+
+<div id="game-filters" class="mb-6 space-y-4 sticky top-0 bg-white/95 backdrop-blur-sm z-30 py-4 -mx-6 px-6 shadow-md border-b border-gray-100">
+    <div class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-grow">
+            <input type="text" id="filter-search" placeholder="🔍 Keresés név alapján..." 
+                class="w-full px-4 py-3 pl-10 border-2 border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm shadow-sm">
+        </div>
+        <div class="relative sm:w-1/3 min-w-[150px]">
+            <select id="filter-location" class="w-full h-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm bg-white text-gray-700 font-semibold cursor-pointer">
+                <option value="all">📍 Helyszín: Összes</option>
+            </select>
+        </div>
+    </div>
+    <div class="flex overflow-x-auto pb-1 gap-2 no-scrollbar" style="-webkit-overflow-scrolling: touch;">
+        <button class="filter-btn active px-4 py-2 rounded-full text-xs font-bold border transition-all bg-brand-blue text-white border-brand-blue shadow-md" data-filter="all">Összes</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="kids">Gyerek 👶</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="normal">Normal 🧭</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="team">Csapat 🧑‍🤝‍🧑</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-xs font-bold border transition-all bg-white text-gray-600 border-gray-200 hover:bg-gray-50" data-filter="explore">Explore 🌍</button>
+    </div>
+</div>
+
+
+			<div id="game-list" class="space-y-6"></div>
                 </section>
                 
                 <section id="game-page" class="hidden space-y-6">
@@ -1286,7 +1320,8 @@ async function sharePdfViaEmail() {
                     combinedGames[game.id] = { 
                         ...game, type: String(game.type || 'normal').trim().toLowerCase(), 
                         price: parseFloat(game.price || 0), description: DOMPurify.sanitize(game.description || ''), 
-                        endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: [] 
+                        endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: []
+			locationTag: String(game.location || '').trim(), // <--- EZT A SORT IDE 
                     };
                 });
                 parsedTasks.forEach(task => {
@@ -1319,73 +1354,106 @@ async function sharePdfViaEmail() {
                     validatedGames[gameId] = game;
                 }
                 games = validatedGames;
-                renderGameList();
-                showLoading(false);
-                showPage('game-list-page');
-            } catch (error) {
-                showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                showLoading(false);
-            }
+        renderGameList();          
+        populateLocationFilter();  
+        initFilters();             
+        showLoading(false);
+        showPage('game-list-page');
+
+    } catch (error) {
+        console.error("Adatbázis hiba:", error);
+        showLoading(false);
+        
+        // 1. Üzenet a felhasználónak
+        showMessage('Adatbázis Hiba', `Nem sikerült betölteni a játékokat.\n\nOk: ${error.message}\n\nKérlek, töltsd be manuálisan a fájlt.`);
+        
+        // 2. Szöveg frissítése az indító oldalon
+        const statusText = document.getElementById('loading-status');
+        if(statusText) statusText.textContent = "Az automatikus betöltés sikertelen.";
+
+        // 3. A MANUÁLIS GOMB MEGJELENÍTÉSE (Ez hiányzott eddig)
+        const manualInputLabel = document.getElementById('manual-file-select-label');
+        if (manualInputLabel) {
+            manualInputLabel.classList.remove('hidden'); // Levesszük a rejtést
         }
+    }
+}
         
         // --- UI RENDERING ---
-        function renderGameList() {
-            const listEl = document.getElementById('game-list');
-            listEl.innerHTML = '';
-            if (Object.keys(games).length === 0) {
-                 listEl.innerHTML = `<div class="text-center p-4 bg-gray-100 rounded-lg"><p>Nem található érvényes játék az adatfájlban.</p></div>`; return;
-            }
-            
-            Object.values(games).forEach(game => {
-                const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
-                let gameTypeBadge = '';
-                if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
-                else if (game.type === 'team') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
-                else if (game.type === 'explore') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800">Explore (Felfedező) 🌍</span>`;
-                else gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">Normal 🧭</span>`;
+        function renderGameList(gamesToRender = null) {
+    const listEl = document.getElementById('game-list');
+    listEl.innerHTML = '';
+    
+    // Ha nincs paraméter, akkor az összes játékot vesszük
+    const sourceGames = gamesToRender || Object.values(games);
 
-                const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
-                const gameTitleForMessage = game.title.replace(/'/g, "\\'");
-                
-                const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
-                
-                let buttonText = "Kaland Indítása";
-                let saveIndicator = "";
-                let cardBorder = "";
-                
-                if (hasSave) {
-                    buttonText = "FOLYTATÁS ▶";
-                    saveIndicator = `<div class="bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md">MENTVE</div>`;
-                    cardBorder = "border-2 border-brand-orange";
-                }
+    if (sourceGames.length === 0) {
+        listEl.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-center">
+            <div class="text-4xl mb-3">🔍</div>
+            <p class="text-gray-600 font-bold mb-1">Nincs ilyen találat.</p>
+            <button onclick="resetFilters()" class="mt-3 px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 transition">Szűrők törlése</button>
+        </div>`; 
+        return;
+    }
+    
+    sourceGames.forEach(game => {
+        const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+        
+        // Címkék generálása
+        let badgesHtml = '';
+        if (game.type === 'kids') badgesHtml += `<span class="inline-flex items-center rounded-md bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800 mr-2">Kids 👶</span>`;
+        else if (game.type === 'team') badgesHtml += `<span class="inline-flex items-center rounded-md bg-indigo-100 px-2 py-1 text-xs font-bold text-indigo-800 mr-2">Csapat 🧑‍🤝‍🧑</span>`;
+        else if (game.type === 'explore') badgesHtml += `<span class="inline-flex items-center rounded-md bg-cyan-100 px-2 py-1 text-xs font-bold text-cyan-800 mr-2">Explore 🌍</span>`;
+        else badgesHtml += `<span class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-bold text-green-800 mr-2">Normal 🧭</span>`;
 
-                let deleteButtonHtml = "";
-                if (hasSave) {
-                    deleteButtonHtml = `
-                        <button onclick="event.stopPropagation(); deleteSavedGame('${game.id}');" class="absolute top-2 left-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md z-10" title="Újrakezdés (Mentés törlése)">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                    `;
-                }
-
-                listEl.innerHTML += `
-                    <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow relative ${cardBorder}" 
-                         onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
-                        ${saveIndicator}
-                        ${deleteButtonHtml}
-                        <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover" onerror="this.onerror=null;this.src='${placeholderImage}';">
-                        <div class="p-5">
-                            <div class="flex justify-between items-start">
-                                <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
-                                ${gameTypeBadge}
-                            </div>
-                            <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás megadva.'}</p>
-                            <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
-                            ${hasSave ? '<p class="text-xs font-bold text-green-600 mt-2">Kattints a folytatáshoz!</p>' : ''}
-                        </div>
-                    </div>`;
-            });
+        // Helyszín címke megjelenítése a kártyán
+        if (game.locationTag) {
+            const mainLoc = game.locationTag.split(',')[0]; 
+            badgesHtml += `<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">📍 ${mainLoc}</span>`;
         }
+
+        const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
+        const gameTitleForMessage = game.title.replace(/'/g, "\\'");
+        const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
+        
+        let saveIndicator = hasSave ? `<div class="bg-brand-orange text-white text-[10px] font-extrabold px-2 py-1 rounded absolute top-3 right-3 shadow-md tracking-wider">MENTVE</div>` : "";
+        let cardBorder = hasSave ? "border-2 border-brand-orange" : "border border-transparent";
+
+        let deleteButtonHtml = "";
+        if (hasSave) {
+            deleteButtonHtml = `
+                <button onclick="event.stopPropagation(); deleteSavedGame('${game.id}');" class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-red-500 p-1.5 rounded-full hover:bg-red-100 shadow-sm z-10 border border-gray-200 transition-transform hover:scale-110" title="Mentés törlése">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+            `;
+        }
+
+        listEl.innerHTML += `
+            <div class="content-card overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-300 relative ${cardBorder} transform hover:-translate-y-1" 
+                    onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
+                ${saveIndicator}
+                ${deleteButtonHtml}
+                <div class="relative h-44 overflow-hidden">
+                    <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.onerror=null;this.src='${placeholderImage}';">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+                    <div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+                         <h3 class="text-white text-xl font-bold leading-tight shadow-black drop-shadow-md">${game.title}</h3>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="flex flex-wrap mb-3 gap-y-2">
+                        ${badgesHtml}
+                    </div>
+                    <p class="text-gray-600 text-sm line-clamp-2 leading-relaxed">${game.description || 'Nincs leírás megadva.'}</p>
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                        <p class="text-sm font-bold text-brand-orange-500">${priceText}</p>
+                        ${hasSave ? '<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">▶ Folytatás</span>' : '<span class="text-xs font-bold text-brand-blue group-hover:translate-x-1 transition-transform">Indítás →</span>'}
+                    </div>
+                </div>
+            </div>`;
+    });
+}
         
         function handleGameSelect(gameId, title, type, price, hasSave) {
             if (hasSave) {
@@ -2254,26 +2322,96 @@ function requestGpsAndStart(gameId) {
         }
         
         // --- EVENT LISTENERS ---
+
+// === ÚJ SZŰRŐ ÉS KERESŐ LOGIKA (Ide illesztve) ===
+
+function populateLocationFilter() {
+    const locationSelect = document.getElementById('filter-location');
+    if (!locationSelect) return;
+    const allGames = Object.values(games);
+    const locations = new Set();
+    
+    allGames.forEach(game => {
+        if (game.locationTag && game.locationTag !== '') {
+            const tags = game.locationTag.split(',').map(tag => tag.trim());
+            tags.forEach(tag => { if(tag.length > 0) locations.add(tag); });
+        }
+    });
+
+    locationSelect.innerHTML = '<option value="all">📍 Helyszín: Összes</option>';
+    Array.from(locations).sort().forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc;
+        option.textContent = `📍 ${loc}`;
+        locationSelect.appendChild(option);
+    });
+}
+
+function filterGames() {
+    const searchTerm = document.getElementById('filter-search').value.toLowerCase();
+    const locationFilter = document.getElementById('filter-location').value;
+    const activeBtn = document.querySelector('.filter-btn.active');
+    const activeCategory = activeBtn ? activeBtn.dataset.filter : 'all';
+    const allGames = Object.values(games);
+
+    const filtered = allGames.filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchTerm);
+        let matchesCategory = true;
+        if (activeCategory !== 'all') matchesCategory = (game.type === activeCategory);
+
+        let matchesLocation = true;
+        if (locationFilter !== 'all') {
+            if (!game.locationTag) matchesLocation = false;
+            else {
+                const gameTags = game.locationTag.split(',').map(t => t.trim());
+                matchesLocation = gameTags.includes(locationFilter);
+            }
+        }
+        return matchesSearch && matchesCategory && matchesLocation;
+    });
+    renderGameList(filtered);
+}
+
+function initFilters() {
+    const searchInput = document.getElementById('filter-search');
+    const locationSelect = document.getElementById('filter-location');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+
+    if (searchInput) searchInput.addEventListener('input', filterGames);
+    if (locationSelect) locationSelect.addEventListener('change', filterGames);
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            filterBtns.forEach(b => {
+                b.classList.remove('active', 'bg-brand-blue', 'text-white', 'border-brand-blue');
+                b.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
+            });
+            e.target.classList.add('active', 'bg-brand-blue', 'text-white', 'border-brand-blue');
+            e.target.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
+            filterGames();
+        });
+    });
+}
+
+window.resetFilters = function() {
+    const searchInput = document.getElementById('filter-search');
+    const locationSelect = document.getElementById('filter-location');
+    const allBtn = document.querySelector('[data-filter="all"]');
+    if(searchInput) searchInput.value = '';
+    if(locationSelect) locationSelect.value = 'all';
+    if(allBtn) allBtn.click();
+};
+
+
         document.addEventListener('DOMContentLoaded', () => {
             initializeState();
             loadLocalXlsx(DEFAULT_GAME_FILE);
-
-            const logoO = document.getElementById('logo-o'); 
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
             const manualFileInput = document.getElementById('excel-file-input-manual'); 
-            const devOptions = document.getElementById('developer-options');
-            const devToggle = document.getElementById('developer-tools-toggle');
-
+            
             document.getElementById('modal-ok-button').onclick = hideMessage;
             document.getElementById('modal-cancel-button').onclick = hideMessage;
-            
-            logoO.addEventListener('click', () => {
-                 const switchesContainer = document.getElementById('secret-switches-container');
-                 if (switchesContainer) {
-                    if (!document.getElementById('game-list-page').classList.contains('hidden')) switchesContainer.classList.toggle('hidden');
-                 }
-            });
-            
+                              
             const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
             if (mainHeaderLogoContainer) {
                 mainHeaderLogoContainer.style.cursor = 'pointer'; 
@@ -2362,7 +2500,15 @@ function requestGpsAndStart(gameId) {
                 if (task.hintsUsed < 1) { 
                     task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); 
                     task.hintsUsed = 1;
-                    updateStatusDisplays(); saveGameState(); 
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'hint_used', {
+                            'game_id': appState.currentGame.id,
+                            'level_index': appState.currentTaskIndex,
+                            'hint_type': 'hint_1',
+                            'team_name': appState.teamName || 'unknown'
+                        });
+                    }
+		    updateStatusDisplays(); saveGameState(); 
                 }
                 showMessage('1. Segítség', t('hint1_body', task.hints[0]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => { updateHintButtons(task); });
             });
@@ -2376,7 +2522,15 @@ function requestGpsAndStart(gameId) {
                 if (task.hintsUsed < 2) { 
                     task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); 
                     task.hintsUsed = 2;
-                    updateStatusDisplays(); saveGameState(); 
+		if (typeof gtag === 'function') {
+                        gtag('event', 'hint_used', {
+                            'game_id': appState.currentGame.id,
+                            'level_index': appState.currentTaskIndex,
+                            'hint_type': 'hint_2',
+                            'team_name': appState.teamName || 'unknown'
+                        });
+                    }                
+    		updateStatusDisplays(); saveGameState(); 
                 }
                 showMessage('2. Segítség', t('hint2_body', task.hints[1]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => { updateHintButtons(task); });
             });
@@ -2389,7 +2543,15 @@ function requestGpsAndStart(gameId) {
                 if (speechSynth.speaking) speechSynth.cancel();
                 const scoreLost = task.taskScore; 
                 task.taskScore = 0; 
-                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
+                if (typeof gtag === 'function') {
+                    gtag('event', 'hint_used', {
+                        'game_id': appState.currentGame.id,
+                        'level_index': appState.currentTaskIndex,
+                        'hint_type': 'solution_reveal', // Itt más típust adunk meg
+                        'team_name': appState.teamName || 'unknown'
+                    });
+                }
+		showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
                     handleCorrectAnswer(); updateStatusDisplays();
                 });
                 saveGameState(); 
