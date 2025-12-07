@@ -2362,7 +2362,15 @@ function requestGpsAndStart(gameId) {
                 if (task.hintsUsed < 1) { 
                     task.taskScore = Math.max(0, task.taskScore - HINT1_PENALTY); 
                     task.hintsUsed = 1;
-                    updateStatusDisplays(); saveGameState(); 
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'hint_used', {
+                            'game_id': appState.currentGame.id,
+                            'level_index': appState.currentTaskIndex,
+                            'hint_type': 'hint_1',
+                            'team_name': appState.teamName || 'unknown'
+                        });
+                    }
+		    updateStatusDisplays(); saveGameState(); 
                 }
                 showMessage('1. Segítség', t('hint1_body', task.hints[0]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => { updateHintButtons(task); });
             });
@@ -2376,7 +2384,15 @@ function requestGpsAndStart(gameId) {
                 if (task.hintsUsed < 2) { 
                     task.taskScore = Math.max(0, task.taskScore - HINT2_PENALTY); 
                     task.hintsUsed = 2;
-                    updateStatusDisplays(); saveGameState(); 
+		if (typeof gtag === 'function') {
+                        gtag('event', 'hint_used', {
+                            'game_id': appState.currentGame.id,
+                            'level_index': appState.currentTaskIndex,
+                            'hint_type': 'hint_2',
+                            'team_name': appState.teamName || 'unknown'
+                        });
+                    }                
+    		updateStatusDisplays(); saveGameState(); 
                 }
                 showMessage('2. Segítség', t('hint2_body', task.hints[1]) + `<br><br>(Maradt pont: ${task.taskScore})`, () => { updateHintButtons(task); });
             });
@@ -2389,7 +2405,15 @@ function requestGpsAndStart(gameId) {
                 if (speechSynth.speaking) speechSynth.cancel();
                 const scoreLost = task.taskScore; 
                 task.taskScore = 0; 
-                showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
+                if (typeof gtag === 'function') {
+                    gtag('event', 'hint_used', {
+                        'game_id': appState.currentGame.id,
+                        'level_index': appState.currentTaskIndex,
+                        'hint_type': 'solution_reveal', // Itt más típust adunk meg
+                        'team_name': appState.teamName || 'unknown'
+                    });
+                }
+		showMessage('Megoldás', `A feladat megoldása: ${task.solution}. <br><br>(Maradt pont: 0)`, () => {
                     handleCorrectAnswer(); updateStatusDisplays();
                 });
                 saveGameState(); 
