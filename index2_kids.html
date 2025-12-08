@@ -1545,22 +1545,25 @@ async function sharePdfViaEmail() {
                 const combinedGames = {};
                 
                 parsedGames.forEach(game => {
-                    if (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true') return;
-                    
-                    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
-                    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
-                    // --- MÓDOSÍTÁS: ID tisztítása (szóközök levágása) ---
-                    // Ha az Excelben véletlenül maradt szóköz ("hamu-teszt "), itt levágjuk:
-                    const cleanId = String(game.id).trim(); 
+    // TÖRÖLVE: if (game.isHidden == 1 || ...) return;
+    
+    // Helyette kiszámoljuk, és eltároljuk a flag-et:
+    const isHiddenGame = (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true');
 
-                    combinedGames[cleanId] = { 
-                        ...game, 
-                        id: cleanId, // A belső ID-t is felülírjuk a tisztára
-                        type: String(game.type || 'normal').trim().toLowerCase(), 
-                        price: parseFloat(game.price || 0), description: DOMPurify.sanitize(game.description || ''), 
-                        endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: [] 
-                    };
-                });
+    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
+    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
+    const cleanId = String(game.id).trim(); 
+
+  combinedGames[cleanId] = { 
+    ...game, 
+    id: cleanId,
+    isHidden: isHiddenGame, 
+    type: String(game.type || 'normal').trim().toLowerCase(),
+    startLocation: { lat, lng }, 
+    price: parseInt(game.price || 0),
+    tasks: []  // <--- EZT A SORT MINDENKÉPP ÍRD BE!
+};
+});
 
 
                 parsedTasks.forEach(task => {
@@ -1662,7 +1665,9 @@ async function sharePdfViaEmail() {
             }
             
             Object.values(sourceData).forEach(game => {
-                const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+                if (!gamesToRender && game.isHidden) return;
+
+   				   const placeholderImage =`https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
                 let gameTypeBadge = '';
                 if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
                 else if (game.type === 'team') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
@@ -1723,8 +1728,9 @@ async function sharePdfViaEmail() {
             const locations = new Set();
             
             Object.values(games).forEach(game => {
-                // Biztonságos szöveggé alakítás (hogy ne legyen .split hiba)
-                const rawLocation = String(game.location || "");
+    if (game.isHidden) return; // Rejtett játékok helyszínei ne kerüljenek a listába
+
+                   const rawLocation = String(game.location || "");
 
                 if (rawLocation && rawLocation !== 'Egyéb' && rawLocation !== 'undefined') {
                     // ITT TÖRTÉNIK A VARÁZSLAT:
@@ -1772,6 +1778,7 @@ async function sharePdfViaEmail() {
             const filteredGames = {};
 
             Object.values(games).forEach(game => {
+    if (game.isHidden) return; // Kézi szűrésnél mindig rejtjük őket
                 // 1. Helyszín ellenőrzés (több helyszín kezelése vesszővel)
                 let locMatch = false;
                 if (location === 'all') {
