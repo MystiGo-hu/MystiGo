@@ -933,7 +933,7 @@
 
         function deleteSavedGame(gameId) {
             localStorage.removeItem(getStorageKey(gameId));
-            renderGameList(); 
+            applyFilters(); 
         }
         
         async function loadLocalXlsx(filePath) {
@@ -1170,7 +1170,7 @@ async function sharePdfViaEmail() {
                 document.getElementById('page-title').textContent = titles[pageId] || 'MystiGo';
                 
                 if (pageId === 'game-list-page') {
-                     if (Object.keys(games).length > 0) renderGameList();
+                     if (Object.keys(games).length > 0) applyFilters();
                      if (Object.keys(games).length > 0) document.getElementById('team-setup').classList.remove('hidden');
                 } else {
                      document.getElementById('secret-switches-container').classList.add('hidden');
@@ -1346,7 +1346,8 @@ async function sharePdfViaEmail() {
                     validatedGames[gameId] = game;
                 }
                 games = validatedGames;
-                renderGameList();
+                populateLocationFilter(); // Először frissítjük a helyszín listát az új adatok alapján
+    					applyFilters();           // Utána kirajzoljuk a listát a beállított szűrők szerint
                 showLoading(false);
                 showPage('game-list-page');
             } catch (error) {
