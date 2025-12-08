@@ -1876,32 +1876,39 @@ async function sharePdfViaEmail() {
 
         // Segédfüggvény a Dropdown-ok beállításához (Csak vizuális!)
         function updateFilterUI(locParam, typeParam, gameIdParam) {
+            const filterContainer = document.getElementById('filter-container');
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
 
-            // Ha konkrét játék van, mindent letiltunk
-            if (gameIdParam) {
-                if (locSelect) { locSelect.disabled = true; locSelect.classList.add('opacity-50', 'cursor-not-allowed'); }
-                if (typeSelect) { typeSelect.disabled = true; typeSelect.classList.add('opacity-50', 'cursor-not-allowed'); }
+            // --- MÓDOSÍTÁS: Ha bármilyen URL paraméter van, ELREJTJÜK a dobozt ---
+            if (gameIdParam || locParam || typeParam) {
+                if (filterContainer) {
+                    filterContainer.classList.add('hidden'); // Teljesen eltünteti a szűrő dobozt
+                }
+                // Mivel elrejtettük, nem kell tovább állítgatni a select-eket
                 return;
             }
+            
+            // Ha NINCS paraméter, biztosítjuk, hogy látható legyen
+            if (filterContainer) {
+                filterContainer.classList.remove('hidden');
+            }
 
-            // Helyszín beállítása
+            // --- INNENTŐL A RÉGI LOGIKA (Csak akkor fut le, ha nincs URL szűrés) ---
+            
+            // Helyszín beállítása (ha manuálisan hívnánk meg később)
             if (locParam && locSelect) {
-                // Megkeressük azt az opciót, ami legjobban hasonlít
                 const option = Array.from(locSelect.options).find(opt => 
                     opt.value.toLowerCase().includes(locParam.toLowerCase())
                 );
                 if (option) {
                     locSelect.value = option.value;
-                    locSelect.classList.add('bg-blue-50', 'font-bold', 'text-brand-blue');
                 }
             }
 
             // Típus beállítása
             if (typeParam && typeSelect) {
                 typeSelect.value = typeParam.toLowerCase();
-                typeSelect.classList.add('bg-blue-50', 'font-bold', 'text-brand-blue');
             }
         }
 
