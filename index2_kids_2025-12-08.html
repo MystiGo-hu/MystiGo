@@ -510,34 +510,7 @@
 			</div>
                         
                     </div>
-                    
-<div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-    <h3 class="text-sm font-bold text-brand-blue mb-3 flex items-center">
-        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-        Kaland Szűrése
-    </h3>
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Helyszín</label>
-            <select id="filter-location" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                <option value="all">Összes Helyszín</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Típus</label>
-            <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                <option value="all">Összes Típus</option>
-                <option value="normal">Normal 🧭</option>
-                <option value="kids">Kids 👶</option>
-                <option value="team">Csapat 🧑‍🤝‍🧑</option>
-                <option value="explore">Explore 🌍</option>
-            </select>
-        </div>
-    </div>
-</div>
-
-
-		<div id="game-list" class="space-y-6"></div>
+                    <div id="game-list" class="space-y-6"></div>
                 </section>
                 
                 <section id="game-page" class="hidden space-y-6">
@@ -1356,28 +1329,14 @@ async function sharePdfViaEmail() {
         }
         
         // --- UI RENDERING ---
-        function renderGameList(gamesToRender = null) {
+        function renderGameList() {
             const listEl = document.getElementById('game-list');
             listEl.innerHTML = '';
-            
-            // Itt döntjük el, hogy a szűrt vagy az eredeti listát mutatjuk
-            const sourceData = gamesToRender || games;
-
-            // Ha nincs találat
-            if (Object.keys(sourceData).length === 0) {
-                 listEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-xl border border-gray-200">
-                    <p class="text-gray-500 font-semibold">Nincs a szűrésnek megfelelő játék.</p>
-                    <button onclick="resetFilters()" class="text-brand-blue underline mt-2 text-sm">Szűrők törlése</button>
-                 </div>`; 
-                 return;
+            if (Object.keys(games).length === 0) {
+                 listEl.innerHTML = `<div class="text-center p-4 bg-gray-100 rounded-lg"><p>Nem található érvényes játék az adatfájlban.</p></div>`; return;
             }
             
-            // Ha ez az első betöltés (nincs szűrő megadva), töltsük fel a helyszín listát
-            if (!gamesToRender) {
-                populateLocationFilter();
-            }
-            
-            Object.values(sourceData).forEach(game => {
+            Object.values(games).forEach(game => {
                 const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
                 let gameTypeBadge = '';
                 if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
@@ -1390,10 +1349,12 @@ async function sharePdfViaEmail() {
                 
                 const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
                 
+                let buttonText = "Kaland Indítása";
                 let saveIndicator = "";
                 let cardBorder = "";
                 
                 if (hasSave) {
+                    buttonText = "FOLYTATÁS ▶";
                     saveIndicator = `<div class="bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md">MENTVE</div>`;
                     cardBorder = "border-2 border-brand-orange";
                 }
@@ -1407,8 +1368,6 @@ async function sharePdfViaEmail() {
                     `;
                 }
 
-                const locationBadge = game.location ? `<span class="text-xs text-gray-500 font-semibold flex items-center mt-1"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>${game.location}</span>` : '';
-
                 listEl.innerHTML += `
                     <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow relative ${cardBorder}" 
                          onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
@@ -1420,7 +1379,6 @@ async function sharePdfViaEmail() {
                                 <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
                                 ${gameTypeBadge}
                             </div>
-                            ${locationBadge}
                             <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás megadva.'}</p>
                             <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
                             ${hasSave ? '<p class="text-xs font-bold text-green-600 mt-2">Kattints a folytatáshoz!</p>' : ''}
@@ -1428,94 +1386,7 @@ async function sharePdfViaEmail() {
                     </div>`;
             });
         }
-  
-// --- ÚJ SZŰRŐ FÜGGVÉNYEK ---
-       function populateLocationFilter() {
-            const locationSelect = document.getElementById('filter-location');
-            if (!locationSelect) return;
-
-            // Megjegyezzük, mi volt kiválasztva, hogy ne ugorjon vissza
-            const currentValue = locationSelect.value;
-            const locations = new Set();
-            
-            Object.values(games).forEach(game => {
-                // Biztonságos szöveggé alakítás (hogy ne legyen .split hiba)
-                const rawLocation = String(game.location || "");
-
-                if (rawLocation && rawLocation !== 'Egyéb' && rawLocation !== 'undefined') {
-                    // ITT TÖRTÉNIK A VARÁZSLAT:
-                    // 1. split(','): Szétvágjuk a vesszőknél
-                    // 2. forEach: Minden darabon végigmegyünk
-                    const parts = rawLocation.split(','); 
-                    
-                    parts.forEach(part => {
-                        // trim(): Levágjuk a felesleges szóközöket az elejéről/végéről
-                        const cleanLoc = part.trim();
-                        // Ha maradt szöveg, hozzáadjuk a listához
-                        if (cleanLoc) locations.add(cleanLoc);
-                    });
-                }
-            });
-
-            // Opciók újraépítése ABC sorrendben
-            locationSelect.innerHTML = '<option value="all">Összes Helyszín</option>';
-            Array.from(locations).sort().forEach(loc => {
-                const option = document.createElement('option');
-                option.value = loc;
-                option.textContent = loc;
-                locationSelect.appendChild(option);
-            });
-
-            // Visszaállítjuk a kiválasztást, ha még létezik az opció
-            if (Array.from(locationSelect.options).some(option => option.value === currentValue)) {
-                locationSelect.value = currentValue;
-            } else {
-                locationSelect.value = 'all';
-            }
-        }
-
-      function applyFilters() {
-            const typeFilter = document.getElementById('filter-type').value;
-            const locationFilter = document.getElementById('filter-location').value;
-
-            const filteredGames = {};
-
-            Object.values(games).forEach(game => {
-                // Típus szűrés (ez marad a régi)
-                const matchesType = (typeFilter === 'all') || (game.type === typeFilter);
-                
-                // Helyszín szűrés
-                let matchesLocation = false;
-                
-                // Biztonsági átalakítás szöveggé
-                const rawLocation = String(game.location || "");
-
-                if (locationFilter === 'all') {
-                    matchesLocation = true;
-                } else {
-                    // 1. Szétvágjuk a játék helyszíneit listára (pl. ["Budapest", "Margitsziget"])
-                    const gameLocationsList = rawLocation.split(',').map(s => s.trim());
-
-                    // 2. Megnézzük, hogy a listában szerepel-e a kiválasztott szűrő
-                    // (pl. ha "Budapest"-et keresünk, megtalálja ebben a listában)
-                    matchesLocation = gameLocationsList.includes(locationFilter);
-                }
-
-                if (matchesType && matchesLocation) {
-                    filteredGames[game.id] = game;
-                }
-            });
-
-            renderGameList(filteredGames);
-        }
-
-        function resetFilters() {
-            document.getElementById('filter-type').value = 'all';
-            document.getElementById('filter-location').value = 'all';
-            applyFilters();
-        }
-
-      
+        
         function handleGameSelect(gameId, title, type, price, hasSave) {
             if (hasSave) {
                  loadGameById(gameId);
@@ -1721,6 +1592,7 @@ async function sharePdfViaEmail() {
             else if (isStartTask) task.taskScore = 0;
 
             document.getElementById('normal-task-content').classList.remove('hidden');
+            document.getElementById('task-interaction-area').classList.remove('hidden');
             document.getElementById('explore-selection-container').classList.add('hidden');
             document.getElementById('start-task-button-container').classList.add('hidden');
             document.getElementById('google-maps-btn').classList.remove('hidden'); 
@@ -2170,6 +2042,7 @@ const backBtn = document.getElementById('back-to-map-btn');
         function exploreSelectionMapMarkerSelectHandler(e) {
             if (!e.target || !e.target.options || e.target.options.taskIndex === undefined) return;
             loadTask(e.target.options.taskIndex);
+            document.getElementById('task-interaction-area').classList.remove('hidden');
             document.getElementById('explore-selection-container').classList.add('hidden');
             if (appState.isManualMock) toggleMapClickMock(true); 
         }
@@ -2184,10 +2057,6 @@ function backToExploreMap() {
     
     // Megjelenítjük a választó felületet
     document.getElementById('explore-selection-container').classList.remove('hidden');
-
-    // --- ÚJ SOR: A vissza gomb elrejtése ---
-    document.getElementById('back-to-map-btn').classList.add('hidden');
-    // ---------------------------------------
     
     // Térkép visszaállítása választó módba
     showTaskSelectionMap();
@@ -2241,9 +2110,7 @@ function backToExploreMap() {
             if (appState.geofenceCircle) appState.geofenceCircle.remove();
             document.getElementById('task-interaction-area').classList.add('hidden');
             document.getElementById('start-task-button-container').classList.add('hidden');
-            const backBtn = document.getElementById('back-to-map-btn');
-	      if (backBtn) backBtn.classList.add('hidden');
-	    document.getElementById('explore-selection-container').classList.remove('hidden');
+            document.getElementById('explore-selection-container').classList.remove('hidden');
             renderTaskMarkers();
             if (appState.isManualMock && appState.map.clickHandler) { appState.map.off('click', appState.map.clickHandler); appState.map.clickHandler = null; }
             document.getElementById('distance-info').textContent = "Válassz feladatot a térképen!";
@@ -2344,7 +2211,7 @@ function testGpsConnection() {
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 15000,
+                    timeout: 8000,
                     maximumAge: 0
                 }
             );
