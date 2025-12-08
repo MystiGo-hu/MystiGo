@@ -1762,68 +1762,80 @@ async function sharePdfViaEmail() {
         }
 
        // --- 1. ÚJ FÜGGVÉNY: URL Paraméterek Kezelése (Game ID + Szűrők) ---
+        // --- JAVÍTOTT, "MEGBOCSÁTÓ" SZŰRŐ FÜGGVÉNY ---
         function checkUrlParametersAndFilter() {
-            // --- 1. BIZTONSÁGI ELLENŐRZÉS (Várakozás az adatbázisra) ---
-            // Megnézzük, hogy üres-e a games lista.
+            // 1. Biztonsági ellenőrzés: Ha még üres a lista, várunk kicsit
             if (Object.keys(games).length === 0) {
-                console.log("⏳ Az adatbázis még töltődik... Várakozás 500ms...");
-                // Ha üres, várunk fél másodpercet, és meghívjuk saját magát újra
-                setTimeout(checkUrlParametersAndFilter, 5000);
-                return; // Kilépünk, majd a következő körben fut le
-            }
-            // ------------------------------------------------------------
-
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Paraméterek tisztítása
-            let gameIdParam = urlParams.get('game') || urlParams.get('id');
-            if (gameIdParam) gameIdParam = gameIdParam.trim();
-
-            const locParam = urlParams.get('location') || urlParams.get('helyszin'); 
-            const typeParam = urlParams.get('type') || urlParams.get('tipus');
-
-            const locSelect = document.getElementById('filter-location');
-            const typeSelect = document.getElementById('filter-type');
-
-            // Debug log
-            if (gameIdParam) {
-                console.log("🔍 Keresett ID:", gameIdParam);
-                if (games[gameIdParam]) console.log("✅ Megvan!");
-                else console.log("❌ Még mindig nem találom ebben:", Object.keys(games));
-            }
-
-            // A) Ha van konkrét JÁTÉK ID
-            if (gameIdParam && games[gameIdParam]) {
-                const singleGameList = {};
-                singleGameList[gameIdParam] = games[gameIdParam];
-                renderGameList(singleGameList);
-
-                if(locSelect) {
-                    locSelect.disabled = true;
-                    locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                }
-                if(typeSelect) {
-                    typeSelect.disabled = true;
-                    typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                }
+                console.log("⏳ Adatbázis töltése... (Várakozás 500ms)");
+                setTimeout(checkUrlParametersAndFilter, 500);
                 return;
             }
 
-            // B) Szűrők kezelése
-            let filterChanged = false;
-            if (locParam && locSelect) {
-                // Megvárjuk, amíg a select lista is feltöltődik (ha esetleg az is késne)
-                if (locSelect.options.length <= 1) {
-                     populateLocationFilter(); // Kényszerítjük a lista frissítését
-                }
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Paraméterek kiolvasása és tisztítása
+            let rawGameId = urlParams.get('game') || urlParams.get('id');
+            const locParam = urlParams.get('location') || urlParams.get('helyszin'); 
+            const typeParam = urlParams.get('type') || urlParams.get('tipus');
 
-                const optionExists = Array.from(locSelect.options).some(o => o.value === locParam);
-                if (optionExists) {
-                    locSelect.value = locParam;
+            // --- DIAGNOSZTIKA (Nyomj F12-t a böngészőben a Console fülhöz!) ---
+            console.log("=== SZŰRÉS DIAGNOSZTIKA ===");
+            console.log("1. URL-ben lévő kérés:", rawGameId);
+            console.log("2. Betöltött játékok listája (Excelből):");
+            Object.keys(games).forEach(id => console.log(`   - "${id}"`));
+            // -------------------------------------------------------------
+
+            // A) KONKRÉT JÁTÉK KERESÉSE (Fuzzy Search - Megbocsátó keresés)
+            if (rawGameId) {
+                // Mindent kisbetűsítünk és levágjuk a szóközöket az összehasonlításhoz
+                const searchKey = rawGameId.trim().toLowerCase();
+                
+                // Megkeressük, van-e ilyen ID a listában (akár máshogy írva is)
+                const foundRealId = Object.keys(games).find(realId => 
+                    realId.trim().toLowerCase() === searchKey
+                );
+
+                if (foundRealId) {
+                    console.log(`✅ TALÁLAT! A keresett "${rawGameId}" egyezik ezzel: "${foundRealId}"`);
+                    
+                    // Létrehozzuk a listát, amiben csak ez az egy játék van
+                    const singleGameList = {};
+                    singleGameList[foundRealId] = games[foundRealId];
+                    
+                    // Kirajzoljuk
+                    renderGameList(singleGameList);
+
+                    // Letiltjuk a többi szűrőt, hogy ne zavarjon
+                    const locSelect = document.getElementById('filter-location');
+                    const typeSelect = document.getElementById('filter-type');
+                    if (locSelect) { locSelect.disabled = true; locSelect.classList.add('bg-gray-200', 'cursor-not-allowed'); }
+                    if (typeSelect) { typeSelect.disabled = true; typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed'); }
+                    
+                    return; // Végeztünk, kilépés
+                } else {
+                    console.log("❌ Nincs találat. Ellenőrizd az Excel ID oszlopát!");
+                    alert(`Hiba: A kért játék ("${rawGameId}") nem található az adatbázisban.\n\nNézd meg a Console-t (F12) a betöltött játékok listájáért.`);
+                }
+            }
+
+            // B) Sima szűrés (Helyszín / Típus) - Ez változatlan
+            const locSelect = document.getElementById('filter-location');
+            const typeSelect = document.getElementById('filter-type');
+            let filterChanged = false;
+
+            if (locParam && locSelect) {
+                 // Ha a lista még üres lenne, frissítjük
+                 if (locSelect.options.length <= 1) populateLocationFilter();
+
+                 // "Megbocsátó" helyszín keresés
+                 const foundOption = Array.from(locSelect.options).find(o => o.value.toLowerCase() === locParam.toLowerCase());
+                 
+                 if (foundOption) {
+                    locSelect.value = foundOption.value;
                     locSelect.disabled = true; 
                     locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
                     filterChanged = true;
-                }
+                 }
             }
 
             if (typeParam && typeSelect) {
@@ -1836,8 +1848,7 @@ async function sharePdfViaEmail() {
                 }
             }
 
-            // Ha volt változás vagy paraméter, szűrünk
-            if (filterChanged || gameIdParam) {
+            if (filterChanged) {
                 applyFilters();
             }
         }
