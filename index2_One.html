@@ -1578,7 +1578,6 @@ async function sharePdfViaEmail() {
             else if (isStartTask) task.taskScore = 0;
 
             document.getElementById('normal-task-content').classList.remove('hidden');
-            document.getElementById('task-interaction-area').classList.remove('hidden');
             document.getElementById('explore-selection-container').classList.add('hidden');
             document.getElementById('start-task-button-container').classList.add('hidden');
             document.getElementById('google-maps-btn').classList.remove('hidden'); 
@@ -2028,7 +2027,6 @@ const backBtn = document.getElementById('back-to-map-btn');
         function exploreSelectionMapMarkerSelectHandler(e) {
             if (!e.target || !e.target.options || e.target.options.taskIndex === undefined) return;
             loadTask(e.target.options.taskIndex);
-            document.getElementById('task-interaction-area').classList.remove('hidden');
             document.getElementById('explore-selection-container').classList.add('hidden');
             if (appState.isManualMock) toggleMapClickMock(true); 
         }
@@ -2043,6 +2041,10 @@ function backToExploreMap() {
     
     // Megjelenítjük a választó felületet
     document.getElementById('explore-selection-container').classList.remove('hidden');
+
+    // --- ÚJ SOR: A vissza gomb elrejtése ---
+    document.getElementById('back-to-map-btn').classList.add('hidden');
+    // ---------------------------------------
     
     // Térkép visszaállítása választó módba
     showTaskSelectionMap();
@@ -2055,7 +2057,6 @@ function backToExploreMap() {
         toggleMapClickMock(true);
     }
 }
-
 
 
         function renderTaskMarkers() {
@@ -2096,7 +2097,9 @@ function backToExploreMap() {
             if (appState.geofenceCircle) appState.geofenceCircle.remove();
             document.getElementById('task-interaction-area').classList.add('hidden');
             document.getElementById('start-task-button-container').classList.add('hidden');
-            document.getElementById('explore-selection-container').classList.remove('hidden');
+            const backBtn = document.getElementById('back-to-map-btn');
+	      if (backBtn) backBtn.classList.add('hidden');
+	    document.getElementById('explore-selection-container').classList.remove('hidden');
             renderTaskMarkers();
             if (appState.isManualMock && appState.map.clickHandler) { appState.map.off('click', appState.map.clickHandler); appState.map.clickHandler = null; }
             document.getElementById('distance-info').textContent = "Válassz feladatot a térképen!";
