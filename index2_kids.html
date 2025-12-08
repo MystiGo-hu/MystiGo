@@ -1513,6 +1513,8 @@ async function sharePdfViaEmail() {
             if (missing.length > 0) throw new Error(`'${ctx}' munkalap hiba: A(z) ${missing.map(m => `"${m}"`).join(', ')} mező(k) hiányzik/üres.`);
         }
 
+
+
         function processExcelData(workbook) {
             try {
                 const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
@@ -1520,7 +1522,12 @@ async function sharePdfViaEmail() {
                 const parsedGames = XLSX.utils.sheet_to_json(gamesSheet);
                 const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet);
                 const combinedGames = {};
+                
                 parsedGames.forEach(game => {
+                    // *** IDE SZÚRD BE AZ ÚJ KÓDOT: ***
+                    if (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true') return;
+                    // **********************************
+
                     assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
                     const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
                     combinedGames[game.id] = { 
@@ -1529,6 +1536,8 @@ async function sharePdfViaEmail() {
                         endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: [] 
                     };
                 });
+
+
                 parsedTasks.forEach(task => {
                     if (!combinedGames[task.gameId]) return;
                     const lat = parseFloat(task.locationLat), lng = parseFloat(task.locationLng);
