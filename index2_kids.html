@@ -1630,7 +1630,7 @@ async function sharePdfViaEmail() {
                 
                 showLoading(false);
                 showPage('game-list-page');
-
+	handleInitialUrlFiltering();
 
 
             } catch (error) {
@@ -1795,95 +1795,113 @@ async function sharePdfViaEmail() {
             renderGameList(filteredGames);
         }
 
-       // --- 1. ÚJ FÜGGVÉNY: URL Paraméterek Kezelése (Game ID + Szűrők) ---
-        // --- JAVÍTOTT, "MEGBOCSÁTÓ" SZŰRŐ FÜGGVÉNY ---
-        function checkUrlParametersAndFilter() {
-            // 1. Biztonsági ellenőrzés: Ha még üres a lista, várunk kicsit
-            if (Object.keys(games).length === 0) {
-                console.log("⏳ Adatbázis töltése... (Várakozás 500ms)");
-                setTimeout(checkUrlParametersAndFilter, 500);
+  // --- ÚJ, BIZTOSABB URL SZŰRŐ LOGIKA (Adat-vezérelt) ---
+        function handleInitialUrlFiltering() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Paraméterek kiolvasása
+            const pGameId = urlParams.get('game') || urlParams.get('id');
+            const pLoc = urlParams.get('location') || urlParams.get('helyszin');
+            const pType = urlParams.get('type') || urlParams.get('tipus');
+
+            // Ha nincs semmilyen paraméter, nem csinálunk semmit (minden látszik)
+            if (!pGameId && !pLoc && !pType) return;
+
+            console.log("🔍 URL Szűrés aktív:", { pGameId, pLoc, pType });
+
+            let filteredGames = {};
+            let matchFound = false;
+
+            // 1. ESET: Konkrét játék ID keresése
+            if (pGameId) {
+                const searchKey = pGameId.trim().toLowerCase();
+                // Megkeressük a valódi ID-t (kisbetű/nagybetű nem számít)
+                const realId = Object.keys(games).find(id => id.trim().toLowerCase() === searchKey);
+
+                if (realId) {
+                    filteredGames[realId] = games[realId];
+                    matchFound = true;
+                    console.log("✅ Játék megtalálva:", realId);
+                } else {
+                    console.warn("❌ A keresett játék ID nem található:", pGameId);
+                    alert(`A kért játék (${pGameId}) nem található.`);
+                    return; // Hagyjuk az összeset, vagy mutassunk üreset
+                }
+            } 
+            // 2. ESET: Helyszín és/vagy Típus szűrés
+            else {
+                Object.values(games).forEach(game => {
+                    let locMatch = true;
+                    let typeMatch = true;
+
+                    // Helyszín ellenőrzés (ha van paraméter)
+                    if (pLoc) {
+                        // A játék helyszíneit tömbbé alakítjuk és kisbetűsítjük
+                        const gameLocs = (game.location || "").toLowerCase().split(',').map(s => s.trim());
+                        // Megnézzük, hogy a keresett szó benne van-e valamelyikben
+                        const searchLoc = pLoc.toLowerCase().trim();
+                        // "Fuzzy" keresés: ha a keresett szó részlete a helyszínnek (pl. "buda" -> "Budapest")
+                        locMatch = gameLocs.some(l => l.includes(searchLoc));
+                    }
+
+                    // Típus ellenőrzés (ha van paraméter)
+                    if (pType) {
+                        if (game.type !== pType.toLowerCase()) {
+                            typeMatch = false;
+                        }
+                    }
+
+                    if (locMatch && typeMatch) {
+                        filteredGames[game.id] = game;
+                        matchFound = true;
+                    }
+                });
+            }
+
+            // 3. EREDMÉNY KIRAJZOLÁSA
+            if (matchFound) {
+                renderGameList(filteredGames);
+                
+                // 4. UI VIZUÁLIS FRISSÍTÉSE (Hogy a felhasználó lássa, mi történt)
+                updateFilterUI(pLoc, pType, pGameId);
+            } else {
+                // Ha szűrtünk, de üres lett az eredmény
+                document.getElementById('game-list').innerHTML = `
+                    <div class="text-center p-8 bg-red-50 rounded-xl border border-red-200">
+                        <p class="text-red-600 font-bold">Nincs találat a megadott feltételekre.</p>
+                        <button onclick="window.location.href=window.location.pathname" class="text-brand-blue underline mt-2 text-sm">Összes játék mutatása</button>
+                    </div>`;
+            }
+        }
+
+        // Segédfüggvény a Dropdown-ok beállításához (Csak vizuális!)
+        function updateFilterUI(locParam, typeParam, gameIdParam) {
+            const locSelect = document.getElementById('filter-location');
+            const typeSelect = document.getElementById('filter-type');
+
+            // Ha konkrét játék van, mindent letiltunk
+            if (gameIdParam) {
+                if (locSelect) { locSelect.disabled = true; locSelect.classList.add('opacity-50', 'cursor-not-allowed'); }
+                if (typeSelect) { typeSelect.disabled = true; typeSelect.classList.add('opacity-50', 'cursor-not-allowed'); }
                 return;
             }
 
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Paraméterek kiolvasása és tisztítása
-            let rawGameId = urlParams.get('game') || urlParams.get('id');
-            const locParam = urlParams.get('location') || urlParams.get('helyszin'); 
-            const typeParam = urlParams.get('type') || urlParams.get('tipus');
-
-            // --- DIAGNOSZTIKA (Nyomj F12-t a böngészőben a Console fülhöz!) ---
-            console.log("=== SZŰRÉS DIAGNOSZTIKA ===");
-            console.log("1. URL-ben lévő kérés:", rawGameId);
-            console.log("2. Betöltött játékok listája (Excelből):");
-            Object.keys(games).forEach(id => console.log(`   - "${id}"`));
-            // -------------------------------------------------------------
-
-            // A) KONKRÉT JÁTÉK KERESÉSE (Fuzzy Search - Megbocsátó keresés)
-            if (rawGameId) {
-                // Mindent kisbetűsítünk és levágjuk a szóközöket az összehasonlításhoz
-                const searchKey = rawGameId.trim().toLowerCase();
-                
-                // Megkeressük, van-e ilyen ID a listában (akár máshogy írva is)
-                const foundRealId = Object.keys(games).find(realId => 
-                    realId.trim().toLowerCase() === searchKey
-                );
-
-                if (foundRealId) {
-                    console.log(`✅ TALÁLAT! A keresett "${rawGameId}" egyezik ezzel: "${foundRealId}"`);
-                    
-                    // Létrehozzuk a listát, amiben csak ez az egy játék van
-                    const singleGameList = {};
-                    singleGameList[foundRealId] = games[foundRealId];
-                    
-                    // Kirajzoljuk
-                    renderGameList(singleGameList);
-
-                    // Letiltjuk a többi szűrőt, hogy ne zavarjon
-                    const locSelect = document.getElementById('filter-location');
-                    const typeSelect = document.getElementById('filter-type');
-                    if (locSelect) { locSelect.disabled = true; locSelect.classList.add('bg-gray-200', 'cursor-not-allowed'); }
-                    if (typeSelect) { typeSelect.disabled = true; typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed'); }
-                    
-                    return; // Végeztünk, kilépés
-                } else {
-                    console.log("❌ Nincs találat. Ellenőrizd az Excel ID oszlopát!");
-                    alert(`Hiba: A kért játék ("${rawGameId}") nem található az adatbázisban.\n\nNézd meg a Console-t (F12) a betöltött játékok listájáért.`);
-                }
-            }
-
-            // B) Sima szűrés (Helyszín / Típus) - Ez változatlan
-            const locSelect = document.getElementById('filter-location');
-            const typeSelect = document.getElementById('filter-type');
-            let filterChanged = false;
-
+            // Helyszín beállítása
             if (locParam && locSelect) {
-                 // Ha a lista még üres lenne, frissítjük
-                 if (locSelect.options.length <= 1) populateLocationFilter();
-
-                 // "Megbocsátó" helyszín keresés
-                 const foundOption = Array.from(locSelect.options).find(o => o.value.toLowerCase() === locParam.toLowerCase());
-                 
-                 if (foundOption) {
-                    locSelect.value = foundOption.value;
-                    locSelect.disabled = true; 
-                    locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                    filterChanged = true;
-                 }
-            }
-
-            if (typeParam && typeSelect) {
-                const validTypes = ['normal', 'kids', 'team', 'explore'];
-                if (validTypes.includes(typeParam)) {
-                    typeSelect.value = typeParam;
-                    typeSelect.disabled = true;
-                    typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                    filterChanged = true;
+                // Megkeressük azt az opciót, ami legjobban hasonlít
+                const option = Array.from(locSelect.options).find(opt => 
+                    opt.value.toLowerCase().includes(locParam.toLowerCase())
+                );
+                if (option) {
+                    locSelect.value = option.value;
+                    locSelect.classList.add('bg-blue-50', 'font-bold', 'text-brand-blue');
                 }
             }
 
-            if (filterChanged) {
-                applyFilters();
+            // Típus beállítása
+            if (typeParam && typeSelect) {
+                typeSelect.value = typeParam.toLowerCase();
+                typeSelect.classList.add('bg-blue-50', 'font-bold', 'text-brand-blue');
             }
         }
 
