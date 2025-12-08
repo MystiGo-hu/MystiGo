@@ -1585,20 +1585,54 @@ async function sharePdfViaEmail() {
                 });
 
                 const validatedGames = {};
+                // HIBAKERESÉS: Számoljuk, hány játékot dobunk el
+                let droppedCount = 0;
+                
                 for (const gameId in combinedGames) {
                     const game = combinedGames[gameId];
-                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) continue;
-                    if (game.tasks.length === 0) continue;
+                    // Ellenőrizzük, hogy érvényes-e a típusa
+                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) {
+                        console.warn(`Játék kihagyva (${gameId}): Érvénytelen típus ("${game.type}")`);
+                        droppedCount++;
+                        continue;
+                    }
+                    if (game.tasks.length === 0) {
+                        console.warn(`Játék kihagyva (${gameId}): Nincsenek feladatok`);
+                        droppedCount++;
+                        continue;
+                    }
                     game.tasks.sort((a, b) => a.index - b.index);
                     validatedGames[gameId] = game;
                 }
                 games = validatedGames;
-                populateLocationFilter(); // Először frissítjük a helyszín listát az új adatok alapján
-    		
-		checkUrlParametersAndFilter();
+
+                // --- DIAGNOSZTIKAI ABLAK (Ez megmondja az igazat!) ---
+                const loadedIds = Object.keys(games);
+                if (loadedIds.length === 0) {
+                    alert("HIBA: Egyetlen játékot sem sikerült betölteni! Ellenőrizd az Excel fájlt.");
+                } else {
+                    // Megnézzük, benne van-e a keresett ID a URL-ben
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const searchedId = urlParams.get('game') || urlParams.get('id');
+                    
+                    if (searchedId && !games[searchedId.trim()]) {
+                        alert(`HIBAKERESÉS:\nA rendszer betöltött ${loadedIds.length} db játékot, de a keresett "${searchedId}" NINCS köztük.\n\nBetöltött ID-k:\n` + loadedIds.join("\n"));
+                    }
+                }
+                // -----------------------------------------------------
+
+                populateLocationFilter(); 
                 
-		showLoading(false);
+                // Most hívjuk meg a szűrőt - biztosan van már adat!
+                if (window.checkUrlParametersAndFilter) {
+                    checkUrlParametersAndFilter();
+                }
+                
+                showLoading(false);
                 showPage('game-list-page');
+
+
+
             } catch (error) {
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                 showLoading(false);
