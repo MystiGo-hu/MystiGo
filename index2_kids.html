@@ -471,10 +471,10 @@
                             </div>
                         </details>
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <h2 class="text-xl font-bold text-text-heading mb-3">Név Beállítás</p>
+                            <h2 class="text-xl font-bold text-text-heading mb-3">Játékos<span class="text-red-500">*</span></h2>
                             <input type="text" id="team-name-input" placeholder="Név" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
                             <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
-                                <option value="">Válassz Avatart (opcionális)</option>
+                                <option value="">Válassz Avatart</option>
 				    <option value="cat">Mysti 🐱</option>
 				    <option value="dog">Kutya 🐶</option>
 				    <option value="panda">Panda 🐼</option>
@@ -632,8 +632,7 @@
     <p class="block">Teljes Idő: <strong id="final-time">00:00</strong></p> 
     <p class="block">Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
 </div>
-                        <div class="flex justify-center mt-10">
-                            </div>
+                  
                     </div> 
 
 
@@ -917,13 +916,19 @@
              return `${m}:${sec}`;
           };
           
-          // --- MÓDOSÍTOTT DÁTUM FORMÁZÓ (ÉÉÉÉ.HH.NN.) ---
+          // --- MÓDOSÍTOTT DÁTUM FORMÁZÓ (ÉÉÉÉ.HH.NN. ÓÓ:PP:MP) ---
           const fmtDate = (ms) => { 
               const d = new Date(ms);
               const year = d.getFullYear();
-              const month = String(d.getMonth() + 1).padStart(2, '0'); // 0-val kezdődik, ha < 10
-              const day = String(d.getDate()).padStart(2, '0');        // 0-val kezdődik, ha < 10
-              return `${year}.${month}.${day}.`; 
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              
+              // Idő komponensek hozzáadása
+              const hour = String(d.getHours()).padStart(2, '0');
+              const min = String(d.getMinutes()).padStart(2, '0');
+              const sec = String(d.getSeconds()).padStart(2, '0');
+              
+              return `${year}.${month}.${day}. ${hour}:${min}:${sec}`; 
           };
 
           results.forEach((r, index) => {
@@ -971,6 +976,22 @@
           </td></tr>`;
       }
   };
+
+// --- ÚJ RÉSZ: Befejezett játékok számolása ---
+  window.incrementGameCompletion = async function(gameId) {
+      if(!gameId) return;
+      // A 'completed' csomópontot növeljük az adott játékon belül
+      const gameRef = ref(db, 'games/' + gameId + '/completed');
+      try {
+          await runTransaction(gameRef, (currentCount) => {
+              return (currentCount || 0) + 1;
+          });
+          console.log("Sikeres befejezés rögzítve.");
+      } catch (error) {
+          console.error("Hiba a befejezés rögzítésekor:", error);
+      }
+  };
+
 </script>
 
 
@@ -1743,9 +1764,34 @@ async function sharePdfViaEmail() {
             if (hasSave) {
                  loadGameById(gameId);
             } else {
+                // --- ÚJ RÉSZ: KÖTELEZŐ ADATOK ELLENŐRZÉSE ---
+                const nameInput = document.getElementById('team-name-input');
+                const avatarSelect = document.getElementById('team-avatar-select');
+
+                // 1. Név ellenőrzése
+                if (!nameInput.value.trim()) {
+                    showMessage('Hiányzó Adat', 'Kérlek, adj meg egy <strong>Nevet</strong> a játék indításához!');
+                    // Odagörgetünk a mezőhöz, hogy lássa
+                    nameInput.scrollIntoView({behavior: "smooth", block: "center"});
+                    nameInput.focus();
+                    nameInput.classList.add('border-red-500'); // Piros keret (opcionális vizuális extra)
+                    setTimeout(() => nameInput.classList.remove('border-red-500'), 3000);
+                    return; // Megállítjuk a folyamatot
+                }
+
+                // 2. Avatar ellenőrzése
+                if (!avatarSelect.value) {
+                    showMessage('Hiányzó Adat', 'Kérlek, válassz egy <strong>Avatart</strong> a játék indításához!');
+                    // Odagörgetünk a mezőhöz
+                    avatarSelect.scrollIntoView({behavior: "smooth", block: "center"});
+                    avatarSelect.focus();
+                    avatarSelect.classList.add('border-red-500');
+                    setTimeout(() => avatarSelect.classList.remove('border-red-500'), 3000);
+                    return; // Megállítjuk a folyamatot
+                }
                 // --- FIREBASE LIMIT ELLENŐRZÉS ---
                 // Itt állítod be, hányan játszhatnak maximum (pl. 100)
-                const MAX_PLAYERS = 100; 
+		const MAX_PLAYERS = 100000; 
 
                 // Ellenőrizzük, hogy betöltött-e a Firebase modul
                 if (window.checkGameLimitAndIncrement) {
@@ -2096,10 +2142,11 @@ const backBtn = document.getElementById('back-to-map-btn');
             geofenceTime: totalTaskTime
         });
         
-        // ITT TÖRÖLTÜK KI A 'setTimeout window.loadLeaderboard' HÍVÁST
-        // Mert most már gombbal nyílik!
-    }
-
+if (window.incrementGameCompletion) {
+                window.incrementGameCompletion(appState.currentGame.id);
+            }
+            // -------------------------
+        }
 
 
          
