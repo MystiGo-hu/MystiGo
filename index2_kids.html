@@ -1545,14 +1545,18 @@ async function sharePdfViaEmail() {
                 const combinedGames = {};
                 
                 parsedGames.forEach(game => {
-                    // *** IDE SZÚRD BE AZ ÚJ KÓDOT: ***
                     if (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true') return;
-                    // **********************************
-
+                    
                     assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
                     const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
-                    combinedGames[game.id] = { 
-                        ...game, type: String(game.type || 'normal').trim().toLowerCase(), 
+                    // --- MÓDOSÍTÁS: ID tisztítása (szóközök levágása) ---
+                    // Ha az Excelben véletlenül maradt szóköz ("hamu-teszt "), itt levágjuk:
+                    const cleanId = String(game.id).trim(); 
+
+                    combinedGames[cleanId] = { 
+                        ...game, 
+                        id: cleanId, // A belső ID-t is felülírjuk a tisztára
+                        type: String(game.type || 'normal').trim().toLowerCase(), 
                         price: parseFloat(game.price || 0), description: DOMPurify.sanitize(game.description || ''), 
                         endStory: DOMPurify.sanitize(game.endStory || ''), startLocation: { lat, lng }, tasks: [] 
                     };
@@ -1761,87 +1765,73 @@ async function sharePdfViaEmail() {
         function checkUrlParametersAndFilter() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Paraméterek kiolvasása
-            const gameIdParam = urlParams.get('game') || urlParams.get('id'); // Konkrét játék
+            // Paraméterek tisztítása (itt is levágjuk a szóközt a linkből)
+            let gameIdParam = urlParams.get('game') || urlParams.get('id');
+            if (gameIdParam) gameIdParam = gameIdParam.trim();
+
             const locParam = urlParams.get('location') || urlParams.get('helyszin'); 
             const typeParam = urlParams.get('type') || urlParams.get('tipus');
 
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
 
-            // A) Ha van konkrét JÁTÉK ID a linkben (pl. ?game=game_01)
+            // --- DEBUG LOG (Hogy lássuk mi történik) ---
+            if (gameIdParam) {
+                console.log("Keresett Játék ID:", gameIdParam);
+                console.log("Betöltött Játékok ID-i:", Object.keys(games));
+                
+                if (games[gameIdParam]) {
+                    console.log("✅ TALÁLAT! Játék betöltése...");
+                } else {
+                    console.log("❌ Nincs ilyen játék az adatbázisban.");
+                    // Ha nincs találat, próbáljuk megkeresni kisbetű/nagybetű nélkül is
+                    const foundKey = Object.keys(games).find(k => k.toLowerCase() === gameIdParam.toLowerCase());
+                    if (foundKey) {
+                        console.log("⚠️ De találtam egy hasonlót:", foundKey, " -> Átirányítás...");
+                        gameIdParam = foundKey; // Javítjuk az ID-t
+                    }
+                }
+            }
+            // -------------------------------------------
+
+            // A) Ha van konkrét JÁTÉK ID a linkben
             if (gameIdParam && games[gameIdParam]) {
-                // 1. Létrehozunk egy listát, amiben CSAK ez az egy játék van
                 const singleGameList = {};
                 singleGameList[gameIdParam] = games[gameIdParam];
-                
-                // 2. Kirajzoljuk csak ezt az egyet
                 renderGameList(singleGameList);
 
-                // 3. Letiltjuk a szűrőket, hogy ne zavarják össze a felhasználót
-                locSelect.disabled = true;
-                typeSelect.disabled = true;
-                locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                
-                return; // Itt megállunk, nem foglalkozunk a többi szűrővel
+                // Szűrők letiltása
+                if(locSelect) {
+                    locSelect.disabled = true;
+                    locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                }
+                if(typeSelect) {
+                    typeSelect.disabled = true;
+                    typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                }
+                return;
             }
 
-            // B) Ha nincs konkrét játék, nézzük a szűrőket (Location / Type)
-            let filterChanged = false;
-
-            // Helyszín beállítása
-            if (locParam) {
-                // Megnézzük, létezik-e az opció a listában
+            // B) Ha nincs játék, nézzük a szűrőket...
+            // (Ez a rész változatlan marad, csak a debug log miatt írtam újra a függvényt)
+            if (locParam && locSelect) {
                 const optionExists = Array.from(locSelect.options).some(o => o.value === locParam);
                 if (optionExists) {
                     locSelect.value = locParam;
                     locSelect.disabled = true; 
                     locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                    filterChanged = true;
                 }
             }
 
-            // Típus beállítása
-            if (typeParam) {
+            if (typeParam && typeSelect) {
                 const validTypes = ['normal', 'kids', 'team', 'explore'];
                 if (validTypes.includes(typeParam)) {
                     typeSelect.value = typeParam;
                     typeSelect.disabled = true;
                     typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-                    filterChanged = true;
                 }
             }
 
-            // Ha nem volt semmi paraméter, vagy csak szűrő volt, futtatjuk a normál szűrést
-            applyFilters();
-        }
-
-        // --- 2. MÓDOSÍTOTT FÜGGVÉNY: Szűrők alaphelyzetbe állítása ---
-        // (Cseréld le a meglévő resetFilters függvényt erre!)
-        function resetFilters() {
-            const locSelect = document.getElementById('filter-location');
-            const typeSelect = document.getElementById('filter-type');
-
-            // 1. Értékek visszaállítása
-            locSelect.value = 'all';
-            typeSelect.value = 'all';
-
-            // 2. Tiltás feloldása
-            locSelect.disabled = false;
-            typeSelect.disabled = false;
-
-            // 3. Szürke stílus levétele
-            locSelect.classList.remove('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-            typeSelect.classList.remove('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
-
-            // 4. URL tisztítása (hogy frissítésnél ne jöjjön vissza a szűrés)
-            if (window.history.pushState) {
-                const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                window.history.pushState({path:newurl},'',newurl);
-            }
-
-            // Lista újrarajzolása
             applyFilters();
         }
 
