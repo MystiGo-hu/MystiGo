@@ -1819,6 +1819,26 @@ async function sharePdfViaEmail() {
             let filteredGames = {};
             let matchFound = false;
 
+// --- ÚJ BLOKK KEZDETE (Rejtett játékok listázása) ---
+    if (pType === 'hidden' || pType === 'rejtett') {
+        Object.values(games).forEach(game => {
+            if (game.isHidden) {
+                filteredGames[game.id] = game;
+                matchFound = true;
+            }
+        });
+        
+        if (matchFound) {
+            console.log("Rejtett játékok listázása...");
+            renderGameList(filteredGames);
+            updateFilterUI(null, 'hidden', null);
+            return; // Itt kilépünk, hogy ne fusson le a többi szűrés
+        } else {
+             alert("Nincsenek rejtett játékok az adatbázisban.");
+             return;
+        }
+    }
+
             // 1. ESET: Konkrét játék ID keresése
             if (pGameId) {
                 const searchKey = pGameId.trim().toLowerCase();
