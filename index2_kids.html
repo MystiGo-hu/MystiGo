@@ -1720,6 +1720,43 @@ async function sharePdfViaEmail() {
             }
         }
 
+// --- EZ HIÁNYZOTT: Szűrés végrehajtása ---
+        function applyFilters() {
+            const locSelect = document.getElementById('filter-location');
+            const typeSelect = document.getElementById('filter-type');
+            
+            // Ha még nincsenek betöltve az elemek (biztonsági ellenőrzés)
+            if (!locSelect || !typeSelect) return;
+
+            const location = locSelect.value;
+            const type = typeSelect.value;
+
+            const filteredGames = {};
+
+            Object.values(games).forEach(game => {
+                // 1. Helyszín ellenőrzés (több helyszín kezelése vesszővel)
+                let locMatch = false;
+                if (location === 'all') {
+                    locMatch = true;
+                } else {
+                    // Szétbontjuk a játék helyszínét vesszők mentén, és megnézzük, benne van-e a választott
+                    const gameLocs = game.location ? String(game.location).split(',').map(s => s.trim()) : [];
+                    locMatch = gameLocs.includes(location);
+                }
+
+                // 2. Típus ellenőrzés
+                const typeMatch = (type === 'all' || game.type === type);
+
+                // Ha mindkettő stimmel, hozzáadjuk a listához
+                if (locMatch && typeMatch) {
+                    filteredGames[game.id] = game;
+                }
+            });
+
+            // Kirajzoljuk a szűrt listát
+            renderGameList(filteredGames);
+        }
+
        // --- 1. ÚJ FÜGGVÉNY: URL Paraméterek Kezelése (Game ID + Szűrők) ---
         function checkUrlParametersAndFilter() {
             const urlParams = new URLSearchParams(window.location.search);
