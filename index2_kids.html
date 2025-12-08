@@ -1590,8 +1590,10 @@ async function sharePdfViaEmail() {
                 }
                 games = validatedGames;
                 populateLocationFilter(); // Először frissítjük a helyszín listát az új adatok alapján
-    					applyFilters();           // Utána kirajzoljuk a listát a beállított szűrők szerint
-                showLoading(false);
+    		
+		checkUrlParametersAndFilter();
+                
+		showLoading(false);
                 showPage('game-list-page');
             } catch (error) {
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
@@ -1718,44 +1720,91 @@ async function sharePdfViaEmail() {
             }
         }
 
-      function applyFilters() {
-            const typeFilter = document.getElementById('filter-type').value;
-            const locationFilter = document.getElementById('filter-location').value;
+       // --- 1. ÚJ FÜGGVÉNY: URL Paraméterek Kezelése (Game ID + Szűrők) ---
+        function checkUrlParametersAndFilter() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Paraméterek kiolvasása
+            const gameIdParam = urlParams.get('game') || urlParams.get('id'); // Konkrét játék
+            const locParam = urlParams.get('location') || urlParams.get('helyszin'); 
+            const typeParam = urlParams.get('type') || urlParams.get('tipus');
 
-            const filteredGames = {};
+            const locSelect = document.getElementById('filter-location');
+            const typeSelect = document.getElementById('filter-type');
 
-            Object.values(games).forEach(game => {
-                // Típus szűrés (ez marad a régi)
-                const matchesType = (typeFilter === 'all') || (game.type === typeFilter);
+            // A) Ha van konkrét JÁTÉK ID a linkben (pl. ?game=game_01)
+            if (gameIdParam && games[gameIdParam]) {
+                // 1. Létrehozunk egy listát, amiben CSAK ez az egy játék van
+                const singleGameList = {};
+                singleGameList[gameIdParam] = games[gameIdParam];
                 
-                // Helyszín szűrés
-                let matchesLocation = false;
+                // 2. Kirajzoljuk csak ezt az egyet
+                renderGameList(singleGameList);
+
+                // 3. Letiltjuk a szűrőket, hogy ne zavarják össze a felhasználót
+                locSelect.disabled = true;
+                typeSelect.disabled = true;
+                locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
                 
-                // Biztonsági átalakítás szöveggé
-                const rawLocation = String(game.location || "");
+                return; // Itt megállunk, nem foglalkozunk a többi szűrővel
+            }
 
-                if (locationFilter === 'all') {
-                    matchesLocation = true;
-                } else {
-                    // 1. Szétvágjuk a játék helyszíneit listára (pl. ["Budapest", "Margitsziget"])
-                    const gameLocationsList = rawLocation.split(',').map(s => s.trim());
+            // B) Ha nincs konkrét játék, nézzük a szűrőket (Location / Type)
+            let filterChanged = false;
 
-                    // 2. Megnézzük, hogy a listában szerepel-e a kiválasztott szűrő
-                    // (pl. ha "Budapest"-et keresünk, megtalálja ebben a listában)
-                    matchesLocation = gameLocationsList.includes(locationFilter);
+            // Helyszín beállítása
+            if (locParam) {
+                // Megnézzük, létezik-e az opció a listában
+                const optionExists = Array.from(locSelect.options).some(o => o.value === locParam);
+                if (optionExists) {
+                    locSelect.value = locParam;
+                    locSelect.disabled = true; 
+                    locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                    filterChanged = true;
                 }
+            }
 
-                if (matchesType && matchesLocation) {
-                    filteredGames[game.id] = game;
+            // Típus beállítása
+            if (typeParam) {
+                const validTypes = ['normal', 'kids', 'team', 'explore'];
+                if (validTypes.includes(typeParam)) {
+                    typeSelect.value = typeParam;
+                    typeSelect.disabled = true;
+                    typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                    filterChanged = true;
                 }
-            });
+            }
 
-            renderGameList(filteredGames);
+            // Ha nem volt semmi paraméter, vagy csak szűrő volt, futtatjuk a normál szűrést
+            applyFilters();
         }
 
+        // --- 2. MÓDOSÍTOTT FÜGGVÉNY: Szűrők alaphelyzetbe állítása ---
+        // (Cseréld le a meglévő resetFilters függvényt erre!)
         function resetFilters() {
-            document.getElementById('filter-type').value = 'all';
-            document.getElementById('filter-location').value = 'all';
+            const locSelect = document.getElementById('filter-location');
+            const typeSelect = document.getElementById('filter-type');
+
+            // 1. Értékek visszaállítása
+            locSelect.value = 'all';
+            typeSelect.value = 'all';
+
+            // 2. Tiltás feloldása
+            locSelect.disabled = false;
+            typeSelect.disabled = false;
+
+            // 3. Szürke stílus levétele
+            locSelect.classList.remove('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+            typeSelect.classList.remove('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+
+            // 4. URL tisztítása (hogy frissítésnél ne jöjjön vissza a szűrés)
+            if (window.history.pushState) {
+                const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.pushState({path:newurl},'',newurl);
+            }
+
+            // Lista újrarajzolása
             applyFilters();
         }
 
