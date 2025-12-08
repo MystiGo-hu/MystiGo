@@ -1763,9 +1763,19 @@ async function sharePdfViaEmail() {
 
        // --- 1. ÚJ FÜGGVÉNY: URL Paraméterek Kezelése (Game ID + Szűrők) ---
         function checkUrlParametersAndFilter() {
+            // --- 1. BIZTONSÁGI ELLENŐRZÉS (Várakozás az adatbázisra) ---
+            // Megnézzük, hogy üres-e a games lista.
+            if (Object.keys(games).length === 0) {
+                console.log("⏳ Az adatbázis még töltődik... Várakozás 500ms...");
+                // Ha üres, várunk fél másodpercet, és meghívjuk saját magát újra
+                setTimeout(checkUrlParametersAndFilter, 5000);
+                return; // Kilépünk, majd a következő körben fut le
+            }
+            // ------------------------------------------------------------
+
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Paraméterek tisztítása (itt is levágjuk a szóközt a linkből)
+            // Paraméterek tisztítása
             let gameIdParam = urlParams.get('game') || urlParams.get('id');
             if (gameIdParam) gameIdParam = gameIdParam.trim();
 
@@ -1775,32 +1785,19 @@ async function sharePdfViaEmail() {
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
 
-            // --- DEBUG LOG (Hogy lássuk mi történik) ---
+            // Debug log
             if (gameIdParam) {
-                console.log("Keresett Játék ID:", gameIdParam);
-                console.log("Betöltött Játékok ID-i:", Object.keys(games));
-                
-                if (games[gameIdParam]) {
-                    console.log("✅ TALÁLAT! Játék betöltése...");
-                } else {
-                    console.log("❌ Nincs ilyen játék az adatbázisban.");
-                    // Ha nincs találat, próbáljuk megkeresni kisbetű/nagybetű nélkül is
-                    const foundKey = Object.keys(games).find(k => k.toLowerCase() === gameIdParam.toLowerCase());
-                    if (foundKey) {
-                        console.log("⚠️ De találtam egy hasonlót:", foundKey, " -> Átirányítás...");
-                        gameIdParam = foundKey; // Javítjuk az ID-t
-                    }
-                }
+                console.log("🔍 Keresett ID:", gameIdParam);
+                if (games[gameIdParam]) console.log("✅ Megvan!");
+                else console.log("❌ Még mindig nem találom ebben:", Object.keys(games));
             }
-            // -------------------------------------------
 
-            // A) Ha van konkrét JÁTÉK ID a linkben
+            // A) Ha van konkrét JÁTÉK ID
             if (gameIdParam && games[gameIdParam]) {
                 const singleGameList = {};
                 singleGameList[gameIdParam] = games[gameIdParam];
                 renderGameList(singleGameList);
 
-                // Szűrők letiltása
                 if(locSelect) {
                     locSelect.disabled = true;
                     locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
@@ -1812,14 +1809,20 @@ async function sharePdfViaEmail() {
                 return;
             }
 
-            // B) Ha nincs játék, nézzük a szűrőket...
-            // (Ez a rész változatlan marad, csak a debug log miatt írtam újra a függvényt)
+            // B) Szűrők kezelése
+            let filterChanged = false;
             if (locParam && locSelect) {
+                // Megvárjuk, amíg a select lista is feltöltődik (ha esetleg az is késne)
+                if (locSelect.options.length <= 1) {
+                     populateLocationFilter(); // Kényszerítjük a lista frissítését
+                }
+
                 const optionExists = Array.from(locSelect.options).some(o => o.value === locParam);
                 if (optionExists) {
                     locSelect.value = locParam;
                     locSelect.disabled = true; 
                     locSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                    filterChanged = true;
                 }
             }
 
@@ -1829,10 +1832,14 @@ async function sharePdfViaEmail() {
                     typeSelect.value = typeParam;
                     typeSelect.disabled = true;
                     typeSelect.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                    filterChanged = true;
                 }
             }
 
-            applyFilters();
+            // Ha volt változás vagy paraméter, szűrünk
+            if (filterChanged || gameIdParam) {
+                applyFilters();
+            }
         }
 
       
