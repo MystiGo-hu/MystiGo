@@ -636,6 +636,14 @@
                             </div>
                     </div> 
 
+
+
+<button onclick="openLeaderboardModal()" class="main-button w-full max-w-xs mx-auto mt-6 mb-2 !bg-brand-blue hover:!bg-cyan-700 shadow-xl flex items-center justify-center gap-2">
+    <span>🏆</span> Ranglista Megtekintése
+</button>
+
+
+
  <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban  a <strong>mystigo.net@gmail.com</strong> címre!</p>
                     <div id="social-share-buttons" class="flex space-x-6 justify-center">
                         <button onclick="sharePdfViaEmail()" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Eredmény küldése Emailben (PDF)">
@@ -764,6 +772,209 @@
             <button onclick="document.getElementById('gps-help-modal').classList.add('hidden')" class="main-button w-full !text-sm !py-3">Értem, megpróbálom újra</button>
         </div>
     </div>
+
+
+<div id="leaderboard-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 3000;">
+    <div class="bg-white rounded-2xl p-0 w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+        <div class="bg-brand-blue p-4 flex justify-between items-center shrink-0">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <span>🏆</span> Ranglista
+            </h3>
+            <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="text-white hover:text-gray-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="overflow-y-auto p-4 flex-grow bg-gray-50">
+            <table class="min-w-full text-xs">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="px-2 py-2 text-left text-gray-500">#</th>
+                        <th class="px-2 py-2 text-left text-gray-500">Csapat</th>
+                        <th class="px-2 py-2 text-center text-gray-500">Pont</th>
+                        <th class="px-2 py-2 text-right text-gray-500">Idő</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-modal-body" class="divide-y divide-gray-200 bg-white"></tbody>
+            </table>
+        </div>
+        <div class="p-4 border-t border-gray-100 shrink-0 bg-white">
+            <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="main-button w-full !text-sm !py-2">Bezárás</button>
+        </div>
+    </div>
+</div>
+
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, runTransaction, push, query, orderByChild, limitToLast, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
+    authDomain: "mystigo-7b149.firebaseapp.com",
+    databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "mystigo-7b149",
+    storageBucket: "mystigo-7b149.firebasestorage.app",
+    messagingSenderId: "616896082200",
+    appId: "1:616896082200:web:b13c243df8eaac6d542e6d",
+    measurementId: "G-PFDMYCJ9J1"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // 1. LIMIT (Marad)
+  window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
+      if(!gameId) return true;
+      const gameRef = ref(db, 'games/' + gameId + '/count');
+      try {
+          const result = await runTransaction(gameRef, (currentCount) => {
+              const count = (currentCount || 0);
+              return count < maxPlayers ? count + 1 : undefined;
+          });
+          return result.committed;
+      } catch (error) { console.error(error); return true; }
+  };
+
+  // 2. MENTÉS (Marad)
+  window.saveScoreToFirebase = function(data) {
+      if (!data.gameId) return;
+      const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
+      push(leaderboardRef, {
+          teamName: data.teamName || "Névtelen",
+          teamAvatar: data.teamAvatar || "no avatar",
+          score: data.score,
+          totalTime: data.totalTime,
+          geofenceTime: data.geofenceTime,
+          timestamp: Date.now()
+      });
+  };
+
+  // 3. MODAL KEZELÉS (EZ AZ ÚJ RÉSZ!)
+  window.openLeaderboardModal = async function() {
+      // Kiolvassuk az ID-t, amit a fő scriptben mentettünk el
+      const gameId = window.currentGameId; 
+
+      if (!gameId) {
+          alert("Nincs aktív játék azonosító (vagy már törlődött).");
+          return;
+      }
+
+      const modal = document.getElementById('leaderboard-modal');
+      const listBody = document.getElementById('leaderboard-modal-body');
+      
+      modal.classList.remove('hidden');
+      listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8">Betöltés...</td></tr>';
+
+      try {
+          const q = query(ref(db, 'leaderboard/' + gameId));
+          const snapshot = await get(q);
+
+          if (!snapshot.exists()) {
+              listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény.</td></tr>';
+              return;
+          }
+
+          let results = [];
+          snapshot.forEach((child) => {
+              const val = child.val();
+              // HIBAJAVÍTÁS: Ha nincs pontszám, adunk neki 0-t, hogy ne legyen hiba
+              if (val.score === undefined || val.score === null) {
+                  val.score = 0; 
+                  val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
+              }
+              results.push(val);
+          });
+
+  // --- 1. RENDEZÉS (Pont -> Teljes Idő -> Feladat Idő) ---
+          results.sort((a, b) => {
+              // A) Pontszám (csökkenő)
+              const scoreDiff = b.score - a.score;
+              if (scoreDiff !== 0) return scoreDiff;
+              
+              // B) Teljes idő (növekvő - aki gyorsabb volt)
+              const totalTimeDiff = (a.totalTime || 0) - (b.totalTime || 0);
+              if (totalTimeDiff !== 0) return totalTimeDiff;
+
+              // C) Feladat idő (növekvő - aki gyorsabb volt a feladatokban)
+              return (a.geofenceTime || 0) - (b.geofenceTime || 0);
+          });
+
+
+          // --- 2. MEGJELENÍTÉS (HTML Generálás) ---
+          let html = "";
+          
+          const avatars = {
+             cat: '🐱',dog: '🐶',panda: '🐼',monkey: '🐵', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
+             ghost: '👻', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️',smile: '😎',zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️',floppy: '💾'
+          };
+          
+          // Idő formázó (MM:SS)
+          const fmt = (s) => {
+             const m = Math.floor(s / 60).toString().padStart(2,'0');
+             const sec = (s % 60).toString().padStart(2,'0');
+             return `${m}:${sec}`;
+          };
+          
+          // --- MÓDOSÍTOTT DÁTUM FORMÁZÓ (ÉÉÉÉ.HH.NN.) ---
+          const fmtDate = (ms) => { 
+              const d = new Date(ms);
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, '0'); // 0-val kezdődik, ha < 10
+              const day = String(d.getDate()).padStart(2, '0');        // 0-val kezdődik, ha < 10
+              return `${year}.${month}.${day}.`; 
+          };
+
+          results.forEach((r, index) => {
+              const icon = avatars[r.teamAvatar] || '👤';
+              
+              // Kiemelés, ha ez a mi eredményünk
+              const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 60000 && r.score == window.currentScoreForHighlight);
+
+              html += `
+                <tr class="hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${isMyTeam ? 'bg-yellow-50 border-l-4 border-l-brand-orange' : ''}">
+                    
+                    <td class="px-2 py-3 font-bold text-gray-400 text-center">${index + 1}.</td>
+                    
+                    <td class="px-2 py-3">
+                        <div class="font-bold text-brand-blue flex items-center gap-2">
+                            <span class="text-xl bg-gray-100 rounded-full p-1">${icon}</span> 
+                            <span>${r.teamName}</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 ml-9">${fmtDate(r.timestamp)}</div>
+                    </td>
+                    
+                    <td class="px-2 py-3 text-center font-extrabold text-brand-orange-500 text-base">
+                        ${r.score}
+                    </td>
+                    
+                    <td class="px-2 py-3 text-right text-xs text-gray-600 leading-tight">
+                        <div title="Teljes idő (Kék óra)" class="font-semibold">
+                            ⏱️ ${fmt(r.totalTime || 0)}
+                        </div>
+                        <div class="text-[10px] text-green-600 mt-1" title="Feladat megoldással töltött idő">
+                            🧩 ${fmt(r.geofenceTime || 0)}
+                        </div>
+                    </td>
+                </tr>
+              `;
+          });
+          listBody.innerHTML = html;
+
+   } catch (error) {
+          console.error("Hiba:", error);
+          // Ezt a sort cseréld le erre a bővítettre:
+          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">
+              Hiba történt:<br>
+              <span class="text-xs text-gray-600">${error.message}</span>
+          </td></tr>`;
+      }
+  };
+</script>
+
+
+
        
 <script>
         // --- GLOBAL STATE & CONSTANTS ---
@@ -865,7 +1076,9 @@
                 if (!state.gameId || state.gameId !== gameId) return false;
 
                 appState.currentGame = JSON.parse(JSON.stringify(games[gameId]));
-                
+
+		window.currentGameId = gameId;                
+
                 appState.currentTaskIndex = state.currentTaskIndex;
                 appState.score = state.score;
                 appState.totalTime = state.totalTime;
@@ -1517,10 +1730,33 @@ async function sharePdfViaEmail() {
         }
 
       
-        function handleGameSelect(gameId, title, type, price, hasSave) {
+        async function handleGameSelect(gameId, title, type, price, hasSave) {
             if (hasSave) {
                  loadGameById(gameId);
             } else {
+                // --- FIREBASE LIMIT ELLENŐRZÉS ---
+                // Itt állítod be, hányan játszhatnak maximum (pl. 100)
+                const MAX_PLAYERS = 100; 
+
+                // Ellenőrizzük, hogy betöltött-e a Firebase modul
+                if (window.checkGameLimitAndIncrement) {
+                    showLoading(true); // Homokóra be
+                    document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
+                    
+                    // Meghívjuk a fenti függvényt
+                    const allowed = await window.checkGameLimitAndIncrement(gameId, MAX_PLAYERS);
+                    
+                    showLoading(false); // Homokóra ki
+                    document.getElementById('loading-status').textContent = "";
+
+                    if (!allowed) {
+                        // Ha betelt, hibaüzenet és KILÉPÉS
+                        showMessage('Betelt a játék!', `Sajnáljuk, a(z) <strong>${title}</strong> kaland elérte a maximális létszámot (${MAX_PLAYERS} fő).\nPróbálj meg egy másik kalandot választani.`);
+                        return; 
+                    }
+                }
+                // ---------------------------------
+
                  showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot? Játék típusa: ${type}. Ár: ${price}`, () => requestGpsAndStart(gameId), true);
             }
         }
@@ -1602,7 +1838,8 @@ async function sharePdfViaEmail() {
             'team_name': document.getElementById('team-name-input').value || 'unknown'
         });
     }
-            if (speechSynth.speaking) speechSynth.cancel();
+           	window.currentGameId = gameId;
+		if (speechSynth.speaking) speechSynth.cancel();
             let gameMode;
             if (modeOverride) {
                 gameMode = modeOverride;
@@ -1820,7 +2057,8 @@ const backBtn = document.getElementById('back-to-map-btn');
         
 // --- END GAME (JAVÍTOTT VERZIÓ) ---
         function endGame() {
-   if (typeof gtag === 'function') {
+    // --- GOOGLE ANALYTICS MÉRÉS ---
+    if (typeof gtag === 'function') {
         gtag('event', 'game_complete', {
             'game_id': appState.currentGame ? appState.currentGame.id : 'unknown',
             'score': appState.score,
@@ -1828,8 +2066,34 @@ const backBtn = document.getElementById('back-to-map-btn');
             'team_name': appState.teamName
         });
     }
-	    if (speechSynth.speaking) speechSynth.cancel();
-            
+    
+    // --- FONTOS: Elmentjük az ID-t és a pontot a modalnak ---
+    window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
+    window.currentScoreForHighlight = appState.score;
+    // --------------------------------------------------------
+
+    if (speechSynth.speaking) speechSynth.cancel();
+
+    // --- Mentés a Firebase Ranglistára ---
+    if (appState.currentGame && window.saveScoreToFirebase) {
+        const totalTaskTime = appState.currentGame.tasks.filter(t => !t.isStartTask).reduce((sum, task) => sum + (task.timeSpent || 0), 0);
+
+        window.saveScoreToFirebase({
+            gameId: appState.currentGame.id,
+            teamName: appState.teamName,
+            teamAvatar: appState.teamAvatar,
+            score: appState.score,
+            totalTime: appState.totalTime,
+            geofenceTime: totalTaskTime
+        });
+        
+        // ITT TÖRÖLTÜK KI A 'setTimeout window.loadLeaderboard' HÍVÁST
+        // Mert most már gombbal nyílik!
+    }
+
+
+
+         
             // Jelenlegi idő meghatározása
             const endTime = new Date();
             const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
@@ -2578,5 +2842,7 @@ function requestGpsAndStart(gameId) {
             });
         }); 
     </script>
+
+
 </body>
 </html>
