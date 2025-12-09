@@ -235,7 +235,7 @@
         /* 2. KÖZÉPSŐ RÉSZ (Név + Avatar + Teszt felirat) */
         #center-header-content {
     position: absolute;
-    top: 28px !important; /* 0px helyett 10px, így lejjebb kerül */
+    top: 10px !important; /* 0px helyett 10px, így lejjebb kerül */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -387,12 +387,12 @@
                  </div>
                  
                  <div id="center-header-content" class="hidden">
-                     <div id="team-name-container" class="text-sm font-semibold text-brand-blue/80 block">
+                     <span id="test-mode-indicator" class="text-[10px] font-bold text-brand-orange-500 hidden mb-1 leading-tight">TESZT MÓD</span>
+		     <div id="team-name-container" class="text-sm font-semibold text-brand-blue/80 block">
                         <span id="game-team-avatar-icon" class="avatar-icon"></span>
                         <span id="team-name-display"></span>
                      </div>
-                     <span id="test-mode-indicator" class="text-xs font-bold text-brand-orange-500 hidden mt-1">TESZT MÓD (NINCS GPS KORLÁTOZÁS)</span>
-                 </div>
+                  </div>
                  
                  <div id="game-status-bar" class="hidden px-2 w-full flex justify-center">
     <div class="bg-white/90 backdrop-blur-sm rounded-full flex justify-between items-center px-3 py-2 text-xs font-semibold shadow-md w-full max-w-sm border border-gray-100">
