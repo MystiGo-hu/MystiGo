@@ -224,7 +224,7 @@
         /* 2. KÖZÉPSŐ RÉSZ (Név + Avatar + Teszt felirat) */
         #center-header-content {
     position: absolute;
-    top: 30px !important; /* 0px helyett 10px, így lejjebb kerül */
+    top: 28px !important; /* 0px helyett 10px, így lejjebb kerül */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -430,7 +430,11 @@
                                 <span class="text-gray-50">▼</span>
                             </h2>
                             <div id="developer-options" class="space-y-2 hidden">
-                                <label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
+                                
+				<button id="list-all-games-btn" class="main-button w-full text-sm block !bg-indigo-600 hover:!bg-indigo-700 my-4">
+			         Összes Játék Listázása (Rejtett is)
+			        </button>
+				<label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
                                      Manuális Játékfájl Kiválasztása
                                 </label>
                                 <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
@@ -535,11 +539,7 @@
 			     </select>
          
                <button onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-    GPS Működésének Tesztelése
+    🛰️ GPS Működésének Tesztelése
 </button>
 
 			</div>
@@ -604,7 +604,7 @@
                 <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                Vissza a térképre (Később oldom meg)
+                Vissza a térképre (másik feladatot választok)
             </button>                        
 
                         <div id="start-task-button-container" class="mt-4 hidden">
@@ -614,7 +614,7 @@
                         </div>
                         <div id="explore-selection-container" class="mt-4 hidden text-center">
                             <h3 class="text-lg font-bold text-brand-blue mb-2">Válassz Feladatot a Térképen!</h3>
-                            <p class="text-sm text-gray-600 mb-4">Kattints egy kék markerre a következő célpont kiválasztásához.</p>
+                            <p class="text-sm text-gray-600 mb-4">A következő célpont kiválasztásához kattints egy kék jelölőre a térképen.</p>
                         </div>
                         </div>
                     
@@ -1041,7 +1041,8 @@
 <script>
         // --- GLOBAL STATE & CONSTANTS ---
         let games = {};
-        // *** KONSTANSOK ***
+	window.showHiddenGames = false;        
+	// *** KONSTANSOK ***
         const GEOFENCE_DEFAULT_RADIUS = 20; 
         const DEFAULT_SCORE_PER_TASK = 50; 
         const HINT1_PENALTY = 10; 
@@ -1839,87 +1840,82 @@ async function sharePdfViaEmail() {
   
 // --- ÚJ SZŰRŐ FÜGGVÉNYEK ---
        function populateLocationFilter() {
-            const locationSelect = document.getElementById('filter-location');
-            if (!locationSelect) return;
+    const locationSelect = document.getElementById('filter-location');
+    if (!locationSelect) return;
 
-            // Megjegyezzük, mi volt kiválasztva, hogy ne ugorjon vissza
-            const currentValue = locationSelect.value;
-            const locations = new Set();
-            
-            Object.values(games).forEach(game => {
-    if (game.isHidden) return; // Rejtett játékok helyszínei ne kerüljenek a listába
+    // Megjegyezzük, mi volt kiválasztva
+    const currentValue = locationSelect.value;
+    const locations = new Set();
+    
+    Object.values(games).forEach(game => {
+        // --- MÓDOSÍTÁS: Ha nem vagyunk fejlesztői módban, rejtjük a rejtetteket ---
+        if (!window.showHiddenGames && game.isHidden) return; 
+        // ------------------------------------------------------------------------
 
-                   const rawLocation = String(game.location || "");
+        const rawLocation = String(game.location || "");
 
-                if (rawLocation && rawLocation !== 'Egyéb' && rawLocation !== 'undefined') {
-                    // ITT TÖRTÉNIK A VARÁZSLAT:
-                    // 1. split(','): Szétvágjuk a vesszőknél
-                    // 2. forEach: Minden darabon végigmegyünk
-                    const parts = rawLocation.split(','); 
-                    
-                    parts.forEach(part => {
-                        // trim(): Levágjuk a felesleges szóközöket az elejéről/végéről
-                        const cleanLoc = part.trim();
-                        // Ha maradt szöveg, hozzáadjuk a listához
-                        if (cleanLoc) locations.add(cleanLoc);
-                    });
-                }
+        if (rawLocation && rawLocation !== 'Egyéb' && rawLocation !== 'undefined') {
+            const parts = rawLocation.split(','); 
+            parts.forEach(part => {
+                const cleanLoc = part.trim();
+                if (cleanLoc) locations.add(cleanLoc);
             });
-
-            // Opciók újraépítése ABC sorrendben
-            locationSelect.innerHTML = '<option value="all">Összes Helyszín</option>';
-            Array.from(locations).sort((a, b) => a.localeCompare(b, 'hu')).forEach(loc => {
-                const option = document.createElement('option');
-                option.value = loc;
-                option.textContent = loc;
-                locationSelect.appendChild(option);
-            });
-
-            // Visszaállítjuk a kiválasztást, ha még létezik az opció
-            if (Array.from(locationSelect.options).some(option => option.value === currentValue)) {
-                locationSelect.value = currentValue;
-            } else {
-                locationSelect.value = 'all';
-            }
         }
+    });
+
+    // Opciók újraépítése
+    locationSelect.innerHTML = '<option value="all">Összes Helyszín</option>';
+    Array.from(locations).sort((a, b) => a.localeCompare(b, 'hu')).forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc;
+        option.textContent = loc;
+        locationSelect.appendChild(option);
+    });
+
+    // Visszaállítjuk a kiválasztást
+    if (Array.from(locationSelect.options).some(option => option.value === currentValue)) {
+        locationSelect.value = currentValue;
+    } else {
+        locationSelect.value = 'all';
+    }
+}
 
 // --- EZ HIÁNYZOTT: Szűrés végrehajtása ---
         function applyFilters() {
-            const locSelect = document.getElementById('filter-location');
-            const typeSelect = document.getElementById('filter-type');
-            
-            // Ha még nincsenek betöltve az elemek (biztonsági ellenőrzés)
-            if (!locSelect || !typeSelect) return;
+    const locSelect = document.getElementById('filter-location');
+    const typeSelect = document.getElementById('filter-type');
+    
+    if (!locSelect || !typeSelect) return;
 
-            const location = locSelect.value;
-            const type = typeSelect.value;
+    const location = locSelect.value;
+    const type = typeSelect.value;
 
-            const filteredGames = {};
+    const filteredGames = {};
 
-            Object.values(games).forEach(game => {
-    if (game.isHidden) return; // Kézi szűrésnél mindig rejtjük őket
-                // 1. Helyszín ellenőrzés (több helyszín kezelése vesszővel)
-                let locMatch = false;
-                if (location === 'all') {
-                    locMatch = true;
-                } else {
-                    // Szétbontjuk a játék helyszínét vesszők mentén, és megnézzük, benne van-e a választott
-                    const gameLocs = game.location ? String(game.location).split(',').map(s => s.trim()) : [];
-                    locMatch = gameLocs.includes(location);
-                }
+    Object.values(games).forEach(game => {
+        // --- MÓDOSÍTÁS: Csak akkor rejtjük el, ha a globális kapcsoló KIKAPCSOLT ---
+        if (!window.showHiddenGames && game.isHidden) return; 
+        // -------------------------------------------------------------------------
 
-                // 2. Típus ellenőrzés
-                const typeMatch = (type === 'all' || game.type === type);
-
-                // Ha mindkettő stimmel, hozzáadjuk a listához
-                if (locMatch && typeMatch) {
-                    filteredGames[game.id] = game;
-                }
-            });
-
-            // Kirajzoljuk a szűrt listát
-            renderGameList(filteredGames);
+        // 1. Helyszín ellenőrzés
+        let locMatch = false;
+        if (location === 'all') {
+            locMatch = true;
+        } else {
+            const gameLocs = game.location ? String(game.location).split(',').map(s => s.trim()) : [];
+            locMatch = gameLocs.includes(location);
         }
+
+        // 2. Típus ellenőrzés
+        const typeMatch = (type === 'all' || game.type === type);
+
+        if (locMatch && typeMatch) {
+            filteredGames[game.id] = game;
+        }
+    });
+
+    renderGameList(filteredGames);
+}
 
   // --- ÚJ, BIZTOSABB URL SZŰRŐ LOGIKA (Adat-vezérelt) ---
         function handleInitialUrlFiltering() {
@@ -3074,6 +3070,31 @@ function requestGpsAndStart(gameId) {
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
             const avatarSelectEl = document.getElementById('team-avatar-select');
+
+
+// --- ÚJ GOMB ESEMÉNYKEZELŐJE (Összes játék listázása) ---
+    // --- EZ A FRISSÍTETT VERZIÓ (CSERÉLD LE A RÉGIT ERRE) ---
+    const listAllGamesBtn = document.getElementById('list-all-games-btn');
+    if (listAllGamesBtn) {
+        listAllGamesBtn.addEventListener('click', () => {
+            // 1. Bekapcsoljuk a globális változót, hogy lássuk a rejtetteket
+            window.showHiddenGames = true;
+
+            // 2. Újrageneráljuk a helyszín listát (most már a rejtett városok is benne lesznek)
+            populateLocationFilter();
+
+            // 3. Kirajzoljuk a játékokat
+            renderGameList(games);
+            
+            // 4. Fejlesztői menü bezárása (hogy lássuk az eredményt)
+            const devOptions = document.getElementById('developer-options');
+            if (devOptions) devOptions.classList.add('hidden');
+            const devToggle = document.getElementById('developer-tools-toggle');
+            if(devToggle) devToggle.querySelector('span').textContent = '▼';
+
+        });
+    }
+    // --------------------------------------------------------
 
             // 1. Betöltés: Megnézzük, van-e elmentve adat
             const savedName = localStorage.getItem('mystigo_pref_teamName');
