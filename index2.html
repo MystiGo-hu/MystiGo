@@ -397,9 +397,9 @@
                  <div id="game-status-bar" class="hidden px-2 w-full flex justify-center">
     <div class="bg-white/90 backdrop-blur-sm rounded-full flex justify-between items-center px-3 py-2 text-xs font-semibold shadow-md w-full max-w-sm border border-gray-100">
         
-        <div class="px-2 whitespace-nowrap text-brand-blue">
-            Feladat: <span id="task-progress-display">1/10</span>
-        </div>
+        <div class="px-2 whitespace-nowrap text-brand-blue -ml-2">
+    Feladat: <span id="task-progress-display">1/10</span>
+</div>
         
         <div class="flex items-center gap-1.5">
             <div class="flex items-center justify-center gap-1 bg-gray-50 border border-gray-200 px-2 py-1 rounded-full text-brand-blue min-w-[70px]">
@@ -534,17 +534,27 @@
 				    <option value="cat">Mysti 🐱</option>
 				    <option value="dog">Kutya 🐶</option>
 				    <option value="panda">Panda 🐼</option>
-				    <option value="monkey">Majom 🐵</option>
+				    <option value="shark">Cápa 🦈</option>
+				    <option value="parrot">Papagáj 🦜</option>
+				    <option value="bear">Maci 🐻</option>
+				    <option value="cow">Boci 🐮</option>
+				    <option value="elephant">Elefánt 🐘</option>
 				    <option value="detective">Nyomozó 🕵️</option>
 				    <option value="explorer">Felfedező 🧭</option>
 				    <option value="wizard">Varázsló 🧙</option>
 				    <option value="robot">Robot 🤖</option>
 				    <option value="ghost">Szellem 👻</option>
+				    <option value="skull">Koponya ☠️</option>
 				    <option value="lock">Lakat 🔒</option>
 				    <option value="magician">Bűvész 🎩</option>
 				    <option value="mask">Álarc 🎭</option>
 				    <option value="fire">Tűz 🔥</option>
 				    <option value="knight">Lovag ⚔️</option>
+				    <option value="hamburger">Hamburger 🍔</option>
+				    <option value="pizza">Pizza 🍕</option>
+				    <option value="doughnut">Fánk 🍩</option>
+				    <option value="cupcake">Muffin 🧁</option>
+				    <option value="lollipop">Nyalóka 🍭</option>
 				    <option value="smile">Smile 😎</option>
 				    <option value="zombie">Zombi 🧟‍♂️</option>
 				    <option value="ballerina">Belerina 🩰</option>
@@ -552,7 +562,12 @@
 				    <option value="firefighter">Tűzoltó 🚒</option>
 				    <option value="ambulance">Mentő 🚑</option>
 				    <option value="star">Csillag ⭐️</option>
+				    <option value="heart">Szív ❤️</option>
+				    <option value="crown">Korona 👑</option>
+				    <option value="laptop">Laptop 💻</option>
 				    <option value="floppy">Floppy 💾</option>
+
+
 			     </select>
          
                <button onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
@@ -963,8 +978,8 @@
           let html = "";
           
           const avatars = {
-             cat: '🐱',dog: '🐶',panda: '🐼',monkey: '🐵', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️',smile: '😎',zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️',floppy: '💾'
+             cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
+             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
           };
           
           // Idő formázó (MM:SS)
@@ -1072,8 +1087,8 @@
         const DEFAULT_GAME_FILE = 'games/games.xlsx'; 
 
         const AVATAR_ICONS = {
-            cat: '🐱',dog: '🐶',panda: '🐼',monkey: '🐵', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-            ghost: '👻', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️',smile: '😎',zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️',floppy: '💾',
+            cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
+             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
         };
 
         let appState = {};
