@@ -194,13 +194,14 @@
             padding: 0.35rem; /* Kisebb padding */
         }
         
-        /* Avatár ikonok CSS */
-        .avatar-icon {
-            display: inline-block;
-            margin-right: 0.25rem;
-            font-size: 1.25rem; /* text-xl */
-            line-height: 1;
-        }
+        /* EMOJI JAVÍTÁS PDF-HEZ: Kényszerítjük a színes emoji fontokat */
+.avatar-icon {
+    display: inline-block;
+    margin-right: 0.25rem;
+    font-size: 1.5rem; /* Kicsit nagyobbra vesszük */
+    line-height: 1;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+}
         
         /* JÁTÉK KÖZBENI FEJLÉC ÉS STATUS BAR STÍLUSAI */
         #game-header-logo-container {
@@ -402,9 +403,17 @@
                     </div>
                  </div>
                  
-                 <button id="exit-game-btn" onclick="showExitConfirmation()" class="absolute top-4 right-4 p-2 rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition hidden">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                 </button>
+                 <button id="exit-game-btn" onclick="showExitConfirmation()" 
+    class="absolute top-4 right-4 p-2.5 rounded-full text-white 
+           bg-gradient-to-br from-red-400 to-red-600 
+           border-2 border-white 
+           shadow-lg shadow-red-500/30 
+           hover:scale-110 hover:from-red-500 hover:to-red-700 hover:shadow-red-500/50
+           transition-all duration-200 ease-in-out hidden z-50">
+    <svg class="w-5 h-5 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+</button>
                  
                  <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1440 120H0V65.1721C0 65.1721 289.431 0 720 0C1150.57 0 1440 65.1721 1440 65.1721V120Z" fill="white"/></svg>
             </div>
@@ -570,17 +579,26 @@
                     <div class="content-card p-4">
                         <div id="map"></div>
                         
-                        <div class="text-center mt-3 mb-2 flex justify-between items-center px-2">
-                            <button id="google-maps-btn" class="text-xs text-brand-blue font-semibold hover:text-brand-cyan-500 transition flex items-center" onclick="startNavigation()">
-                                <svg class="w-4 h-4 inline-block align-text-bottom mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.864 4.068 11.972 7.23 15.659.387.464.887.464 1.274 0 3.162-3.687 7.23-10.795 7.23-15.659 0-4.199-3.802-7.602-8-7-602zm0 10c-1.105 0-2-.896-2-2 0-1.105.895-2 2-2 1.104 0 2 .895 2 2 0 1.104-.896 2-2 2z"/></svg>
-                                Navigálás
-                            </button>
-                            <p id="distance-info" class="text-center text-xs font-bold"></p>
-                             <button id="report-error-btn" class="text-xs text-gray-500 font-semibold hover:text-red-500 transition" onclick="showReportModal()">
-                                <svg class="w-4 h-4 inline-block align-text-bottom mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.3 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                Feladat átugrása
-                            </button>
-                        </div>
+
+                        <div class="mt-3 mb-2 flex justify-between items-center px-2 w-full">
+       <button id="google-maps-btn" class="flex flex-col items-center justify-center text-xs text-brand-blue font-semibold hover:text-brand-cyan-500 transition" onclick="startNavigation()">
+            <img src="logo/google_maps_icon.png" alt="Maps" class="w-5 h-5 mb-0.5 object-contain">
+            <span>Navigálás</span>
+        </button>
+    
+    <div class="flex-1 flex justify-center">
+        <p id="distance-info" class="text-center text-xs font-bold whitespace-nowrap"></p>
+    </div>
+    
+
+<button id="report-error-btn" class="flex flex-col items-center justify-center text-[10px] text-gray-500 font-semibold hover:text-red-500 transition leading-tight" onclick="showReportModal()">
+     <span>⚠️</span>
+            <span>Feladat</span>
+            <span>átugrása</span>
+        </button>
+
+</div>
+
 
 	    <button id="back-to-map-btn" onclick="backToExploreMap()" class="hidden mb-4 text-xs font-bold text-gray-500 hover:text-brand-blue flex items-center">
                 <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -638,10 +656,8 @@
                     </section>
                 
                 <section id="end-page" class="hidden space-y-6 text-center flex flex-col items-center pt-8">
-                     <div id="pdf-content"> 
-                        <div class="flex justify-center mb-6">
-                             </div>
-                        
+     <div id="pdf-content"> 
+        
                         <h2 class="text-4xl font-bold text-text-heading">Szép munka!</h2>
                         <p class="text-lg text-text-dark mb-4">Teljesítetted a kalandot.</p>
                         <p id="end-timestamp" class="text-sm text-gray-500 mb-6"></p> 
@@ -1264,11 +1280,14 @@
             if (!element) return;
             
             const originalStyle = element.style.cssText;
+            
+            // --- AVATAR JAVÍTÁS: Kényszerítjük a betűtípust a generálás idejére ---
             element.style.padding = '20px'; 
             element.style.backgroundColor = '#ffffff';
+            element.style.fontFamily = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Poppins", sans-serif';
+            // -----------------------------------------------------------------------
 
             const now = new Date();
-            // Dátum és idő komponensek
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
@@ -1276,27 +1295,23 @@
             const minute = String(now.getMinutes()).padStart(2, '0');
             const second = String(now.getSeconds()).padStart(2, '0'); 
 
-            // Összefűzés: ÉÉÉÉ-HH-NN_ÓÓ-PP-MP formátumban
             const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
             
-            // Biztonságos csapatnév lekérés
             const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
-            
-            // --- ÚJ RÉSZ: Avatar lekérése ---
-            // Ha van kiválasztott avatar, azt használja, ha nincs, akkor 'nincs-avatar'
             const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
 
-            // --- MÓDOSÍTOTT FÁJLNÉV ---
-            // Beillesztettük a safeAvatar változót a névbe
-            const fileName = `MystiGo_Eredmény_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
+            // ID megőrzése
+            const gameId = window.currentGameId || 'Eredmény'; 
 
-            // 3 másodperc várakozás a térkép renderelésre, utána mentés
+            const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
+
             setTimeout(() => {
                 html2pdf().from(element).set({
                     margin: 10, 
                     filename: fileName, 
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, logging: false, useCORS: true, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
+                    // useCORS fontos a képekhez, letterRendering a betűkhöz
+                    html2canvas: { scale: 2, logging: false, useCORS: true, letterRendering: true, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).save().then(() => {
                     element.style.cssText = originalStyle;
@@ -1304,38 +1319,49 @@
                     console.error("PDF generálási hiba:", err);
                     element.style.cssText = originalStyle;
                 });
-            }, 3000); 
+            }, 2000); 
         }
 
 
 async function sharePdfViaEmail() {
     // 1. Elemek és stílusok előkészítése
     const element = document.getElementById('pdf-content');
+    if (!element) return;
+
     const originalStyle = element.style.cssText;
     element.style.padding = '20px';
     element.style.backgroundColor = '#ffffff';
-    
-    // --- FÁJLNÉV GENERÁLÁS KEZDETE ---
+    element.style.fontFamily = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Poppins", sans-serif';
+    // --- FÁJLNÉV GENERÁLÁS (Ugyanaz, mint a downloadPDF-ben) ---
     const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const second = String(now.getSeconds()).padStart(2, '0'); 
     
-    // Itt fűzzük össze a dátumot ÉS az időt
+    const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
+
+    // Biztonságos adatok lekérése
+    const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
     const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
-    const fileName = `Jatek_Eredmeny_${appState.teamName || 'Csapat'}_${safeAvatar}_${dateStr}_${timeStr}.pdf`;
-    // --- FÁJLNÉV GENERÁLÁS VÉGE ---
+    
+    // FONTOS: Itt is a window.currentGameId-t használjuk!
+    const gameId = window.currentGameId || 'Eredmény';
 
-    // Debug: Kiírjuk a konzolra és egy alertben is, hogy lásd, tényleg az új kód fut-e
-    console.log("Tervezett fájlnév:", fileName);
-    // alert("Fájlnév teszt: " + fileName); // Ezt a sort kiveheted, ha már működik
+    // Egységes fájlnév struktúra
+    const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
+    // -----------------------------------------------------------
 
+    console.log("Megosztandó fájl neve:", fileName);
     showLoading(true); 
 
     try {
         // 2. PDF generálása Blob-ként
         const pdfBlob = await html2pdf().from(element).set({
             margin: 10,
-            filename: fileName, // Itt használjuk a fenti változót
+            filename: fileName, 
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1354,20 +1380,20 @@ async function sharePdfViaEmail() {
                 await navigator.share({
                     files: [file],
                     title: 'Játék Eredmény',
-                    text: `Sziasztok! Itt van a Játékom eredménye. Csapat: ${appState.teamName || 'Névtelen'}`
+                    text: `Sziasztok! Itt van a Játékom eredménye. Kaland: ${gameId}, Csapat: ${safeTeamName}`
                 });
             } catch (error) {
                 if (error.name !== 'AbortError') console.error(error);
             }
         } else {
-            // Fallback letöltés
+            // Fallback letöltés (ha a megosztás nem támogatott)
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;
             a.click();
             URL.revokeObjectURL(url);
-            alert('A PDF letöltésre került (megosztás nem támogatott).');
+            alert('A PDF letöltésre került (a megosztás ezen az eszközön nem támogatott).');
         }
 
     } catch (err) {
@@ -1390,30 +1416,29 @@ async function sharePdfViaEmail() {
                 });
             }
 
-            // --- ÚJ RÉSZ: TARTALOM ÉS FEJLÉC POZÍCIÓJÁNAK ÁLLÍTÁSA ---
+            // --- POZÍCIÓK BEÁLLÍTÁSA (JAVÍTOTT - 330px) ---
             const contentWrapperEl = document.getElementById('content-page-wrapper');
-            const headerEl = document.getElementById('header'); // <--- Ezt add hozzá!
+            const headerEl = document.getElementById('header'); 
+
+            // 1. Töröljük a korábbi osztályokat és stílusokat
+            contentWrapperEl.classList.remove('top-40', 'top-52', 'top-32');
+            contentWrapperEl.style.top = ''; 
+            headerEl.style.paddingBottom = ''; 
 
             if (pageId === 'game-page') {
                 // --- JÁTÉK NÉZET ---
-                
-                // 1. Fejléc (boltív) letolása CSAK itt:
                 headerEl.style.paddingBottom = '60px'; 
-
-                // 2. Tartalom (térkép) igazítása a lejjebb került fejléchez:
-                contentWrapperEl.classList.remove('top-40');
-                contentWrapperEl.classList.remove('top-32');
                 contentWrapperEl.style.top = '115px'; 
                 
-            } else {
-                // --- MINDEN MÁS OLDAL (pl. Kalandválasztó) ---
-                
-                // 1. Fejléc visszaállítása eredetire (hogy ne csússzon el a lista):
-                headerEl.style.paddingBottom = ''; // Üresre állítjuk, így a CSS class (pb-10) érvényesül
+            } else if (pageId === 'end-page') {
+                // --- JÁTÉK VÉGE (DRASZTIKUS KORREKCIÓ) ---
+                // 330 pixelre toljuk le a fehér dobozt. 
+                // Ez elegendő helyet ad a magas logónak és a feliratnak is.
+                contentWrapperEl.style.setProperty('top', '330px', 'important');
 
-                // 2. Tartalom visszaállítása:
-                contentWrapperEl.style.top = ''; 
-                contentWrapperEl.classList.add('top-40');
+            } else {
+                // --- MENÜ ÉS EGYÉB OLDALAK ---
+                contentWrapperEl.style.top = '160px'; 
             }
             // ---------------------------------------------------------
 
@@ -1448,6 +1473,7 @@ async function sharePdfViaEmail() {
             const teamAvatarIcon = document.getElementById('game-team-avatar-icon'); 
             const testModeIndicator = document.getElementById('test-mode-indicator');
             const mainHeaderLogoRow = document.getElementById('main-header-logo-row'); 
+            const titleEl = document.getElementById('page-title'); // <--- ITT DEFINIÁLJUK
             
             if (pageId === 'game-page') {
                 mainHeader.classList.add('hidden');
@@ -1475,27 +1501,43 @@ async function sharePdfViaEmail() {
                 testModeIndicator.classList.add('hidden');
                 if(mainHeaderLogoRow) mainHeaderLogoRow.classList.remove('hidden');
                 
-                const titles = { 'game-list-page': 'Válassz Kalandot', 'end-page': 'Játék Vége' };
-                document.getElementById('page-title').textContent = titles[pageId] || 'MystiGo';
+                // --- MÓDOSÍTÁS: CÍM KEZELÉSE ---
+                if (pageId === 'end-page') {
+                    // Ha a játék végén vagyunk, ELREJTJÜK a címet, csak a logó marad
+                    if (titleEl) titleEl.classList.add('hidden');
+                } else {
+                    // Minden más oldalon (pl. Kalandválasztó) MEGJELENÍTJÜK
+                    if (titleEl) {
+                        titleEl.classList.remove('hidden');
+                        const titles = { 'game-list-page': 'Válassz Kalandot' };
+                        titleEl.textContent = titles[pageId] || 'MystiGo';
+                    }
+                }
+                // -------------------------------
                 
                 if (pageId === 'game-list-page') {
-                     if (Object.keys(games).length > 0) applyFilters();
-                     if (Object.keys(games).length > 0) document.getElementById('team-setup').classList.remove('hidden');
+                    // Logó visszaállítása a főmenüben
+                    const mainHeaderLogo = document.getElementById('main-header-logo');
+                    if (mainHeaderLogo) mainHeaderLogo.src = "logo/MystiGo_logo.png";
+
+                    if (Object.keys(games).length > 0) applyFilters();
+                    if (Object.keys(games).length > 0) document.getElementById('team-setup').classList.remove('hidden');
+                    
+                    // Titkos kapcsoló visszaállítása a cím mellé (csak ha van cím elem és látható)
+                    if (titleEl && !titleEl.classList.contains('hidden')) {
+                        const secretTrigger = document.createElement('span');
+                        secretTrigger.id = 'secret-trigger';
+                        secretTrigger.className = 'text-brand-orange-500 cursor-pointer ml-1 font-extrabold';
+                        secretTrigger.textContent = '!';
+                        titleEl.appendChild(secretTrigger);
+                    }
+
                 } else {
-                     document.getElementById('secret-switches-container').classList.add('hidden');
+                    document.getElementById('secret-switches-container').classList.add('hidden');
                 }
             }
-            
-            if (pageId === 'game-list-page') {
-                const titleEl = document.getElementById('page-title');
-                titleEl.textContent = 'Válassz Kalandot';
-                const secretTrigger = document.createElement('span');
-                secretTrigger.id = 'secret-trigger';
-                secretTrigger.className = 'text-brand-orange-500 cursor-pointer ml-1 font-extrabold';
-                secretTrigger.textContent = '!';
-                if (titleEl) titleEl.appendChild(secretTrigger);
-            }
         }
+            
 
         function resetApp() {
             if (speechSynth.speaking) speechSynth.cancel();
@@ -2435,14 +2477,11 @@ const backBtn = document.getElementById('back-to-map-btn');
             geofenceTime: totalTaskTime
         });
         
-if (window.incrementGameCompletion) {
+        if (window.incrementGameCompletion) {
                 window.incrementGameCompletion(appState.currentGame.id);
             }
-            // -------------------------
         }
 
-
-         
             // Jelenlegi idő meghatározása
             const endTime = new Date();
             const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
@@ -2458,7 +2497,21 @@ if (window.incrementGameCompletion) {
             // Idők számítása
             const totalTaskTime = appState.currentGame.tasks.filter(t => !t.isStartTask).reduce((sum, task) => sum + (task.timeSpent || 0), 0);
             
-            // HTML elemek kitöltése az eredményekkel
+            // --- JAVÍTOTT LOGÓ CSERE KÓD ---
+            // 1. A kártyán belüli logó cseréje
+            const endPageLogo = document.getElementById('end-page-logo');
+            if (endPageLogo) {
+                endPageLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+            }
+
+            // 2. A felső fejléc logó cseréje
+            const mainHeaderLogo = document.getElementById('main-header-logo');
+            if (mainHeaderLogo) {
+                mainHeaderLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+            }
+            // ------------------------------------------
+
+	    // HTML elemek kitöltése az eredményekkel
             document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
             document.getElementById('final-score').textContent = appState.score;
             document.getElementById('final-time').textContent = formatTime(appState.totalTime); 
