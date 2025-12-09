@@ -1073,6 +1073,7 @@
 <script>
         // --- GLOBAL STATE & CONSTANTS ---
         let games = {};
+	let badWordsList = [];
 	window.showHiddenGames = false;        
 	// *** KONSTANSOK ***
         const GEOFENCE_DEFAULT_RADIUS = 20; 
@@ -2107,16 +2108,28 @@ async function sharePdfViaEmail() {
                 const nameInput = document.getElementById('team-name-input');
                 const avatarSelect = document.getElementById('team-avatar-select');
 
-                // 1. Név ellenőrzése
+                // 1. Név ellenőrzése (Üres mező)
                 if (!nameInput.value.trim()) {
                     showMessage('Hiányzó Adat', 'Kérlek, adj meg egy <strong>Nevet</strong> a játék indításához!');
-                    // Odagörgetünk a mezőhöz, hogy lássa
                     nameInput.scrollIntoView({behavior: "smooth", block: "center"});
                     nameInput.focus();
-                    nameInput.classList.add('border-red-500'); // Piros keret (opcionális vizuális extra)
-                    setTimeout(() => nameInput.classList.remove('border-red-500'), 3000);
-                    return; // Megállítjuk a folyamatot
+                    return; 
                 }
+
+                // --- 1.b TILTÓLISTA ELLENŐRZÉS (IDE RAKD BE EZT A BLOKKOT) ---
+                const lowerName = nameInput.value.toLowerCase();
+                
+                // Csak akkor ellenőrzünk, ha sikerült betölteni a listát (hosszabb mint 0)
+                if (badWordsList.length > 0 && badWordsList.some(word => lowerName.includes(word))) {
+                    showMessage('Nem megfelelő név', 'A választott név nem engedélyezett kifejezést tartalmaz.<br>Kérlek, válassz másikat!');
+                    
+                    nameInput.scrollIntoView({behavior: "smooth", block: "center"});
+                    nameInput.focus();
+                    nameInput.classList.add('border-red-500');
+                    setTimeout(() => nameInput.classList.remove('border-red-500'), 3000);
+                    return; // FONTOS: Megállítjuk a folyamatot!
+                }
+
 
                 // 2. Avatar ellenőrzése
                 if (!avatarSelect.value) {
@@ -3099,7 +3112,18 @@ function requestGpsAndStart(gameId) {
         
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
-            // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
+
+            // --- ÚJ RÉSZ: Tiltólista betöltése ---
+            fetch('games/badwords.json')
+                .then(response => response.json())
+                .then(data => {
+                    badWordsList = data;
+                    console.log("Tiltólista betöltve:", badWordsList.length, "szó.");
+                })
+                .catch(err => console.error("Nem sikerült betölteni a tiltólistát (vagy nincs fájl):", err));
+            // -------------------------------------
+
+	    // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
             const avatarSelectEl = document.getElementById('team-avatar-select');
 
