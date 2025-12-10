@@ -926,14 +926,14 @@
   };
 
   // 3. MODAL KEZELÉS (EZ AZ ÚJ RÉSZ!)
-  window.openLeaderboardModal = async function() {
+  window.openLeaderboardModal = async function(specificGameId = null) {
       // Kiolvassuk az ID-t, amit a fő scriptben mentettünk el
-      const gameId = window.currentGameId; 
+      const gameId = specificGameId || window.currentGameId; 
 
       if (!gameId) {
-          alert("Nincs aktív játék azonosító (vagy már törlődött).");
-          return;
-      }
+        alert("Nincs aktív játék azonosító.");
+        return;
+    }
 
       const modal = document.getElementById('leaderboard-modal');
       const listBody = document.getElementById('leaderboard-modal-body');
@@ -1809,7 +1809,8 @@ async function sharePdfViaEmail() {
     startLocation: { lat, lng }, 
     price: parseInt(game.price || 0),
     headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null, // <--- ÚJ SOR: Egyedi fejléc logó beolvasása
-   reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,  
+    reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,
+    oneTimeOnly: (game.oneTimeOnly == 1 || String(game.oneTimeOnly).trim().toLowerCase() === 'true'),  
  tasks: [] 
 };
 });
@@ -1914,9 +1915,16 @@ async function sharePdfViaEmail() {
             }
             
             Object.values(sourceData).forEach(game => {
-                if (!gamesToRender && game.isHidden) return;
+                if (!gamesToRender && !window.showHiddenGames && game.isHidden) return;
 
-   				   const placeholderImage =`https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+                // --- VÁLTOZÓK DEFINIÁLÁSA ---
+                
+                const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
+
+                // Kép és Placeholder
+                const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+                
+                // Típus jelvény
                 let gameTypeBadge = '';
                 if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
                 else if (game.type === 'team') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
@@ -1926,47 +1934,76 @@ async function sharePdfViaEmail() {
                 const priceText = game.price > 0 ? `${game.price.toLocaleString('hu-HU')} Ft` : 'Ingyenes';
                 const gameTitleForMessage = game.title.replace(/'/g, "\\'");
                 
-                const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
+                const locationBadge = game.location ? `<span class="text-xs text-gray-500 font-semibold flex items-center mt-1"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>${game.location}</span>` : '';
+
+                // --- ITT A LÉNYEG: ---
+                const isCompletedPermanently = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
                 
+                // Külön változó a tartalom szürkítésére (kép + szöveg)
+                let contentOpacityClass = ""; 
+                let completedBadge = "";
+
+                if (game.oneTimeOnly && isCompletedPermanently) {
+                    // Csak a tartalmat halványítjuk, a konténert nem!
+                    contentOpacityClass = "opacity-50 grayscale"; 
+                    completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE ✅</div>`;
+                }
+
                 let saveIndicator = "";
                 let cardBorder = "";
-                
                 if (hasSave) {
-                    saveIndicator = `<div class="bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded absolute top-2 left-2 shadow-md">MENTVE</div>`;
+                    saveIndicator = `<div class="bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded absolute top-2 left-2 shadow-md z-20">MENTVE</div>`;
                     cardBorder = "border-2 border-brand-orange";
                 }
 
                 let deleteButtonHtml = "";
                 if (hasSave) {
                     deleteButtonHtml = `
-                        <button onclick="event.stopPropagation(); deleteSavedGame('${game.id}');" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md z-10" title="Újrakezdés (Mentés törlése)">
+                        <button onclick="event.stopPropagation(); deleteSavedGame('${game.id}');" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md z-30" title="Újrakezdés (Mentés törlése)">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     `;
                 }
 
-                const locationBadge = game.location ? `<span class="text-xs text-gray-500 font-semibold flex items-center mt-1"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>${game.location}</span>` : '';
+                // Ranglista gomb
+                const leaderboardBtnHtml = `
+                    <button onclick="event.stopPropagation(); openLeaderboardModal('${game.id}');" 
+                            class="absolute bottom-4 right-4 bg-white text-brand-blue border border-gray-200 p-2 rounded-full shadow-lg hover:bg-brand-orange hover:text-white hover:scale-110 transition-all z-30"
+                            title="Ranglista megtekintése">
+                        🏆
+                    </button>
+                `;
 
+                // --- HTML GENERÁLÁS MÓDOSÍTVA ---
+                // Figyeld meg: a contentOpacityClass most már nem a fő div-en van, hanem a képen és a szöveges div-en!
                 listEl.innerHTML += `
                     <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow relative ${cardBorder}" 
                          onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
+                        
                         ${saveIndicator}
+                        ${completedBadge}
                         ${deleteButtonHtml}
-                        <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover" onerror="this.onerror=null;this.src='${placeholderImage}';">
-                        <div class="p-5">
+                        ${leaderboardBtnHtml}
+                        
+                        <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
+                        
+                        <div class="p-5 ${contentOpacityClass}">
                             <div class="flex justify-between items-start">
                                 <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
                                 ${gameTypeBadge}
                             </div>
                             ${locationBadge}
                             <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás megadva.'}</p>
-                            <p class="text-xs font-semibold mt-3 text-brand-orange-500">${priceText}</p>
+                            <p class="text-xs font-semibold mt-3 text-brand-orange-500 pr-10">${priceText}</p>
                             ${hasSave ? '<p class="text-xs font-bold text-green-600 mt-2">Kattints a folytatáshoz!</p>' : ''}
                         </div>
                     </div>`;
             });
         }
   
+
+
+
 // --- ÚJ SZŰRŐ FÜGGVÉNYEK ---
        function populateLocationFilter() {
     const locationSelect = document.getElementById('filter-location');
@@ -2197,6 +2234,21 @@ async function sharePdfViaEmail() {
 
       
         async function handleGameSelect(gameId, title, type, price, hasSave) {
+
+// --- ÚJ RÉSZ: Egyszeri játék ellenőrzése ---
+    const gameConfig = games[gameId];
+    // Megnézzük, van-e tartós bejegyzés a teljesítésről
+    const isCompletedPermanently = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
+
+    if (gameConfig && gameConfig.oneTimeOnly && isCompletedPermanently) {
+        showMessage(
+            'Már teljesítetted! 🏆', 
+            `Ezt a kalandot (${title}) úgy állították be, hogy csak egyszer játszható végig ezen az eszközön, és te már sikeresen teljesítetted.`
+        );
+        return; // Itt megállítjuk a folyamatot, nem engedjük tovább
+    }
+    // -------------------------------------------
+
             if (hasSave) {
                  loadGameById(gameId);
             } else {
@@ -2603,6 +2655,11 @@ const backBtn = document.getElementById('back-to-map-btn');
     window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
     window.currentScoreForHighlight = appState.score;
     // --------------------------------------------------------
+
+// --- ÚJ RÉSZ: Tartós teljesítés mentése ---
+    if (appState.currentGame) {
+        localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
+    }
 
     if (speechSynth.speaking) speechSynth.cancel();
 
