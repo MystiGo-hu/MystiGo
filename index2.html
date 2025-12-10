@@ -2684,9 +2684,6 @@ if (reviewBtn) {
             
             // --- TÉRKÉP RAJZOLÁSA BIZTONSÁGOSAN ---
             const routeMapDiv = document.getElementById('route-map');
-            
-            // 1. LÉPÉS: Térkép konténer takarítása (Kritikus javítás)
-            // Ha már volt rajta térkép (előző játékból), töröljük a Leaflet azonosítót és a tartalmat
             if (routeMapDiv) {
                 if (routeMapDiv._leaflet_id) {
                     routeMapDiv._leaflet_id = null; // Leaflet hack: ID törlése
@@ -2704,7 +2701,15 @@ if (reviewBtn) {
                     
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
                     
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', crossOrigin: true }).addTo(endMap);
+
+                    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+                        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+                        crossOrigin: true,
+                        tileSize: 512,
+                        zoomOffset: -1,
+                        maxZoom: 20
+                    }).addTo(endMap);
+
                     
                     const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
                     endMap.fitBounds(polyline.getBounds().pad(0.2));
@@ -2792,7 +2797,16 @@ if (reviewBtn) {
             if (appState.map) appState.map.remove();
             const startLoc = appState.currentGame.startLocation;
             appState.map = L.map('map', { zoomControl: false }).setView([startLoc.lat, startLoc.lng], 16);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO' }).addTo(appState.map);
+
+            L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+                attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+                crossOrigin: true,
+                tileSize: 512,
+                zoomOffset: -1,
+                maxZoom: 20
+            }).addTo(appState.map);
+
+
             toggleMapClickMock(appState.isManualMock); 
         }
 
