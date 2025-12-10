@@ -1835,17 +1835,17 @@ async function sharePdfViaEmail() {
     const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
     const cleanId = String(game.id).trim(); 
 
-  combinedGames[cleanId] = { 
+combinedGames[cleanId] = { 
     ...game, 
     id: cleanId,
     isHidden: isHiddenGame, 
     type: String(game.type || 'normal').trim().toLowerCase(),
     startLocation: { lat, lng }, 
     price: parseInt(game.price || 0),
-    headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null, // <--- ÚJ SOR: Egyedi fejléc logó beolvasása
+    headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null,
     reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,
-    oneTimeOnly: (game.oneTimeOnly == 1 || String(game.oneTimeOnly).trim().toLowerCase() === 'true'),  
- tasks: [] 
+    maxPlayCount: parseInt(game.oneTimeOnly) || 0, // <--- ÚJ SOR (Számként olvassuk be)
+    tasks: [] 
 };
 });
 
@@ -1970,18 +1970,27 @@ async function sharePdfViaEmail() {
                 
                 const locationBadge = game.location ? `<span class="text-xs text-gray-500 font-semibold flex items-center mt-1"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>${game.location}</span>` : '';
 
-                // --- ITT A LÉNYEG: ---
-                const isCompletedPermanently = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
+// 1. Megnézzük a számlálós mentést
+                let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
+                
+                // 2. VISSZAKOMPATIBILITÁS: Megnézzük a régi boolean mentést is
+                const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
+                if (playCount === 0 && oldBooleanSave === 'true') {
+                    playCount = 1; // Ha régen teljesítette, az 1-nek számít
+                }
+
+                // 3. Elértük a limitet? (Csak akkor számít, ha a maxPlayCount > 0)
+                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount);
                 
                 // Külön változó a tartalom szürkítésére (kép + szöveg)
                 let contentOpacityClass = ""; 
                 let completedBadge = "";
 
-                if (!window.showHiddenGames && game.oneTimeOnly && isCompletedPermanently) {
+                if (!window.showHiddenGames && isLimitReached) {
                     // Csak a tartalmat (képet és szöveget) halványítjuk, a konténert NEM!
                     contentOpacityClass = "opacity-40 grayscale"; 
-                    // A jelvény definíciója: zöld háttér, ami kívül esik a szürkítésen
-                    completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE ✅</div>`;
+                    // A jelvény dinamikus szöveggel
+                    completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE (${playCount}/${game.maxPlayCount}) ✅</div>`;
                 }
 
                 let saveIndicator = "";
@@ -2270,21 +2279,26 @@ async function sharePdfViaEmail() {
       
         async function handleGameSelect(gameId, title, type, price, hasSave) {
 
-// --- ÚJ RÉSZ: Egyszeri játék ellenőrzése ---
-    const gameConfig = games[gameId];
-    // Megnézzük, van-e tartós bejegyzés a teljesítésről
-    const isCompletedPermanently = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
+            // --- ÚJ RÉSZ: Játék korlát ellenőrzése (MAX COUNT) ---
+            const gameConfig = games[gameId];
+            
+            // Számláló lekérése (ugyanaz a logika, mint a listázásnál)
+            let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + gameId) || 0);
+            const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
+            if (playCount === 0 && oldBooleanSave === 'true') {
+                playCount = 1;
+            }
 
-    // MÓDOSÍTÁS: A feltételbe betettük a !window.showHiddenGames ellenőrzést.
-    // Tehát ha a "showHiddenGames" be van kapcsolva (fejlesztői lista), akkor ez a blokk NEM fut le, és engedi a játékot.
-    if (!window.showHiddenGames && gameConfig && gameConfig.oneTimeOnly && isCompletedPermanently) {
-        showMessage(
-            'Már teljesítetted! 🏆', 
-            `Ezt a kalandot (${title}) úgy állították be, hogy csak egyszer játszható végig ezen az eszközön, és te már sikeresen teljesítetted.`
-        );
-        return; // Itt megállítjuk a folyamatot, nem engedjük tovább
-    }
-    // -------------------------------------------
+            // Ellenőrzés: Ha van limit (>0) ÉS elértük vagy túlléptük
+            // A !window.showHiddenGames biztosítja, hogy fejlesztői módban ("Összes játék") tesztelhető legyen újra.
+            if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount > 0 && playCount >= gameConfig.maxPlayCount) {
+                showMessage(
+                    'Limit Elérve! 🏆', 
+                    `Ezt a kalandot (${title}) összesen ${gameConfig.maxPlayCount} alkalommal lehet végigjátszani, és te már ${playCount}-szer teljesítetted.`
+                );
+                return; // Itt megállítjuk a folyamatot, nem engedjük tovább
+            }
+            // -------------------------------------------
 
             if (hasSave) {
                  loadGameById(gameId);
@@ -2302,27 +2316,17 @@ async function sharePdfViaEmail() {
                     return; 
                 }
 
-                /* --- 2. TRÁGÁR SZŰRÉS (EZT ILLESD BE PONTOSAN ÍGY) --- */
-                // Ellenőrizzük, hogy a név tartalmaz-e tiltott szót a listából
-                // Fontos: A badWordsList-nek már léteznie kell (lásd előző válaszom a hardcoded listával)
+                /* --- 2. TRÁGÁR SZŰRÉS --- */
                 const containsBadWord = badWordsList.some(word => lowerName.includes(word));
 
                 if (containsBadWord) {
-                    // A. Felugró ablak
                     showMessage('Nem megfelelő név', 'A választott név nem engedélyezett kifejezést tartalmaz.<br>Kérlek, válassz másikat!');
-                    
-                    // B. Odagörgetés és fókusz
                     nameInput.scrollIntoView({behavior: "smooth", block: "center"});
                     nameInput.focus();
-                    
-                    // C. Piros keret vizuális jelzésnek (3 másodpercig)
                     nameInput.classList.add('border-red-500', 'ring-2', 'ring-red-500');
                     setTimeout(() => nameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500'), 3000);
-                    
-                    // D. MEGÁLLÍTÁS! Nagyon fontos, hogy itt kilépjen a függvényből.
                     return; 
                 }
-                /* ----------------------------------------------------- */
 
                 // 3. Avatar ellenőrzése
                 if (!avatarSelect.value) {
@@ -2331,28 +2335,24 @@ async function sharePdfViaEmail() {
                     avatarSelect.focus();
                     return; 
                 }
+                
                 // --- FIREBASE LIMIT ELLENŐRZÉS ---
-                // Itt állítod be, hányan játszhatnak maximum (pl. 100)
-		const MAX_PLAYERS = 100000; 
+                const MAX_PLAYERS = 100000; 
 
-                // Ellenőrizzük, hogy betöltött-e a Firebase modul
                 if (window.checkGameLimitAndIncrement) {
-                    showLoading(true); // Homokóra be
+                    showLoading(true);
                     document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
                     
-                    // Meghívjuk a fenti függvényt
                     const allowed = await window.checkGameLimitAndIncrement(gameId, MAX_PLAYERS);
                     
-                    showLoading(false); // Homokóra ki
+                    showLoading(false);
                     document.getElementById('loading-status').textContent = "";
 
                     if (!allowed) {
-                        // Ha betelt, hibaüzenet és KILÉPÉS
                         showMessage('Betelt a játék!', `Sajnáljuk, a(z) <strong>${title}</strong> kaland elérte a maximális létszámot (${MAX_PLAYERS} fő).\nPróbálj meg egy másik kalandot választani.`);
                         return; 
                     }
                 }
-                // ---------------------------------
 
                  showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot? Játék típusa: ${type}. Ár: ${price}`, () => requestGpsAndStart(gameId), true);
             }
@@ -2693,8 +2693,22 @@ const backBtn = document.getElementById('back-to-map-btn');
     window.currentScoreForHighlight = appState.score;
     // --------------------------------------------------------
 
-// --- ÚJ RÉSZ: Tartós teljesítés mentése ---
+// --- ÚJ RÉSZ: Tartós teljesítés számláló növelése ---
     if (appState.currentGame) {
+        const countKey = 'MystiGo_Perm_Count_' + appState.currentGame.id;
+        
+        // Jelenlegi érték lekérése
+        let currentCount = parseInt(localStorage.getItem(countKey) || 0);
+        
+        // Visszakompatibilitás ellenőrzése növelés előtt
+        if (currentCount === 0 && localStorage.getItem('MystiGo_Perm_Completed_' + appState.currentGame.id) === 'true') {
+            currentCount = 1;
+        }
+
+        // Növeljük és mentjük
+        localStorage.setItem(countKey, currentCount + 1);
+        
+        // Biztonság kedvéért a régi boolean kulcsot is beállítjuk "true"-ra
         localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
     }
 
@@ -3361,7 +3375,15 @@ window.renderStorageList = function() {
             bgColor = 'bg-green-50';
             borderColor = 'border-green-200';
             textColor = 'text-green-800';
-        } else if (key.startsWith('mystigo_pref_')) {
+        
+	} else if (key.startsWith('MystiGo_Perm_Count_')) {
+            icon = '🔢';
+            displayTitle = key.replace('MystiGo_Perm_Count_', 'JÁTÉK SZÁMLÁLÓ: ');
+            bgColor = 'bg-purple-50';
+            borderColor = 'border-purple-200';
+            textColor = 'text-purple-800';
+
+	} else if (key.startsWith('mystigo_pref_')) {
             icon = '⚙️';
             displayTitle = key.replace('mystigo_pref_', 'BEÁLLÍTÁS: ');
             bgColor = 'bg-blue-50';
