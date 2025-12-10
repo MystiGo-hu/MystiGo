@@ -16,551 +16,134 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
-    <style>
-        /* --- Arculat frissítve a leírás alapján (türkiz, narancs, sötétkék) --- */
-        :root {
-            --brand-cyan: #00CED1; /* Türkiz */
-            --brand-blue: #0D2B45; /* Sötétkék */
-            --brand-orange: #FFA500; /* Narancs */
-            --background-start: #E0F7FA;
-            --background-end: #FFFFFF;
-            --text-dark: #2D3748;
-            --text-heading: var(--brand-blue);
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-cyan': '#00CED1',
+                        'brand-blue': '#0D2B45',
+                        'brand-orange': '#FFA500',
+                        'bg-start': '#E0F7FA',
+                        'bg-end': '#FFFFFF',
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
         }
+    </script>
+
+    <style>
+        /* CSS Reset és alapok */
         body { 
-            font-family: 'Poppins', sans-serif; 
-            background: linear-gradient(180deg, var(--background-start) 0%, var(--background-end) 70%);
+            background: linear-gradient(180deg, #E0F7FA 0%, #FFFFFF 70%);
             overscroll-behavior-y: contain;
             touch-action: manipulation;
         }
-        .main-button {
-            background-color: var(--brand-orange);
-            color: white;
-            font-weight: 600;
-            padding: 1rem 2rem;
-            border-radius: 9999px;
-            box-shadow: 0 10px 25px -5px rgba(255, 165, 0, 0.3), 0 8px 10px -6px rgba(255, 165, 0, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
-        }
-        .main-button:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 35px -8px rgba(255, 165, 0, 0.35), 0 8px 10px -6px rgba(255, 165, 0, 0.35);
-        }
-        .main-button:disabled {
-            background-color: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        .content-card {
-            background-color: white;
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.07);
-        }
-        #map { 
-            height: 200px; 
-            width: 100%;
-            border-radius: 1rem; 
-            border: 3px solid #E0F7FA; 
-        }
-        .hidden { display: none !important; }
 
-        .player-marker {
-            background-color: var(--brand-orange);
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 20px !important;
-            height: 20px !important;
-            box-shadow: 0 0 10px var(--brand-orange);
-        }
-        /* task-marker eltávolítva, már nem használjuk */
-        .modal-overlay { z-index: 2000; }
-        .geofence-circle {
-            animation: pulse 2s infinite;
-        }
-        
-        /* Eltávolítva a Leaflet alapértelmezett szín felülírása a CSS-ben, hogy a JS vezérelje azt */
-        
+               
         @keyframes pulse {
             0% { stroke-width: 2; opacity: 0.8; }
             70% { stroke-width: 4; opacity: 0.2; }
             100% { stroke-width: 2; opacity: 0.8; }
         }
-        .text-brand-orange-500 { color: var(--brand-orange); } /* Segédosztály */
-        .text-brand-cyan-500 { color: var(--brand-cyan); } /* Segédosztály */
 
-        /* JAVÍTÁS: Fejléc állapotjelző méretének globális csökkentése (kisebb betű/szám a jobb elrendezésért) */
-        .game-status-bar {
-            font-size: 0.75rem; /* text-xs - Kisebb betűméret */
-        }
-        .game-status-bar .flex {
-            gap: 0.5rem; /* Kisebb távolság az elemek között */
-        }
-        .game-status-bar .flex-col {
-            gap: 0.5rem; /* Kisebb távolság az elemek között */
-        }
-
-        /* Vizuális visszajelzés a felhasznált, de újra nézhető segítségekre */
-        button.used {
-            background-color: #d1fae5; /* Zöldes háttér a megnézett segítségre */
-            color: #065f46; /* Sötétzöld szöveg */
-            cursor: pointer;
-            border: 1px solid #a7f3d0;
-        }
-        button.used:hover:not(:disabled) {
-            background-color: #a7f3d0;
-        }
-
-        /* Összecsukható Történet doboz stílusa */
-        .story-details {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.75rem;
-            padding: 0.75rem;
-            background-color: #f7fafc;
-            position: relative; /* Fontos a gomb abszolút pozicionálásához */
-        }
-        .story-details summary {
-            font-weight: 600;
-            color: var(--brand-blue);
-            cursor: pointer;
-            outline: none;
-            padding: 0.5rem 0;
-            list-style: none; /* Eltávolítja az alapértelmezett nyilat */
-            display: flex;
-            align-items: center;
-        }
-        .story-details summary::-webkit-details-marker {
-            display: none;
-        }
-        .story-details summary::before {
-            content: '+';
-            font-size: 1.25rem;
-            margin-right: 0.5rem;
-            transition: transform 0.2s;
-            line-height: 0;
-        }
-        .story-details[open] summary::before {
-            content: '-';
-            transform: rotate(0deg);
-        }
-        .story-content {
-            padding-top: 0.5rem;
-            border-top: 1px solid #e2e8f0;
-            margin-top: 0.5rem;
-        }
-        /* Extra CSS a gomb garantált megjelenítéséhez (FELOLVASÓ GOMB JAVÍTÁS) */
-        #speak-story-btn {
-            position: absolute;
-            top: 0.5rem; /* Beállítja a gomb függőleges helyzetét */
-            right: 0.5rem; /* Beállítja a gomb vízszintes helyzetét */
-            display: flex !important; /* Erősen kikényszeríti a láthatóságot */
-        }
-        
-        /* Avatár ikonok CSS */
-        .avatar-icon {
-            display: inline-block;
-            margin-right: 0.25rem;
-            font-size: 1.25rem; /* text-xl */
-            line-height: 1;
-        }
-        
-        /* JAVÍTOTT: Játék közbeni logó és csapatnév stílusa */
-        #game-header-logo-container {
-            position: absolute;
-            top: 0.5rem; 
-            left: 1rem;
-            display: flex;
-            align-items: center;
-            z-index: 1000;
-        }
-        /* LOGÓ MÉRETÉNEK DUPLÁZÁSA (60px) */
-        #game-header-logo {
-            height: 60px; 
-            width: auto;
-        }
-        
-        /* ÚJ KONTÉNER A KÖZÉPRE IGAZÍTOTT CSAPATNÉVNEK ÉS TESZT MÓD INDIKÁTORNAK */
-        #center-header-content {
-            position: absolute;
-            top: 2rem; 
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 1000;
-            width: 50%; 
-            padding-top: 0.5rem;
-        }
-        #team-name-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-        }
-        
-        /* AZ IDŐZÍTŐ SÁV (STATUS BAR) LEJJEBB TOLÁSA */
-        #game-status-bar {
-             position: absolute;
-             top: 5rem; /* Elegendő hely a logónak/csapatnévnek */
-             left: 0;
-             right: 0;
-        }
-        
-        /* KILÉPÉS GOMB ELŐTÉRBE HOZÁSA */
-        #exit-game-btn {
-            z-index: 10000 !important;
-            top: 1rem; 
-        }
-
-        /* Hiba bejelentés modal stílusai */
-        #report-error-modal {
-            z-index: 9999; 
-            background-color: rgba(0, 0, 0, 0.7);
-        }
-        #report-error-modal-content {
-            background-color: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            max-width: 90%;
-            width: 350px;
-        }
-
-        /* --- LANDING PAGE STÍLUSOK JAVÍTÁSA --- */
-        .landing-text-container {
-             text-align: left; 
-             padding: 0 1rem;
-        }
-        .landing-text-container p {
-            margin-bottom: 1.25rem; 
-            line-height: 1.8;
-            color: var(--text-dark);
-            font-size: 1.125rem; 
-        }
-        .landing-text-container h2 {
-            font-size: 2.25rem; 
-            font-weight: 800;
-            color: var(--brand-blue);
-            text-align: center; 
-            margin-bottom: 1.5rem;
-        }
-        .landing-text-container .highlight {
-            font-weight: 600;
-            color: var(--brand-orange);
-            font-style: italic;
-        }
-
-        /* ÚJ CSS A LANDING LOGÓNAK */
-        #landing-logo-container {
-            /* 1. KÉRÉS: CSÖKKENTETT TÁVOLSÁG FELÜL (pt-2 helyett pt-8 volt) */
-            padding-top: 0rem; 
-            height: auto; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-shrink: 0; 
-        }
-        #landing-logo {
-            max-width: 70%; 
-            height: auto;
-            object-fit: contain; 
-        }
-
-/* ÚJ STÍLUS AZ IKONOKNAK - MÓDOSÍTOTT */
-        .landing-icons {
-            font-size: 2rem; /* A kért ikonok méretének növelése */
-            margin-bottom: 1.5rem; 
-            color: var(--brand-orange);
-        }
-
-        /* 2. KÉRÉS: SZÖVEG TELJES SZÉLESSÉGRE ÁLLÍTÁSA ASZTALI NÉZETBEN */
-        @media (min-width: 1024px) {
-            .landing-text-container {
-                /* Asztali nézetben 800px szélességű tartalom (pl. max-w-2xl) 
-                   középen a jobb olvashatóságért, de nem a teljes szélesség (amit a szülő is korlátoz)
-                   Ha a teljes képernyő széles szöveget akarjuk, akkor ezt a max-w-t kell növelni: 
-                   Itt a max-w-sm-et felülírjuk egy nagyobb szélességgel.
-                */
-                max-width: 1200px; /* A nagy széles képernyőn is olvasható maradjon */
-                margin-left: auto;
-                margin-right: auto;
-                padding: 0 2rem; /* Kicsit több padding oldalra */
-            }
-            #landing-page {
-                 padding: 2rem 1rem; /* Csökkentjük a Landing Page általános paddingjét */
-            }
-        }
+       
     </style>
 </head>
-<body class="overflow-hidden">
+<body class="overflow-hidden text-brand-blue">
 
     <div id="app-container" class="lg:max-w-full lg:h-screen lg:overflow-hidden max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8 overflow-y-auto">
+        <main id="landing-page" class="flex flex-col items-center justify-between text-center h-full p-6 overflow-y-auto">
             
-            <div id="landing-logo-container">
-                <img id="landing-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó - Kezdőoldal">
+            <div id="landing-logo-container" class="flex justify-center items-center shrink-0 pt-4">
+                <img id="landing-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó" class="max-w-[70%] h-auto object-contain">
             </div>
-             <div class="w-full flex justify-center mt-10 mb-1 flex-shrink-0">
-                    <a href="index2.html" class="main-button text-xl !px-10 !py-4">
-                        Indulás
-                    </a>
-                </div>
+
+            <div class="w-full flex justify-center mt-8 mb-4 shrink-0">
+                <a href="index2.html" class="bg-brand-orange text-white font-semibold py-4 px-10 rounded-full text-xl shadow-lg shadow-orange-200 hover:-translate-y-1 hover:shadow-xl transition-all">
+                    Indulás
+                </a>
+            </div>
             
             <div class="w-full flex flex-col items-center justify-start flex-grow">
                 
-                <div class="landing-text-container max-w-lg mx-auto">
-                    <h2>Üdvözlünk a MystiGo világában!</h2>
-		    <div class="landing-icons text-center">
+                <div class="landing-text-container max-w-2xl mx-auto px-4 text-left">
+                    <h2 class="text-4xl font-extrabold text-brand-blue text-center mb-6">Üdvözlünk a MystiGo világában!</h2>
+                    
+                    <div class="text-4xl text-center text-brand-orange mb-6">
                         🧭
                     </div>
 
-                    <p>A MystiGo egy városi <strong>kalandjáték</strong>, ahol a <strong>szabadban</strong> barangolhatsz, miközben rejtélyeket oldasz meg és felfedezed a környék titkait.</p>
+                    <div class="space-y-5 text-lg leading-relaxed text-gray-800">
+                        <p>A MystiGo egy városi <strong>kalandjáték</strong>, ahol a <strong>szabadban</strong> barangolhatsz, miközben rejtélyeket oldasz meg és felfedezed a környék titkait.</p>
 
-                    <p>Legyen szó <strong>gyerekek</strong>ről, <strong>családokról</strong>, baráti társaságokról, <strong>csapatépítés</strong>ről vagy <strong>osztálykirándulás</strong>ról – mindenki megtalálja a neki való kalandot.</p>
+                        <p>Legyen szó <strong>gyerekek</strong>ről, <strong>családokról</strong>, baráti társaságokról, <strong>csapatépítés</strong>ről vagy <strong>osztálykirándulás</strong>ról – mindenki megtalálja a neki való kalandot.</p>
 
-                    <p>A <strong>MystiGo</strong> segít kimozdulni a lakásból, de nem kell teljesen elengedned a telefonodat sem, mert az lesz a térképed, a segítőd és a nyomozótársad is egyben.</p>
+                        <p>A <strong>MystiGo</strong> segít kimozdulni a lakásból, de nem kell teljesen elengedned a telefonodat sem, mert az lesz a térképed, a segítőd és a nyomozótársad is egyben.</p>
 
-                    <p class="highlight">
-                        🎒 Indulj el, fedezd fel a várost, és gyűjts MystiPoint-okat minden kaland után!
-                    </p>
-                    <p>Fedezd fel a világot, lépésről lépésre – <strong>MystiGo</strong>-val.</p>
-
-
+                        <p class="font-semibold text-brand-orange italic bg-orange-50 p-4 rounded-lg border border-orange-100">
+                            🎒 Indulj el, fedezd fel a várost, és gyűjts MystiPoint-okat minden kaland után!
+                        </p>
+                        <p>Fedezd fel a világot, lépésről lépésre – <strong>MystiGo</strong>-val.</p>
+                    </div>
 
                     <div class="w-full flex justify-center mt-8 mb-4">
-                        <a href="mese/Mysti_tortenete.pdf" download target="_blank" class="group flex items-center gap-2 px-6 py-3 bg-white border-2 border-[var(--brand-orange)] text-[var(--brand-orange)] font-bold rounded-full shadow-sm hover:shadow-md hover:bg-[var(--brand-orange)] hover:text-white transition-all duration-300 decoration-0">
+                        <a href="mese/Mysti_tortenete.pdf" download target="_blank" class="group flex items-center gap-2 px-6 py-3 bg-white border-2 border-brand-orange text-brand-orange font-bold rounded-full shadow-sm hover:shadow-md hover:bg-brand-orange hover:text-white transition-all duration-300">
                             <span class="text-xl group-hover:scale-110 transition-transform">📜</span> 
                             <span>Mysti történetének letöltése</span>
                         </a>
                     </div>
                     
-
-
                     <p class="text-center mt-6 text-2xl font-bold text-brand-blue">Készen állsz a kalandra?</p>
                 </div>
 
-                <div class="w-full flex justify-center mt-10 mb-20 flex-shrink-0">
-                    <a href="index2.html" class="main-button text-xl !px-10 !py-4">
+                <div class="w-full flex justify-center mt-10 mb-10 shrink-0">
+                    <a href="index2.html" class="bg-brand-orange text-white font-semibold py-4 px-10 rounded-full text-xl shadow-lg shadow-orange-200 hover:-translate-y-1 hover:shadow-xl transition-all">
                         Indulás
                     </a>
                 </div>
-                <p id="loading-status" class="text-gray-600 my-4 h-5 hidden">Adatbázis automatikus betöltése...</p>
-                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
-                    Manuális Játékfájl Kiválasztása
-                </label>
-                <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
-                <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
-                <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
+
+                              
+                <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden w-full"></div> 
+                <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden w-full"></div>
             </div>
             
-            </main>
+        </main>
         
-        <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
-            <div id="header" class="relative text-text-heading text-center pt-1 pb-16">
+        <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full flex flex-col bg-white">
+            
+            <header id="header" class="relative text-brand-blue text-center pt-2 pb-4 shadow-sm z-20">
                  <div id="main-header">
                     <div class="flex justify-center mb-2">
                         <img src="logo/MystiGo_logo.png" alt="MystiGo Logó" class="max-h-24 w-auto">
                     </div>
-                    <h1 id="page-title" class="text-sm font-bold tracking-wider">Válassz Kalandot</h1>
+                    <h1 id="page-title" class="text-sm font-bold tracking-wider uppercase">Válassz Kalandot</h1>
                  </div>
                  
-                 <div id="game-header-logo-container" class="hidden">
-                    <img id="game-header-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó">
+                 <div id="game-header-logo-container" class="hidden absolute top-2 left-4 z-50 flex items-center">
+                    <img id="game-header-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó" class="h-[60px] w-auto">
                  </div>
                  
-                 <div id="center-header-content" class="hidden">
-                     <div id="team-name-container" class="text-sm font-semibold text-brand-blue/80 block">
-                        <span id="game-team-avatar-icon" class="avatar-icon"></span>
+                 <div id="center-header-content" class="hidden absolute top-8 left-1/2 -translate-x-1/2 flex-col items-center z-50 w-1/2 pt-2">
+                     <div id="team-name-container" class="flex items-center justify-center whitespace-nowrap text-sm font-semibold text-brand-blue/80">
+                        <span id="game-team-avatar-icon" class="text-xl mr-1"></span>
                         <span id="team-name-display"></span>
                      </div>
-                     <span id="test-mode-indicator" class="text-xs font-bold text-brand-orange-500 hidden mt-1">TESZT MÓD (NINCS GPS KORLÁTOZÁS)</span>
+                     <span id="test-mode-indicator" class="text-xs font-bold text-brand-orange hidden mt-1">TESZT MÓD (NINCS GPS)</span>
                  </div>
                  
-                 <div id="game-status-bar" class="hidden px-6">
-                    <div class="bg-white/70 backdrop-blur-sm rounded-full flex justify-between items-center p-2 text-xs font-semibold shadow-sm">
-                        <div class="px-3">Feladat: <span id="task-progress-display">1/10</span></div>
-                        <div class="flex items-center gap-2">
-                            <div class="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full text-brand-cyan-500">
-                                <svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
-                                <span id="timer-display">00:00</span>
-                            </div>
-                            <div class="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full text-green-600">
-                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-                                <span id="geofence-timer-display">00:00</span>
-                            </div>
-                            <div class="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full text-brand-orange-500">
-                                <svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1-81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                <span id="score-display">0</span>
-                            </div>
-                        </div>
-                    </div>
-                 </div>
-                 
-                 <button id="exit-game-btn" onclick="showExitConfirmation()" class="absolute top-4 right-4 p-2 rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition hidden" style="z-index: 10000;">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                 </button>
-                 
-                 <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1440 120H0V65.1721C0 65.1721 289.431 0 720 0C1150.57 0 1440 65.1721 1440 65.1721V120Z" fill="white"/></svg>
-            </div>
+              
             
-            <div id="content-page-wrapper" class="absolute top-32 bottom-0 left-0 right-0 overflow-y-auto px-6 pb-6 bg-white">
-                
-                <section id="game-list-page" class="hidden">
-                    </section>
-                
-                <section id="game-page" class="hidden space-y-6">
-                    </section>
-                
-                <section id="end-page" class="hidden space-y-6 text-center flex flex-col items-center pt-8">
-                    </section>
-            </div>
         </div>
-        </div>
+    </div>
+    
     
     <script>
-        // --- GLOBAL STATE & CONSTANTS ---
-        let games = {};
-        const GEOFENCE_DEFAULT_RADIUS = 20; 
-        const DEFAULT_SCORE_PER_TASK = 100; 
-        const HINT1_PENALTY = 20; 
-        const HINT2_PENALTY = 30; 
-        const SOLUTION_PENALTY = 50; 
-        const WRONG_ANSWER_PENALTY = 1; 
-        const RESCUE_TASK_CORRECT_ANSWER = '4'; 
-        const RESCUE_TASK_SCORE = 0; 
-        const LOCAL_STORAGE_KEY = 'MystiGoGameState'; 
-        const DEFAULT_GAME_FILE = 'games/games.xlsx'; 
-
-        const AVATAR_ICONS = {
-            cat: '🐈',
-    	    detective: '🕵️',
-	    explorer: '🧭',
-	    wizard: '🧙',
-	    robot: '🤖',
-	    ghost: '👻',
-	    lock: '🔐',
-	    magician: '🎩',
-	    mask: '🎭',
-	    fire: '🔥',
-	    knight: '⚔️',
-        };
-
-        let appState = {};
-        let modalCloseCallback = null;
-        let manualMarker = null; 
-        let speechSynth = window.speechSynthesis; 
-
-        function initializeState() {
-            appState = { currentPage: 'landing-page', selectedGameId: null, currentGame: null, currentTaskIndex: 0, score: 0, timerInterval: null, geofenceTimerInterval: null, startTime: null, map: null, playerMarker: null, taskMarker: null, geofenceCircle: null, userPosition: null, geoWatchId: null, isInZone: false, isTestModeEnabled: false, isManualMock: false, teamName: null, teamAvatar: null, taskOrder: 'sequential', totalTime: 0, geofenceTime: 0, isTimerRunning: false, routeCoordinates: [] };
-        }
-        
-        // ... (A fenti funkciók (saveGameState, loadGameState, loadLocalXlsx stb.) kódja változatlan) ...
-        
-        // --- CORE APP & PAGE LOGIC ---
-        function showPage(pageId) {
-            const landingPage = document.getElementById('landing-page');
-            const contentWrapper = document.getElementById('content-wrapper');
-            
-            if (pageId === 'landing-page') {
-                landingPage.classList.remove('hidden');
-                contentWrapper.classList.add('translate-y-full');
-            } else {
-                landingPage.classList.add('hidden');
-                contentWrapper.classList.remove('hidden');
-                setTimeout(() => contentWrapper.classList.remove('translate-y-full'), 10);
-                showContentPage(pageId);
-            }
-        }
-
-        // ... (A showContentPage, resetApp, showLoading, showMessage, processExcelData funkciók kódja változatlan) ...
-        
-        // ... (A többi funkció (loadTask, endGame, initializeMap, watchPosition, checkGeofence, stb.) kódja változatlan) ...
-
-        // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            // Kezdőoldali gombok (titkos kapcsolók)
-            const testModeToggleLanding = document.getElementById('test-mode-toggle');
-            const manualMockToggleLanding = document.getElementById('manual-mock-toggle');
-            const manualFileSelectLabel = document.getElementById('manual-file-select-label');
-            const manualFileInput = document.getElementById('excel-file-input-manual'); 
-            
-            const secretSwitchesContainer = document.getElementById('secret-switches-container');
-            if (secretSwitchesContainer) secretSwitchesContainer.classList.add('hidden');
-
-
-            initializeState();
-
-            const continued = loadGameState();
-
-            if (!continued) {
-                showPage('landing-page');
-            }
-
-            document.getElementById('modal-ok-button').onclick = hideMessage;
-            document.getElementById('modal-cancel-button').onclick = hideMessage;
-            
-            if (manualFileInput) {
-                 manualFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; if (!file) return; 
-                    showLoading(true);
-                    const reader = new FileReader();
-                    reader.onload = (e) => { 
-                        try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                            processExcelData(wb);
-                            if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
-                        } catch (error) {
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                            showLoading(false);
-                        }
-                    };
-                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-            
-            const excelFileInput = document.getElementById('excel-file-input');
-            if (excelFileInput) {
-                excelFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; if (!file) return; 
-                    showLoading(true);
-                    const reader = new FileReader();
-                    reader.onload = (e) => { 
-                        try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                            processExcelData(wb);
-                        } catch (error) {
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                            showLoading(false);
-                        }
-                    };
-                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-
-            document.getElementById('answer-input').addEventListener('focus', (e) => {
-                const inputElement = e.target;
-                
-                inputElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start' 
-                });
-                
-                setTimeout(() => {
-                    const wrapper = document.getElementById('content-page-wrapper');
-                    const inputTop = inputElement.offsetTop;
-                    
-                    wrapper.scrollTo({
-                        top: inputTop - 30, 
-                        behavior: 'smooth'
-                    });
-                }, 150); 
-            });
-            
-        }); 
+       
     </script>
 </body>
 </html>
