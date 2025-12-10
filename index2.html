@@ -369,7 +369,6 @@
                 </label>
                 <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
-                <div id="team-setup" class="mt-6 p-4 bg-gray-50 rounded-xl hidden"></div>
             </div>
             
             </main>
@@ -386,7 +385,7 @@
 </div>
                  
                  <div id="game-header-logo-container" class="hidden">
-                    <img id="game-header-logo" src="./MystiGo_logo.png" alt="MystiGo Logó">
+                    <img id="game-header-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó">
                  </div>
                  
                  <div id="center-header-content" class="hidden">
@@ -533,57 +532,64 @@
                                 </div>
                             </div>
                         </details>
-                        <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <h2 class="text-xl font-bold text-text-heading mb-3">Játékos<span class="text-red-500">*</span></h2>
-                            <input type="text" id="team-name-input" placeholder="Név" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
-                            <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
-                                <option value="">Válassz Avatart</option>
-				    <option value="cat">Mysti 🐱</option>
-				    <option value="dog">Kutya 🐶</option>
-				    <option value="panda">Panda 🐼</option>
-				    <option value="shark">Cápa 🦈</option>
-				    <option value="parrot">Papagáj 🦜</option>
-				    <option value="bear">Maci 🐻</option>
-				    <option value="cow">Boci 🐮</option>
-				    <option value="elephant">Elefánt 🐘</option>
-				    <option value="detective">Nyomozó 🕵️</option>
-				    <option value="explorer">Felfedező 🧭</option>
-				    <option value="wizard">Varázsló 🧙</option>
-				    <option value="robot">Robot 🤖</option>
-				    <option value="ghost">Szellem 👻</option>
-				    <option value="skull">Koponya ☠️</option>
-				    <option value="lock">Lakat 🔒</option>
-				    <option value="magician">Bűvész 🎩</option>
-				    <option value="mask">Álarc 🎭</option>
-				    <option value="fire">Tűz 🔥</option>
-				    <option value="knight">Lovag ⚔️</option>
-				    <option value="hamburger">Hamburger 🍔</option>
-				    <option value="pizza">Pizza 🍕</option>
-				    <option value="doughnut">Fánk 🍩</option>
-				    <option value="cupcake">Muffin 🧁</option>
-				    <option value="lollipop">Nyalóka 🍭</option>
-				    <option value="smile">Smile 😎</option>
-				    <option value="zombie">Zombi 🧟‍♂️</option>
-				    <option value="ballerina">Belerina 🩰</option>
-				    <option value="police">Rendőr 🚓</option>
-				    <option value="firefighter">Tűzoltó 🚒</option>
-				    <option value="ambulance">Mentő 🚑</option>
-				    <option value="star">Csillag ⭐️</option>
-				    <option value="heart">Szív ❤️</option>
-				    <option value="crown">Korona 👑</option>
-				    <option value="laptop">Laptop 💻</option>
-				    <option value="floppy">Floppy 💾</option>
+                        <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200 hidden">
+    <h2 class="text-xl font-bold text-text-heading mb-3">Játékos<span class="text-red-500">*</span></h2>
+    <input type="text" id="team-name-input" placeholder="Név" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
+    <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
+        <option value="">Válassz Avatart</option>
+        <option value="cat">Mysti 🐱</option>
+        <option value="dog">Kutya 🐶</option>
+        <option value="panda">Panda 🐼</option>
+        <option value="shark">Cápa 🦈</option>
+        <option value="parrot">Papagáj 🦜</option>
+        <option value="bear">Maci 🐻</option>
+        <option value="cow">Boci 🐮</option>
+        <option value="elephant">Elefánt 🐘</option>
+        <option value="detective">Nyomozó 🕵️</option>
+        <option value="explorer">Felfedező 🧭</option>
+        <option value="wizard">Varázsló 🧙</option>
+        <option value="robot">Robot 🤖</option>
+        <option value="ghost">Szellem 👻</option>
+        <option value="skull">Koponya ☠️</option>
+        <option value="lock">Lakat 🔒</option>
+        <option value="magician">Bűvész 🎩</option>
+        <option value="mask">Álarc 🎭</option>
+        <option value="fire">Tűz 🔥</option>
+        <option value="knight">Lovag ⚔️</option>
+        <option value="hamburger">Hamburger 🍔</option>
+        <option value="pizza">Pizza 🍕</option>
+        <option value="doughnut">Fánk 🍩</option>
+        <option value="cupcake">Muffin 🧁</option>
+        <option value="lollipop">Nyalóka 🍭</option>
+        <option value="smile">Smile 😎</option>
+        <option value="zombie">Zombi 🧟‍♂️</option>
+        <option value="ballerina">Belerina 🩰</option>
+        <option value="police">Rendőr 🚓</option>
+        <option value="firefighter">Tűzoltó 🚒</option>
+        <option value="ambulance">Mentő 🚑</option>
+        <option value="star">Csillag ⭐️</option>
+        <option value="heart">Szív ❤️</option>
+        <option value="crown">Korona 👑</option>
+        <option value="laptop">Laptop 💻</option>
+        <option value="floppy">Floppy 💾</option>
+    </select>
 
+    <button id="gps-test-btn" onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+        🛰️ GPS Működésének Tesztelése
+    </button>
 
-			     </select>
-         
-               <button onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-    🛰️ GPS Működésének Tesztelése
-</button>
-
-			</div>
-                        
-                    </div>
+    <div id="gps-test-container" class="hidden mt-3 bg-white p-2 rounded-lg border border-gray-200 shadow-inner">
+        <p id="gps-test-status" class="text-xs font-bold text-center text-brand-blue mb-2">📡 Jel keresése... (Kérlek várj)</p>
+        
+        <div id="gps-test-map" class="w-full h-40 rounded border border-gray-300 relative z-10"></div>
+        
+        <div id="gps-result-message" class="hidden mt-2 p-2 rounded text-xs font-bold text-center"></div>
+        
+        <div class="mt-2 text-[10px] text-gray-400 text-center">
+            Pontosság: <span id="gps-accuracy-value">-</span> méter
+        </div>
+    </div>
+</div>
                     
 <div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
     <h3 class="text-sm font-bold text-brand-blue mb-3 flex items-center">
@@ -805,14 +811,6 @@
     </div>
 
 
-<div id="report-error-modal" class="modal-overlay fixed inset-0 hidden items-center justify-center p-4">
-        <div id="report-error-modal-content" class="content-card p-5 bg-red-50 border-red-200 border">
-             <div class="flex justify-between gap-4 mt-4">
-                <button onclick="hideReportModal()" class="main-button flex-1 !text-sm !bg-gray-400 hover:!bg-gray-500">Mégse</button>
-                <button id="submit-error-report" onclick="handleSubmitError()" class="main-button flex-1 !text-sm !bg-red-600 hover:!bg-red-700">Igen szeretném átugrani</button>
-            </div>
-        </div>
-    </div>
     <div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-4">
@@ -1306,7 +1304,7 @@
 // --- ÚJ KÓD: Játék fejléc logó beállítása (Mentésnél is!) ---
                 const gameLogo = document.getElementById('game-header-logo');
                 if (gameLogo) {
-                     gameLogo.src = appState.currentGame.headerLogo || "./MystiGo_logo.png";
+                     gameLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
                 }
                 // ----
 
@@ -1960,7 +1958,7 @@ combinedGames[cleanId] = {
                 
                 // Típus jelvény
                 let gameTypeBadge = '';
-                if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 👶</span>`;
+                if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids Edition 🐈</span>`;
                 else if (game.type === 'team') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Csapat Verseny 🧑‍🤝‍🧑</span>`;
                 else if (game.type === 'explore') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800">Explore (Felfedező) 🌍</span>`;
                 else gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">Normal 🧭</span>`;
@@ -2474,7 +2472,7 @@ combinedGames[cleanId] = {
             const gameLogo = document.getElementById('game-header-logo');
             if (gameLogo) {
                 // Ha van egyedi logo, azt használjuk, ha nincs, visszaállunk a cicásra
-                gameLogo.src = appState.currentGame.headerLogo || "./MystiGo_logo.png";
+                gameLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
             }
             // --------------------------------------------
 
@@ -3264,38 +3262,152 @@ function backToExploreMap() {
         }
 
 
-function testGpsConnection() {
-            showLoading(true);
-            
-            if (!navigator.geolocation) {
-                showLoading(false);
-                document.getElementById('gps-help-modal').classList.remove('hidden');
-                return;
-            }
+// --- GPS TESZT GLOBÁLIS VÁLTOZÓK ---
+let gpsTestMap = null;
+let gpsTestMarker = null;
+let gpsTestCircle = null;
+let gpsTestWatchId = null;
+let bestAccuracy = 99999; 
 
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    showLoading(false);
-                    // Sikeres GPS lekérés
-                    const accuracy = Math.round(pos.coords.accuracy);
-                    showMessage(
-                        '✅ GPS Működik!', 
-                        `Sikeresen meghatároztuk a helyzetedet!<br><br>Pontosság: <strong>kb. ${accuracy} méter</strong>.<br>Készen állsz a játékra.`
-                    );
-                },
-                (err) => {
-                    showLoading(false);
-                    console.warn("GPS Teszt Hiba:", err);
-                    // Hiba esetén megnyitjuk a segítő ablakot
-                    document.getElementById('gps-help-modal').classList.remove('hidden');
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 0
-                }
-            );
+// --- ÚJ GPS TESZT FÜGGVÉNY ---
+window.testGpsConnection = function() {
+    // UI elemek előkészítése
+    const container = document.getElementById('gps-test-container');
+    const statusText = document.getElementById('gps-test-status');
+    const resultMsg = document.getElementById('gps-result-message');
+    const accValue = document.getElementById('gps-accuracy-value');
+    const testBtn = document.getElementById('gps-test-btn');
+
+    // Resetelés minden indításnál
+    container.classList.remove('hidden');
+    resultMsg.classList.add('hidden');
+    // Visszaszámláló HTML beállítása
+    statusText.innerHTML = `📡 Jel keresése... <span id="gps-countdown">10</span>mp`;
+    accValue.textContent = "-";
+    bestAccuracy = 99999;
+    testBtn.disabled = true; // Gomb letiltása teszt közben
+
+    // 1. Térkép inicializálása (ha még nincs)
+    if (!gpsTestMap) {
+        gpsTestMap = L.map('gps-test-map', { 
+            zoomControl: false, 
+            attributionControl: false 
+        }).setView([47.4979, 19.0402], 13); // Default Budapest
+
+        L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+            maxZoom: 20
+        }).addTo(gpsTestMap);
+    }
+    
+    // Resize fix: biztosítjuk, hogy a térkép kitöltse a dobozt megjelenés után
+    setTimeout(() => { gpsTestMap.invalidateSize(); }, 200);
+
+    // Ha nincs geolocation támogatás a böngészőben
+    if (!navigator.geolocation) {
+        finishGpsTest(false, "A böngésző nem támogatja a GPS-t.");
+        return;
+    }
+
+    // 2. Visszaszámláló logika (5 másodperc)
+    let timeLeft = 10;
+    const countdownInterval = setInterval(() => {
+        timeLeft--;
+        const counterEl = document.getElementById('gps-countdown');
+        if(counterEl) counterEl.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            finishGpsTest(); // Teszt vége
         }
+    }, 1000);
+
+    // 3. Pozíció figyelése (folyamatos update)
+    gpsTestWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const accuracy = Math.round(pos.coords.accuracy);
+
+            // Legjobb pontosság mentése
+            if (accuracy < bestAccuracy) bestAccuracy = accuracy;
+
+            // UI frissítése
+            accValue.textContent = accuracy;
+
+            // Marker és Kör frissítése a térképen
+            const latLng = [lat, lng];
+            
+            if (!gpsTestMarker) {
+                const icon = L.divIcon({ className: 'player-marker', iconSize: [15, 15] });
+                gpsTestMarker = L.marker(latLng, { icon: icon }).addTo(gpsTestMap);
+                gpsTestCircle = L.circle(latLng, { radius: accuracy, color: 'blue', weight: 1, fillOpacity: 0.1 }).addTo(gpsTestMap);
+                gpsTestMap.setView(latLng, 16);
+            } else {
+                gpsTestMarker.setLatLng(latLng);
+                gpsTestCircle.setLatLng(latLng);
+                gpsTestCircle.setRadius(accuracy);
+                // Csak akkor zoomolunk rá, ha nagyon messze ugrottunk
+                if (!gpsTestMap.getBounds().contains(latLng)) {
+                    gpsTestMap.panTo(latLng);
+                }
+            }
+        },
+        (err) => {
+            console.warn("GPS Teszt hiba:", err);
+            // Nem állítjuk le azonnal, hátha egy pillanatnyi hiba, de a logba bekerül
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+};
+
+// --- GPS TESZT LEZÁRÁSA ÉS KIÉRTÉKELÉS ---
+function finishGpsTest(forceError = false, errorMsg = "") {
+    // Figyelés leállítása
+    if (gpsTestWatchId) {
+        navigator.geolocation.clearWatch(gpsTestWatchId);
+        gpsTestWatchId = null;
+    }
+
+    const statusText = document.getElementById('gps-test-status');
+    const resultMsg = document.getElementById('gps-result-message');
+    const testBtn = document.getElementById('gps-test-btn');
+    
+    testBtn.disabled = false; // Gomb újra aktív
+
+    // Kényszerített hiba (pl. nincs geolocation támogatás)
+    if (forceError) {
+        statusText.textContent = "Hiba történt!";
+        resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-red-100 text-red-700 block";
+        resultMsg.innerHTML = `⚠️ ${errorMsg}`;
+        return;
+    }
+
+    // Kiértékelés a legjobb pontosság alapján
+    if (bestAccuracy <= 50) {
+        // SIKERES TESZT
+        statusText.textContent = "Teszt kész.";
+        resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
+        resultMsg.innerHTML = `✅ GPS Működik!<br>Pontosság: ${bestAccuracy}m`;
+        
+        // Ha van marker, zöldre színezzük a kört
+        if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
+        
+    } else if (bestAccuracy < 99999) {
+        // GYENGE JEL
+        statusText.textContent = "Teszt kész.";
+        resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-yellow-100 text-yellow-800 block";
+        resultMsg.innerHTML = `⚠️ Gyenge jel (${bestAccuracy}m).<br>Menj nyílt terepre!`;
+        if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'orange', fillColor: 'orange' });
+    
+    } else {
+        // NINCS JEL
+        statusText.textContent = "Nincs jel.";
+        resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-red-100 text-red-700 block";
+        resultMsg.innerHTML = `❌ Nem sikerült pozíciót találni.<br>Ellenőrizd a beállításokat!`;
+    }
+    
+    resultMsg.classList.remove('hidden');
+}
 
 
 function requestGpsAndStart(gameId) {
