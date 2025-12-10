@@ -451,6 +451,10 @@
                             </h2>
                             <div id="developer-options" class="space-y-2 hidden">
                                 
+				<button onclick="openStorageManager()" class="main-button w-full text-sm block !bg-gray-700 hover:!bg-gray-800 my-4 flex items-center justify-center gap-2">
+				    💾 LocalStorage Kezelő (Részletes)
+				</button>
+
 				<button id="list-all-games-btn" class="main-button w-full text-sm block !bg-indigo-600 hover:!bg-indigo-700 my-4">
 			         Összes Játék Listázása (Rejtett is)
 			        </button>
@@ -878,6 +882,35 @@
 </div>
 
 
+<div id="storage-manager-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
+        <div class="bg-gray-800 p-4 rounded-t-2xl flex justify-between items-center shrink-0">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                💾 Memória Kezelő
+            </h3>
+            <button onclick="document.getElementById('storage-manager-modal').classList.add('hidden')" class="text-gray-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <div class="overflow-y-auto p-2 flex-grow bg-gray-50" id="storage-list-container">
+            </div>
+
+        <div class="p-4 border-t border-gray-200 bg-white rounded-b-2xl shrink-0 flex justify-between items-center gap-3">
+            <span id="storage-count-display" class="text-xs text-gray-500 font-bold"></span>
+            <div class="flex gap-2">
+                <button onclick="nukeAllStorage()" class="px-3 py-2 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 transition">
+                    🔥 MINDENT TÖRÖL
+                </button>
+                <button onclick="document.getElementById('storage-manager-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded hover:bg-gray-300 transition">
+                    Bezárás
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -1067,6 +1100,7 @@
           console.error("Hiba a befejezés rögzítésekor:", error);
       }
   };
+
 
 </script>
 
@@ -3284,7 +3318,101 @@ function requestGpsAndStart(gameId) {
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000, frequency: 3000 } 
             );
         }
+      
+// --- STORAGE MANAGER LOGIKA ---
+
+window.openStorageManager = function() {
+    renderStorageList();
+    document.getElementById('storage-manager-modal').classList.remove('hidden');
+};
+
+window.renderStorageList = function() {
+    const container = document.getElementById('storage-list-container');
+    container.innerHTML = '';
+    
+    const keys = Object.keys(localStorage);
+    document.getElementById('storage-count-display').textContent = `${keys.length} bejegyzés`;
+
+    if (keys.length === 0) {
+        container.innerHTML = `<div class="text-center p-8 text-gray-400 italic">A LocalStorage üres.</div>`;
+        return;
+    }
+
+    // Rendezés, hogy a hasonlóak egymás mellé kerüljenek
+    keys.sort();
+
+    keys.forEach(key => {
+        let displayTitle = key;
+        let icon = '📄';
+        let bgColor = 'bg-white';
+        let borderColor = 'border-gray-200';
+        let textColor = 'text-gray-600';
+
+        // Kategóriák felismerése a szebb megjelenítésért
+        if (key.startsWith('MystiGoGameState_')) {
+            icon = '🎮';
+            displayTitle = key.replace('MystiGoGameState_', 'MENTÉS: ');
+            bgColor = 'bg-orange-50';
+            borderColor = 'border-orange-200';
+            textColor = 'text-orange-800';
+        } else if (key.startsWith('MystiGo_Perm_Completed_')) {
+            icon = '🏆';
+            displayTitle = key.replace('MystiGo_Perm_Completed_', 'KÉSZ: ');
+            bgColor = 'bg-green-50';
+            borderColor = 'border-green-200';
+            textColor = 'text-green-800';
+        } else if (key.startsWith('mystigo_pref_')) {
+            icon = '⚙️';
+            displayTitle = key.replace('mystigo_pref_', 'BEÁLLÍTÁS: ');
+            bgColor = 'bg-blue-50';
+            borderColor = 'border-blue-200';
+            textColor = 'text-blue-800';
+        }
+
+        // Egy sor HTML kódja
+        const itemHtml = `
+            <div class="flex items-center justify-between p-3 mb-2 rounded-lg border ${bgColor} ${borderColor} shadow-sm transition hover:shadow-md group">
+                <div class="overflow-hidden mr-3">
+                    <div class="text-xs font-bold ${textColor} truncate flex items-center gap-1.5" title="${key}">
+                        <span>${icon}</span> ${displayTitle}
+                    </div>
+                    <div class="text-[10px] text-gray-400 truncate font-mono mt-0.5">
+                        ${key}
+                    </div>
+                </div>
+                <button onclick="deleteStorageItem('${key}')" 
+                        class="shrink-0 bg-white border border-gray-200 text-red-500 hover:bg-red-500 hover:text-white p-1.5 rounded-md transition shadow-sm"
+                        title="Törlés">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+            </div>
+        `;
+        container.innerHTML += itemHtml;
+    });
+};
+
+window.deleteStorageItem = function(key) {
+    if (confirm(`Biztosan törlöd ezt a kulcsot?\n${key}`)) {
+        localStorage.removeItem(key);
+        renderStorageList(); // Lista frissítése törlés után
         
+        // Ha épp a futó játékot töröltük, jelezzük
+        if (window.currentGameId && key.includes(window.currentGameId)) {
+            alert("Figyelem: A jelenleg futó vagy kiválasztott játék adatait törölted. Érdemes újratölteni az oldalt.");
+        }
+    }
+};
+
+window.nukeAllStorage = function() {
+    if (confirm("⚠️ FIGYELEM!\n\nEz törli az ÖSSZES mentést, beállítást és teljesítést.\nBiztosan folytatod?")) {
+        localStorage.clear();
+        renderStorageList();
+        alert("A memória teljesen törölve lett. Az oldal újratöltődik.");
+        location.reload();
+    }
+};
+
+  
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
 
