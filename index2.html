@@ -1943,9 +1943,10 @@ async function sharePdfViaEmail() {
                 let contentOpacityClass = ""; 
                 let completedBadge = "";
 
-                if (game.oneTimeOnly && isCompletedPermanently) {
-                    // Csak a tartalmat halványítjuk, a konténert nem!
-                    contentOpacityClass = "opacity-50 grayscale"; 
+                if (!window.showHiddenGames && game.oneTimeOnly && isCompletedPermanently) {
+                    // Csak a tartalmat (képet és szöveget) halványítjuk, a konténert NEM!
+                    contentOpacityClass = "opacity-40 grayscale"; 
+                    // A jelvény definíciója: zöld háttér, ami kívül esik a szürkítésen
                     completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE ✅</div>`;
                 }
 
@@ -2240,7 +2241,9 @@ async function sharePdfViaEmail() {
     // Megnézzük, van-e tartós bejegyzés a teljesítésről
     const isCompletedPermanently = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
 
-    if (gameConfig && gameConfig.oneTimeOnly && isCompletedPermanently) {
+    // MÓDOSÍTÁS: A feltételbe betettük a !window.showHiddenGames ellenőrzést.
+    // Tehát ha a "showHiddenGames" be van kapcsolva (fejlesztői lista), akkor ez a blokk NEM fut le, és engedi a játékot.
+    if (!window.showHiddenGames && gameConfig && gameConfig.oneTimeOnly && isCompletedPermanently) {
         showMessage(
             'Már teljesítetted! 🏆', 
             `Ezt a kalandot (${title}) úgy állították be, hogy csak egyszer játszható végig ezen az eszközön, és te már sikeresen teljesítetted.`
