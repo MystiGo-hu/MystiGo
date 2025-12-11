@@ -661,6 +661,13 @@
             </svg>
         </div>
     </div>
+  <div class="mt-3 pt-3 border-t border-gray-100">
+        <button onclick="sortGamesNearby()" id="btn-sort-nearby" class="w-full py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+            📍 Játékok a közelemben (Távolság szerint)
+        </button>
+        <p id="nearby-status" class="text-[10px] text-center text-gray-400 mt-1 hidden"></p>
+    </div>
+
 </div>
 
 
@@ -1020,7 +1027,7 @@
 // Globális változó az adatok tárolására
   window.currentLeaderboardData = [];
 
-  // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: A fehér fejlécet keresi ID alapján)
+  // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: Még szűkebb oszlopok és paddingok)
   window.openLeaderboardModal = async function(specificGameId = null) {
       const gameId = specificGameId || window.currentGameId;
 
@@ -1032,11 +1039,9 @@
       const modal = document.getElementById('leaderboard-modal');
       const listBody = document.getElementById('leaderboard-modal-body');
       
-      // --- JAVÍTÁS ITT: ID alapján keressük a fejlécet, nem a szín alapján! ---
       const modalHeader = document.getElementById('leaderboard-header'); 
       let filterContainer = document.getElementById('leaderboard-filters');
       
-      // Csak akkor szúrjuk be, ha megvan a fejléc és még nincs szűrő
       if (!filterContainer && modalHeader) {
           filterContainer = document.createElement('div');
           filterContainer.id = 'leaderboard-filters';
@@ -1058,15 +1063,18 @@
           modalHeader.insertAdjacentElement('afterend', filterContainer);
       }
 
-      // --- TÁBLÁZAT OSZLOPOK BEÁLLÍTÁSA ---
+      // --- TÁBLÁZAT FEJLÉC SZŰKÍTÉSE ---
       const tableHead = modal.querySelector('thead');
       if (tableHead) {
           tableHead.innerHTML = `
             <tr>
-                <th class="px-2 py-2 text-center text-gray-500 w-8">#</th>
-                <th class="px-2 py-2 text-left text-gray-500">Csapat</th>
-                <th class="pl-1 pr-0 py-2 text-right text-gray-500 w-12">Pont</th> 
-                <th class="pl-1 pr-2 py-2 text-right text-gray-500 w-28">Idő</th> 
+                <th class="px-1 py-2 text-center text-gray-500 w-6">#</th>
+                
+                <th class="px-1 py-2 text-left text-gray-500">Csapat</th>
+                
+                <th class="pl-1 pr-0 py-2 text-right text-gray-500 w-10">Pont</th> 
+                
+                <th class="pl-1 pr-1 py-2 text-right text-gray-500 w-24">Idő</th> 
             </tr>
           `;
       }
@@ -1166,7 +1174,7 @@
 
 
 
-// 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Név mező szélesebb: 140px)
+// 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Név mező 100px, Paddingok minimalizálva)
   window.renderLeaderboardTable = function(results) {
       const listBody = document.getElementById('leaderboard-modal-body');
       
@@ -1210,13 +1218,14 @@
 
           html += `
             <tr class="hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${rowBg}">
-                <td class="px-2 py-3 font-bold text-gray-500 text-center text-sm w-8 align-middle">${rankDisplay}</td>
                 
-                <td class="px-2 py-3 align-middle">
-                    <div class="font-bold text-brand-blue flex items-center gap-2">
+                <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${rankDisplay}</td>
+                
+                <td class="px-1 py-3 align-middle">
+                    <div class="font-bold text-brand-blue flex items-center gap-1.5">
                         <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px] shrink-0">${icon}</span> 
                         
-                        <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[140px]" title="${r.teamName}">
+                        <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
                             ${r.teamName}
                         </span>
                     </div>
@@ -1225,11 +1234,11 @@
                     </div>
                 </td>
                 
-                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-12 align-middle">
+                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-10 align-middle">
                     ${r.score}
                 </td>
                 
-                <td class="pl-1 pr-2 py-3 text-right text-xs text-gray-600 leading-tight w-28 align-middle">
+                <td class="pl-1 pr-1 py-3 text-right text-xs text-gray-600 leading-tight w-24 align-middle">
                     <div class="flex flex-col items-end gap-1">
                         <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
                             🧩 ${fmt(r.geofenceTime || 0)}
@@ -2142,22 +2151,24 @@ async function sharePdfViaEmail() {
             const listEl = document.getElementById('game-list');
             listEl.innerHTML = '';
             
-            // 1. Nyers adatok beszerzése
+            // 1. Nyers adatok
             const sourceData = gamesToRender || games;
             let rawArray = Object.values(sourceData);
 
-            // 2. TISZTÍTÁS: Kivesszük a rejtett játékokat MÉG A DARABOLÁS ELŐTT!
-            // Ez a lépés javítja meg a hibát.
+            // 2. RENDEZÉS TÁVOLSÁG SZERINT (Ha van kiszámolt távolság)
+            // Ez az új rész: ha a gomb megnyomása után vagyunk, sorba rendezi őket
+            if (rawArray.length > 0 && typeof rawArray[0]._calculatedDistance !== 'undefined') {
+                rawArray.sort((a, b) => a._calculatedDistance - b._calculatedDistance);
+            }
+
+            // 3. Szűrés (Rejtett játékok kezelése)
             const displayableGames = rawArray.filter(game => {
-                // Ha ez egy már szűrt lista (keresés), akkor bízunk benne
                 if (gamesToRender) return true;
-                // Ha fejlesztői módban vagyunk, mindent mutatunk
                 if (window.showHiddenGames) return true;
-                // Alapesetben elrejtjük a rejtett játékokat
                 return !game.isHidden;
             });
 
-            // 3. Üres lista kezelése
+            // Üres lista kezelése
             if (displayableGames.length === 0) {
                  listEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-xl border border-gray-200">
                     <p class="text-gray-500 font-semibold">Nincs a szűrésnek megfelelő játék.</p>
@@ -2166,20 +2177,16 @@ async function sharePdfViaEmail() {
                  return;
             }
             
-            // Szűrők feltöltése (csak ha ez a fő nézet)
             if (!gamesToRender) {
                 populateLocationFilter();
             }
 
-            // 4. DARABOLÁS A LIMIT ALAPJÁN
-            // Most már a "tiszta" listát vágjuk, így biztosan látható elemeket kapunk
+            // Limitálás
             const currentLimit = appState.visibleGamesLimit;
             const visibleGames = displayableGames.slice(0, currentLimit);
 
-            // 5. MEGJELENÍTÉS (Renderelés)
+            // Kártyák generálása
             visibleGames.forEach(game => {
-                // Itt már nem kell ellenőrizni az isHidden-t, mert fentebb megtettük!
-
                 const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
                 const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
                 
@@ -2197,26 +2204,20 @@ async function sharePdfViaEmail() {
                 const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
                 if (playCount === 0 && oldBooleanSave === 'true') playCount = 1;
                 
-                // --- ÚJ LOGIKA: Kétféle inaktív állapot kezelése ---
-                const isManuallyDisabled = (game.maxPlayCount === -1); // Ha 0 volt az Excelben
-                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount); // Ha elfogyott a limit
+                const isManuallyDisabled = (game.maxPlayCount === -1);
+                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount);
                 
                 let contentOpacityClass = ""; 
                 let completedBadge = "";
 
-                // Ha nem fejlesztői módban vagyunk, és valamelyik tiltás aktív
                 if (!window.showHiddenGames && (isLimitReached || isManuallyDisabled)) {
                     contentOpacityClass = "opacity-40 grayscale"; 
-                    
                     if (isManuallyDisabled) {
-                        // Ha 0 van az Excelben (Inaktív)
                         completedBadge = `<div class="bg-gray-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">🔒 JELENLEG NEM ELÉRHETŐ</div>`;
                     } else {
-                        // Ha elfogyott a limit (Teljesítve)
                         completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE (${playCount}/${game.maxPlayCount}) ✅</div>`;
                     }
                 }
-                // -----------------------------------------------
 
                 let saveIndicator = "";
                 let cardBorder = "";
@@ -2224,6 +2225,17 @@ async function sharePdfViaEmail() {
                     saveIndicator = `<div class="bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded absolute top-2 left-2 shadow-md z-20">MENTVE</div>`;
                     cardBorder = "border-2 border-brand-orange";
                 }
+
+                // --- ÚJ RÉSZ: Távolság jelző kék címke ---
+                let distanceBadge = "";
+                if (game._calculatedDistance !== undefined) {
+                    const distText = game._calculatedDistance > 100 
+                        ? Math.round(game._calculatedDistance) + " km" 
+                        : game._calculatedDistance.toFixed(1) + " km";
+                    
+                    distanceBadge = `<div class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded absolute bottom-2 left-2 shadow-md z-20 flex items-center gap-1">📍 ${distText}</div>`;
+                }
+                // ------------------------------------------
 
                 let deleteButtonHtml = "";
                 if (hasSave) {
@@ -2249,7 +2261,12 @@ async function sharePdfViaEmail() {
                         ${completedBadge}
                         ${deleteButtonHtml}
                         ${leaderboardBtnHtml}
-                        <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
+                        
+                        <div class="relative">
+                            <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
+                            ${distanceBadge}
+                        </div>
+
                         <div class="p-5 ${contentOpacityClass}">
                             <div class="flex justify-between items-start">
                                 <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
@@ -2263,18 +2280,15 @@ async function sharePdfViaEmail() {
                     </div>`;
             });
             
-            // 6. GOMB MEGJELENÍTÉSE
-            // Most már a displayableGames hosszát nézzük, ami a valós elemszám
             if (displayableGames.length > currentLimit) {
                 const remaining = displayableGames.length - currentLimit;
-                const btnHtml = `
+                listEl.innerHTML += `
                     <div class="text-center pt-4 pb-2">
                         <button onclick="loadMoreGames()" class="bg-white border-2 border-gray-200 text-gray-500 hover:text-brand-blue hover:border-brand-blue font-bold py-3 px-6 rounded-full shadow-sm transition w-full">
                             További kalandok betöltése (${remaining} db) ▼
                         </button>
                     </div>
                 `;
-                listEl.innerHTML += btnHtml;
             }
         }
   
@@ -2380,6 +2394,101 @@ function applyFilters() {
             appState.currentFilteredGames = filteredGames;
             renderGameList(filteredGames);
         }
+
+
+
+// --- ÚJ FÜGGVÉNY: Távolság alapú rendezés (JAVÍTVA: Láthatóság szűréssel) ---
+        window.sortGamesNearby = function() {
+            const btn = document.getElementById('btn-sort-nearby');
+            const status = document.getElementById('nearby-status');
+            
+            if (!navigator.geolocation) {
+                alert("A böngésződ nem támogatja a helymeghatározást.");
+                return;
+            }
+
+            // UI visszajelzés
+            btn.innerHTML = `<div class="animate-spin h-4 w-4 border-2 border-brand-blue border-t-transparent rounded-full"></div> Helyzet lekérése...`;
+            btn.disabled = true;
+            status.textContent = "GPS jel keresése...";
+            status.classList.remove('hidden');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    status.textContent = "Távolságok számítása és szűrés...";
+
+                    const gamesArray = [];
+                    const sortedGames = {};
+
+                    // Játékok feldolgozása
+                    Object.values(games).forEach(game => {
+                        
+                        // --- JAVÍTÁS ITT: Szűrés a láthatóság alapján ---
+                        // Ha NEM vagyunk fejlesztői módban (showHiddenGames hamis), akkor szűrünk:
+                        if (!window.showHiddenGames) {
+                            // 1. Rejtett játékok kiszűrése
+                            if (game.isHidden) return;
+                            
+                            // 2. Nem játszható (Letiltott) játékok kiszűrése
+                            if (game.maxPlayCount === -1) return;
+                        }
+                        // ------------------------------------------------
+
+                        if (game.startLocation && game.startLocation.lat && game.startLocation.lng) {
+                            const dist = haversineDistance(
+                                { lat: userLat, lng: userLng }, 
+                                { lat: game.startLocation.lat, lng: game.startLocation.lng }
+                            );
+                            game._calculatedDistance = dist / 1000; // km
+                        } else {
+                            game._calculatedDistance = 99999; 
+                        }
+                        gamesArray.push(game);
+                    });
+
+                    // Rendezés (legkisebb elől)
+                    gamesArray.sort((a, b) => a._calculatedDistance - b._calculatedDistance);
+
+                    // Visszaalakítás objektummá
+                    gamesArray.forEach(game => {
+                        sortedGames[game.id] = game;
+                    });
+
+                    // Beállítjuk, hogy ez a "szűrt" lista
+                    appState.currentFilteredGames = sortedGames;
+                    appState.visibleGamesLimit = 5;
+
+                    // Újrarajzolás (Most már csak a szűrt elemeket tartalmazza a sortedGames)
+                    renderGameList(sortedGames);
+
+                    // UI visszaállítás
+                    btn.innerHTML = `📍 Játékok a közelemben (Frissítve)`;
+                    btn.classList.add('bg-green-50', 'border-green-500', 'text-green-700');
+                    btn.disabled = false;
+                    status.textContent = `Sikeres rendezés a pozíciód alapján.`;
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = `📍 Játékok a közelemben (Távolság szerint)`;
+                        btn.classList.remove('bg-green-50', 'border-green-500', 'text-green-700');
+                        status.classList.add('hidden');
+                    }, 5000);
+
+                },
+                (error) => {
+                    console.error("GPS Hiba:", error);
+                    alert("Nem sikerült lekérni a helyzeted. Kérlek, engedélyezd a GPS-t!");
+                    
+                    btn.innerHTML = `📍 Játékok a közelemben (Távolság szerint)`;
+                    btn.disabled = false;
+                    status.classList.add('hidden');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+        };
+
 
 
 
