@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.4
+       v1.0.5
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -530,9 +530,9 @@
                                 
                                 <h2 class="text-lg font-bold text-text-heading mt-4 mb-2">Kaland Típusok Magyarázata</h2>
                                 <div class="space-y-2 text-sm text-gray-700">
-                                   <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok szekvenciálisan, sorban követik egymást.</p>
-                                    <p><strong>Kids 🐈:</strong> Kimondottan 6-10 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve. Szekvenciális feladatok.</p>
-                                    <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok **változó sorrendben** jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a végén.</p>
+                                   <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok sorrendben követik egymást.</p>
+                                    <p><strong>Kids 🐈:</strong> Kimondottan 6-12 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve, sorban haladó feladatokkal.</p>
+                                    <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén.</p>
                                     <p><strong>Explore 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
                                 </div>
 
@@ -597,7 +597,7 @@
         <option value="cupcake">Muffin 🧁</option>
         <option value="lollipop">Nyalóka 🍭</option>
         <option value="smile">Smile 😎</option>
-        <option value="zombie">Zombi 🧟‍♂️</option>
+        <option value="zombie">Zombi 🧟</option>
         <option value="ballerina">Belerina 🩰</option>
         <option value="police">Rendőr 🚓</option>
         <option value="firefighter">Tűzoltó 🚒</option>
@@ -781,8 +781,9 @@
         <span id="final-team-avatar-icon" class="avatar-icon"></span>
         Név: <span id="final-team-display"></span>
     </p> 
-    <p class="block">Teljes Idő: <strong id="final-time">00:00</strong></p> 
-    <p class="block">Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
+    <p class="block">🧩Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
+    <p class="block">⏱️Teljes Idő: <strong id="final-time">00:00</strong></p> 
+    
 </div>
                   
                     </div> 
@@ -793,15 +794,10 @@
     <span>🏆</span> Ranglista Megtekintése
 </button>
 
-
-
- <p class="text-xs text-gray-500 mb-2">Küldd el az eredményedet, ha szeretnél résztvenni a játékban  a <strong>mystigo.net@gmail.com</strong> címre!</p>
+ 
                     <div id="social-share-buttons" class="flex space-x-6 justify-center">
-                        <button onclick="sharePdfViaEmail()" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Eredmény küldése Emailben (PDF)">
-    <svg class="w-8 h-8 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-</button>
+                       
+    
                     </div>
 
                     
@@ -950,9 +946,15 @@
                 <tbody id="leaderboard-modal-body" class="divide-y divide-gray-200 bg-white"></tbody>
             </table>
         </div>
-        <div class="p-4 border-t border-gray-100 shrink-0 bg-white">
-            <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="main-button w-full !text-sm !py-2">Bezárás</button>
-        </div>
+        <div class="p-4 border-t border-gray-100 shrink-0 bg-white flex gap-3">
+    <button onclick="downloadLeaderboardPDF()" class="main-button flex-1 !text-sm !py-2 !bg-green-600 hover:!bg-green-700 flex items-center justify-center gap-2">
+        <span>💾</span> Mentés
+    </button>
+    
+    <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="main-button flex-1 !text-sm !py-2 !bg-gray-500 hover:!bg-gray-600">
+        Bezárás
+    </button>
+</div>
     </div>
 </div>
 
@@ -1074,6 +1076,78 @@
           modalHeader.insertAdjacentElement('afterend', filterContainer);
       }
 
+// --- RANGLISTA PDF MENTÉSE ---
+  window.downloadLeaderboardPDF = function() {
+      // 1. Az elemek kiválasztása
+      const listBody = document.getElementById('leaderboard-modal-body');
+      if (!listBody || listBody.rows.length === 0) {
+          alert("Nincs mit menteni, a lista üres.");
+          return;
+      }
+
+      // Visszajelzés a gombon (opcionális UX)
+      const btn = event.currentTarget;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '⏳ Generálás...';
+      btn.disabled = true;
+
+      // 2. Ideiglenes konténer létrehozása a PDF generáláshoz
+      // Ez azért kell, hogy "kivegyük" a táblázatot a görgethető (scroll) ablakból,
+      // így a PDF-ben a teljes lista látszani fog, nem csak ami épp a képernyőn van.
+      const wrapper = document.createElement('div');
+      wrapper.style.padding = '20px';
+      wrapper.style.fontFamily = 'sans-serif';
+      wrapper.style.background = 'white';
+      wrapper.style.color = '#0D2B45';
+
+      // Cím és dátum
+      const dateStr = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+      const activeGameId = window.currentGameId || "Ismeretlen";
+      
+      wrapper.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 24px; color: #0D2B45;">🏆 MystiGo Ranglista</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Kaland: <strong>${activeGameId}</strong> | Dátum: ${dateStr}</p>
+        </div>
+      `;
+
+      // Táblázat klónozása
+      const originalTable = document.querySelector('#leaderboard-modal table');
+      const clonedTable = originalTable.cloneNode(true);
+      
+      // Stílus igazítás a PDF-hez (hogy biztosan szép legyen fehér háttérrel)
+      clonedTable.style.width = '100%';
+      clonedTable.style.borderCollapse = 'collapse';
+      clonedTable.style.fontSize = '12px';
+      
+      // Fejléc színezése a klónban
+      const thead = clonedTable.querySelector('thead');
+      if(thead) thead.style.backgroundColor = '#f3f4f6';
+      
+      wrapper.appendChild(clonedTable);
+
+      // 3. PDF Generálás
+      const opt = {
+          margin:       10,
+          filename:     `MystiGo_Ranglista_${activeGameId}_${new Date().toISOString().slice(0,10)}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().from(wrapper).set(opt).save().then(() => {
+          // Visszaállítás
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+      }).catch(err => {
+          console.error(err);
+          alert("Hiba történt a mentés közben.");
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+      });
+  };
+
+
       // --- TÁBLÁZAT FEJLÉC SZŰKÍTÉSE ---
       const tableHead = modal.querySelector('thead');
       if (tableHead) {
@@ -1115,7 +1189,20 @@
           });
 
           window.currentLeaderboardData = results;
-          setTimeout(() => filterLeaderboard('today'), 50);
+          
+          setTimeout(() => {
+              // 1. Kirajzoljuk a listát
+              filterLeaderboard('today'); 
+              
+              // 2. ÚJ: Odagörgetünk a saját sorhoz (kis késleltetéssel, hogy biztosan ott legyen már a DOM-ban)
+              setTimeout(() => {
+                  const myRow = document.getElementById('my-leaderboard-row');
+                  if (myRow) {
+                      myRow.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+              }, 100);
+              
+          }, 50);
 
    } catch (error) {
           console.error("Hiba:", error);
@@ -1196,7 +1283,7 @@
 
       const avatars = {
              cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
+             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
       };
       
       const fmt = (s) => {
@@ -1219,16 +1306,22 @@
           const rank = r.actualRank;
 
           let rankDisplay = `${rank}.`;
-          let rowBg = "";
+          let rowBg = ""; // Alapból fehér (üres)
           
-          if (rank === 1) { rankDisplay = "🥇"; rowBg = "bg-yellow-50/50"; }
-          else if (rank === 2) { rankDisplay = "🥈"; rowBg = "bg-gray-50/50"; }
-          else if (rank === 3) { rankDisplay = "🥉"; rowBg = "bg-orange-50/50"; }
+          if (rank === 1) { rankDisplay = "🥇"; }
+          else if (rank === 2) { rankDisplay = "🥈"; }
+          else if (rank === 3) { rankDisplay = "🥉"; }
           
-          if (isMyTeam) rowBg = "bg-blue-50 border-l-4 border-l-brand-orange";
+          // 2. SAJÁT CSAPAT KIEMELÉSE (Ez felülír mindent)
+          if (isMyTeam) {
+              rowBg = "bg-blue-200 border-l-4 border-l-red-400";
+          }
+
+          // ÚJ: ID hozzáadása, ha ez a saját sorom, hogy később odatudjunk görgetni
+          const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
 
           html += `
-            <tr class="hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${rowBg}">
+            <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
                 
                 <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${rankDisplay}</td>
                 
@@ -1402,7 +1495,7 @@
 
         const AVATAR_ICONS = {
             cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
+             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
         };
 
         let appState = {};
