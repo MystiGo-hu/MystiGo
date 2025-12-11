@@ -532,9 +532,11 @@
                                 </div>
                             </div>
                         </details>
-                        <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200 hidden">
+                        <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
     <h2 class="text-xl font-bold text-text-heading mb-3">Játékos<span class="text-red-500">*</span></h2>
+    
     <input type="text" id="team-name-input" placeholder="Név" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
+    
     <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
         <option value="">Válassz Avatart</option>
         <option value="cat">Mysti 🐱</option>
@@ -578,8 +580,8 @@
         🛰️ GPS Működésének Tesztelése
     </button>
 
-   <button onclick="startSpecificTestGame()" class="w-full mt-2 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-        🎮 Teszt Játék Indítása (Mock nélkül)
+    <button onclick="startSpecificTestGame()" class="w-full mt-2 py-2 bg-purple-100 border-2 border-purple-300 text-purple-700 hover:bg-purple-200 font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+        🎮 Teszt Játék Indítása (Mock GPS)
     </button>
 
     <div id="gps-test-container" class="hidden mt-3 bg-white p-2 rounded-lg border border-gray-200 shadow-inner">
@@ -592,12 +594,11 @@
         <div class="mt-2 text-[10px] text-gray-400 text-center">
             Pontosság: <span id="gps-accuracy-value">-</span> méter
         </div>
-   
-        </div>
-
     </div>
 </div>
-                    
+          
+
+          
 <div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
     <h3 class="text-sm font-bold text-brand-blue mb-3 flex items-center">
         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
