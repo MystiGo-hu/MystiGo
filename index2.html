@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.7
+       v1.0.8
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1021,9 +1021,15 @@
       } catch (error) { console.error(error); return true; }
   };
 
-  // 2. MENTÉS (Marad)
+  // 2. MENTÉS (Módosítva: Olvasható dátum hozzáadása)
   window.saveScoreToFirebase = function(data) {
       if (!data.gameId) return;
+
+      // --- Dátum formázása ---
+      const now = new Date();
+      const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      // -----------------------
+
       const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
       push(leaderboardRef, {
           teamName: data.teamName || "Névtelen",
@@ -1031,7 +1037,12 @@
           score: data.score,
           totalTime: data.totalTime,
           geofenceTime: data.geofenceTime,
-          timestamp: Date.now()
+          
+          // FONTOS: Ezt hagyd meg számnak a program működése miatt!
+          timestamp: Date.now(), 
+          
+          // ÚJ MEZŐ: Ez azért van, hogy te lásd a Firebase-ben szépen kiírva
+          dateString: readableDate 
       });
   };
 
