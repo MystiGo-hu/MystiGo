@@ -3267,6 +3267,7 @@ let gpsTestMap = null;
 let gpsTestMarker = null;
 let gpsTestCircle = null;
 let gpsTestWatchId = null;
+let gpsTestInterval = null; // <--- ÚJ: Hogy le tudjuk állítani az időzítőt
 let bestAccuracy = 99999; 
 
 // --- ÚJ GPS TESZT FÜGGVÉNY ---
@@ -3299,7 +3300,7 @@ window.testGpsConnection = function() {
         }).addTo(gpsTestMap);
     }
     
-    // Resize fix: biztosítjuk, hogy a térkép kitöltse a dobozt megjelenés után
+// Resize fix: biztosítjuk, hogy a térkép kitöltse a dobozt megjelenés után
     setTimeout(() => { gpsTestMap.invalidateSize(); }, 200);
 
     // Ha nincs geolocation támogatás a böngészőben
@@ -3308,16 +3309,19 @@ window.testGpsConnection = function() {
         return;
     }
 
-    // 2. Visszaszámláló logika (5 másodperc)
+    // 2. Visszaszámláló logika (10 másodperc)
     let timeLeft = 10;
-    const countdownInterval = setInterval(() => {
+    
+    // Előző időzítő törlése biztonságból
+    if (gpsTestInterval) clearInterval(gpsTestInterval);
+
+    gpsTestInterval = setInterval(() => {
         timeLeft--;
         const counterEl = document.getElementById('gps-countdown');
         if(counterEl) counterEl.textContent = timeLeft;
         
         if (timeLeft <= 0) {
-            clearInterval(countdownInterval);
-            finishGpsTest(); // Teszt vége
+            finishGpsTest(); // Teszt vége (lejárt az idő)
         }
     }, 1000);
 
@@ -3351,10 +3355,16 @@ window.testGpsConnection = function() {
                     gpsTestMap.panTo(latLng);
                 }
             }
+
+            // --- ÚJ RÉSZ: GYORS LEÁLLÍTÁS ---
+            // Ha a pontosság 10 méter vagy jobb, azonnal kész vagyunk!
+            if (accuracy <= 10) {
+                finishGpsTest(); 
+            }
+            // ---------------------------------
         },
         (err) => {
             console.warn("GPS Teszt hiba:", err);
-            // Nem állítjuk le azonnal, hátha egy pillanatnyi hiba, de a logba bekerül
         },
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
     );
@@ -3362,10 +3372,16 @@ window.testGpsConnection = function() {
 
 // --- GPS TESZT LEZÁRÁSA ÉS KIÉRTÉKELÉS ---
 function finishGpsTest(forceError = false, errorMsg = "") {
-    // Figyelés leállítása
+    // GPS Figyelés leállítása
     if (gpsTestWatchId) {
         navigator.geolocation.clearWatch(gpsTestWatchId);
         gpsTestWatchId = null;
+    }
+    
+    // Időzítő leállítása (ha a gyors siker miatt hívtuk meg)
+    if (gpsTestInterval) {
+        clearInterval(gpsTestInterval);
+        gpsTestInterval = null;
     }
 
     const statusText = document.getElementById('gps-test-status');
@@ -3387,7 +3403,13 @@ function finishGpsTest(forceError = false, errorMsg = "") {
         // SIKERES TESZT
         statusText.textContent = "Teszt kész.";
         resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
-        resultMsg.innerHTML = `✅ GPS Működik!<br>Pontosság: ${bestAccuracy}m`;
+        
+        // Külön üzenet, ha szuper pontos
+        if (bestAccuracy <= 10) {
+             resultMsg.innerHTML = `🚀 Szuper jel!<br>Pontosság: ${bestAccuracy}m`;
+        } else {
+             resultMsg.innerHTML = `✅ GPS Működik!<br>Pontosság: ${bestAccuracy}m`;
+        }
         
         // Ha van marker, zöldre színezzük a kört
         if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
