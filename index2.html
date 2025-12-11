@@ -3317,21 +3317,45 @@ if (reviewBtn) {
         }
 
         function updatePlayerMarker(lat, lng) {
-    if (!appState.map) return;
-    if (!appState.isTestModeEnabled && !appState.isManualMock) {
-        // ... (ez a rész marad változatlan) ...
-        
-        if (appState.geofenceCircle && appState.playerMarker) { 
-            const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
+            if (!appState.map) return;
+
+            // 1. FONTOS: Elmentjük az aktuális pozíciót a változóba
+            // (Ez hiányzott, emiatt nem számolt távolságot a checkGeofence)
+            appState.userPosition = { lat: lat, lng: lng };
+
+            if (!appState.isTestModeEnabled && !appState.isManualMock) {
+                const latLng = new L.LatLng(lat, lng);
+
+                // 2. Marker kirajzolása vagy frissítése (Ez a rész hiányzott)
+                if (appState.playerMarker) {
+                    appState.playerMarker.setLatLng(latLng);
+                } else {
+                    const playerIcon = L.divIcon({
+                        className: 'player-marker', // Ez a CSS-ben definiált narancs/kék pötty
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10], // Középre igazítjuk
+                        popupAnchor: [0, -10]
+                    });
+                    
+                    appState.playerMarker = L.marker(latLng, { 
+                        icon: playerIcon,
+                        zIndexOffset: 1000 // Hogy mindig a feladatok fölött legyen
+                    }).addTo(appState.map);
+                }
+                
+                // 3. Térkép igazítása (Zoom logika)
+                if (appState.geofenceCircle && appState.playerMarker) { 
+                    const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
+                    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 16, animate: true }); 
+                } else {
+                    // Ha még nincs célpont (pl. játék elején), akkor csak a játékosra fókuszálunk
+                    appState.map.setView(latLng, 16);
+                }
+            }
             
-            // --- CSAK EZT A SORT MÓDOSÍTSD ITT: ---
-            // maxZoom: 16 (Ez "utca szint", nem megy rá teljesen az épületre)
-            // A .pad(0.2) marad, hogy legyen kis margó.
-            appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 15, animate: true }); 
+            // Távolság ellenőrzése
+            checkGeofence();
         }
-    }
-    checkGeofence();
-}
 
         function updateTaskMarker(location) {
             if (!appState.map) return;
