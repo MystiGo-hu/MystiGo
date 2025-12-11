@@ -1883,28 +1883,35 @@ async function sharePdfViaEmail() {
                 const combinedGames = {};
                 
                 parsedGames.forEach(game => {
-    // TÖRÖLVE: if (game.isHidden == 1 || ...) return;
-    
-    // Helyette kiszámoljuk, és eltároljuk a flag-et:
-    const isHiddenGame = (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true');
+                    
+                    // Rejtett játék flag számítása
+                    const isHiddenGame = (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true');
 
-    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
-    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
-    const cleanId = String(game.id).trim(); 
+                    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
+                    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
+                    const cleanId = String(game.id).trim(); 
 
-combinedGames[cleanId] = { 
-    ...game, 
-    id: cleanId,
-    isHidden: isHiddenGame, 
-    type: String(game.type || 'normal').trim().toLowerCase(),
-    startLocation: { lat, lng }, 
-    price: parseInt(game.price || 0),
-    headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null,
-    reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,
-    maxPlayCount: parseInt(game.oneTimeOnly) || 0, // <--- ÚJ SOR (Számként olvassuk be)
-    tasks: [] 
-};
-});
+                    // --- JAVÍTÁS 1: Változók kiszámolása az objektumon KÍVÜL ---
+                    const oneTimeKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'onetimeonly');
+                    const maxPlayVal = (oneTimeKey && !isNaN(parseInt(game[oneTimeKey]))) ? parseInt(game[oneTimeKey]) : 0;
+                    // -----------------------------------------------------------
+
+                    combinedGames[cleanId] = { 
+                        ...game, 
+                        id: cleanId,
+                        isHidden: isHiddenGame, 
+                        type: String(game.type || 'normal').trim().toLowerCase(),
+                        startLocation: { lat, lng }, 
+                        price: parseInt(game.price || 0),
+                        headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null,
+                        reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,
+                        
+                        // --- JAVÍTÁS 2: Itt már csak a kész értéket használjuk ---
+                        maxPlayCount: maxPlayVal, 
+                        
+                        tasks: [] 
+                    };
+                });
 
 
                 parsedTasks.forEach(task => {
