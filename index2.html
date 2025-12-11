@@ -1766,12 +1766,31 @@ async function sharePdfViaEmail() {
             if (appState.timerInterval) clearInterval(appState.timerInterval);
             if (appState.geofenceTimerInterval) clearInterval(appState.geofenceTimerInterval);
             
+            // Játék térkép takarítása
             if (appState.map) { 
                 toggleMapClickMock(false); 
                 appState.map.remove(); appState.map = null; 
             }
             if (manualMarker) { manualMarker.remove(); manualMarker = null; } 
             
+            // --- JAVÍTÁS KEZDTE: GPS Teszt takarítása ---
+            const gpsContainer = document.getElementById('gps-test-container');
+            if (gpsContainer) gpsContainer.classList.add('hidden'); // Elrejtjük a dobozt
+
+            // Leállítjuk a teszt figyelését, ha futna
+            if (typeof finishGpsTest === 'function') {
+                finishGpsTest(); 
+            }
+
+            // Töröljük a teszt térképet a memóriából, hogy legközelebb tisztán induljon
+            if (gpsTestMap) { 
+                gpsTestMap.remove(); 
+                gpsTestMap = null; 
+            }
+            gpsTestMarker = null;
+            gpsTestCircle = null;
+            // --- JAVÍTÁS VÉGE ---
+
             document.getElementById('developer-options').classList.add('hidden');
             document.getElementById('secret-switches-container').classList.add('hidden');
 
