@@ -1874,7 +1874,8 @@ async function sharePdfViaEmail() {
     // --- MÓDOSÍTÁS VÉGE ---
 
     // Ez marad a régi a többi feladathoz:
-    currentTask.taskScore = 0; 
+    currentTask.taskScore = 0;
+    currentTask.skipped = true; 
     updateStatusDisplays(); hideReportModal();
     showMessage("Átugorva", "A feladatot teljesítettnek jelöltük (0 pont). A játék folytatódik.", () => { handleCorrectAnswer(); });
 }
@@ -1910,10 +1911,23 @@ async function sharePdfViaEmail() {
                     const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
                     const cleanId = String(game.id).trim(); 
 
-                    // --- JAVÍTÁS 1: Változók kiszámolása az objektumon KÍVÜL ---
-                    const oneTimeKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'onetimeonly');
-                    const maxPlayVal = (oneTimeKey && !isNaN(parseInt(game[oneTimeKey]))) ? parseInt(game[oneTimeKey]) : 0;
-                    // -----------------------------------------------------------
+                    // --- ÚJ LOGIKA: 0 = Letiltva, Üres = Korlátlan, Szám = Limit ---
+                    const oneTimeKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'maxplaycount');
+                    let rawVal = (oneTimeKey) ? game[oneTimeKey] : '';
+                    let maxPlayVal = 0; // Alapértelmezett: 0 = Korlátlan (ha üres a cella)
+
+                    // Csak akkor váltunk, ha VAN valami írva a cellába
+                    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+                        const parsed = parseInt(rawVal);
+                        if (!isNaN(parsed)) {
+                            if (parsed === 0) {
+                                maxPlayVal = -1; // KÓD: -1 jelenti, hogy "Letiltva / Nem elérhető"
+                            } else {
+                                maxPlayVal = parsed; // Egyéb szám: A limit értéke
+                            }
+                        }
+                    }
+                    // ----
 
                     combinedGames[cleanId] = { 
                         ...game, 
@@ -2068,14 +2082,27 @@ async function sharePdfViaEmail() {
                 let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
                 const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
                 if (playCount === 0 && oldBooleanSave === 'true') playCount = 1;
-                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount);
+                
+                // --- ÚJ LOGIKA: Kétféle inaktív állapot kezelése ---
+                const isManuallyDisabled = (game.maxPlayCount === -1); // Ha 0 volt az Excelben
+                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount); // Ha elfogyott a limit
                 
                 let contentOpacityClass = ""; 
                 let completedBadge = "";
-                if (!window.showHiddenGames && isLimitReached) {
+
+                // Ha nem fejlesztői módban vagyunk, és valamelyik tiltás aktív
+                if (!window.showHiddenGames && (isLimitReached || isManuallyDisabled)) {
                     contentOpacityClass = "opacity-40 grayscale"; 
-                    completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE (${playCount}/${game.maxPlayCount}) ✅</div>`;
+                    
+                    if (isManuallyDisabled) {
+                        // Ha 0 van az Excelben (Inaktív)
+                        completedBadge = `<div class="bg-gray-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">🔒 JELENLEG NEM ELÉRHETŐ</div>`;
+                    } else {
+                        // Ha elfogyott a limit (Teljesítve)
+                        completedBadge = `<div class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded absolute top-2 right-2 shadow-md z-20">TELJESÍTVE (${playCount}/${game.maxPlayCount}) ✅</div>`;
+                    }
                 }
+                // -----------------------------------------------
 
                 let saveIndicator = "";
                 let cardBorder = "";
@@ -2394,9 +2421,18 @@ function applyFilters() {
       
         async function handleGameSelect(gameId, title, type, price, hasSave) {
 
-            // --- ÚJ RÉSZ: Játék korlát ellenőrzése (MAX COUNT) ---
+            // --- ÚJ RÉSZ: Játék korlát és tiltás ellenőrzése ---
             const gameConfig = games[gameId];
             
+            // 1. Ha 0 volt az Excelben (tehát -1 a kódban), akkor TILOS indítani
+            if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount === -1) {
+                showMessage(
+                    'Nem elérhető 🔒', 
+                    `Ez a kaland (${title}) jelenleg nem elérhető vagy fejlesztés alatt áll.`
+                );
+                return; // Kilépünk, nem indul el
+            }
+
             // Számláló lekérése (ugyanaz a logika, mint a listázásnál)
             let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + gameId) || 0);
             const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
@@ -2955,11 +2991,32 @@ if (reviewBtn) {
                     appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
                         if (task.location) {
                             const isCompleted = appState.currentGame.taskOrder === 'explore' ? appState.completedTasks.includes(task.index) : true;
+                            
+                            // --- ÚJ LOGIKA: Piros X és háttér ha átugrottuk ---
+                            // Megnézzük, hogy van-e skipped jelölés, VAGY 0 pontot ért-e (biztonsági tartalék)
+                            const isSkipped = (task.skipped === true || task.taskScore === 0);
+
+                            // Alap ikon és háttérszín (Zöld pipa vagy szám)
+                            let iconContent = isCompleted ? '✅' : task.index.toString();
+                            // Fontos: a !bg-green-500 a Tailwind miatt kell, hogy felülírja a kéket
+                            let bgClass = isCompleted ? '!bg-green-500' : ''; 
+
+                            // HA ÁTUGROTTUK: Piros X és piros háttér
+                            if (isSkipped) {
+                                iconContent = '❌';
+                                bgClass = '!bg-red-500 !border-white'; 
+                            }
+
                             const taskMarkerIcon = L.divIcon({
-                                className: 'task-selector-marker', html: isCompleted ? '✅' : task.index.toString(),
-                                iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30],
-                                style: isCompleted ? 'background-color: green;' : 'background-color: var(--brand-cyan);'
+                                // Hozzáadjuk a bgClass-t a meglévő osztályhoz
+                                className: `task-selector-marker ${bgClass}`, 
+                                html: iconContent,
+                                iconSize: [30, 30], 
+                                iconAnchor: [15, 30], 
+                                popupAnchor: [0, -30]
                             });
+                            // --------------------------------------------------
+
                             L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(endMap).bindPopup(`<b>Feladat ${task.index}</b>`);
                         }
                     });
