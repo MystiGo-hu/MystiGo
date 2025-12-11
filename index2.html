@@ -580,8 +580,8 @@
         🛰️ GPS Működésének Tesztelése
     </button>
 
-    <button onclick="startSpecificTestGame()" class="w-full mt-2 py-2 bg-purple-100 border-2 border-purple-300 text-purple-700 hover:bg-purple-200 font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-        🎮 Teszt Játék Indítása (Mock GPS)
+    <button onclick="startSpecificTestGame()" class="w-full mt-2 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+        🎮 Teszt Játék Indítása (GPS nélkül)
     </button>
 
     <div id="gps-test-container" class="hidden mt-3 bg-white p-2 rounded-lg border border-gray-200 shadow-inner">
@@ -754,7 +754,7 @@
                             <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.35c0 .732.593 1.325 1.325 1.325h11.495v-9.294h-3.143v-3.626h3.143v-2.128c0-3.12 1.847-4.815 4.673-4.815 1.326 0 2.464.099 2.802.143v3.25l-1.921.001c-1.503 0-1.802.714-1.802 1.768v2.316h3.618l-.471 3.626h-3.147v9.294h6.115c.732 0 1.325-.593 1.325-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>
                         </button>
                         <button onclick="shareResult('system')" class="p-2 rounded-full bg-white hover:bg-gray-100 transition shadow-lg flex items-center justify-center border border-gray-200" title="Megosztás Instagramon/TikTokon/Egyebek">
-                            <img src="share.png" alt="Általános megosztás" class="w-8 h-8">
+                            <img src="logo/share.png" alt="Általános megosztás" class="w-8 h-8">
                         </button>
                     </div>
 <p></p>
@@ -2834,7 +2834,7 @@ if (reviewBtn) {
                     setTimeout(() => { 
                         try {
                             endMap.invalidateSize(); 
-                            endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 16, animate: false }); 
+                            endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 18, animate: false }); 
                         } catch(e) { console.log("Térkép méretezési hiba (figyelmen kívül hagyható)"); }
                     }, 800);
 
@@ -2920,7 +2920,7 @@ if (reviewBtn) {
                 crossOrigin: true,
                 tileSize: 512,
                 zoomOffset: -1,
-                maxZoom: 20
+                maxZoom: 18.5
             }).addTo(appState.map);
 
 
@@ -2928,22 +2928,21 @@ if (reviewBtn) {
         }
 
         function updatePlayerMarker(lat, lng) {
-            if (!appState.map) return;
-            if (!appState.isTestModeEnabled && !appState.isManualMock) {
-                appState.userPosition = { lat, lng };
-                if (appState.playerMarker) appState.playerMarker.setLatLng([lat, lng]);
-                else {
-                    const playerIcon = L.divIcon({ className: 'player-marker', iconSize: [20, 20] });
-                    appState.playerMarker = L.marker([lat, lng], { icon: playerIcon }).addTo(appState.map);
-                }
-                if (appState.isTimerRunning) appState.routeCoordinates.push([lat, lng]);
-                if (appState.geofenceCircle && appState.playerMarker) { 
-                    const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
-                    appState.map.fitBounds(bounds.pad(0.2)); 
-                }
-            }
-            checkGeofence();
+    if (!appState.map) return;
+    if (!appState.isTestModeEnabled && !appState.isManualMock) {
+        // ... (ez a rész marad változatlan) ...
+        
+        if (appState.geofenceCircle && appState.playerMarker) { 
+            const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
+            
+            // --- CSAK EZT A SORT MÓDOSÍTSD ITT: ---
+            // maxZoom: 16 (Ez "utca szint", nem megy rá teljesen az épületre)
+            // A .pad(0.2) marad, hogy legyen kis margó.
+            appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 15, animate: true }); 
         }
+    }
+    checkGeofence();
+}
 
         function updateTaskMarker(location) {
             if (!appState.map) return;
@@ -2959,11 +2958,13 @@ if (reviewBtn) {
             }
             const playerMarkerForBounds = appState.isManualMock ? manualMarker : appState.playerMarker;
             if (playerMarkerForBounds) {
-                const bounds = L.latLngBounds(playerMarkerForBounds.getLatLng(), currentTaskLoc);
-                appState.map.fitBounds(bounds.pad(0.2)); 
-            } else {
-                appState.map.setView(currentTaskLoc, 16); 
-            }
+		    const bounds = L.latLngBounds(playerMarkerForBounds.getLatLng(), currentTaskLoc);
+		    // Itt is add hozzá a maxZoom-ot:
+		    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 18, animate: true }); 
+		} else {
+		    // Ez az alap zoom, ha még nincs GPS jel (pl. 16):
+		    appState.map.setView(currentTaskLoc, 16); 
+	              }
         }
 
         function watchPosition() {
