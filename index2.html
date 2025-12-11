@@ -556,7 +556,14 @@
         </label>
     </div>
     
-    <input type="text" id="team-name-input" placeholder="Név" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm mb-2">
+    <input type="text" id="team-name-input" maxlength="25" placeholder="Pl. Villám-Macskák 2024" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue outline-none">
+    
+    <div class="flex justify-between items-start mt-1 mb-3">
+        <p class="text-[10px] text-gray-500 italic">
+            💡 Tipp: Válassz egyedi nevet (pl. dátummal)!
+        </p>
+        <span class="text-[10px] text-gray-400 italic">Max: 25 kar.</span>
+    </div>
     
     <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
         <option value="">Válassz Avatart</option>
@@ -1007,35 +1014,76 @@
       });
   };
 
-  // 3. MODAL KEZELÉS (EZ AZ ÚJ RÉSZ!)
+ // --- ÚJ FEJLETT RANGLISTA LOGIKA
+
+// Globális változó az adatok tárolására
+  window.currentLeaderboardData = [];
+
+  // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: Pontszám szorosan az idő mellett)
   window.openLeaderboardModal = async function(specificGameId = null) {
-      // Kiolvassuk az ID-t, amit a fő scriptben mentettünk el
-      const gameId = specificGameId || window.currentGameId; 
+      const gameId = specificGameId || window.currentGameId;
 
       if (!gameId) {
-        alert("Nincs aktív játék azonosító.");
+        alert("Nincs aktív játék azonosító. Előbb válassz egy játékot!");
         return;
     }
 
       const modal = document.getElementById('leaderboard-modal');
       const listBody = document.getElementById('leaderboard-modal-body');
       
+      const modalHeader = modal.querySelector('.bg-brand-blue');
+      let filterContainer = document.getElementById('leaderboard-filters');
+      
+      if (!filterContainer) {
+          filterContainer = document.createElement('div');
+          filterContainer.id = 'leaderboard-filters';
+          filterContainer.className = "bg-white border-b border-gray-200 p-3 space-y-3";
+          filterContainer.innerHTML = `
+            <div class="flex rounded-lg bg-gray-100 p-1">
+                <button onclick="filterLeaderboard('today')" id="btn-filter-today" class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm">
+                    📅 Mai nap
+                </button>
+                <button onclick="filterLeaderboard('all')" id="btn-filter-all" class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue">
+                    🏆 Összes
+                </button>
+            </div>
+            <div class="relative">
+                <input type="text" id="leaderboard-search" onkeyup="filterLeaderboard()" placeholder="🔍 Csapatnév keresése..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue outline-none">
+                <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+          `;
+          modalHeader.insertAdjacentElement('afterend', filterContainer);
+      }
+
+      // --- JAVÍTÁS ITT: Paddingok minimalizálása a jobb oldalon ---
+      const tableHead = modal.querySelector('thead');
+      if (tableHead) {
+          tableHead.innerHTML = `
+            <tr>
+                <th class="px-2 py-2 text-center text-gray-500 w-8">#</th>
+                <th class="px-2 py-2 text-left text-gray-500">Csapat</th>
+                <th class="pl-1 pr-0 py-2 text-right text-gray-500 w-12">Pont</th> 
+                <th class="pl-1 pr-2 py-2 text-right text-gray-500 w-28">Idő</th> 
+            </tr>
+          `;
+      }
+
       modal.classList.remove('hidden');
-      listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8">Betöltés...</td></tr>';
+      listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Betöltés...</td></tr>';
 
       try {
           const q = query(ref(db, 'leaderboard/' + gameId));
           const snapshot = await get(q);
 
           if (!snapshot.exists()) {
-              listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény.</td></tr>';
+              listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény ehhez a játékhoz.</td></tr>';
+              window.currentLeaderboardData = [];
               return;
           }
 
           let results = [];
           snapshot.forEach((child) => {
               const val = child.val();
-              // HIBAJAVÍTÁS: Ha nincs pontszám, adunk neki 0-t, hogy ne legyen hiba
               if (val.score === undefined || val.score === null) {
                   val.score = 0; 
                   val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
@@ -1043,97 +1091,156 @@
               results.push(val);
           });
 
-  // --- 1. RENDEZÉS (Pont -> Teljes Idő -> Feladat Idő) ---
-          results.sort((a, b) => {
-              // A) Pontszám (csökkenő)
-              const scoreDiff = b.score - a.score;
-              if (scoreDiff !== 0) return scoreDiff;
-              
-              // B) Feladat idő (növekvő - aki gyorsabb volt a feladatokban)
-              			// FIGYELEM: Itt a geofenceTime az elsődleges az időben!
-           			   const taskTimeDiff = (a.geofenceTime || 0) - (b.geofenceTime || 0);
-              			if (taskTimeDiff !== 0) return taskTimeDiff;
-
-             			 // C) Teljes idő (növekvő - aki gyorsabb volt összesen)
-            			  return (a.totalTime || 0) - (b.totalTime || 0);
-    	      });
-
-
-          // --- 2. MEGJELENÍTÉS (HTML Generálás) ---
-          let html = "";
-          
-          const avatars = {
-             cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
-          };
-          
-          // Idő formázó (MM:SS)
-          const fmt = (s) => {
-             const m = Math.floor(s / 60).toString().padStart(2,'0');
-             const sec = (s % 60).toString().padStart(2,'0');
-             return `${m}:${sec}`;
-          };
-          
-          // --- MÓDOSÍTOTT DÁTUM FORMÁZÓ (ÉÉÉÉ.HH.NN. ÓÓ:PP:MP) ---
-          const fmtDate = (ms) => { 
-              const d = new Date(ms);
-              const year = d.getFullYear();
-              const month = String(d.getMonth() + 1).padStart(2, '0');
-              const day = String(d.getDate()).padStart(2, '0');
-              
-              // Idő komponensek hozzáadása
-              const hour = String(d.getHours()).padStart(2, '0');
-              const min = String(d.getMinutes()).padStart(2, '0');
-              const sec = String(d.getSeconds()).padStart(2, '0');
-              
-              return `${year}.${month}.${day}. ${hour}:${min}:${sec}`; 
-          };
-
-          results.forEach((r, index) => {
-              const icon = avatars[r.teamAvatar] || '👤';
-              
-              // Kiemelés, ha ez a mi eredményünk
-              const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 60000 && r.score == window.currentScoreForHighlight);
-
-              html += `
-                <tr class="hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${isMyTeam ? 'bg-yellow-50 border-l-4 border-l-brand-orange' : ''}">
-                    
-                    <td class="px-2 py-3 font-bold text-gray-400 text-center">${index + 1}.</td>
-                    
-                    <td class="px-2 py-3">
-                        <div class="font-bold text-brand-blue flex items-center gap-2">
-                            <span class="text-xl bg-gray-100 rounded-full p-1">${icon}</span> 
-                            <span>${r.teamName}</span>
-                        </div>
-                        <div class="text-[10px] text-gray-400 ml-9">${fmtDate(r.timestamp)}</div>
-                    </td>
-                    
-                    <td class="px-2 py-3 text-center font-extrabold text-brand-orange-500 text-base">
-                        ${r.score}
-                    </td>
-                    
-                    <td class="px-2 py-3 text-right text-xs text-gray-600 leading-tight">
-                        				<div title="Feladat megoldással töltött idő" class="font-semibold text-green-700">
-                            					🧩 ${fmt(r.geofenceTime || 0)}
-                        				</div>
-                        				<div class="text-[10px] text-gray-400 mt-1" title="Teljes idő (Kék óra)">
-                            					⏱️ ${fmt(r.totalTime || 0)}
-                        				</div>
-                    				</td>
-                </tr>
-              `;
-          });
-          listBody.innerHTML = html;
+          window.currentLeaderboardData = results;
+          setTimeout(() => filterLeaderboard('today'), 50);
 
    } catch (error) {
           console.error("Hiba:", error);
-          // Ezt a sort cseréld le erre a bővítettre:
-          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">
-              Hiba történt:<br>
-              <span class="text-xs text-gray-600">${error.message}</span>
-          </td></tr>`;
+          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba történt: ${error.message}</td></tr>`;
       }
   };
+
+
+  // 2. SZŰRŐ LOGIKA (JAVÍTOTT SORREND: Szűrés -> Rendezés -> Rangsorolás -> Keresés)
+  window.filterLeaderboard = function(modeParam) {
+      let mode = modeParam;
+      const btnToday = document.getElementById('btn-filter-today');
+      const btnAll = document.getElementById('btn-filter-all');
+      
+      // Ha nincs paraméter, megnézzük melyik gomb aktív
+      if (!mode) {
+          if(!btnToday) return; 
+          mode = btnToday.classList.contains('bg-white') ? 'today' : 'all';
+      }
+
+      // Gombok stílusának frissítése
+      if (mode === 'today') {
+          btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
+          btnAll.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue hover:bg-gray-200";
+      } else {
+          btnAll.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
+          btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue hover:bg-gray-200";
+      }
+
+      const searchInput = document.getElementById('leaderboard-search');
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
+      
+      // Mindig az eredeti, teljes listából indulunk ki
+      let data = [...window.currentLeaderboardData];
+
+      // LÉPÉS 1: Időszak szűrése (Ki tartozik a "mezőnybe"?)
+      if (mode === 'today') {
+          const startOfToday = new Date();
+          startOfToday.setHours(0, 0, 0, 0);
+          data = data.filter(r => r.timestamp >= startOfToday.getTime());
+      }
+
+      // LÉPÉS 2: Rendezés (Pont -> Feladat Idő -> Teljes Idő)
+      // Fontos: Ezt MÉG A KERESÉS ELŐTT megcsináljuk!
+      data.sort((a, b) => {
+          const scoreDiff = b.score - a.score;
+          if (scoreDiff !== 0) return scoreDiff;
+          const taskTimeDiff = (a.geofenceTime || 0) - (b.geofenceTime || 0);
+          if (taskTimeDiff !== 0) return taskTimeDiff;
+          return (a.totalTime || 0) - (b.totalTime || 0);
+      });
+
+      // LÉPÉS 3: Valódi helyezés rögzítése
+      // Hozzáadunk egy 'actualRank' tulajdonságot, ami megmondja, hányadik a teljes mezőnyben
+      data = data.map((item, index) => {
+          return { ...item, actualRank: index + 1 };
+      });
+
+      // LÉPÉS 4: Név keresés
+      // Most már szűrhetünk névre, mert a helyezésüket megjegyeztük az előző lépésben
+      if (searchTerm) {
+          data = data.filter(r => r.teamName.toLowerCase().includes(searchTerm));
+      }
+
+      renderLeaderboardTable(data);
+  };
+
+
+
+// 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Névnek SOK hely, Pont az Időhöz ragasztva)
+  window.renderLeaderboardTable = function(results) {
+      const listBody = document.getElementById('leaderboard-modal-body');
+      
+      if (results.length === 0) {
+          listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400 italic">Nincs a szűrésnek megfelelő találat.</td></tr>';
+          return;
+      }
+
+      const avatars = {
+             cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
+             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟‍♂️',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
+      };
+      
+      const fmt = (s) => {
+         const m = Math.floor(s / 60).toString().padStart(2,'0');
+         const sec = (s % 60).toString().padStart(2,'0');
+         return `${m}:${sec}`;
+      };
+      
+      const fmtDate = (ms) => { 
+          const d = new Date(ms);
+          const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}. ${timeStr}`; 
+      };
+
+      let html = "";
+      
+      results.slice(0, 100).forEach((r) => {
+          const icon = avatars[r.teamAvatar] || '👤';
+          const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
+          const rank = r.actualRank;
+
+          let rankDisplay = `${rank}.`;
+          let rowBg = "";
+          
+          if (rank === 1) { rankDisplay = "🥇"; rowBg = "bg-yellow-50/50"; }
+          else if (rank === 2) { rankDisplay = "🥈"; rowBg = "bg-gray-50/50"; }
+          else if (rank === 3) { rankDisplay = "🥉"; rowBg = "bg-orange-50/50"; }
+          
+          if (isMyTeam) rowBg = "bg-blue-50 border-l-4 border-l-brand-orange";
+
+          html += `
+            <tr class="hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${rowBg}">
+                <td class="px-2 py-3 font-bold text-gray-500 text-center text-sm w-8">${rankDisplay}</td>
+                
+                <td class="px-2 py-3">
+                    <div class="font-bold text-brand-blue flex items-center gap-2">
+                        <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px] shrink-0">${icon}</span> 
+                        <span class="truncate max-w-[200px]" title="${r.teamName}">${r.teamName}</span>
+                    </div>
+                    <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1">
+                        ⏱️ ${fmtDate(r.timestamp)}
+                    </div>
+                </td>
+                
+                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-12">
+                    ${r.score}
+                </td>
+                
+                <td class="pl-1 pr-2 py-3 text-right text-xs text-gray-600 leading-tight w-28">
+                    <div class="flex flex-col items-end gap-1">
+                        <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
+                            🧩 ${fmt(r.geofenceTime || 0)}
+                        </div>
+                        <div title="Teljes idő" class="font-semibold text-brand-blue bg-blue-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
+                            ⏱️ ${fmt(r.totalTime || 0)}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+          `;
+      });
+      listBody.innerHTML = html;
+  };
+
+
+
+  // --- RANGLISTA KÓD VÉGE ---
 
 // --- ÚJ RÉSZ: Befejezett játékok számolása ---
   window.incrementGameCompletion = async function(gameId) {
