@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.2
+       v1.0.4
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -632,47 +632,53 @@
           
 
           
-<div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-    <h3 class="text-sm font-bold text-brand-blue mb-3 flex items-center">
-        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-        Kaland Keresése & Szűrése
-    </h3>
+<div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
+    <div onclick="toggleFilterSection()" class="cursor-pointer flex items-center justify-between select-none">
+        <h3 class="text-sm font-bold text-brand-blue flex items-center">
+            <span id="filter-toggle-icon" class="mr-2 text-lg font-extrabold text-brand-orange-500 leading-none" style="margin-top: -2px;">+</span>
+            
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            Kaland Keresése & Szűrése
+        </h3>
+    </div>
     
-    <div class="grid grid-cols-2 gap-3 mb-3">
-        <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Helyszín</label>
-            <select id="filter-location" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                <option value="all">Összes Helyszín</option>
-            </select>
+    <div id="filter-content" class="hidden mt-3 pt-3 border-t border-gray-100">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Helyszín</label>
+                <select id="filter-location" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                    <option value="all">Összes Helyszín</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Típus</label>
+                <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                    <option value="all">Összes Típus</option>
+                    <option value="normal">Normal 🧭</option>
+                    <option value="kids">Kids 🐈</option>
+                    <option value="team">Csapat 🧑‍🤝‍🧑</option>
+                    <option value="explore">Explore 🌍</option>
+                </select>
+            </div>
         </div>
-        <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Típus</label>
-            <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                <option value="all">Összes Típus</option>
-                <option value="normal">Normal 🧭</option>
-                <option value="kids">Kids 🐈</option>
-                <option value="team">Csapat 🧑‍🤝‍🧑</option>
-                <option value="explore">Explore 🌍</option>
-            </select>
-        </div>
-    </div>
 
-    <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1">Keresés (Név, ID, Város...)</label>
-        <div class="relative">
-            <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Írj be valamit..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Keresés (Név, ID, Város...)</label>
+            <div class="relative">
+                <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Írj be valamit..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+        </div>
+        
+        <div class="mt-3 pt-3 border-t border-gray-100 hidden">
+            <button onclick="sortGamesNearby()" id="btn-sort-nearby" class="w-full py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+                📍 Játékok a közelemben (Távolság szerint)
+            </button>
+            <p id="nearby-status" class="text-[10px] text-center text-gray-400 mt-1 hidden"></p>
         </div>
     </div>
-  <div class="mt-3 pt-3 border-t border-gray-100">
-        <button onclick="sortGamesNearby()" id="btn-sort-nearby" class="w-full py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-            📍 Játékok a közelemben (Távolság szerint)
-        </button>
-        <p id="nearby-status" class="text-[10px] text-center text-gray-400 mt-1 hidden"></p>
-    </div>
-
 </div>
 
 
@@ -2133,6 +2139,30 @@ async function sharePdfViaEmail() {
                 }
                 // -----------------------------------------------------
 
+
+// --- SZŰRŐ DOBOZ LENYITÁSA / BECSUKÁSA ---
+        window.toggleFilterSection = function() {
+            const content = document.getElementById('filter-content');
+            const icon = document.getElementById('filter-toggle-icon');
+            
+            if (!content || !icon) return;
+
+            if (content.classList.contains('hidden')) {
+                // Kinyitás
+                content.classList.remove('hidden');
+                icon.textContent = '–'; // Mínusz jel
+                icon.classList.remove('text-brand-orange-500'); // Opcionális színváltás
+                icon.classList.add('text-brand-blue');
+            } else {
+                // Bezárás
+                content.classList.add('hidden');
+                icon.textContent = '+'; // Plusz jel
+                icon.classList.add('text-brand-orange-500');
+                icon.classList.remove('text-brand-blue');
+            }
+        };
+
+
                 populateLocationFilter(); 
                 
                 // Most hívjuk meg a szűrőt - biztosan van már adat!
@@ -2142,8 +2172,8 @@ async function sharePdfViaEmail() {
                 
                 showLoading(false);
                 showPage('game-list-page');
-	handleInitialUrlFiltering();
-
+		handleInitialUrlFiltering();
+		autoSortGamesByDistance();
 
             } catch (error) {
                 showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
@@ -2166,11 +2196,29 @@ async function sharePdfViaEmail() {
                 rawArray.sort((a, b) => a._calculatedDistance - b._calculatedDistance);
             }
 
-            // 3. Szűrés (Rejtett játékok kezelése)
+            // 3. Szűrés (Rejtett és NEM AKTÍV játékok kiszűrése)
             const displayableGames = rawArray.filter(game => {
+                // Ha konkrét szűrés van (pl. keresés), akkor mindent mutatunk ami egyezik
                 if (gamesToRender) return true;
+                
+                // Fejlesztői módban mindent mutatunk
                 if (window.showHiddenGames) return true;
-                return !game.isHidden;
+                
+                // 1. Rejtett (hidden) flag ellenőrzése
+                if (game.isHidden) return false;
+
+                // 2. Limit és Tiltás ellenőrzése (hogy csak az aktívak látszódjanak)
+                let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
+                const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
+                if (playCount === 0 && oldBooleanSave === 'true') playCount = 1;
+
+                const isManuallyDisabled = (game.maxPlayCount === -1);
+                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount);
+
+                // Ha le van tiltva, vagy elérte a limitet, NE jelenjen meg a listában
+                if (isManuallyDisabled || isLimitReached) return false;
+
+                return true;
             });
 
             // Üres lista kezelése
@@ -2400,7 +2448,41 @@ function applyFilters() {
             renderGameList(filteredGames);
         }
 
+// --- ÚJ AUTOMATIKUS RENDEZŐ FÜGGVÉNY ---
+        window.autoSortGamesByDistance = function() {
+            if (!navigator.geolocation) return; // Ha nincs GPS támogatás, marad az alap sorrend
 
+            // Csendben lekérjük a pozíciót
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    console.log("Automatikus GPS rendezés folyamatban...");
+
+                    Object.values(games).forEach(game => {
+                        if (game.startLocation && game.startLocation.lat && game.startLocation.lng) {
+                            const dist = haversineDistance(
+                                { lat: userLat, lng: userLng }, 
+                                { lat: game.startLocation.lat, lng: game.startLocation.lng }
+                            );
+                            game._calculatedDistance = dist / 1000; // km
+                        } else {
+                            game._calculatedDistance = 99999; 
+                        }
+                    });
+
+                    // Miután megvannak a távolságok, újrarajzoljuk a listát.
+                    // A renderGameList elején lévő logika automatikusan rendezni fog, 
+                    // ha látja a _calculatedDistance mezőket.
+                    renderGameList();
+                },
+                (error) => {
+                    console.log("Automatikus GPS rendezés nem sikerült (nem kritikus):", error);
+                },
+                { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // Lazább beállítások a gyorsasághoz
+            );
+        };
 
 // --- ÚJ FÜGGVÉNY: Távolság alapú rendezés (JAVÍTVA: Láthatóság szűréssel) ---
         window.sortGamesNearby = function() {
