@@ -910,11 +910,12 @@
 
 <div id="leaderboard-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 3000;">
     <div class="bg-white rounded-2xl p-0 w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-        <div class="bg-brand-blue p-4 flex justify-between items-center shrink-0">
-            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+        
+        <div id="leaderboard-header" class="bg-white p-4 flex justify-between items-center shrink-0 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-brand-blue flex items-center gap-2">
                 <span>🏆</span> Ranglista
             </h3>
-            <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="text-white hover:text-gray-200">
+            <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="text-gray-400 hover:text-brand-blue transition">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
@@ -1019,7 +1020,7 @@
 // Globális változó az adatok tárolására
   window.currentLeaderboardData = [];
 
-  // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: Pontszám szorosan az idő mellett)
+  // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: A fehér fejlécet keresi ID alapján)
   window.openLeaderboardModal = async function(specificGameId = null) {
       const gameId = specificGameId || window.currentGameId;
 
@@ -1031,10 +1032,12 @@
       const modal = document.getElementById('leaderboard-modal');
       const listBody = document.getElementById('leaderboard-modal-body');
       
-      const modalHeader = modal.querySelector('.bg-brand-blue');
+      // --- JAVÍTÁS ITT: ID alapján keressük a fejlécet, nem a szín alapján! ---
+      const modalHeader = document.getElementById('leaderboard-header'); 
       let filterContainer = document.getElementById('leaderboard-filters');
       
-      if (!filterContainer) {
+      // Csak akkor szúrjuk be, ha megvan a fejléc és még nincs szűrő
+      if (!filterContainer && modalHeader) {
           filterContainer = document.createElement('div');
           filterContainer.id = 'leaderboard-filters';
           filterContainer.className = "bg-white border-b border-gray-200 p-3 space-y-3";
@@ -1055,7 +1058,7 @@
           modalHeader.insertAdjacentElement('afterend', filterContainer);
       }
 
-      // --- JAVÍTÁS ITT: Paddingok minimalizálása a jobb oldalon ---
+      // --- TÁBLÁZAT OSZLOPOK BEÁLLÍTÁSA ---
       const tableHead = modal.querySelector('thead');
       if (tableHead) {
           tableHead.innerHTML = `
@@ -1069,6 +1072,7 @@
       }
 
       modal.classList.remove('hidden');
+      
       listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Betöltés...</td></tr>';
 
       try {
@@ -1162,7 +1166,7 @@
 
 
 
-// 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Névnek SOK hely, Pont az Időhöz ragasztva)
+// 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Név mező szélesebb: 140px)
   window.renderLeaderboardTable = function(results) {
       const listBody = document.getElementById('leaderboard-modal-body');
       
@@ -1206,23 +1210,26 @@
 
           html += `
             <tr class="hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${rowBg}">
-                <td class="px-2 py-3 font-bold text-gray-500 text-center text-sm w-8">${rankDisplay}</td>
+                <td class="px-2 py-3 font-bold text-gray-500 text-center text-sm w-8 align-middle">${rankDisplay}</td>
                 
-                <td class="px-2 py-3">
+                <td class="px-2 py-3 align-middle">
                     <div class="font-bold text-brand-blue flex items-center gap-2">
                         <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px] shrink-0">${icon}</span> 
-                        <span class="truncate max-w-[200px]" title="${r.teamName}">${r.teamName}</span>
+                        
+                        <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[140px]" title="${r.teamName}">
+                            ${r.teamName}
+                        </span>
                     </div>
-                    <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1">
+                    <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1 mt-1">
                         ⏱️ ${fmtDate(r.timestamp)}
                     </div>
                 </td>
                 
-                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-12">
+                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-12 align-middle">
                     ${r.score}
                 </td>
                 
-                <td class="pl-1 pr-2 py-3 text-right text-xs text-gray-600 leading-tight w-28">
+                <td class="pl-1 pr-2 py-3 text-right text-xs text-gray-600 leading-tight w-28 align-middle">
                     <div class="flex flex-col items-end gap-1">
                         <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
                             🧩 ${fmt(r.geofenceTime || 0)}
