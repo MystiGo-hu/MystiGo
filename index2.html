@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.5
+       v1.0.6
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -2824,105 +2824,106 @@ function applyFilters() {
       
         async function handleGameSelect(gameId, title, type, price, hasSave) {
 
-            // --- ÚJ RÉSZ: Játék korlát és tiltás ellenőrzése ---
+            // --- 1. MENTÉS KEZELÉSE (Elsődleges prioritás) ---
+            // Ha van mentés, azonnal betöltjük. 
+            // Így NEM fut le a limit ellenőrzés és NEM növekszik a számláló.
+            if (hasSave) {
+                 loadGameById(gameId);
+                 return; // Kilépünk, nem fut tovább a kód
+            }
+
+            // --- 2. ÚJ JÁTÉK INDÍTÁSI LOGIKA (Csak ha nincs mentés) ---
+            
             const gameConfig = games[gameId];
             
-            // 1. Ha 0 volt az Excelben (tehát -1 a kódban), akkor TILOS indítani
+            // A. Játék korlát és tiltás ellenőrzése
+            // Ha 0 volt az Excelben (tehát -1 a kódban), akkor TILOS indítani
             if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount === -1) {
                 showMessage(
                     'Nem elérhető 🔒', 
                     `Ez a kaland (${title}) jelenleg nem elérhető vagy fejlesztés alatt áll.`
                 );
-                return; // Kilépünk, nem indul el
+                return;
             }
 
-            // Számláló lekérése (ugyanaz a logika, mint a listázásnál)
+            // Számláló lekérése
             let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + gameId) || 0);
             const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
             if (playCount === 0 && oldBooleanSave === 'true') {
                 playCount = 1;
             }
 
-            // Ellenőrzés: Ha van limit (>0) ÉS elértük vagy túlléptük
-            // A !window.showHiddenGames biztosítja, hogy fejlesztői módban ("Összes játék") tesztelhető legyen újra.
+            // B. Limit elérésének ellenőrzése
+            // Csak akkor dob hibát, ha ÚJ játékot akarunk kezdeni, de már elértük a limitet.
             if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount > 0 && playCount >= gameConfig.maxPlayCount) {
                 showMessage(
                     'Limit Elérve! 🏆', 
                     `Ezt a kalandot (${title}) összesen ${gameConfig.maxPlayCount} alkalommal lehet végigjátszani, és te már ${playCount}-szer teljesítetted.`
                 );
-                return; // Itt megállítjuk a folyamatot, nem engedjük tovább
+                return;
             }
             // -------------------------------------------
 
-            if (hasSave) {
-                 loadGameById(gameId);
-            } else {
-                // --- ADATOK LEKÉRÉSE ---
-                const nameInput = document.getElementById('team-name-input');
-                const avatarSelect = document.getElementById('team-avatar-select');
-                const lowerName = nameInput.value.toLowerCase(); // Kisbetűsítjük az ellenőrzéshez
+            // C. Adatok validálása (Név, Avatar, Trágárság)
+            const nameInput = document.getElementById('team-name-input');
+            const avatarSelect = document.getElementById('team-avatar-select');
+            const lowerName = nameInput.value.toLowerCase(); 
 
-                // 1. Üres név ellenőrzése
-                if (!nameInput.value.trim()) {
-                    showMessage('Hiányzó Adat', 'Kérlek, adj meg egy <strong>Nevet</strong> a játék indításához!');
-                    nameInput.scrollIntoView({behavior: "smooth", block: "center"});
-                    nameInput.focus();
-                    return; 
-                }
-
-                /* --- 2. TRÁGÁR SZŰRÉS --- */
-                /* --- 2. JAVÍTOTT TRÁGÁR SZŰRÉS --- */
-// A rövid angol szavak miatt (pl. ass -> Kassza) a sima includes() nem jó.
-// Helyette: Csak akkor találat, ha a szó önállóan áll, VAGY ha a tiltott szó legalább 4-5 betűs.
-
-const containsBadWord = badWordsList.some(word => {
-    // Ha a tiltott szó rövid (pl. "ass", "tit"), csak teljes egyezést nézünk
-    if (word.length <= 3) {
-        // Regex: \b szóhatár. Így a "masszív" nem triggereli az "ass"-t.
-        const regex = new RegExp(`\\b${word}\\b`, 'i');
-        return regex.test(lowerName);
-    }
-    // Hosszabb szavaknál (pl. "kurva") maradhat a bennefoglalás vizsgálata
-    return lowerName.includes(word);
-});
-
-                if (containsBadWord) {
-                    showMessage('Nem megfelelő név', 'A választott név nem engedélyezett kifejezést tartalmaz.<br>Kérlek, válassz másikat!');
-                    nameInput.scrollIntoView({behavior: "smooth", block: "center"});
-                    nameInput.focus();
-                    nameInput.classList.add('border-red-500', 'ring-2', 'ring-red-500');
-                    setTimeout(() => nameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500'), 3000);
-                    return; 
-                }
-
-                // 3. Avatar ellenőrzése
-                if (!avatarSelect.value) {
-                    showMessage('Hiányzó Adat', 'Kérlek, válassz egy <strong>Avatart</strong> a játék indításához!');
-                    avatarSelect.scrollIntoView({behavior: "smooth", block: "center"});
-                    avatarSelect.focus();
-                    return; 
-                }
-                
-                // --- FIREBASE LIMIT ELLENŐRZÉS ---
-                const MAX_PLAYERS = 100000; 
-
-                if (window.checkGameLimitAndIncrement) {
-                    showLoading(true);
-                    document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
-                    
-                    const allowed = await window.checkGameLimitAndIncrement(gameId, MAX_PLAYERS);
-                    
-                    showLoading(false);
-                    document.getElementById('loading-status').textContent = "";
-
-                    if (!allowed) {
-                        showMessage('Betelt a játék!', `Sajnáljuk, a(z) <strong>${title}</strong> kaland elérte a maximális létszámot (${MAX_PLAYERS} fő).\nPróbálj meg egy másik kalandot választani.`);
-                        return; 
-                    }
-                }
-
-                 showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot? Játék típusa: ${type}. Ár: ${price}`, () => requestGpsAndStart(gameId), true);
+            // Üres név
+            if (!nameInput.value.trim()) {
+                showMessage('Hiányzó Adat', 'Kérlek, adj meg egy <strong>Nevet</strong> a játék indításához!');
+                nameInput.scrollIntoView({behavior: "smooth", block: "center"});
+                nameInput.focus();
+                return; 
             }
+
+            // Trágár szűrés
+            const containsBadWord = badWordsList.some(word => {
+                if (word.length <= 3) {
+                    const regex = new RegExp(`\\b${word}\\b`, 'i');
+                    return regex.test(lowerName);
+                }
+                return lowerName.includes(word);
+            });
+
+            if (containsBadWord) {
+                showMessage('Nem megfelelő név', 'A választott név nem engedélyezett kifejezést tartalmaz.<br>Kérlek, válassz másikat!');
+                nameInput.scrollIntoView({behavior: "smooth", block: "center"});
+                nameInput.focus();
+                nameInput.classList.add('border-red-500', 'ring-2', 'ring-red-500');
+                setTimeout(() => nameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500'), 3000);
+                return; 
+            }
+
+            // Avatar
+            if (!avatarSelect.value) {
+                showMessage('Hiányzó Adat', 'Kérlek, válassz egy <strong>Avatart</strong> a játék indításához!');
+                avatarSelect.scrollIntoView({behavior: "smooth", block: "center"});
+                avatarSelect.focus();
+                return; 
+            }
+            
+            // D. FIREBASE LIMIT ELLENŐRZÉS (Csak új játéknál fut le)
+            const MAX_PLAYERS = 100000; 
+
+            if (window.checkGameLimitAndIncrement) {
+                showLoading(true);
+                document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
+                
+                // Itt növeli a globális számlálót, ha van még hely
+                const allowed = await window.checkGameLimitAndIncrement(gameId, MAX_PLAYERS);
+                
+                showLoading(false);
+                document.getElementById('loading-status').textContent = "";
+
+                if (!allowed) {
+                    showMessage('Betelt a játék!', `Sajnáljuk, a(z) <strong>${title}</strong> kaland elérte a maximális létszámot (${MAX_PLAYERS} fő).\nPróbálj meg egy másik kalandot választani.`);
+                    return; 
+                }
+            }
+
+            // E. Végső megerősítés és Indítás
+            showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot? Játék típusa: ${type}. Ár: ${price}`, () => requestGpsAndStart(gameId), true);
         }
         
         function formatTime(seconds) {
