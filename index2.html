@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.9
+       v1.0.10
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -2598,7 +2598,7 @@ function applyFilters() {
                 (error) => {
                     console.log("Automatikus GPS rendezés nem sikerült (nem kritikus):", error);
                 },
-                { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // Lazább beállítások a gyorsasághoz
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 } // Lazább beállítások a gyorsasághoz
             );
         };
 
@@ -3956,7 +3956,9 @@ let gpsTestMarker = null;
 let gpsTestCircle = null;
 let gpsTestWatchId = null;
 let gpsTestInterval = null;
-let bestAccuracy = 99999; 
+let bestAccuracy = 99999;
+let lastTestLat = null;
+let lastTestLng = null; 
 
 // --- ÚJ GPS TESZT FÜGGVÉNY ---
 window.testGpsConnection = function() {
@@ -3973,6 +3975,8 @@ window.testGpsConnection = function() {
     statusText.innerHTML = `📡 Jel keresése... <span id="gps-countdown">15</span>mp`;
     accValue.textContent = "-";
     bestAccuracy = 99999;
+    lastTestLat = null; // Töröljük az előzőt
+    lastTestLng = null;
     testBtn.disabled = true;
 
     // 1. Térkép inicializálása
@@ -4015,11 +4019,15 @@ window.testGpsConnection = function() {
             const lng = pos.coords.longitude;
             const accuracy = Math.round(pos.coords.accuracy);
 
+            // ÚJ: Mentsük el a pozíciót, hogy a végén tudjunk vele számolni
+            lastTestLat = lat;
+            lastTestLng = lng;
+
             // Legjobb pontosság mentése
             if (accuracy < bestAccuracy) bestAccuracy = accuracy;
             accValue.textContent = accuracy;
 
-            // Térképelem frissítése (külön függvénybe szervezve a biztonságért)
+            // Térképelem frissítése
             updateTestMapMarker(lat, lng, accuracy);
 
             // --- JAVÍTOTT GYORS LEÁLLÍTÁS ---
@@ -4036,7 +4044,7 @@ window.testGpsConnection = function() {
     );
 };
 
-// Segédfüggvény a térképrajzoláshoz (hogy ne akassza meg a logikát)
+// Segédfüggvény a térképrajzoláshoz
 function updateTestMapMarker(lat, lng, accuracy) {
     if (!gpsTestMap) return;
     try {
@@ -4062,7 +4070,7 @@ function updateTestMapMarker(lat, lng, accuracy) {
     }
 }
 
-// --- GPS TESZT LEZÁRÁSA ---
+// --- GPS TESZT LEZÁRÁSA (SORBARENDEZÉSSEL) ---
 function finishGpsTest(forceError = false, errorMsg = "") {
     // Minden figyelés azonnali leállítása
     if (gpsTestWatchId) {
@@ -4089,19 +4097,48 @@ function finishGpsTest(forceError = false, errorMsg = "") {
 
     // EREDMÉNY KIÍRÁSA
     if (bestAccuracy <= 50) {
-        statusText.textContent = "Teszt kész."; // Ez tünteti el a számlálót
+        statusText.textContent = "Teszt kész."; 
+        
+        let successText = "";
+        let colorClass = "";
         
         if (bestAccuracy <= 10) {
-             // Szuper pontos (zöld)
-             resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
-             resultMsg.innerHTML = `🚀 Szuper jel!<br>Pontosság: ${bestAccuracy}m`;
+             colorClass = "bg-green-100 text-green-700";
+             successText = `🚀 Szuper jel!<br>Pontosság: ${bestAccuracy}m`;
              if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
         } else {
-             // Elfogadható (zöld)
-             resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
-             resultMsg.innerHTML = `✅ GPS Működik!<br>Pontosság: ${bestAccuracy}m`;
+             colorClass = "bg-green-100 text-green-700";
+             successText = `✅ GPS Működik!<br>Pontosság: ${bestAccuracy}m`;
              if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
         }
+
+        // --- ÚJ RÉSZ: SORBARENDEZÉS AUTOMATIKUSAN ---
+        if (lastTestLat !== null && lastTestLng !== null) {
+            console.log("Sikeres teszt -> Lista rendezése...");
+            
+            // 1. Távolságok újraszámolása a teszt koordinátáival
+            Object.values(games).forEach(game => {
+                if (game.startLocation && game.startLocation.lat && game.startLocation.lng) {
+                    const dist = haversineDistance(
+                        { lat: lastTestLat, lng: lastTestLng }, 
+                        { lat: game.startLocation.lat, lng: game.startLocation.lng }
+                    );
+                    game._calculatedDistance = dist / 1000; // km
+                } else {
+                    game._calculatedDistance = 99999; 
+                }
+            });
+
+            // 2. Lista újrarajzolása (ez automatikusan sorba rendezi a _calculatedDistance alapján)
+            renderGameList();
+
+            // 3. Visszajelzés
+            successText += `<br><span class="text-[10px] uppercase font-bold mt-1 block">📍 Játéklista frissítve!</span>`;
+        }
+        // ---------------------------------------------
+
+        resultMsg.className = `mt-2 p-2 rounded text-xs font-bold text-center block ${colorClass}`;
+        resultMsg.innerHTML = successText;
         
     } else if (bestAccuracy < 99999) {
         // Gyenge jel (sárga)
