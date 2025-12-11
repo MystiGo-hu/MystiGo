@@ -2691,7 +2691,20 @@ function applyFilters() {
                 }
 
                 /* --- 2. TRÁGÁR SZŰRÉS --- */
-                const containsBadWord = badWordsList.some(word => lowerName.includes(word));
+                /* --- 2. JAVÍTOTT TRÁGÁR SZŰRÉS --- */
+// A rövid angol szavak miatt (pl. ass -> Kassza) a sima includes() nem jó.
+// Helyette: Csak akkor találat, ha a szó önállóan áll, VAGY ha a tiltott szó legalább 4-5 betűs.
+
+const containsBadWord = badWordsList.some(word => {
+    // Ha a tiltott szó rövid (pl. "ass", "tit"), csak teljes egyezést nézünk
+    if (word.length <= 3) {
+        // Regex: \b szóhatár. Így a "masszív" nem triggereli az "ass"-t.
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        return regex.test(lowerName);
+    }
+    // Hosszabb szavaknál (pl. "kurva") maradhat a bennefoglalás vizsgálata
+    return lowerName.includes(word);
+});
 
                 if (containsBadWord) {
                     showMessage('Nem megfelelő név', 'A választott név nem engedélyezett kifejezést tartalmaz.<br>Kérlek, válassz másikat!');
@@ -2739,6 +2752,24 @@ function applyFilters() {
         }
 
         function startTimersAndGPS() {
+
+if (window.AudioContext || window.webkitAudioContext) {
+                try {
+                    const AudioCtxt = window.AudioContext || window.webkitAudioContext;
+                    const ctx = new AudioCtxt();
+                    ctx.resume().then(() => {
+                        // Néma hang lejátszása az engedély megszerzéséhez
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        gain.gain.value = 0.001; // Szinte néma
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(0);
+                        osc.stop(0.1);
+                    });
+                } catch (e) { console.log("Audio unlock hiba (nem kritikus):", e); }
+            }
+
             if (appState.isTimerRunning) return; 
 
             appState.startTime = new Date();
@@ -3168,12 +3199,22 @@ if (reviewBtn) {
             if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
             
             // --- TÉRKÉP RAJZOLÁSA BIZTONSÁGOSAN ---
-            const routeMapDiv = document.getElementById('route-map');
-            if (routeMapDiv) {
-                if (routeMapDiv._leaflet_id) {
-                    routeMapDiv._leaflet_id = null; // Leaflet hack: ID törlése
+            const oldMapDiv = document.getElementById('route-map');
+            if (oldMapDiv) {
+                const parent = oldMapDiv.parentNode;
+                const newMapDiv = document.createElement('div');
+                newMapDiv.id = 'route-map';
+                // Ugyanaz a stílus, ami a HTML-ben volt
+                newMapDiv.style.cssText = "height: 300px; width: 100%; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px 0;";
+                
+                // Beillesztjük a régi helyére (az id="end-timestamp" után)
+                const refNode = document.getElementById('end-timestamp');
+                if (refNode && refNode.nextSibling) {
+                    parent.insertBefore(newMapDiv, refNode.nextSibling);
+                } else {
+                    parent.appendChild(newMapDiv); // Fallback
                 }
-                routeMapDiv.innerHTML = ""; // HTML tartalom törlése
+                oldMapDiv.remove();
             }
 
             try {
@@ -3316,46 +3357,65 @@ if (reviewBtn) {
             toggleMapClickMock(appState.isManualMock); 
         }
 
+
+
+
         function updatePlayerMarker(lat, lng) {
             if (!appState.map) return;
 
-            // 1. FONTOS: Elmentjük az aktuális pozíciót a változóba
-            // (Ez hiányzott, emiatt nem számolt távolságot a checkGeofence)
+            // 1. Pozíció mentése
             appState.userPosition = { lat: lat, lng: lng };
+
+            // Útvonal rögzítése
+            if (appState.isTimerRunning) {
+                appState.routeCoordinates.push([lat, lng]);
+            }
 
             if (!appState.isTestModeEnabled && !appState.isManualMock) {
                 const latLng = new L.LatLng(lat, lng);
 
-                // 2. Marker kirajzolása vagy frissítése (Ez a rész hiányzott)
+                // 2. Marker (kék/sárga pötty) kezelése
                 if (appState.playerMarker) {
                     appState.playerMarker.setLatLng(latLng);
                 } else {
                     const playerIcon = L.divIcon({
-                        className: 'player-marker', // Ez a CSS-ben definiált narancs/kék pötty
+                        className: 'player-marker',
+                        html: '', // <--- EZ A SOR BIZTOSÍTJA, HOGY NE LEGYEN BENNE TŰ/EMOJI
                         iconSize: [20, 20],
-                        iconAnchor: [10, 10], // Középre igazítjuk
+                        iconAnchor: [10, 10],
                         popupAnchor: [0, -10]
                     });
                     
                     appState.playerMarker = L.marker(latLng, { 
                         icon: playerIcon,
-                        zIndexOffset: 1000 // Hogy mindig a feladatok fölött legyen
+                        zIndexOffset: 1000 
                     }).addTo(appState.map);
                 }
                 
                 // 3. Térkép igazítása (Zoom logika)
                 if (appState.geofenceCircle && appState.playerMarker) { 
-                    const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
-                    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 16, animate: true }); 
+                    const targetLatLng = appState.geofenceCircle.getLatLng();
+                    const distance = latLng.distanceTo(targetLatLng);
+                    const radius = appState.geofenceCircle.getRadius();
+
+                    // Ha közel vagyunk (< sugár + 20m), agresszív zoom (19)
+                    if (distance <= radius + 20) {
+                        appState.map.setView(latLng, 19, { animate: true });
+                    } else {
+                        // Ha távolabb, mindent mutatunk (maxZoom 18)
+                        const bounds = L.latLngBounds(latLng, targetLatLng);
+                        appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 18, animate: true }); 
+                    }
                 } else {
-                    // Ha még nincs célpont (pl. játék elején), akkor csak a játékosra fókuszálunk
-                    appState.map.setView(latLng, 16);
+                    appState.map.setView(latLng, 17);
                 }
             }
             
-            // Távolság ellenőrzése
             checkGeofence();
         }
+
+
+
 
         function updateTaskMarker(location) {
             if (!appState.map) return;
