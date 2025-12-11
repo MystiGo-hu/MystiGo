@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.8
+       v1.0.9
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -519,13 +519,27 @@
                                    <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                                    <p>🗺️ Kövesd a térképen a célpontokat</p>
                                    <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
- 				   <p>⭐ Minden feladat 50 pontot ér</p>
+                                   <p>⭐ Minden feladat 50 pontot ér</p>
                                    <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
                                    <p>❌ Minden rossz válasz: −1 pont</p>
-                                   <p>⏱️ Két időmérés:</p>
-                                   <p style="margin-left: 1.5rem">• Kék = teljes játékidő</p>
-                                   <p style="margin-left: 1.5rem">• Zöld = feladatra fordított idő</p>
-                                   <p>⚠️ Ha gond van az adott feladattal, használd a „Feladat átugrása” gombot</p>
+                                   
+                                   <div class="mt-3 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                       <p class="font-bold text-brand-blue mb-1">🏆 Rangsorolás sorrendje:</p>
+                                       <ol class="list-decimal list-inside space-y-1 ml-1">
+                                           <li><strong>⭐Szerzett Pontok</strong> (Ez a legfontosabb!)</li>
+                                           <li><strong>🧩Feladat idő</strong> (Csak a kérdés megoldása alatt telik)</li>
+                                           <li><strong>⏱️Teljes idő</strong> (Séta + gondolkodás)</li>
+                                       </ol>
+                                       <div class="mt-2 flex items-start gap-2 text-xs text-blue-800 bg-white p-2 rounded border border-blue-100">
+                                           <span class="text-lg">💡</span>
+                                           <span><strong>Tipp:</strong> Nem kell rohanni a helyszínek között! A teljes idő számít legkevésbé. Team játéknál nyugodtan sétáljatok, a pontosság fontosabb!</span>
+                                       </div>
+                                   </div>
+
+                                   <p>⏱️ Két időmérés a képernyőn:</p>
+                                   <p style="margin-left: 1.5rem">• 🔵 Kék = Teljes idő (kevésbé számít)</p>
+                                   <p style="margin-left: 1.5rem">• 🟢 Zöld = Feladat idő (fontosabb!)</p>
+                                   <p class="mt-2">⚠️ Ha gond van az adott feladattal, használd a <strong>„Feladat átugrása”</strong> gombot, de ilyenkor az adott feladat 0 pontot fog érni.</p>
                                 </div>
                                 
                                 <h2 class="text-lg font-bold text-text-heading mt-4 mb-2">Kaland Típusok Magyarázata</h2>
@@ -565,7 +579,7 @@
     
     <div class="flex justify-between items-start mt-1 mb-3">
         <p class="text-[10px] text-gray-500 italic">
-            💡 Tipp: Válassz egyedi nevet (pl. dátummal)!
+            💡 Tipp: Válassz egyedi nevet, hogy könnyen megtaláld magad a ranglistán!
         </p>
         
     </div>
