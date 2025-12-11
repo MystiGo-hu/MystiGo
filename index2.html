@@ -2891,7 +2891,7 @@ if (reviewBtn) {
                         checkGeofence();
                         const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
                         const bounds = L.latLngBounds(manualMarker.getLatLng(), L.latLng(currentTask.location.lat, currentTask.location.lng));
-                        appState.map.fitBounds(bounds.pad(0.1)); 
+                        appState.map.fitBounds(bounds.pad(0.2)); 
                     };
                     appState.map.on('click', appState.map.clickHandler);
                 }
@@ -2931,7 +2931,7 @@ if (reviewBtn) {
                 if (appState.isTimerRunning) appState.routeCoordinates.push([lat, lng]);
                 if (appState.geofenceCircle && appState.playerMarker) { 
                     const bounds = L.latLngBounds(appState.playerMarker.getLatLng(), appState.geofenceCircle.getLatLng());
-                    appState.map.fitBounds(bounds.pad(0.1)); 
+                    appState.map.fitBounds(bounds.pad(0.2)); 
                 }
             }
             checkGeofence();
@@ -2952,7 +2952,7 @@ if (reviewBtn) {
             const playerMarkerForBounds = appState.isManualMock ? manualMarker : appState.playerMarker;
             if (playerMarkerForBounds) {
                 const bounds = L.latLngBounds(playerMarkerForBounds.getLatLng(), currentTaskLoc);
-                appState.map.fitBounds(bounds.pad(0.1)); 
+                appState.map.fitBounds(bounds.pad(0.2)); 
             } else {
                 appState.map.setView(currentTaskLoc, 16); 
             }
@@ -3267,7 +3267,7 @@ let gpsTestMap = null;
 let gpsTestMarker = null;
 let gpsTestCircle = null;
 let gpsTestWatchId = null;
-let gpsTestInterval = null; // <--- ÚJ: Hogy le tudjuk állítani az időzítőt
+let gpsTestInterval = null;
 let bestAccuracy = 99999; 
 
 // --- ÚJ GPS TESZT FÜGGVÉNY ---
@@ -3279,40 +3279,35 @@ window.testGpsConnection = function() {
     const accValue = document.getElementById('gps-accuracy-value');
     const testBtn = document.getElementById('gps-test-btn');
 
-    // Resetelés minden indításnál
+    // Resetelés
     container.classList.remove('hidden');
     resultMsg.classList.add('hidden');
-    // Visszaszámláló HTML beállítása
     statusText.innerHTML = `📡 Jel keresése... <span id="gps-countdown">10</span>mp`;
     accValue.textContent = "-";
     bestAccuracy = 99999;
-    testBtn.disabled = true; // Gomb letiltása teszt közben
+    testBtn.disabled = true;
 
-    // 1. Térkép inicializálása (ha még nincs)
+    // 1. Térkép inicializálása
     if (!gpsTestMap) {
         gpsTestMap = L.map('gps-test-map', { 
             zoomControl: false, 
             attributionControl: false 
-        }).setView([47.4979, 19.0402], 13); // Default Budapest
+        }).setView([47.4979, 19.0402], 13);
 
         L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             maxZoom: 20
         }).addTo(gpsTestMap);
     }
     
-// Resize fix: biztosítjuk, hogy a térkép kitöltse a dobozt megjelenés után
     setTimeout(() => { gpsTestMap.invalidateSize(); }, 200);
 
-    // Ha nincs geolocation támogatás a böngészőben
     if (!navigator.geolocation) {
         finishGpsTest(false, "A böngésző nem támogatja a GPS-t.");
         return;
     }
 
-    // 2. Visszaszámláló logika (10 másodperc)
+    // 2. Visszaszámláló (10 mp)
     let timeLeft = 10;
-    
-    // Előző időzítő törlése biztonságból
     if (gpsTestInterval) clearInterval(gpsTestInterval);
 
     gpsTestInterval = setInterval(() => {
@@ -3321,11 +3316,11 @@ window.testGpsConnection = function() {
         if(counterEl) counterEl.textContent = timeLeft;
         
         if (timeLeft <= 0) {
-            finishGpsTest(); // Teszt vége (lejárt az idő)
+            finishGpsTest(); // Idő lejárt
         }
     }, 1000);
 
-    // 3. Pozíció figyelése (folyamatos update)
+    // 3. Pozíció figyelése
     gpsTestWatchId = navigator.geolocation.watchPosition(
         (pos) => {
             const lat = pos.coords.latitude;
@@ -3334,34 +3329,17 @@ window.testGpsConnection = function() {
 
             // Legjobb pontosság mentése
             if (accuracy < bestAccuracy) bestAccuracy = accuracy;
-
-            // UI frissítése
             accValue.textContent = accuracy;
 
-            // Marker és Kör frissítése a térképen
-            const latLng = [lat, lng];
-            
-            if (!gpsTestMarker) {
-                const icon = L.divIcon({ className: 'player-marker', iconSize: [15, 15] });
-                gpsTestMarker = L.marker(latLng, { icon: icon }).addTo(gpsTestMap);
-                gpsTestCircle = L.circle(latLng, { radius: accuracy, color: 'blue', weight: 1, fillOpacity: 0.1 }).addTo(gpsTestMap);
-                gpsTestMap.setView(latLng, 16);
-            } else {
-                gpsTestMarker.setLatLng(latLng);
-                gpsTestCircle.setLatLng(latLng);
-                gpsTestCircle.setRadius(accuracy);
-                // Csak akkor zoomolunk rá, ha nagyon messze ugrottunk
-                if (!gpsTestMap.getBounds().contains(latLng)) {
-                    gpsTestMap.panTo(latLng);
-                }
-            }
+            // Térképelem frissítése (külön függvénybe szervezve a biztonságért)
+            updateTestMapMarker(lat, lng, accuracy);
 
-            // --- ÚJ RÉSZ: GYORS LEÁLLÍTÁS ---
-            // Ha a pontosság 10 méter vagy jobb, azonnal kész vagyunk!
-            if (accuracy <= 10) {
+            // --- JAVÍTOTT GYORS LEÁLLÍTÁS ---
+            // A legjobb értéket nézzük, és ha az jó, azonnal megállunk!
+            if (bestAccuracy <= 10) {
+                console.log("Jó jel találva:", bestAccuracy); // Debug info
                 finishGpsTest(); 
             }
-            // ---------------------------------
         },
         (err) => {
             console.warn("GPS Teszt hiba:", err);
@@ -3370,15 +3348,39 @@ window.testGpsConnection = function() {
     );
 };
 
-// --- GPS TESZT LEZÁRÁSA ÉS KIÉRTÉKELÉS ---
+// Segédfüggvény a térképrajzoláshoz (hogy ne akassza meg a logikát)
+function updateTestMapMarker(lat, lng, accuracy) {
+    if (!gpsTestMap) return;
+    try {
+        const latLng = [lat, lng];
+        
+        if (!gpsTestMarker) {
+            const icon = L.divIcon({ className: 'player-marker', iconSize: [15, 15] });
+            gpsTestMarker = L.marker(latLng, { icon: icon }).addTo(gpsTestMap);
+            gpsTestCircle = L.circle(latLng, { radius: accuracy, color: 'blue', weight: 1, fillOpacity: 0.1 }).addTo(gpsTestMap);
+            gpsTestMap.setView(latLng, 16);
+        } else {
+            gpsTestMarker.setLatLng(latLng);
+            if (gpsTestCircle) {
+                gpsTestCircle.setLatLng(latLng);
+                gpsTestCircle.setRadius(accuracy);
+            }
+            if (!gpsTestMap.getBounds().contains(latLng)) {
+                gpsTestMap.panTo(latLng);
+            }
+        }
+    } catch (e) {
+        console.error("Térkép hiba:", e);
+    }
+}
+
+// --- GPS TESZT LEZÁRÁSA ---
 function finishGpsTest(forceError = false, errorMsg = "") {
-    // GPS Figyelés leállítása
+    // Minden figyelés azonnali leállítása
     if (gpsTestWatchId) {
         navigator.geolocation.clearWatch(gpsTestWatchId);
         gpsTestWatchId = null;
     }
-    
-    // Időzítő leállítása (ha a gyors siker miatt hívtuk meg)
     if (gpsTestInterval) {
         clearInterval(gpsTestInterval);
         gpsTestInterval = null;
@@ -3388,9 +3390,8 @@ function finishGpsTest(forceError = false, errorMsg = "") {
     const resultMsg = document.getElementById('gps-result-message');
     const testBtn = document.getElementById('gps-test-btn');
     
-    testBtn.disabled = false; // Gomb újra aktív
+    if(testBtn) testBtn.disabled = false;
 
-    // Kényszerített hiba (pl. nincs geolocation támogatás)
     if (forceError) {
         statusText.textContent = "Hiba történt!";
         resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-red-100 text-red-700 block";
@@ -3398,31 +3399,31 @@ function finishGpsTest(forceError = false, errorMsg = "") {
         return;
     }
 
-    // Kiértékelés a legjobb pontosság alapján
+    // EREDMÉNY KIÍRÁSA
     if (bestAccuracy <= 50) {
-        // SIKERES TESZT
-        statusText.textContent = "Teszt kész.";
-        resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
+        statusText.textContent = "Teszt kész."; // Ez tünteti el a számlálót
         
-        // Külön üzenet, ha szuper pontos
         if (bestAccuracy <= 10) {
+             // Szuper pontos (zöld)
+             resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
              resultMsg.innerHTML = `🚀 Szuper jel!<br>Pontosság: ${bestAccuracy}m`;
+             if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
         } else {
+             // Elfogadható (zöld)
+             resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-green-100 text-green-700 block";
              resultMsg.innerHTML = `✅ GPS Működik!<br>Pontosság: ${bestAccuracy}m`;
+             if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
         }
         
-        // Ha van marker, zöldre színezzük a kört
-        if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'green', fillColor: 'green' });
-        
     } else if (bestAccuracy < 99999) {
-        // GYENGE JEL
+        // Gyenge jel (sárga)
         statusText.textContent = "Teszt kész.";
         resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-yellow-100 text-yellow-800 block";
         resultMsg.innerHTML = `⚠️ Gyenge jel (${bestAccuracy}m).<br>Menj nyílt terepre!`;
         if (gpsTestCircle) gpsTestCircle.setStyle({ color: 'orange', fillColor: 'orange' });
     
     } else {
-        // NINCS JEL
+        // Nincs jel (piros)
         statusText.textContent = "Nincs jel.";
         resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-red-100 text-red-700 block";
         resultMsg.innerHTML = `❌ Nem sikerült pozíciót találni.<br>Ellenőrizd a beállításokat!`;
