@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.11
+       v1.0.12
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -641,17 +641,28 @@
             </button>
         </div>
 
-        <div id="user-profile-display" class="hidden bg-green-50 p-3 rounded-lg border border-green-200 flex items-center justify-between mx-auto max-w-xs shadow-sm">
-            <div class="flex items-center gap-3">
-                <img id="user-photo" src="" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
-                <div class="text-left">
-                     <span id="user-name" class="block text-sm font-bold text-green-900 truncate max-w-[150px]"></span>
-                     <span class="text-xs text-green-600">Belépve</span>
-                </div>
-            </div>
-            <button onclick="logout()" class="text-xs text-red-500 hover:text-red-700 font-medium underline p-2">Kilépés</button>
+        <div id="user-profile-display" class="hidden max-w-[280px] mx-auto bg-white rounded-full p-1.5 pr-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between transition-all hover:shadow-md">
+    
+
+    <div class="flex items-center gap-3 overflow-hidden">
+        <div class="relative shrink-0">
+            <img id="user-photo" src="" class="w-10 h-10 rounded-full object-cover border-2 border-brand-cyan">
+            <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+        </div>
+        
+        <div class="flex flex-col justify-center text-left min-w-0">
+            <span id="user-name" class="text-xs font-extrabold text-brand-blue truncate leading-tight block max-w-[140px]">
+                </span>
         </div>
     </div>
+
+    <button onclick="logout()" class="group flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Kilépés">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 group-hover:scale-110 transition-transform">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+        </svg>
+    </button>
+</div>
+
 
     <button id="gps-test-btn" onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
         🛰️ GPS Működésének Tesztelése
@@ -1033,8 +1044,16 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, runTransaction, push, query, orderByChild, limitToLast, get, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { 
+    getAuth, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    signOut, 
+    onAuthStateChanged, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword,
+    sendEmailVerification
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 
   // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
@@ -1056,32 +1075,37 @@ const provider = new GoogleAuthProvider();
 let currentUser = null; // Ebben tároljuk majd a belépett felhasználót
 
 
-// --- EMAIL REGISZTRÁCIÓ (Javított hibakezeléssel) ---
-  window.registerWithEmail = function() {
-      const email = document.getElementById('email-input-field').value;
-      const password = document.getElementById('password-input-field').value;
+// --- EMAIL REGISZTRÁCIÓ (Megerősítő email küldéssel) ---
+window.registerWithEmail = function() {
+    const email = document.getElementById('email-input-field').value;
+    const password = document.getElementById('password-input-field').value;
 
-      if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
-      if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
+    if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
+    if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
 
-      createUserWithEmailAndPassword(auth, email, password)
-          .then((userCredential) => {
-              const user = userCredential.user;
-              console.log("Sikeres regisztráció:", user.email);
-              alert("Sikeres regisztráció! Most már be vagy lépve.");
-              updateUserUI(true, user); // Azonnal frissítjük a felületet
-          })
-          .catch((error) => {
-              console.error("Regisztrációs hiba:", error);
-              // Részletesebb hibaüzenetek
-              let msg = "Hiba történt: " + error.message;
-              if (error.code === 'auth/email-already-in-use') msg = "Ez az email cím már regisztrálva van. Próbálj meg inkább belépni!";
-              if (error.code === 'auth/invalid-email') msg = "Hibás email cím formátum.";
-              if (error.code === 'auth/weak-password') msg = "Túl gyenge jelszó (min. 6 karakter).";
-              if (error.code === 'auth/operation-not-allowed') msg = "Az Email/Jelszó belépés nincs engedélyezve a Firebase konzolon!";
-              alert(msg);
-          });
-  };
+    createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            
+            // --- ITT A LÉNYEG: Ellenőrző email küldése ---
+            sendEmailVerification(user)
+                .then(() => {
+                    console.log("Ellenőrző email elküldve.");
+                    alert("Sikeres regisztráció!\n\nEgy megerősítő linket küldtünk a(z) " + email + " címre.\nKérlek kattints rá a fiókod hitelesítéséhez!");
+                });
+            // ---------------------------------------------
+
+            updateUserUI(true, user);
+        })
+        .catch((error) => {
+            console.error("Regisztrációs hiba:", error);
+            let msg = "Hiba történt: " + error.message;
+            if (error.code === 'auth/email-already-in-use') msg = "Ez az email cím már regisztrálva van. Próbálj meg inkább belépni!";
+            if (error.code === 'auth/invalid-email') msg = "Hibás email cím formátum.";
+            if (error.code === 'auth/weak-password') msg = "Túl gyenge jelszó (min. 6 karakter).";
+            alert(msg);
+        });
+};
 
   // --- EMAIL BELÉPÉS ---
   window.loginWithEmail = function() {
@@ -1092,9 +1116,15 @@ let currentUser = null; // Ebben tároljuk majd a belépett felhasználót
 
       signInWithEmailAndPassword(auth, email, password)
           .then((userCredential) => {
-              console.log("Sikeres belépés:", userCredential.user.email);
-              // A UI magától frissül az onAuthStateChanged miatt!
-          })
+    const user = userCredential.user;
+    
+    if (!user.emailVerified) {
+        // Csak szólunk neki, de engedjük játszani
+        alert("Figyelem! Még nem erősítetted meg az email címedet.\nNézd meg a postafiókodat (a Spam mappát is)!");
+    }
+    
+    console.log("Sikeres belépés:", user.email);
+})
           .catch((error) => {
               console.error(error);
               let msg = "Sikertelen belépés.";
@@ -1662,9 +1692,11 @@ function updateUserUI(isLoggedIn, user = null) {
             // Itt kiírhatod a pontot a profil mellé, ha szeretnéd
             // Pl. módosítod a HTML-t, hogy legyen egy <span id="user-total-score"></span>
             const scoreDisplay = document.getElementById('user-name');
-            if(scoreDisplay) {
-                scoreDisplay.innerHTML += `<br><span class="text-[10px] text-yellow-600">🏆 ${score} pont</span>`;
-            }
+if(scoreDisplay) {
+    // Itt a <br> utáni span stílusát módosítottuk:
+    // text-brand-orange-500 (narancs), font-bold, és kicsit nagyobb betűköz
+    scoreDisplay.innerHTML += `<br><span class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5">🏆 ${score} pont</span>`;
+}
         });
 
     } else {
@@ -2330,6 +2362,8 @@ async function sharePdfViaEmail() {
 
             loadLocalXlsx(DEFAULT_GAME_FILE);
             showPage('game-list-page'); 
+	    if (currentUser) updateUserUI(true, currentUser);
+
         }
 
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
