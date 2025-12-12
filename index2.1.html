@@ -650,11 +650,10 @@
         </div>
         
         <div class="flex flex-col justify-center text-left min-w-0">
-            <span id="user-name" class="text-xs font-extrabold text-brand-blue truncate leading-tight block max-w-[140px]">
-                </span>
+            <span id="user-name" class="text-xs font-extrabold text-brand-blue truncate leading-tight block max-w-[140px]"></span>
+            <span id="user-total-score" class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5"></span>
         </div>
     </div>
-
 
     <button onclick="logout()" class="group flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Kilépés">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 group-hover:scale-110 transition-transform">
@@ -1084,22 +1083,14 @@ window.registerWithEmail = function() {
     if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
 
     createUserWithEmailAndPassword(auth, email, password)
-   .then((userCredential) => {
-    const user = userCredential.user;
-    
-    // Bővített hibakereső küldés:
-    sendEmailVerification(user)
-        .then(() => {
-            console.log("✅ SIKER: Ellenőrző email elküldve ide:", user.email);
-            alert("Sikeres regisztráció!\n\nEgy megerősítő linket küldtünk a(z) " + user.email + " címre.");
+        .then((userCredential) => {
+            const user = userCredential.user;
+            console.log("✅ SIKER: Fiók létrehozva:", user.email);
+            
+            // Azonnal frissítjük a felületet és bezárjuk a modalt
+            updateUserUI(true, user);
+            alert("Sikeres regisztráció! Jó játékot!");
         })
-        .catch((emailError) => {
-            console.error("❌ HIBA az email küldésekor:", emailError);
-            alert("A fiók létrejött, de az emailt nem tudtuk elküldeni: " + emailError.message);
-        });
-
-    updateUserUI(true, user);
-})
         .catch((error) => {
             console.error("Regisztrációs hiba:", error);
             let msg = "Hiba történt: " + error.message;
@@ -1661,9 +1652,11 @@ function updateUserUI(isLoggedIn, user = null) {
         
         // Alapadatok megjelenítése
         const displayName = user.displayName || user.email.split('@')[0];
+        
+        // JAVÍTÁS: Csak a nevet írjuk ki ide, semmi mást
         document.getElementById('user-name').textContent = displayName;
         
-        // Avatar alapbeállítás (amíg be nem töltjük az igazit)
+        // Avatar alapbeállítás
         const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
         document.getElementById('user-photo').src = photoURL;
 
@@ -1674,32 +1667,25 @@ function updateUserUI(isLoggedIn, user = null) {
         get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
-                
-                // Ha van mentett név, beírjuk a mezőbe
                 if (data.teamName) {
                     document.getElementById('team-name-input').value = data.teamName;
-                    // Ha a Google név más, mint a játékos név, itt frissíthetjük a kijelzőt is:
                     document.getElementById('user-name').textContent = data.teamName;
                 }
-                
-                // Ha van mentett avatar, kiválasztjuk
                 if (data.teamAvatar) {
                     document.getElementById('team-avatar-select').value = data.teamAvatar;
                 }
             }
         }).catch((err) => console.error(err));
 
-        // 2. Összpontszám betöltése (Ha szeretnéd kiírni)
+        // 2. Összpontszám betöltése (JAVÍTOTT RÉSZ)
         get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
             const score = snapshot.exists() ? snapshot.val() : 0;
-            // Itt kiírhatod a pontot a profil mellé, ha szeretnéd
-            // Pl. módosítod a HTML-t, hogy legyen egy <span id="user-total-score"></span>
-            const scoreDisplay = document.getElementById('user-name');
-if(scoreDisplay) {
-    // Itt a <br> utáni span stílusát módosítottuk:
-    // text-brand-orange-500 (narancs), font-bold, és kicsit nagyobb betűköz
-    scoreDisplay.innerHTML += `<br><span class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5">🏆 ${score} pont</span>`;
-}
+            
+            // JAVÍTÁS: A különálló elemet frissítjük, így nem duplázódik
+            const scoreEl = document.getElementById('user-total-score');
+            if(scoreEl) {
+                scoreEl.innerHTML = `🏆 ${score} pont`;
+            }
         });
 
     } else {
@@ -1709,6 +1695,8 @@ if(scoreDisplay) {
         // Mezők ürítése kilépéskor
         document.getElementById('team-name-input').value = '';
         document.getElementById('team-avatar-select').value = '';
+        const scoreEl = document.getElementById('user-total-score');
+        if(scoreEl) scoreEl.innerHTML = ''; // Pontszám törlése
     }
 }
 
