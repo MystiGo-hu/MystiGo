@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.12
+       v1.0.13
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -633,12 +633,12 @@
                 <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Google belépés</span>
             </button>
 
-            <button onclick="openEmailModal()" class="group relative flex items-center justify-center p-3 bg-brand-blue rounded-full shadow-md hover:shadow-lg hover:bg-cyan-700 transition-all duration-300 border border-transparent" title="Belépés Email címmel">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white group-hover:scale-110 transition-transform">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                </svg>
-                <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
-            </button>
+            <button onclick="openEmailModal()" class="group relative flex items-center justify-center p-3 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100" title="Belépés Email címmel">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+    </svg>
+    <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
+</button>
         </div>
 
         <div id="user-profile-display" class="hidden max-w-[280px] mx-auto bg-white rounded-full p-1.5 pr-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between transition-all hover:shadow-md">
@@ -1078,28 +1078,44 @@ let currentUser = null; // Ebben tároljuk majd a belépett felhasználót
 window.registerWithEmail = function() {
     const email = document.getElementById('email-input-field').value;
     const password = document.getElementById('password-input-field').value;
+    
+    // Adatok begyűjtése a mezőkből
+    const nameInput = document.getElementById('team-name-input').value.trim();
+    const avatarInput = document.getElementById('team-avatar-select').value;
 
     if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
     if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
 
+    // Ha nincs név megadva, generálunk egyet az emailből
+    const finalName = nameInput || email.split('@')[0];
+    const finalAvatar = avatarInput || 'cat'; // Alapértelmezett cica, ha nincs választva
+
     createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-            console.log("✅ SIKER: Fiók létrehozva:", user.email);
-            
-            // Azonnal frissítjük a felületet és bezárjuk a modalt
-            updateUserUI(true, user);
-            alert("Sikeres regisztráció! Jó játékot!");
+            console.log("✅ Fiók létrehozva:", user.email);
+
+            // --- PROFIL MENTÉSE AZONNAL ---
+            set(ref(db, 'users/' + user.uid + '/profile'), {
+                teamName: finalName,
+                teamAvatar: finalAvatar,
+                lastUpdated: Date.now()
+            }).then(() => {
+                // Csak a mentés után frissítjük a felületet
+                updateUserUI(true, user);
+                alert("Sikeres regisztráció! Jó játékot!");
+            });
         })
         .catch((error) => {
             console.error("Regisztrációs hiba:", error);
             let msg = "Hiba történt: " + error.message;
             if (error.code === 'auth/email-already-in-use') msg = "Ez az email cím már regisztrálva van. Próbálj meg inkább belépni!";
-            if (error.code === 'auth/invalid-email') msg = "Hibás email cím formátum.";
             if (error.code === 'auth/weak-password') msg = "Túl gyenge jelszó (min. 6 karakter).";
             alert(msg);
         });
 };
+
+
 
   // --- EMAIL BELÉPÉS ---
   window.loginWithEmail = function() {
@@ -1644,62 +1660,62 @@ window.saveUserProfileToFirebase = function() {
 function updateUserUI(isLoggedIn, user = null) {
     const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
     const profileDiv = document.getElementById('user-profile-display');
-    window.closeEmailModal();
+    window.closeEmailModal(); // Modal bezárása, ha nyitva lenne
 
     if (isLoggedIn && user) {
         if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
         profileDiv.classList.remove('hidden');
         
-        // Alapadatok megjelenítése
+        // 1. Alapadatok beállítása (amíg a DB töltődik)
         const displayName = user.displayName || user.email.split('@')[0];
-        
-        // JAVÍTÁS: Csak a nevet írjuk ki ide, semmi mást
         document.getElementById('user-name').textContent = displayName;
         
         // Avatar alapbeállítás
         const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
         document.getElementById('user-photo').src = photoURL;
 
-        // --- ADATOK BETÖLTÉSE A FELHŐBŐL ---
         const uid = user.uid;
         
-        // 1. Profil (Név és Avatar) betöltése
+        // 2. Profil (Név és Avatar) betöltése adatbázisból
         get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 if (data.teamName) {
-                    document.getElementById('team-name-input').value = data.teamName;
+                    // Beállítjuk a felső kijelzőt
                     document.getElementById('user-name').textContent = data.teamName;
+                    // Visszaírjuk az input mezőbe is, hogy lássa a user
+                    document.getElementById('team-name-input').value = data.teamName;
                 }
                 if (data.teamAvatar) {
                     document.getElementById('team-avatar-select').value = data.teamAvatar;
+                    // Avatar frissítése a fejlécben, ha van hozzá ikonunk
+                    // (Itt most egyszerűsítve csak a szöveget hagyjuk, vagy a photoURL-t)
                 }
             }
         }).catch((err) => console.error(err));
 
-        // 2. Összpontszám betöltése (JAVÍTOTT RÉSZ)
+        // 3. Összpontszám betöltése (JAVÍTVA: innerHTML felülírása)
         get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
             const score = snapshot.exists() ? snapshot.val() : 0;
-            
-            // JAVÍTÁS: A különálló elemet frissítjük, így nem duplázódik
             const scoreEl = document.getElementById('user-total-score');
             if(scoreEl) {
+                // Teljesen felülírjuk a tartalmat, így nem lehet dupla
                 scoreEl.innerHTML = `🏆 ${score} pont`;
             }
         });
 
     } else {
+        // KILÉPÉS ÁLLAPOT
         if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
         profileDiv.classList.add('hidden');
         
-        // Mezők ürítése kilépéskor
+        // Mezők ürítése
         document.getElementById('team-name-input').value = '';
         document.getElementById('team-avatar-select').value = '';
         const scoreEl = document.getElementById('user-total-score');
-        if(scoreEl) scoreEl.innerHTML = ''; // Pontszám törlése
+        if(scoreEl) scoreEl.innerHTML = '';
     }
 }
-
 
 
 </script>
