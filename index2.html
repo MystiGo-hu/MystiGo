@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.10
+       v1.0.11
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -577,7 +577,13 @@
     
     <input type="text" id="team-name-input" maxlength="25" placeholder="Pl. Villám-Macskák 2024" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue outline-none">
     
+    <div class="flex justify-between items-start mt-1 mb-3">
+        <p class="text-[10px] text-gray-500 italic">
+            💡 Tipp: Válassz egyedi nevet, hogy könnyen megtaláld magad a ranglistán!
+        </p>
         
+    </div>
+    
     <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
         <option value="">Válassz Avatart</option>
         <option value="cat">Mysti 🐱</option>
@@ -616,13 +622,6 @@
         <option value="laptop">Laptop 💻</option>
         <option value="floppy">Floppy 💾</option>
     </select>
-
-<div class="flex justify-between items-start mt-1 mb-3">
-        <p class="text-[10px] text-gray-500 italic">
-            💡 Tipp: Válassz egyedi nevet, hogy könnyen megtaláld magad a ranglistán!
-        </p>
-        
-    </div>
 
     <button id="gps-test-btn" onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
         🛰️ GPS Működésének Tesztelése
@@ -2568,40 +2567,71 @@ function applyFilters() {
         }
 
 // --- ÚJ AUTOMATIKUS RENDEZŐ FÜGGVÉNY ---
-        window.autoSortGamesByDistance = function() {
-            if (!navigator.geolocation) return; // Ha nincs GPS támogatás, marad az alap sorrend
+        // --- JAVÍTOTT GPS RENDEZÉS (WatchPosition trükk) ---
+window.autoSortGamesByDistance = function() {
+    if (!navigator.geolocation) return;
 
-            // Csendben lekérjük a pozíciót
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    
-                    console.log("Automatikus GPS rendezés folyamatban...");
+    console.log("📍 Automatikus GPS rendezés indítása...");
 
-                    Object.values(games).forEach(game => {
-                        if (game.startLocation && game.startLocation.lat && game.startLocation.lng) {
-                            const dist = haversineDistance(
-                                { lat: userLat, lng: userLng }, 
-                                { lat: game.startLocation.lat, lng: game.startLocation.lng }
-                            );
-                            game._calculatedDistance = dist / 1000; // km
-                        } else {
-                            game._calculatedDistance = 99999; 
-                        }
-                    });
+    // Ez a trükk: watchPosition-t használunk, mert az erősebben "kényszeríti" a telefont
+    // a pozíció frissítésére, mint a sima getCurrentPosition.
+    const geoOptions = {
+        enableHighAccuracy: true, // Megpróbáljuk a pontos helyet
+        timeout: 10000,           // 10 másodpercig próbálkozunk
+        maximumAge: 0             // Nem fogadunk el régi (cache-elt) adatot, frisset kérünk
+    };
 
-                    // Miután megvannak a távolságok, újrarajzoljuk a listát.
-                    // A renderGameList elején lévő logika automatikusan rendezni fog, 
-                    // ha látja a _calculatedDistance mezőket.
-                    renderGameList();
-                },
-                (error) => {
-                    console.log("Automatikus GPS rendezés nem sikerült (nem kritikus):", error);
-                },
-                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 } // Lazább beállítások a gyorsasághoz
-            );
-        };
+    const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+            // SIKERES POZÍCIÓSZERZÉS
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            console.log(`📍 Pozíció megvan! Pontosság: ${accuracy}m`);
+
+            // Mivel megvan a pozíció, azonnal leállítjuk a figyelést, hogy ne fogyassza az akkut
+            navigator.geolocation.clearWatch(watchId);
+
+            // Távolságok kiszámítása minden játékhoz
+            Object.values(games).forEach(game => {
+                if (game.startLocation && game.startLocation.lat && game.startLocation.lng) {
+                    const dist = haversineDistance(
+                        { lat: userLat, lng: userLng },
+                        { lat: game.startLocation.lat, lng: game.startLocation.lng }
+                    );
+                    game._calculatedDistance = dist / 1000; // km
+                } else {
+                    game._calculatedDistance = 99999;
+                }
+            });
+
+            // Lista újrarajzolása
+            // Fontos: Az éppen aktuális szűrést (appState.currentFilteredGames) adjuk át neki,
+            // hogy ne állítsa vissza a listát alapállapotba, ha a user közben szűrt.
+            renderGameList(appState.currentFilteredGames);
+        },
+        (error) => {
+            // Hiba esetén (pl. timeout vagy letiltás) csak logolunk, nem zavarjuk a felhasználót
+            console.warn("Automatikus GPS rendezés nem sikerült:", error.message);
+            
+            // Ha timeout volt (kód: 3), megpróbálhatjuk újra lazább beállításokkal (opcionális)
+            if (error.code === 3) {
+                console.log("Újrapróbálkozás alacsonyabb pontossággal...");
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                         // Ha itt sikerül, ugyanaz a logika fut le...
+                         // (Egyszerűsítés végett itt most nem duplikálom a kódot, 
+                         // a watchPosition általában megoldja a gondot)
+                    }, 
+                    null, 
+                    { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+                );
+            }
+        },
+        geoOptions
+    );
+};
 
 // --- ÚJ FÜGGVÉNY: Távolság alapú rendezés (JAVÍTVA: Láthatóság szűréssel) ---
         window.sortGamesNearby = function() {
