@@ -1084,19 +1084,22 @@ window.registerWithEmail = function() {
     if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
 
     createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            
-            // --- ITT A LÉNYEG: Ellenőrző email küldése ---
-            sendEmailVerification(user)
-                .then(() => {
-                    console.log("Ellenőrző email elküldve.");
-                    alert("Sikeres regisztráció!\n\nEgy megerősítő linket küldtünk a(z) " + email + " címre.\nKérlek kattints rá a fiókod hitelesítéséhez!");
-                });
-            // ---------------------------------------------
-
-            updateUserUI(true, user);
+   .then((userCredential) => {
+    const user = userCredential.user;
+    
+    // Bővített hibakereső küldés:
+    sendEmailVerification(user)
+        .then(() => {
+            console.log("✅ SIKER: Ellenőrző email elküldve ide:", user.email);
+            alert("Sikeres regisztráció!\n\nEgy megerősítő linket küldtünk a(z) " + user.email + " címre.");
         })
+        .catch((emailError) => {
+            console.error("❌ HIBA az email küldésekor:", emailError);
+            alert("A fiók létrejött, de az emailt nem tudtuk elküldeni: " + emailError.message);
+        });
+
+    updateUserUI(true, user);
+})
         .catch((error) => {
             console.error("Regisztrációs hiba:", error);
             let msg = "Hiba történt: " + error.message;
