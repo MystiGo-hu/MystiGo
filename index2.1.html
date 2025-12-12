@@ -634,11 +634,11 @@
             </button>
 
             <button onclick="openEmailModal()" class="group relative flex items-center justify-center p-3 bg-brand-blue rounded-full shadow-md hover:shadow-lg hover:bg-cyan-700 transition-all duration-300 border border-transparent" title="Belépés Email címmel">
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white group-hover:scale-110 transition-transform">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-    </svg>
-    <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
-</button>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white group-hover:scale-110 transition-transform">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
+            </button>
         </div>
 
         <div id="user-profile-display" class="hidden max-w-[280px] mx-auto bg-white rounded-full p-1.5 pr-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between transition-all hover:shadow-md">
@@ -1052,8 +1052,7 @@
     onAuthStateChanged, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
-    sendEmailVerification,
-    sendPasswordResetEmail // Ezt adtuk hozzá
+    sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 
@@ -1138,43 +1137,6 @@ window.registerWithEmail = function() {
               alert(msg);
           });
   };
-
-
-
-// --- JELSZÓ VISSZAÁLLÍTÁS KÉRÉSE ---
-window.requestPasswordReset = function(event) {
-    event.preventDefault(); // Megakadályozza az oldal újratöltését
-    
-    const emailInput = document.getElementById('email-input-field');
-    const email = emailInput.value.trim();
-    
-    if (!email) {
-        alert("Kérlek, írd be az email címedet a fenti mezőbe a visszaállításhoz!");
-        emailInput.focus();
-        return;
-    }
-    
-    // Elküldjük a visszaállító emailt a Firebase-nek
-    sendPasswordResetEmail(auth, email)
-        .then(() => {
-            // Bezárjuk a modalt, és üzenünk a felhasználónak
-            window.closeEmailModal();
-            showMessage(
-                'Jelszó Visszaállítás', 
-                `Egy linket küldtünk a(z) <strong>${email}</strong> címre. Kérlek, nézd meg a beérkező leveleidet (és a Spam mappát is!).`
-            );
-        })
-        .catch((error) => {
-            console.error("Jelszó visszaállítási hiba:", error);
-            // Nem adjuk ki a pontos hibát biztonsági okokból
-            window.closeEmailModal();
-            showMessage(
-                'Hiba történt', 
-                `Sikertelen kérés. Kérlek, ellenőrizd, hogy a <strong>${email}</strong> címet használod-e a belépéshez.`
-            );
-        });
-};
-
 
 
 // --- MODAL KEZELÉS (EZ HIÁNYZOTT!) ---
@@ -1688,21 +1650,20 @@ window.saveUserProfileToFirebase = function() {
 
 
 // UI Frissítése be/kilépéskor (Modernizált verzió)
-// UI Frissítése be/kilépéskor (JAVÍTVA: Pontszám duplikáció)
 function updateUserUI(isLoggedIn, user = null) {
     const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
     const profileDiv = document.getElementById('user-profile-display');
-    const userNameEl = document.getElementById('user-name');
-    
     window.closeEmailModal();
 
     if (isLoggedIn && user) {
         if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
         profileDiv.classList.remove('hidden');
         
-        // --- 1. Alapadatok beállítása ---
+        // Alapadatok megjelenítése
         const displayName = user.displayName || user.email.split('@')[0];
-        // Avatar alapbeállítás
+        document.getElementById('user-name').textContent = displayName;
+        
+        // Avatar alapbeállítás (amíg be nem töltjük az igazit)
         const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
         document.getElementById('user-photo').src = photoURL;
 
@@ -1711,32 +1672,35 @@ function updateUserUI(isLoggedIn, user = null) {
         
         // 1. Profil (Név és Avatar) betöltése
         get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
-            let actualName = displayName;
-            if (snapshot.exists() && snapshot.val().teamName) {
-                actualName = snapshot.val().teamName;
-                document.getElementById('team-name-input').value = actualName;
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                
+                // Ha van mentett név, beírjuk a mezőbe
+                if (data.teamName) {
+                    document.getElementById('team-name-input').value = data.teamName;
+                    // Ha a Google név más, mint a játékos név, itt frissíthetjük a kijelzőt is:
+                    document.getElementById('user-name').textContent = data.teamName;
+                }
+                
+                // Ha van mentett avatar, kiválasztjuk
+                if (data.teamAvatar) {
+                    document.getElementById('team-avatar-select').value = data.teamAvatar;
+                }
             }
-            
-            // ITT TÖRLÜNK MINDENT ÉS CSAK A NEVET ÍRJUK BE ELSŐKÉNT
-            userNameEl.innerHTML = actualName; 
-            
-            // 2. Összpontszám betöltése és a NÉV ALÁ ragasztása
-            return get(ref(db, 'users/' + uid + '/totalScore'));
-            
-        }).then((snapshot) => {
-            const score = snapshot.exists() ? snapshot.val() : 0;
-            
-            // ITT ADJUK HOZZÁ A PONTOT A NÉV ALÁ (CSAK EGYSZER!)
-            if(userNameEl) {
-                // A <br> segítségével a pontszám a név alá kerül
-                userNameEl.innerHTML += `<br><span class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5">⭐ ${score} pont</span>`;
-            }
-        
-        }).catch((err) => console.error("Profil/Pontszám betöltési hiba:", err));
+        }).catch((err) => console.error(err));
 
-        // Automatikus névkitöltés
-        const nameInput = document.getElementById('team-name-input');
-        if(nameInput && !nameInput.value) nameInput.value = displayName;
+        // 2. Összpontszám betöltése (Ha szeretnéd kiírni)
+        get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
+            const score = snapshot.exists() ? snapshot.val() : 0;
+            // Itt kiírhatod a pontot a profil mellé, ha szeretnéd
+            // Pl. módosítod a HTML-t, hogy legyen egy <span id="user-total-score"></span>
+            const scoreDisplay = document.getElementById('user-name');
+if(scoreDisplay) {
+    // Itt a <br> utáni span stílusát módosítottuk:
+    // text-brand-orange-500 (narancs), font-bold, és kicsit nagyobb betűköz
+    scoreDisplay.innerHTML += `<br><span class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5">🏆 ${score} pont</span>`;
+}
+        });
 
     } else {
         if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
@@ -3861,7 +3825,8 @@ if (reviewBtn) {
                 deleteSavedGame(appState.currentGame.id);
             }
             
-
+            // 3. Játék állapot kinullázása
+            appState.currentGame = null;
         }
         
         function toggleMapClickMock(enable) {
@@ -4679,18 +4644,9 @@ window.nukeAllStorage = function() {
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
-            	const teamNameInput = document.getElementById('team-name-input');
-		const avatarSelect = document.getElementById('team-avatar-select');
+            const nameInputEl = document.getElementById('team-name-input');
+            const avatarSelectEl = document.getElementById('team-avatar-select');
 
-if (teamNameInput) {
-    // A 'change' esemény figyel, ha a mező értéke megváltozik
-    teamNameInput.addEventListener('change', window.saveUserProfileToFirebase);
-    // A 'blur' esemény akkor fut le, ha a felhasználó kikattint a mezőből
-    teamNameInput.addEventListener('blur', window.saveUserProfileToFirebase);
-}
-if (avatarSelect) {
-    avatarSelect.addEventListener('change', window.saveUserProfileToFirebase);
-}
 
 // --- ÚJ GOMB ESEMÉNYKEZELŐJE (Összes játék listázása) ---
     // --- EZ A FRISSÍTETT VERZIÓ (CSERÉLD LE A RÉGIT ERRE) ---
@@ -5022,16 +4978,6 @@ window.loadMoreGames = function() {
                  <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
                 <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
             </div>
-
-<div class="space-y-1">
-                 <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
-                <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
-                
-                <a href="#" onclick="requestPasswordReset(event)" class="block text-right text-xs font-semibold text-gray-500 hover:text-red-500 underline mt-1">
-                    Elfelejtettem a jelszavam
-                </a>
-            </div>
-
 
             <div class="flex flex-col sm:flex-row gap-3 pt-2">
                 <button onclick="loginWithEmail()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-md active:scale-95">
