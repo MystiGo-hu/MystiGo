@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.13
+       v1.0.14
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1051,9 +1051,8 @@
     onAuthStateChanged, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
-    sendEmailVerification
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
+    updateProfile // EZ HIÁNYZOTT! Fontos a név mentéséhez
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
   const firebaseConfig = {
@@ -1069,41 +1068,49 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-let currentUser = null; // Ebben tároljuk majd a belépett felhasználót
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  let currentUser = null; 
 
-
-// --- EMAIL REGISZTRÁCIÓ (Megerősítő email küldéssel) ---
-window.registerWithEmail = function() {
+  // --- EMAIL REGISZTRÁCIÓ (JAVÍTOTT: Név és Avatar mentése azonnal) ---
+  window.registerWithEmail = function() {
     const email = document.getElementById('email-input-field').value;
     const password = document.getElementById('password-input-field').value;
     
-    // Adatok begyűjtése a mezőkből
+    // Adatok begyűjtése a főképernyőről
     const nameInput = document.getElementById('team-name-input').value.trim();
     const avatarInput = document.getElementById('team-avatar-select').value;
 
     if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
     if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
 
-    // Ha nincs név megadva, generálunk egyet az emailből
+    // Ha nincs név megadva, az email elejét használjuk
     const finalName = nameInput || email.split('@')[0];
-    const finalAvatar = avatarInput || 'cat'; // Alapértelmezett cica, ha nincs választva
+    const finalAvatar = avatarInput || 'cat'; 
 
     createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
             const user = userCredential.user;
             console.log("✅ Fiók létrehozva:", user.email);
 
-            // --- PROFIL MENTÉSE AZONNAL ---
-            set(ref(db, 'users/' + user.uid + '/profile'), {
-                teamName: finalName,
-                teamAvatar: finalAvatar,
-                lastUpdated: Date.now()
+            // 1. LÉPÉS: Frissítjük a felhasználó "Auth Profilját" (Ez a legbiztosabb név mentés)
+            updateProfile(user, {
+                displayName: finalName,
+                photoURL: `https://ui-avatars.com/api/?name=${finalName}&background=0D8ABC&color=fff&size=128`
             }).then(() => {
-                // Csak a mentés után frissítjük a felületet
-                updateUserUI(true, user);
-                alert("Sikeres regisztráció! Jó játékot!");
+                // 2. LÉPÉS: Mentés az adatbázisba is
+                set(ref(db, 'users/' + user.uid + '/profile'), {
+                    teamName: finalName,
+                    teamAvatar: finalAvatar,
+                    lastUpdated: Date.now()
+                }).then(() => {
+                    console.log("Profil adatbázisba mentve.");
+                    // Felület azonnali frissítése a helyes adatokkal
+                    updateUserUI(true, user);
+                    alert("Sikeres regisztráció! Jó játékot!");
+                });
+            }).catch((error) => {
+                console.error("Profil frissítési hiba:", error);
             });
         })
         .catch((error) => {
@@ -1113,9 +1120,7 @@ window.registerWithEmail = function() {
             if (error.code === 'auth/weak-password') msg = "Túl gyenge jelszó (min. 6 karakter).";
             alert(msg);
         });
-};
-
-
+  };
 
   // --- EMAIL BELÉPÉS ---
   window.loginWithEmail = function() {
@@ -1126,104 +1131,47 @@ window.registerWithEmail = function() {
 
       signInWithEmailAndPassword(auth, email, password)
           .then((userCredential) => {
-    const user = userCredential.user;
-    
-    if (!user.emailVerified) {
-        // Csak szólunk neki, de engedjük játszani
-        alert("Figyelem! Még nem erősítetted meg az email címedet.\nNézd meg a postafiókodat (a Spam mappát is)!");
-    }
-    
-    console.log("Sikeres belépés:", user.email);
-})
+            console.log("Sikeres belépés:", userCredential.user.email);
+            // A UI frissítést az onAuthStateChanged kezeli
+          })
           .catch((error) => {
-              console.error(error);
               let msg = "Sikertelen belépés.";
               if (error.code === 'auth/invalid-credential') msg = "Hibás email cím vagy jelszó.";
-              if (error.code === 'auth/user-not-found') msg = "Nincs ilyen felhasználó. Regisztrálj előbb!";
+              if (error.code === 'auth/user-not-found') msg = "Nincs ilyen felhasználó.";
               if (error.code === 'auth/wrong-password') msg = "Hibás jelszó.";
               alert(msg);
           });
   };
 
-
-// --- MODAL KEZELÉS (EZ HIÁNYZOTT!) ---
-window.openEmailModal = function() {
-    const modal = document.getElementById('email-modal');
-    const modalContent = document.getElementById('email-modal-content');
-    if (modal && modalContent) {
-        modal.classList.remove('hidden');
-        // Kis animáció a megjelenéshez
-        setTimeout(() => {
-            modalContent.classList.remove('scale-95');
-            modalContent.classList.add('scale-100');
-        }, 10);
-    } else {
-        console.error("Hiba: Nem találom az 'email-modal' elemet a HTML-ben!");
-    }
-};
-
-window.closeEmailModal = function() {
-    const modal = document.getElementById('email-modal');
-    const modalContent = document.getElementById('email-modal-content');
-    
-    if (modal && modalContent) {
-        // Kis animáció az eltűnéshez
-        modalContent.classList.remove('scale-100');
-        modalContent.classList.add('scale-95');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            // Mezők törlése bezáráskor
-            const emailInput = document.getElementById('email-input-field');
-            const passInput = document.getElementById('password-input-field');
-            if(emailInput) emailInput.value = '';
-            if(passInput) passInput.value = '';
-        }, 200); 
-    }
-};
-
-// Bezárás, ha a sötét háttérre kattintanak (ez csak akkor fut le, ha létezik az elem)
-const emailModalEl = document.getElementById('email-modal');
-if (emailModalEl) {
-    emailModalEl.addEventListener('click', function(e) {
-        if (e.target === this) {
-            window.closeEmailModal();
-        }
-    });
-}
-
-
-window.loginWithGoogle = function() {
+  // --- GOOGLE BELÉPÉS ---
+  window.loginWithGoogle = function() {
       signInWithPopup(auth, provider)
           .then((result) => {
               const user = result.user;
               console.log("Belépve:", user.displayName);
-              document.getElementById('team-name-input').value = user.displayName;
-              // Opcionális: Ha van avatar választó logika, itt kezelheted
+              // Itt nem kell külön menteni, a Google profilból jön az adat
           }).catch((error) => {
-              console.error("Hiba a belépéskor:", error);
-              alert("Sikertelen bejelentkezés: " + error.message);
+              console.error("Hiba:", error);
+              alert("Sikertelen bejelentkezés.");
           });
   };
 
   window.logout = function() {
-      signOut(auth).then(() => {
-          console.log("Kilépve");
-      });
+      signOut(auth).then(() => { console.log("Kilépve"); });
   };
 
+  // --- AUTH ÁLLAPOT FIGYELŐ ---
   onAuthStateChanged(auth, (user) => {
       if (user) {
           currentUser = user;
-          updateUserUI(true, user); // Ez a függvény a 3. lépésnél lesz definiálva
+          updateUserUI(true, user); 
       } else {
           currentUser = null;
           updateUserUI(false);
       }
   });
 
-
-
-  // 1. LIMIT (Marad)
+  // --- LIMIT ELLENŐRZÉS ---
   window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
       if(!gameId) return true;
       const gameRef = ref(db, 'games/' + gameId + '/count');
@@ -1236,41 +1184,29 @@ window.loginWithGoogle = function() {
       } catch (error) { console.error(error); return true; }
   };
 
-
-// --- PROFIL MENTÉSE (Név + Avatar) ---
-window.saveUserProfileToFirebase = function() {
-    // Csak akkor mentünk, ha van belépett felhasználó
+  // --- PROFIL MENTÉSE (Kézi módosításkor) ---
+  window.saveUserProfileToFirebase = function() {
     if (currentUser) {
         const uid = currentUser.uid;
         const name = document.getElementById('team-name-input').value;
         const avatar = document.getElementById('team-avatar-select').value;
 
-        // Mentés a 'users/UID/profile' útvonalra
         set(ref(db, 'users/' + uid + '/profile'), {
             teamName: name,
             teamAvatar: avatar,
             lastUpdated: Date.now()
-        }).then(() => {
-            console.log("Profil adatok szinkronizálva a felhőbe.");
-        }).catch((error) => {
-            console.error("Hiba a profil mentésekor:", error);
         });
     }
-};
+  };
 
-
-
- // 2. MENTÉS (Eredeti + Google mentés egyesítve)
+  // --- PONTSZÁM MENTÉSE (JAVÍTOTT: TotalScore növelése) ---
   window.saveScoreToFirebase = function(data) {
       if (!data.gameId) return;
-
-      // --- A. RÉSZ: EREDETI RANGLISTA MENTÉS (EZ KELL A KÖZÖS LISTÁHOZ!) ---
       
-      // Dátum formázása
       const now = new Date();
       const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      // Mentés a közös 'leaderboard'-ba
+      // 1. Mentés a játék ranglistájára
       const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
       push(leaderboardRef, {
           teamName: data.teamName || "Névtelen",
@@ -1282,16 +1218,12 @@ window.saveUserProfileToFirebase = function() {
           dateString: readableDate 
       });
 
-      // --- B. RÉSZ: ÚJ GOOGLE PROFIL MENTÉS (EZ AZ ÚJ RÉSZ) ---
-      
-      // Csak akkor fut le, ha a felhasználó be van jelentkezve
+      // 2. Mentés a felhasználó profiljához (HA be van lépve)
       if (currentUser) {
           const uid = currentUser.uid;
-          const userHistoryRef = ref(db, 'users/' + uid + '/history');
-          const userTotalRef = ref(db, 'users/' + uid + '/totalScore');
-
-          // 1. Elmentjük a játékot a játékos saját előzményeibe
-          push(userHistoryRef, {
+          
+          // Előzményekbe
+          push(ref(db, 'users/' + uid + '/history'), {
               gameId: data.gameId,
               score: data.score,
               date: Date.now(),
@@ -1299,425 +1231,131 @@ window.saveUserProfileToFirebase = function() {
               teamName: data.teamName
           });
 
-          // 2. Frissítjük az összpontszámát
+          // Összpontszám növelése (Transaction a biztonságos növeléshez)
+          const userTotalRef = ref(db, 'users/' + uid + '/totalScore');
           runTransaction(userTotalRef, (currentScore) => {
+              // Ha még nincs pontja, 0-ról indul, ahhoz adjuk a mostanit
               return (currentScore || 0) + data.score;
-          });
-          
-          console.log("Pontszám mentve a felhasználói profilhoz is.");
+          }).then(() => {
+              console.log("🏆 Pontszám sikeresen jóváírva a profilodon!");
+              // UI frissítése a mentés után
+              updateUserUI(true, currentUser);
+          }).catch((err) => console.error("Pontszám mentési hiba:", err));
       }
   };
 
+  window.incrementGameCompletion = async function(gameId) {
+      if(!gameId) return;
+      try {
+          await runTransaction(ref(db, 'games/' + gameId + '/completed'), (c) => (c || 0) + 1);
+      } catch (e) { console.error(e); }
+  };
 
-
-   
-
- // --- ÚJ FEJLETT RANGLISTA LOGIKA
-
-// Globális változó az adatok tárolására
+  // --- RANGLISTA LEKÉRDEZÉS (Marad a régi logikád) ---
   window.currentLeaderboardData = [];
-
-  // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: Még szűkebb oszlopok és paddingok)
   window.openLeaderboardModal = async function(specificGameId = null) {
       const gameId = specificGameId || window.currentGameId;
-
-      if (!gameId) {
-        alert("Nincs aktív játék azonosító. Előbb válassz egy játékot!");
-        return;
-    }
+      if (!gameId) { alert("Nincs aktív játék azonosító."); return; }
 
       const modal = document.getElementById('leaderboard-modal');
       const listBody = document.getElementById('leaderboard-modal-body');
       
+      // Szűrő UI létrehozása (ha nincs)
       const modalHeader = document.getElementById('leaderboard-header'); 
-      let filterContainer = document.getElementById('leaderboard-filters');
-      
-      if (!filterContainer && modalHeader) {
-          filterContainer = document.createElement('div');
-          filterContainer.id = 'leaderboard-filters';
-          filterContainer.className = "bg-white border-b border-gray-200 p-3 space-y-3";
-          filterContainer.innerHTML = `
+      if (modalHeader && !document.getElementById('leaderboard-filters')) {
+          const filterDiv = document.createElement('div');
+          filterDiv.id = 'leaderboard-filters';
+          filterDiv.className = "bg-white border-b border-gray-200 p-3 space-y-3";
+          filterDiv.innerHTML = `
             <div class="flex rounded-lg bg-gray-100 p-1">
-                <button onclick="filterLeaderboard('today')" id="btn-filter-today" class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm">
-                    📅 Mai nap
-                </button>
-                <button onclick="filterLeaderboard('all')" id="btn-filter-all" class="flex-1 py-1.5 text-xs font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue">
-                    🏆 Összes
-                </button>
+                <button onclick="filterLeaderboard('today')" id="btn-filter-today" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-white text-brand-blue shadow-sm">📅 Mai nap</button>
+                <button onclick="filterLeaderboard('all')" id="btn-filter-all" class="flex-1 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-brand-blue">🏆 Összes</button>
             </div>
-            <div class="relative">
-                <input type="text" id="leaderboard-search" onkeyup="filterLeaderboard()" placeholder="🔍 Csapatnév keresése..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue outline-none">
-                <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            </div>
+            <input type="text" id="leaderboard-search" onkeyup="filterLeaderboard()" placeholder="🔍 Csapatnév keresése..." class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none">
           `;
-          modalHeader.insertAdjacentElement('afterend', filterContainer);
-      }
-
-// --- RANGLISTA PDF MENTÉSE ---
-  window.downloadLeaderboardPDF = function() {
-      // 1. Az elemek kiválasztása
-      const listBody = document.getElementById('leaderboard-modal-body');
-      if (!listBody || listBody.rows.length === 0) {
-          alert("Nincs mit menteni, a lista üres.");
-          return;
-      }
-
-      // Visszajelzés a gombon (opcionális UX)
-      const btn = event.currentTarget;
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '⏳ Generálás...';
-      btn.disabled = true;
-
-      // 2. Ideiglenes konténer létrehozása a PDF generáláshoz
-      // Ez azért kell, hogy "kivegyük" a táblázatot a görgethető (scroll) ablakból,
-      // így a PDF-ben a teljes lista látszani fog, nem csak ami épp a képernyőn van.
-      const wrapper = document.createElement('div');
-      wrapper.style.padding = '20px';
-      wrapper.style.fontFamily = 'sans-serif';
-      wrapper.style.background = 'white';
-      wrapper.style.color = '#0D2B45';
-
-      // Cím és dátum
-      const dateStr = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-      const activeGameId = window.currentGameId || "Ismeretlen";
-      
-      wrapper.innerHTML = `
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 24px; color: #0D2B45;">🏆 MystiGo Ranglista</h1>
-            <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Kaland: <strong>${activeGameId}</strong> | Dátum: ${dateStr}</p>
-        </div>
-      `;
-
-      // Táblázat klónozása
-      const originalTable = document.querySelector('#leaderboard-modal table');
-      const clonedTable = originalTable.cloneNode(true);
-      
-      // Stílus igazítás a PDF-hez (hogy biztosan szép legyen fehér háttérrel)
-      clonedTable.style.width = '100%';
-      clonedTable.style.borderCollapse = 'collapse';
-      clonedTable.style.fontSize = '12px';
-      
-      // Fejléc színezése a klónban
-      const thead = clonedTable.querySelector('thead');
-      if(thead) thead.style.backgroundColor = '#f3f4f6';
-      
-      wrapper.appendChild(clonedTable);
-
-      // 3. PDF Generálás
-      const opt = {
-          margin:       10,
-          filename:     `MystiGo_Ranglista_${activeGameId}_${new Date().toISOString().slice(0,10)}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      html2pdf().from(wrapper).set(opt).save().then(() => {
-          // Visszaállítás
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-      }).catch(err => {
-          console.error(err);
-          alert("Hiba történt a mentés közben.");
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-      });
-  };
-
-
-      // --- TÁBLÁZAT FEJLÉC SZŰKÍTÉSE ---
-      const tableHead = modal.querySelector('thead');
-      if (tableHead) {
-          tableHead.innerHTML = `
-            <tr>
-                <th class="px-1 py-2 text-center text-gray-500 w-6">#</th>
-                
-                <th class="px-1 py-2 text-left text-gray-500">Csapat</th>
-                
-                <th class="pl-1 pr-0 py-2 text-right text-gray-500 w-10">Pont</th> 
-                
-                <th class="pl-1 pr-1 py-2 text-right text-gray-500 w-24">Idő</th> 
-            </tr>
-          `;
+          modalHeader.insertAdjacentElement('afterend', filterDiv);
       }
 
       modal.classList.remove('hidden');
-      
-      listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Betöltés...</td></tr>';
+      listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8">Betöltés...</td></tr>';
 
       try {
           const q = query(ref(db, 'leaderboard/' + gameId));
           const snapshot = await get(q);
-
           if (!snapshot.exists()) {
-              listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény ehhez a játékhoz.</td></tr>';
+              listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény.</td></tr>';
               window.currentLeaderboardData = [];
               return;
           }
-
           let results = [];
-          snapshot.forEach((child) => {
-              const val = child.val();
-              if (val.score === undefined || val.score === null) {
-                  val.score = 0; 
-                  val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
-              }
-              results.push(val);
-          });
-
+          snapshot.forEach((child) => results.push(child.val()));
           window.currentLeaderboardData = results;
-          
-          setTimeout(() => {
-              // 1. Kirajzoljuk a listát
-              filterLeaderboard('today'); 
-              
-              // 2. ÚJ: Odagörgetünk a saját sorhoz (kis késleltetéssel, hogy biztosan ott legyen már a DOM-ban)
-              setTimeout(() => {
-                  const myRow = document.getElementById('my-leaderboard-row');
-                  if (myRow) {
-                      myRow.scrollIntoView({ behavior: "smooth", block: "center" });
-                  }
-              }, 100);
-              
-          }, 50);
-
-   } catch (error) {
-          console.error("Hiba:", error);
-          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba történt: ${error.message}</td></tr>`;
-      }
-  };
-
-
-  // 2. SZŰRŐ LOGIKA (JAVÍTOTT SORREND: Szűrés -> Rendezés -> Rangsorolás -> Keresés)
-  window.filterLeaderboard = function(modeParam) {
-      let mode = modeParam;
-      const btnToday = document.getElementById('btn-filter-today');
-      const btnAll = document.getElementById('btn-filter-all');
-      
-      // Ha nincs paraméter, megnézzük melyik gomb aktív
-      if (!mode) {
-          if(!btnToday) return; 
-          mode = btnToday.classList.contains('bg-white') ? 'today' : 'all';
-      }
-
-      // Gombok stílusának frissítése
-      if (mode === 'today') {
-          btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-          btnAll.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue hover:bg-gray-200";
-      } else {
-          btnAll.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-          btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue hover:bg-gray-200";
-      }
-
-      const searchInput = document.getElementById('leaderboard-search');
-      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
-      
-      // Mindig az eredeti, teljes listából indulunk ki
-      let data = [...window.currentLeaderboardData];
-
-      // LÉPÉS 1: Időszak szűrése (Ki tartozik a "mezőnybe"?)
-      if (mode === 'today') {
-          const startOfToday = new Date();
-          startOfToday.setHours(0, 0, 0, 0);
-          data = data.filter(r => r.timestamp >= startOfToday.getTime());
-      }
-
-      // LÉPÉS 2: Rendezés (Pont -> Feladat Idő -> Teljes Idő)
-      // Fontos: Ezt MÉG A KERESÉS ELŐTT megcsináljuk!
-      data.sort((a, b) => {
-          const scoreDiff = b.score - a.score;
-          if (scoreDiff !== 0) return scoreDiff;
-          const taskTimeDiff = (a.geofenceTime || 0) - (b.geofenceTime || 0);
-          if (taskTimeDiff !== 0) return taskTimeDiff;
-          return (a.totalTime || 0) - (b.totalTime || 0);
-      });
-
-      // LÉPÉS 3: Valódi helyezés rögzítése
-      // Hozzáadunk egy 'actualRank' tulajdonságot, ami megmondja, hányadik a teljes mezőnyben
-      data = data.map((item, index) => {
-          return { ...item, actualRank: index + 1 };
-      });
-
-      // LÉPÉS 4: Név keresés
-      // Most már szűrhetünk névre, mert a helyezésüket megjegyeztük az előző lépésben
-      if (searchTerm) {
-          data = data.filter(r => r.teamName.toLowerCase().includes(searchTerm));
-      }
-
-      renderLeaderboardTable(data);
-  };
-
-
-
-// 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Név mező 100px, Paddingok minimalizálva)
-  window.renderLeaderboardTable = function(results) {
-      const listBody = document.getElementById('leaderboard-modal-body');
-      
-      if (results.length === 0) {
-          listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400 italic">Nincs a szűrésnek megfelelő találat.</td></tr>';
-          return;
-      }
-
-      const avatars = {
-             cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
-      };
-      
-      const fmt = (s) => {
-         const m = Math.floor(s / 60).toString().padStart(2,'0');
-         const sec = (s % 60).toString().padStart(2,'0');
-         return `${m}:${sec}`;
-      };
-      
-      const fmtDate = (ms) => { 
-          const d = new Date(ms);
-          const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-          return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}. ${timeStr}`; 
-      };
-
-      let html = "";
-      
-      results.slice(0, 100).forEach((r) => {
-          const icon = avatars[r.teamAvatar] || '👤';
-          const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
-          const rank = r.actualRank;
-
-          let rankDisplay = `${rank}.`;
-          let rowBg = ""; // Alapból fehér (üres)
-          
-          if (rank === 1) { rankDisplay = "🥇"; }
-          else if (rank === 2) { rankDisplay = "🥈"; }
-          else if (rank === 3) { rankDisplay = "🥉"; }
-          
-          // 2. SAJÁT CSAPAT KIEMELÉSE (Ez felülír mindent)
-          if (isMyTeam) {
-              rowBg = "bg-blue-200 border-l-4 border-l-red-400";
-          }
-
-          // ÚJ: ID hozzáadása, ha ez a saját sorom, hogy később odatudjunk görgetni
-          const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
-
-          html += `
-            <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
-                
-                <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${rankDisplay}</td>
-                
-                <td class="px-1 py-3 align-middle">
-                    <div class="font-bold text-brand-blue flex items-center gap-1.5">
-                        <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px] shrink-0">${icon}</span> 
-                        
-                        <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
-                            ${r.teamName}
-                        </span>
-                    </div>
-                    <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1 mt-1">
-                        ⏱️ ${fmtDate(r.timestamp)}
-                    </div>
-                </td>
-                
-                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-10 align-middle">
-                    ${r.score}
-                </td>
-                
-                <td class="pl-1 pr-1 py-3 text-right text-xs text-gray-600 leading-tight w-24 align-middle">
-                    <div class="flex flex-col items-end gap-1">
-                        <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
-                            🧩 ${fmt(r.geofenceTime || 0)}
-                        </div>
-                        <div title="Teljes idő" class="font-semibold text-brand-blue bg-blue-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
-                            ⏱️ ${fmt(r.totalTime || 0)}
-                        </div>
-                    </div>
-                </td>
-            </tr>
-          `;
-      });
-      listBody.innerHTML = html;
-  };
-
-
-
-  // --- RANGLISTA KÓD VÉGE ---
-
-// --- ÚJ RÉSZ: Befejezett játékok számolása ---
-  window.incrementGameCompletion = async function(gameId) {
-      if(!gameId) return;
-      // A 'completed' csomópontot növeljük az adott játékon belül
-      const gameRef = ref(db, 'games/' + gameId + '/completed');
-      try {
-          await runTransaction(gameRef, (currentCount) => {
-              return (currentCount || 0) + 1;
-          });
-          console.log("Sikeres befejezés rögzítve.");
+          setTimeout(() => filterLeaderboard('today'), 50);
       } catch (error) {
-          console.error("Hiba a befejezés rögzítésekor:", error);
+          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba: ${error.message}</td></tr>`;
       }
   };
 
-
-
-// UI Frissítése be/kilépéskor (Modernizált verzió)
-function updateUserUI(isLoggedIn, user = null) {
+  // --- UI FRISSÍTÉS (JAVÍTOTT: Név és Pontszám kezelés) ---
+  function updateUserUI(isLoggedIn, user = null) {
     const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
     const profileDiv = document.getElementById('user-profile-display');
-    window.closeEmailModal(); // Modal bezárása, ha nyitva lenne
+    window.closeEmailModal(); 
 
     if (isLoggedIn && user) {
         if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
         profileDiv.classList.remove('hidden');
         
-        // 1. Alapadatok beállítása (amíg a DB töltődik)
+        // 1. Alapadatok beállítása AZONNAL (hogy ne villogjon)
+        // Ha van Auth-ban név, azt használjuk, ha nincs, akkor az email elejét
         const displayName = user.displayName || user.email.split('@')[0];
+        
         document.getElementById('user-name').textContent = displayName;
         
-        // Avatar alapbeállítás
+        // Avatar
         const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
         document.getElementById('user-photo').src = photoURL;
 
         const uid = user.uid;
         
-        // 2. Profil (Név és Avatar) betöltése adatbázisból
+        // 2. Profil betöltése az adatbázisból (Ez felülírhatja a fentit, ha van mentett adat)
         get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 if (data.teamName) {
-                    // Beállítjuk a felső kijelzőt
                     document.getElementById('user-name').textContent = data.teamName;
-                    // Visszaírjuk az input mezőbe is, hogy lássa a user
-                    document.getElementById('team-name-input').value = data.teamName;
+                    // Visszaírjuk az input mezőbe is
+                    const nameInput = document.getElementById('team-name-input');
+                    if(nameInput) nameInput.value = data.teamName;
                 }
                 if (data.teamAvatar) {
-                    document.getElementById('team-avatar-select').value = data.teamAvatar;
-                    // Avatar frissítése a fejlécben, ha van hozzá ikonunk
-                    // (Itt most egyszerűsítve csak a szöveget hagyjuk, vagy a photoURL-t)
+                    const avatarSelect = document.getElementById('team-avatar-select');
+                    if(avatarSelect) avatarSelect.value = data.teamAvatar;
                 }
             }
         }).catch((err) => console.error(err));
 
-        // 3. Összpontszám betöltése (JAVÍTVA: innerHTML felülírása)
+        // 3. Összpontszám betöltése
         get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
             const score = snapshot.exists() ? snapshot.val() : 0;
             const scoreEl = document.getElementById('user-total-score');
             if(scoreEl) {
-                // Teljesen felülírjuk a tartalmat, így nem lehet dupla
+                // Itt biztosítjuk, hogy csak 1 sor legyen
                 scoreEl.innerHTML = `🏆 ${score} pont`;
             }
         });
 
     } else {
-        // KILÉPÉS ÁLLAPOT
         if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
         profileDiv.classList.add('hidden');
         
         // Mezők ürítése
-        document.getElementById('team-name-input').value = '';
-        document.getElementById('team-avatar-select').value = '';
+        const nameInput = document.getElementById('team-name-input');
+        if(nameInput) nameInput.value = '';
         const scoreEl = document.getElementById('user-total-score');
         if(scoreEl) scoreEl.innerHTML = '';
     }
 }
-
-
 </script>
 
 
