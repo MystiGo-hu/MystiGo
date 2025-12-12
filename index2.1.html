@@ -1650,20 +1650,21 @@ window.saveUserProfileToFirebase = function() {
 
 
 // UI Frissítése be/kilépéskor (Modernizált verzió)
+// UI Frissítése be/kilépéskor (JAVÍTVA: Pontszám duplikáció)
 function updateUserUI(isLoggedIn, user = null) {
     const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
     const profileDiv = document.getElementById('user-profile-display');
+    const userNameEl = document.getElementById('user-name');
+    
     window.closeEmailModal();
 
     if (isLoggedIn && user) {
         if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
         profileDiv.classList.remove('hidden');
         
-        // Alapadatok megjelenítése
+        // --- 1. Alapadatok beállítása ---
         const displayName = user.displayName || user.email.split('@')[0];
-        document.getElementById('user-name').textContent = displayName;
-        
-        // Avatar alapbeállítás (amíg be nem töltjük az igazit)
+        // Avatar alapbeállítás
         const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
         document.getElementById('user-photo').src = photoURL;
 
@@ -1672,35 +1673,32 @@ function updateUserUI(isLoggedIn, user = null) {
         
         // 1. Profil (Név és Avatar) betöltése
         get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                
-                // Ha van mentett név, beírjuk a mezőbe
-                if (data.teamName) {
-                    document.getElementById('team-name-input').value = data.teamName;
-                    // Ha a Google név más, mint a játékos név, itt frissíthetjük a kijelzőt is:
-                    document.getElementById('user-name').textContent = data.teamName;
-                }
-                
-                // Ha van mentett avatar, kiválasztjuk
-                if (data.teamAvatar) {
-                    document.getElementById('team-avatar-select').value = data.teamAvatar;
-                }
+            let actualName = displayName;
+            if (snapshot.exists() && snapshot.val().teamName) {
+                actualName = snapshot.val().teamName;
+                document.getElementById('team-name-input').value = actualName;
             }
-        }).catch((err) => console.error(err));
-
-        // 2. Összpontszám betöltése (Ha szeretnéd kiírni)
-        get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
+            
+            // ITT TÖRLÜNK MINDENT ÉS CSAK A NEVET ÍRJUK BE ELSŐKÉNT
+            userNameEl.innerHTML = actualName; 
+            
+            // 2. Összpontszám betöltése és a NÉV ALÁ ragasztása
+            return get(ref(db, 'users/' + uid + '/totalScore'));
+            
+        }).then((snapshot) => {
             const score = snapshot.exists() ? snapshot.val() : 0;
-            // Itt kiírhatod a pontot a profil mellé, ha szeretnéd
-            // Pl. módosítod a HTML-t, hogy legyen egy <span id="user-total-score"></span>
-            const scoreDisplay = document.getElementById('user-name');
-if(scoreDisplay) {
-    // Itt a <br> utáni span stílusát módosítottuk:
-    // text-brand-orange-500 (narancs), font-bold, és kicsit nagyobb betűköz
-    scoreDisplay.innerHTML += `<br><span class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5">🏆 ${score} pont</span>`;
-}
-        });
+            
+            // ITT ADJUK HOZZÁ A PONTOT A NÉV ALÁ (CSAK EGYSZER!)
+            if(userNameEl) {
+                // A <br> segítségével a pontszám a név alá kerül
+                userNameEl.innerHTML += `<br><span class="text-[10px] font-bold text-brand-orange-500 tracking-wide flex items-center gap-1 mt-0.5">⭐ ${score} pont</span>`;
+            }
+        
+        }).catch((err) => console.error("Profil/Pontszám betöltési hiba:", err));
+
+        // Automatikus névkitöltés
+        const nameInput = document.getElementById('team-name-input');
+        if(nameInput && !nameInput.value) nameInput.value = displayName;
 
     } else {
         if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
