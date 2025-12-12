@@ -634,11 +634,11 @@
             </button>
 
             <button onclick="openEmailModal()" class="group relative flex items-center justify-center p-3 bg-brand-blue rounded-full shadow-md hover:shadow-lg hover:bg-cyan-700 transition-all duration-300 border border-transparent" title="Belépés Email címmel">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white group-hover:scale-110 transition-transform">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                </svg>
-                <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
-            </button>
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white group-hover:scale-110 transition-transform">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+    </svg>
+    <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
+</button>
         </div>
 
         <div id="user-profile-display" class="hidden max-w-[280px] mx-auto bg-white rounded-full p-1.5 pr-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between transition-all hover:shadow-md">
@@ -3823,8 +3823,7 @@ if (reviewBtn) {
                 deleteSavedGame(appState.currentGame.id);
             }
             
-            // 3. Játék állapot kinullázása
-            appState.currentGame = null;
+
         }
         
         function toggleMapClickMock(enable) {
@@ -4642,9 +4641,18 @@ window.nukeAllStorage = function() {
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
-            const nameInputEl = document.getElementById('team-name-input');
-            const avatarSelectEl = document.getElementById('team-avatar-select');
+            	const teamNameInput = document.getElementById('team-name-input');
+		const avatarSelect = document.getElementById('team-avatar-select');
 
+if (teamNameInput) {
+    // A 'change' esemény figyel, ha a mező értéke megváltozik
+    teamNameInput.addEventListener('change', window.saveUserProfileToFirebase);
+    // A 'blur' esemény akkor fut le, ha a felhasználó kikattint a mezőből
+    teamNameInput.addEventListener('blur', window.saveUserProfileToFirebase);
+}
+if (avatarSelect) {
+    avatarSelect.addEventListener('change', window.saveUserProfileToFirebase);
+}
 
 // --- ÚJ GOMB ESEMÉNYKEZELŐJE (Összes játék listázása) ---
     // --- EZ A FRISSÍTETT VERZIÓ (CSERÉLD LE A RÉGIT ERRE) ---
