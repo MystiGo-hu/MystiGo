@@ -1052,7 +1052,8 @@
     onAuthStateChanged, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
-    sendEmailVerification
+    sendEmailVerification,
+    sendPasswordResetEmail // <-- EZT ADD HOZZÁ
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 
@@ -1137,6 +1138,44 @@ window.registerWithEmail = function() {
               alert(msg);
           });
   };
+
+
+// --- JELSZÓ VISSZAÁLLÍTÁS KÉRÉSE ---
+import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+window.requestPasswordReset = function(event) {
+    event.preventDefault(); // Megakadályozza az oldal újratöltését
+    
+    const emailInput = document.getElementById('email-input-field');
+    const email = emailInput.value.trim();
+    
+    if (!email) {
+        alert("Kérlek, írd be az email címedet a fenti mezőbe a visszaállításhoz!");
+        emailInput.focus();
+        return;
+    }
+    
+    // Elküldjük a visszaállító emailt a Firebase-nek
+    sendPasswordResetEmail(auth, email)
+        .then(() => {
+            // Bezárjuk a modalt, és üzenünk a felhasználónak
+            window.closeEmailModal();
+            showMessage(
+                'Jelszó Visszaállítás', 
+                `Egy linket küldtünk a(z) <strong>${email}</strong> címre. Kérlek, nézd meg a beérkező leveleidet (és a Spam mappát is!).`
+            );
+        })
+        .catch((error) => {
+            console.error("Jelszó visszaállítási hiba:", error);
+            // Nem adjuk ki a pontos hibát biztonsági okokból (pl. user-not-found)
+            window.closeEmailModal();
+            showMessage(
+                'Hiba történt', 
+                `Sikertelen kérés. Kérlek, ellenőrizd, hogy a <strong>${email}</strong> címet használod-e a belépéshez, vagy próbálj meg regisztrálni.`
+            );
+        });
+};
+
 
 
 // --- MODAL KEZELÉS (EZ HIÁNYZOTT!) ---
@@ -4984,6 +5023,16 @@ window.loadMoreGames = function() {
                  <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
                 <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
             </div>
+
+<div class="space-y-1">
+                 <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
+                <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
+                
+                <a href="#" onclick="requestPasswordReset(event)" class="block text-right text-xs font-semibold text-gray-500 hover:text-red-500 underline mt-1">
+                    Elfelejtettem a jelszavam
+                </a>
+            </div>
+
 
             <div class="flex flex-col sm:flex-row gap-3 pt-2">
                 <button onclick="loginWithEmail()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-md active:scale-95">
