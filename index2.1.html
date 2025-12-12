@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.14
+       v1.0.15
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -624,7 +624,7 @@
 
 
 
-    <div id="auth-icons-container" class="my-6 text-center">
+    <div id="auth-icons-container" class="mt-1 mb-6 text-center">
         
         <div id="login-buttons-wrapper" class="flex justify-center items-center gap-6">
             
@@ -1051,10 +1051,10 @@
     onAuthStateChanged, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
-    updateProfile // EZ HIÁNYZOTT! Fontos a név mentéséhez
+    updateProfile 
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
+  // --- MÁSOLD VISSZA A SAJÁT API KULCSAIDAT, HA ELTÉRNÉNEK ---
   const firebaseConfig = {
     apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
     authDomain: "mystigo-7b149.firebaseapp.com",
@@ -1072,95 +1072,54 @@
   const provider = new GoogleAuthProvider();
   let currentUser = null; 
 
-  // --- EMAIL REGISZTRÁCIÓ (JAVÍTOTT: Név és Avatar mentése azonnal) ---
+  // --- REGISZTRÁCIÓ ---
   window.registerWithEmail = function() {
     const email = document.getElementById('email-input-field').value;
     const password = document.getElementById('password-input-field').value;
-    
-    // Adatok begyűjtése a főképernyőről
     const nameInput = document.getElementById('team-name-input').value.trim();
     const avatarInput = document.getElementById('team-avatar-select').value;
 
-    if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
-    if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
+    if (!email || !password) { alert("Add meg az emailt és a jelszót!"); return; }
+    if (password.length < 6) { alert("A jelszó min. 6 karakter legyen!"); return; }
 
-    // Ha nincs név megadva, az email elejét használjuk
     const finalName = nameInput || email.split('@')[0];
     const finalAvatar = avatarInput || 'cat'; 
 
     createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-            console.log("✅ Fiók létrehozva:", user.email);
-
-            // 1. LÉPÉS: Frissítjük a felhasználó "Auth Profilját" (Ez a legbiztosabb név mentés)
             updateProfile(user, {
                 displayName: finalName,
                 photoURL: `https://ui-avatars.com/api/?name=${finalName}&background=0D8ABC&color=fff&size=128`
             }).then(() => {
-                // 2. LÉPÉS: Mentés az adatbázisba is
                 set(ref(db, 'users/' + user.uid + '/profile'), {
                     teamName: finalName,
                     teamAvatar: finalAvatar,
-                    lastUpdated: Date.now()
+                    email: email,
+                    regDate: Date.now()
                 }).then(() => {
-                    console.log("Profil adatbázisba mentve.");
-                    // Felület azonnali frissítése a helyes adatokkal
                     updateUserUI(true, user);
-                    alert("Sikeres regisztráció! Jó játékot!");
+                    alert("Sikeres regisztráció!");
                 });
-            }).catch((error) => {
-                console.error("Profil frissítési hiba:", error);
             });
         })
-        .catch((error) => {
-            console.error("Regisztrációs hiba:", error);
-            let msg = "Hiba történt: " + error.message;
-            if (error.code === 'auth/email-already-in-use') msg = "Ez az email cím már regisztrálva van. Próbálj meg inkább belépni!";
-            if (error.code === 'auth/weak-password') msg = "Túl gyenge jelszó (min. 6 karakter).";
-            alert(msg);
-        });
+        .catch((error) => { alert("Hiba: " + error.message); });
   };
 
-  // --- EMAIL BELÉPÉS ---
   window.loginWithEmail = function() {
       const email = document.getElementById('email-input-field').value;
       const password = document.getElementById('password-input-field').value;
-
-      if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
-
-      signInWithEmailAndPassword(auth, email, password)
-          .then((userCredential) => {
-            console.log("Sikeres belépés:", userCredential.user.email);
-            // A UI frissítést az onAuthStateChanged kezeli
-          })
-          .catch((error) => {
-              let msg = "Sikertelen belépés.";
-              if (error.code === 'auth/invalid-credential') msg = "Hibás email cím vagy jelszó.";
-              if (error.code === 'auth/user-not-found') msg = "Nincs ilyen felhasználó.";
-              if (error.code === 'auth/wrong-password') msg = "Hibás jelszó.";
-              alert(msg);
-          });
+      signInWithEmailAndPassword(auth, email, password).catch((error) => { alert("Hibás email vagy jelszó!"); });
   };
 
-  // --- GOOGLE BELÉPÉS ---
   window.loginWithGoogle = function() {
-      signInWithPopup(auth, provider)
-          .then((result) => {
-              const user = result.user;
-              console.log("Belépve:", user.displayName);
-              // Itt nem kell külön menteni, a Google profilból jön az adat
-          }).catch((error) => {
-              console.error("Hiba:", error);
-              alert("Sikertelen bejelentkezés.");
-          });
+      signInWithPopup(auth, provider).catch((error) => { console.error(error); });
   };
 
   window.logout = function() {
-      signOut(auth).then(() => { console.log("Kilépve"); });
+      signOut(auth);
   };
 
-  // --- AUTH ÁLLAPOT FIGYELŐ ---
   onAuthStateChanged(auth, (user) => {
       if (user) {
           currentUser = user;
@@ -1171,7 +1130,65 @@
       }
   });
 
-  // --- LIMIT ELLENŐRZÉS ---
+  // --- UI FRISSÍTÉS (JAVÍTVA: Avatar törlés kilépéskor) ---
+  function updateUserUI(isLoggedIn, user = null) {
+    const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
+    const profileDiv = document.getElementById('user-profile-display');
+    window.closeEmailModal(); 
+
+    if (isLoggedIn && user) {
+        if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
+        profileDiv.classList.remove('hidden');
+        
+        const displayName = user.displayName || user.email.split('@')[0];
+        document.getElementById('user-name').textContent = displayName;
+        
+        const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
+        document.getElementById('user-photo').src = photoURL;
+
+        const uid = user.uid;
+        get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if (data.teamName) {
+                    document.getElementById('user-name').textContent = data.teamName;
+                    const nameInput = document.getElementById('team-name-input');
+                    if(nameInput) nameInput.value = data.teamName;
+                }
+                if (data.teamAvatar) {
+                    const avatarSelect = document.getElementById('team-avatar-select');
+                    if(avatarSelect) avatarSelect.value = data.teamAvatar;
+                }
+            }
+        });
+
+        get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
+            const score = snapshot.exists() ? snapshot.val() : 0;
+            const scoreEl = document.getElementById('user-total-score');
+            if(scoreEl) scoreEl.textContent = `🏆 ${score} pont`;
+        });
+
+    } else {
+        // KILÉPÉS ÁLLAPOT
+        if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
+        profileDiv.classList.add('hidden');
+        
+        // --- JAVÍTÁS ITT: MINDEN MEZŐ TÖRLÉSE ---
+        const nameInput = document.getElementById('team-name-input');
+        if(nameInput) nameInput.value = '';
+        
+        const avatarSelect = document.getElementById('team-avatar-select');
+        if(avatarSelect) avatarSelect.value = ''; // Avatar választó törlése
+        
+        const userPhoto = document.getElementById('user-photo');
+        if(userPhoto) userPhoto.src = ''; // Kép törlése
+        
+        const scoreEl = document.getElementById('user-total-score');
+        if(scoreEl) scoreEl.textContent = '';
+    }
+  }
+  
+  // --- ADATBÁZIS MŰVELETEK ---
   window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
       if(!gameId) return true;
       const gameRef = ref(db, 'games/' + gameId + '/count');
@@ -1184,31 +1201,15 @@
       } catch (error) { console.error(error); return true; }
   };
 
-  // --- PROFIL MENTÉSE (Kézi módosításkor) ---
-  window.saveUserProfileToFirebase = function() {
-    if (currentUser) {
-        const uid = currentUser.uid;
-        const name = document.getElementById('team-name-input').value;
-        const avatar = document.getElementById('team-avatar-select').value;
-
-        set(ref(db, 'users/' + uid + '/profile'), {
-            teamName: name,
-            teamAvatar: avatar,
-            lastUpdated: Date.now()
-        });
-    }
-  };
-
-  // --- PONTSZÁM MENTÉSE (JAVÍTOTT: TotalScore növelése) ---
   window.saveScoreToFirebase = function(data) {
-      if (!data.gameId) return;
+      if (!data.gameId) { console.error("Nincs Game ID a mentéshez!"); return; }
+      console.log("Mentés indítása:", data);
       
       const now = new Date();
       const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      // 1. Mentés a játék ranglistájára
-      const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
-      push(leaderboardRef, {
+      // Leaderboard mentés
+      push(ref(db, 'leaderboard/' + data.gameId), {
           teamName: data.teamName || "Névtelen",
           teamAvatar: data.teamAvatar || "no avatar",
           score: data.score,
@@ -1216,13 +1217,12 @@
           geofenceTime: data.geofenceTime,
           timestamp: Date.now(),
           dateString: readableDate 
-      });
+      }).then(() => console.log("Ranglista mentve."))
+        .catch((e) => console.error("Ranglista hiba:", e));
 
-      // 2. Mentés a felhasználó profiljához (HA be van lépve)
+      // User History
       if (currentUser) {
           const uid = currentUser.uid;
-          
-          // Előzményekbe
           push(ref(db, 'users/' + uid + '/history'), {
               gameId: data.gameId,
               score: data.score,
@@ -1230,28 +1230,30 @@
               dateString: readableDate, 
               teamName: data.teamName
           });
-
-          // Összpontszám növelése (Transaction a biztonságos növeléshez)
-          const userTotalRef = ref(db, 'users/' + uid + '/totalScore');
-          runTransaction(userTotalRef, (currentScore) => {
-              // Ha még nincs pontja, 0-ról indul, ahhoz adjuk a mostanit
+          runTransaction(ref(db, 'users/' + uid + '/totalScore'), (currentScore) => {
               return (currentScore || 0) + data.score;
-          }).then(() => {
-              console.log("🏆 Pontszám sikeresen jóváírva a profilodon!");
-              // UI frissítése a mentés után
-              updateUserUI(true, currentUser);
-          }).catch((err) => console.error("Pontszám mentési hiba:", err));
+          }).then(() => updateUserUI(true, currentUser));
       }
+  };
+  
+  window.saveUserProfileToFirebase = function() {
+    if (currentUser) {
+        const name = document.getElementById('team-name-input').value;
+        const avatar = document.getElementById('team-avatar-select').value;
+        set(ref(db, 'users/' + currentUser.uid + '/profile'), {
+            teamName: name,
+            teamAvatar: avatar,
+            lastUpdated: Date.now()
+        });
+    }
   };
 
   window.incrementGameCompletion = async function(gameId) {
       if(!gameId) return;
-      try {
-          await runTransaction(ref(db, 'games/' + gameId + '/completed'), (c) => (c || 0) + 1);
-      } catch (e) { console.error(e); }
+      try { await runTransaction(ref(db, 'games/' + gameId + '/completed'), (c) => (c || 0) + 1); } catch (e) { console.error(e); }
   };
 
-  // --- RANGLISTA LEKÉRDEZÉS (Marad a régi logikád) ---
+  // --- RANGLISTA LEKÉRDEZÉS (JAVÍTOTT QUERY) ---
   window.currentLeaderboardData = [];
   window.openLeaderboardModal = async function(specificGameId = null) {
       const gameId = specificGameId || window.currentGameId;
@@ -1260,7 +1262,7 @@
       const modal = document.getElementById('leaderboard-modal');
       const listBody = document.getElementById('leaderboard-modal-body');
       
-      // Szűrő UI létrehozása (ha nincs)
+      // Szűrő gombok (ha nincsenek)
       const modalHeader = document.getElementById('leaderboard-header'); 
       if (modalHeader && !document.getElementById('leaderboard-filters')) {
           const filterDiv = document.createElement('div');
@@ -1280,8 +1282,10 @@
       listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8">Betöltés...</td></tr>';
 
       try {
-          const q = query(ref(db, 'leaderboard/' + gameId));
+          // Pontszám szerinti lekérés
+          const q = query(ref(db, 'leaderboard/' + gameId), orderByChild('score'));
           const snapshot = await get(q);
+          
           if (!snapshot.exists()) {
               listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény.</td></tr>';
               window.currentLeaderboardData = [];
@@ -1289,73 +1293,14 @@
           }
           let results = [];
           snapshot.forEach((child) => results.push(child.val()));
-          window.currentLeaderboardData = results;
-          setTimeout(() => filterLeaderboard('today'), 50);
+          // Megfordítjuk, hogy a legnagyobb pontszám legyen elöl
+          window.currentLeaderboardData = results.reverse();
+          setTimeout(() => filterLeaderboard('all'), 50); // Alapból mutassuk az összeset
       } catch (error) {
-          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba: ${error.message}</td></tr>`;
+          console.error(error);
+          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba: ${error.message}<br>Ellenőrizd a Rules-t!</td></tr>`;
       }
   };
-
-  // --- UI FRISSÍTÉS (JAVÍTOTT: Név és Pontszám kezelés) ---
-  function updateUserUI(isLoggedIn, user = null) {
-    const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
-    const profileDiv = document.getElementById('user-profile-display');
-    window.closeEmailModal(); 
-
-    if (isLoggedIn && user) {
-        if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
-        profileDiv.classList.remove('hidden');
-        
-        // 1. Alapadatok beállítása AZONNAL (hogy ne villogjon)
-        // Ha van Auth-ban név, azt használjuk, ha nincs, akkor az email elejét
-        const displayName = user.displayName || user.email.split('@')[0];
-        
-        document.getElementById('user-name').textContent = displayName;
-        
-        // Avatar
-        const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
-        document.getElementById('user-photo').src = photoURL;
-
-        const uid = user.uid;
-        
-        // 2. Profil betöltése az adatbázisból (Ez felülírhatja a fentit, ha van mentett adat)
-        get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                if (data.teamName) {
-                    document.getElementById('user-name').textContent = data.teamName;
-                    // Visszaírjuk az input mezőbe is
-                    const nameInput = document.getElementById('team-name-input');
-                    if(nameInput) nameInput.value = data.teamName;
-                }
-                if (data.teamAvatar) {
-                    const avatarSelect = document.getElementById('team-avatar-select');
-                    if(avatarSelect) avatarSelect.value = data.teamAvatar;
-                }
-            }
-        }).catch((err) => console.error(err));
-
-        // 3. Összpontszám betöltése
-        get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
-            const score = snapshot.exists() ? snapshot.val() : 0;
-            const scoreEl = document.getElementById('user-total-score');
-            if(scoreEl) {
-                // Itt biztosítjuk, hogy csak 1 sor legyen
-                scoreEl.innerHTML = `🏆 ${score} pont`;
-            }
-        });
-
-    } else {
-        if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
-        profileDiv.classList.add('hidden');
-        
-        // Mezők ürítése
-        const nameInput = document.getElementById('team-name-input');
-        if(nameInput) nameInput.value = '';
-        const scoreEl = document.getElementById('user-total-score');
-        if(scoreEl) scoreEl.innerHTML = '';
-    }
-}
 </script>
 
 
@@ -3601,17 +3546,30 @@ if (reviewBtn) {
 	              }
         }
 
-        function watchPosition() {
+        ffunction watchPosition() {
             if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
+            
             if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
+                // JAVÍTÁS: Lazább GPS beállítások a stabilabb működésért
+                const gpsOptions = {
+                    enableHighAccuracy: true, // Próbáljon pontos lenni
+                    timeout: 30000,           // 10 helyett 30 másodpercet várjon
+                    maximumAge: 10000         // Elfogad 10 másodperces régi jelet is
+                };
+
                 appState.geoWatchId = navigator.geolocation.watchPosition(
                     (pos) => { updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); }, 
                     (err) => {
                         console.warn(`GEO ERROR(${err.code}): ${err.message}`);
-                        if (!appState.isTestModeEnabled) { showLoading(false); showMessage('GPS Hiba', t('gps_required'), () => { resetApp(); }); } 
-                        else { showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); checkGeofence(); }
+                        // Csak akkor dobjunk hibát, ha tényleg semmi nincs
+                        if (err.code === 1) { // Permission Denied
+                             showMessage('GPS Hiba', 'A helymeghatározás le van tiltva. Kérlek engedélyezd a böngésző beállításaiban!', () => resetApp());
+                        } else if (!appState.isTestModeEnabled) { 
+                             // Timeout vagy egyéb hiba esetén ne lépjünk ki azonnal, hátha magához tér
+                             console.log("GPS jel gyenge, várakozás...");
+                        } 
                     },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000, frequency: 3000 }
+                    gpsOptions
                 );
             } else if (appState.isTestModeEnabled && !appState.isManualMock) {
                  const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
