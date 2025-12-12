@@ -577,12 +577,7 @@
     
     <input type="text" id="team-name-input" maxlength="25" placeholder="Pl. Villám-Macskák 2024" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue outline-none">
     
-    <div class="flex justify-between items-start mt-1 mb-3">
-        <p class="text-[10px] text-gray-500 italic">
-            💡 Tipp: Válassz egyedi nevet, hogy könnyen megtaláld magad a ranglistán!
-        </p>
-    </div>
-    
+        
     <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
         <option value="">Válassz Avatart</option>
         <option value="cat">Mysti 🐱</option>
@@ -621,6 +616,13 @@
         <option value="laptop">Laptop 💻</option>
         <option value="floppy">Floppy 💾</option>
     </select>
+<div class="flex justify-between items-start mt-1 mb-3">
+        <p class="text-[10px] text-gray-500 italic">
+            💡 Tipp: Válassz egyedi nevet és avatart, hogy könnyen megtaláld magad a ranglistán!
+        </p>
+    </div>
+
+
 
     <div id="auth-icons-container" class="my-6 text-center">
         
@@ -1030,7 +1032,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, runTransaction, push, query, orderByChild, limitToLast, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, runTransaction, push, query, orderByChild, limitToLast, get, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -1193,6 +1195,30 @@ window.loginWithGoogle = function() {
           return result.committed;
       } catch (error) { console.error(error); return true; }
   };
+
+
+// --- PROFIL MENTÉSE (Név + Avatar) ---
+window.saveUserProfileToFirebase = function() {
+    // Csak akkor mentünk, ha van belépett felhasználó
+    if (currentUser) {
+        const uid = currentUser.uid;
+        const name = document.getElementById('team-name-input').value;
+        const avatar = document.getElementById('team-avatar-select').value;
+
+        // Mentés a 'users/UID/profile' útvonalra
+        set(ref(db, 'users/' + uid + '/profile'), {
+            teamName: name,
+            teamAvatar: avatar,
+            lastUpdated: Date.now()
+        }).then(() => {
+            console.log("Profil adatok szinkronizálva a felhőbe.");
+        }).catch((error) => {
+            console.error("Hiba a profil mentésekor:", error);
+        });
+    }
+};
+
+
 
  // 2. MENTÉS (Eredeti + Google mentés egyesítve)
   window.saveScoreToFirebase = function(data) {
@@ -1594,30 +1620,60 @@ window.loginWithGoogle = function() {
 function updateUserUI(isLoggedIn, user = null) {
     const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
     const profileDiv = document.getElementById('user-profile-display');
-    
-    // Mindenképp bezárjuk a modalt, ha változik az állapot (pl. sikeres belépés)
     window.closeEmailModal();
 
     if (isLoggedIn && user) {
-        // Belépve: Gombok elrejtése, Profil mutatása
         if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
         profileDiv.classList.remove('hidden');
         
-        const displayName = user.displayName || user.email.split('@')[0]; // Ha nincs név, az email elejét mutatjuk
+        // Alapadatok megjelenítése
+        const displayName = user.displayName || user.email.split('@')[0];
         document.getElementById('user-name').textContent = displayName;
         
-        // Avatar: Ha van Google fotó, azt használjuk, ha nincs, generálunk egyet a névből
+        // Avatar alapbeállítás (amíg be nem töltjük az igazit)
         const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
         document.getElementById('user-photo').src = photoURL;
 
-        // Automatikus névkitöltés a játékhoz
-        const nameInput = document.getElementById('team-name-input');
-        if(nameInput && !nameInput.value) nameInput.value = displayName;
+        // --- ADATOK BETÖLTÉSE A FELHŐBŐL ---
+        const uid = user.uid;
+        
+        // 1. Profil (Név és Avatar) betöltése
+        get(ref(db, 'users/' + uid + '/profile')).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                
+                // Ha van mentett név, beírjuk a mezőbe
+                if (data.teamName) {
+                    document.getElementById('team-name-input').value = data.teamName;
+                    // Ha a Google név más, mint a játékos név, itt frissíthetjük a kijelzőt is:
+                    document.getElementById('user-name').textContent = data.teamName;
+                }
+                
+                // Ha van mentett avatar, kiválasztjuk
+                if (data.teamAvatar) {
+                    document.getElementById('team-avatar-select').value = data.teamAvatar;
+                }
+            }
+        }).catch((err) => console.error(err));
+
+        // 2. Összpontszám betöltése (Ha szeretnéd kiírni)
+        get(ref(db, 'users/' + uid + '/totalScore')).then((snapshot) => {
+            const score = snapshot.exists() ? snapshot.val() : 0;
+            // Itt kiírhatod a pontot a profil mellé, ha szeretnéd
+            // Pl. módosítod a HTML-t, hogy legyen egy <span id="user-total-score"></span>
+            const scoreDisplay = document.getElementById('user-name');
+            if(scoreDisplay) {
+                scoreDisplay.innerHTML += `<br><span class="text-[10px] text-yellow-600">🏆 ${score} pont</span>`;
+            }
+        });
 
     } else {
-        // Kilépve: Gombok mutatása, Profil elrejtése
         if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
         profileDiv.classList.add('hidden');
+        
+        // Mezők ürítése kilépéskor
+        document.getElementById('team-name-input').value = '';
+        document.getElementById('team-avatar-select').value = '';
     }
 }
 
@@ -4592,10 +4648,29 @@ window.nukeAllStorage = function() {
 
             // 2. Mentés: Figyeljük a változást és azonnal mentünk
             if (nameInputEl) {
-                nameInputEl.addEventListener('input', (e) => {
-                    localStorage.setItem('mystigo_pref_teamName', e.target.value);
-                });
-            }
+    nameInputEl.addEventListener('input', (e) => {
+        // Ez a régi (böngészőbe mentés) marad:
+        localStorage.setItem('mystigo_pref_teamName', e.target.value);
+        
+        // EZT ADD HOZZÁ (Felhőbe mentés):
+        if (typeof window.saveUserProfileToFirebase === 'function') {
+            // Kis késleltetés (debounce), hogy ne minden betűnél küldjünk adatot
+            clearTimeout(window.saveProfileTimeout);
+            window.saveProfileTimeout = setTimeout(window.saveUserProfileToFirebase, 1000);
+        }
+    });
+}
+
+if (avatarSelectEl) {
+    avatarSelectEl.addEventListener('change', (e) => {
+        localStorage.setItem('mystigo_pref_teamAvatar', e.target.value);
+        
+        // EZT ADD HOZZÁ:
+        if (typeof window.saveUserProfileToFirebase === 'function') {
+            window.saveUserProfileToFirebase();
+        }
+    });
+}
 
 // --- ÚJ KIDS MÓD LOGIKA ---
             const kidsCheckbox = document.getElementById('kids-mode-checkbox');
