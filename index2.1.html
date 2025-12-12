@@ -581,7 +581,6 @@
         <p class="text-[10px] text-gray-500 italic">
             💡 Tipp: Válassz egyedi nevet, hogy könnyen megtaláld magad a ranglistán!
         </p>
-        
     </div>
     
     <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
@@ -589,6 +588,7 @@
         <option value="cat">Mysti 🐱</option>
         <option value="dog">Kutya 🐶</option>
         <option value="panda">Panda 🐼</option>
+        <option value="zombie">Zombi 🧟</option>
         <option value="shark">Cápa 🦈</option>
         <option value="parrot">Papagáj 🦜</option>
         <option value="bear">Maci 🐻</option>
@@ -611,7 +611,6 @@
         <option value="cupcake">Muffin 🧁</option>
         <option value="lollipop">Nyalóka 🍭</option>
         <option value="smile">Smile 😎</option>
-        <option value="zombie">Zombi 🧟</option>
         <option value="ballerina">Belerina 🩰</option>
         <option value="police">Rendőr 🚓</option>
         <option value="firefighter">Tűzoltó 🚒</option>
@@ -623,20 +622,34 @@
         <option value="floppy">Floppy 💾</option>
     </select>
 
-<div id="auth-container" class="mb-4 text-center">
-    <button id="btn-google-login" onclick="loginWithGoogle()" class="main-button w-full bg-white text-gray-700 border border-gray-300 flex items-center justify-center gap-2">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5">
-    </button>
+    <div id="auth-icons-container" class="my-6 text-center">
+        
+        <div id="login-buttons-wrapper" class="flex justify-center items-center gap-6">
+            
+            <button onclick="loginWithGoogle()" class="group relative flex items-center justify-center p-3 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100" title="Belépés Google fiókkal">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6 group-hover:scale-110 transition-transform">
+                <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Google belépés</span>
+            </button>
 
-    <div id="user-profile-display" class="hidden bg-green-50 p-2 rounded-lg border border-green-200 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <img id="user-photo" src="" class="w-8 h-8 rounded-full">
-            <span id="user-name" class="text-sm font-bold text-green-800"></span>
+            <button onclick="openEmailModal()" class="group relative flex items-center justify-center p-3 bg-brand-blue rounded-full shadow-md hover:shadow-lg hover:bg-cyan-700 transition-all duration-300 border border-transparent" title="Belépés Email címmel">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white group-hover:scale-110 transition-transform">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                <span class="absolute -bottom-8 scale-0 transition-all rounded bg-gray-800 p-1 text-xs text-white group-hover:scale-100 w-max">Email belépés</span>
+            </button>
         </div>
-        <button onclick="logout()" class="text-xs text-red-500 underline">Kilépés</button>
-    </div>
-</div>
 
+        <div id="user-profile-display" class="hidden bg-green-50 p-3 rounded-lg border border-green-200 flex items-center justify-between mx-auto max-w-xs shadow-sm">
+            <div class="flex items-center gap-3">
+                <img id="user-photo" src="" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+                <div class="text-left">
+                     <span id="user-name" class="block text-sm font-bold text-green-900 truncate max-w-[150px]"></span>
+                     <span class="text-xs text-green-600">Belépve</span>
+                </div>
+            </div>
+            <button onclick="logout()" class="text-xs text-red-500 hover:text-red-700 font-medium underline p-2">Kilépés</button>
+        </div>
+    </div>
 
     <button id="gps-test-btn" onclick="testGpsConnection()" class="w-full mt-3 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
         🛰️ GPS Működésének Tesztelése
@@ -648,11 +661,8 @@
 
     <div id="gps-test-container" class="hidden mt-3 bg-white p-2 rounded-lg border border-gray-200 shadow-inner">
         <p id="gps-test-status" class="text-xs font-bold text-center text-brand-blue mb-2">📡 Jel keresése... (Kérlek várj)</p>
-        
         <div id="gps-test-map" class="w-full h-40 rounded border border-gray-300 relative z-10"></div>
-        
         <div id="gps-result-message" class="hidden mt-2 p-2 rounded text-xs font-bold text-center"></div>
-        
         <div class="mt-2 text-[10px] text-gray-400 text-center">
             Pontosság: <span id="gps-accuracy-value">-</span> méter
         </div>
@@ -1021,8 +1031,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, runTransaction, push, query, orderByChild, limitToLast, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } 
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 
   // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
@@ -1042,6 +1052,102 @@
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 let currentUser = null; // Ebben tároljuk majd a belépett felhasználót
+
+
+// --- EMAIL REGISZTRÁCIÓ (Javított hibakezeléssel) ---
+  window.registerWithEmail = function() {
+      const email = document.getElementById('email-input-field').value;
+      const password = document.getElementById('password-input-field').value;
+
+      if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
+      if (password.length < 6) { alert("A jelszónak legalább 6 karakternek kell lennie!"); return; }
+
+      createUserWithEmailAndPassword(auth, email, password)
+          .then((userCredential) => {
+              const user = userCredential.user;
+              console.log("Sikeres regisztráció:", user.email);
+              alert("Sikeres regisztráció! Most már be vagy lépve.");
+              updateUserUI(true, user); // Azonnal frissítjük a felületet
+          })
+          .catch((error) => {
+              console.error("Regisztrációs hiba:", error);
+              // Részletesebb hibaüzenetek
+              let msg = "Hiba történt: " + error.message;
+              if (error.code === 'auth/email-already-in-use') msg = "Ez az email cím már regisztrálva van. Próbálj meg inkább belépni!";
+              if (error.code === 'auth/invalid-email') msg = "Hibás email cím formátum.";
+              if (error.code === 'auth/weak-password') msg = "Túl gyenge jelszó (min. 6 karakter).";
+              if (error.code === 'auth/operation-not-allowed') msg = "Az Email/Jelszó belépés nincs engedélyezve a Firebase konzolon!";
+              alert(msg);
+          });
+  };
+
+  // --- EMAIL BELÉPÉS ---
+  window.loginWithEmail = function() {
+      const email = document.getElementById('email-input-field').value;
+      const password = document.getElementById('password-input-field').value;
+
+      if (!email || !password) { alert("Kérlek add meg az email címet és a jelszót!"); return; }
+
+      signInWithEmailAndPassword(auth, email, password)
+          .then((userCredential) => {
+              console.log("Sikeres belépés:", userCredential.user.email);
+              // A UI magától frissül az onAuthStateChanged miatt!
+          })
+          .catch((error) => {
+              console.error(error);
+              let msg = "Sikertelen belépés.";
+              if (error.code === 'auth/invalid-credential') msg = "Hibás email cím vagy jelszó.";
+              if (error.code === 'auth/user-not-found') msg = "Nincs ilyen felhasználó. Regisztrálj előbb!";
+              if (error.code === 'auth/wrong-password') msg = "Hibás jelszó.";
+              alert(msg);
+          });
+  };
+
+
+// --- MODAL KEZELÉS (EZ HIÁNYZOTT!) ---
+window.openEmailModal = function() {
+    const modal = document.getElementById('email-modal');
+    const modalContent = document.getElementById('email-modal-content');
+    if (modal && modalContent) {
+        modal.classList.remove('hidden');
+        // Kis animáció a megjelenéshez
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }, 10);
+    } else {
+        console.error("Hiba: Nem találom az 'email-modal' elemet a HTML-ben!");
+    }
+};
+
+window.closeEmailModal = function() {
+    const modal = document.getElementById('email-modal');
+    const modalContent = document.getElementById('email-modal-content');
+    
+    if (modal && modalContent) {
+        // Kis animáció az eltűnéshez
+        modalContent.classList.remove('scale-100');
+        modalContent.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // Mezők törlése bezáráskor
+            const emailInput = document.getElementById('email-input-field');
+            const passInput = document.getElementById('password-input-field');
+            if(emailInput) emailInput.value = '';
+            if(passInput) passInput.value = '';
+        }, 200); 
+    }
+};
+
+// Bezárás, ha a sötét háttérre kattintanak (ez csak akkor fut le, ha létezik az elem)
+const emailModalEl = document.getElementById('email-modal');
+if (emailModalEl) {
+    emailModalEl.addEventListener('click', function(e) {
+        if (e.target === this) {
+            window.closeEmailModal();
+        }
+    });
+}
 
 
 window.loginWithGoogle = function() {
@@ -1484,21 +1590,33 @@ window.loginWithGoogle = function() {
 
 
 
+// UI Frissítése be/kilépéskor (Modernizált verzió)
 function updateUserUI(isLoggedIn, user = null) {
-    const loginBtn = document.getElementById('btn-google-login');
+    const loginButtonsWrapper = document.getElementById('login-buttons-wrapper');
     const profileDiv = document.getElementById('user-profile-display');
     
+    // Mindenképp bezárjuk a modalt, ha változik az állapot (pl. sikeres belépés)
+    window.closeEmailModal();
+
     if (isLoggedIn && user) {
-        loginBtn.classList.add('hidden');
+        // Belépve: Gombok elrejtése, Profil mutatása
+        if(loginButtonsWrapper) loginButtonsWrapper.classList.add('hidden');
         profileDiv.classList.remove('hidden');
-        document.getElementById('user-name').textContent = user.displayName;
-        document.getElementById('user-photo').src = user.photoURL;
         
+        const displayName = user.displayName || user.email.split('@')[0]; // Ha nincs név, az email elejét mutatjuk
+        document.getElementById('user-name').textContent = displayName;
+        
+        // Avatar: Ha van Google fotó, azt használjuk, ha nincs, generálunk egyet a névből
+        const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${displayName}&background=0D8ABC&color=fff&size=128`;
+        document.getElementById('user-photo').src = photoURL;
+
         // Automatikus névkitöltés a játékhoz
         const nameInput = document.getElementById('team-name-input');
-        if(nameInput && !nameInput.value) nameInput.value = user.displayName;
+        if(nameInput && !nameInput.value) nameInput.value = displayName;
+
     } else {
-        loginBtn.classList.remove('hidden');
+        // Kilépve: Gombok mutatása, Profil elrejtése
+        if(loginButtonsWrapper) loginButtonsWrapper.classList.remove('hidden');
         profileDiv.classList.add('hidden');
     }
 }
@@ -4722,5 +4840,85 @@ window.loadMoreGames = function() {
     </script>
 
 
-</body>
+<div id="email-modal" class="fixed inset-0 bg-black/60 hidden z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
+    
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden transform transition-all scale-95" id="email-modal-content">
+        
+        <div class="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-brand-blue"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A7.501 7.501 0 0 1 4.501 20.118Z" /></svg>
+                Fiók kezelése
+            </h3>
+            <button onclick="closeEmailModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full p-1 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-gray-600 mb-4 text-center">Add meg az adataidat a belépéshez vagy új fiók létrehozásához.</p>
+            
+            <div class="space-y-1">
+                <label for="email-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Email cím</label>
+                <input type="email" id="email-input-field" placeholder="pelda@email.hu" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
+            </div>
+            
+            <div class="space-y-1">
+                 <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
+                <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                <button onclick="loginWithEmail()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-md active:scale-95">
+   	 	Belépés
+	</button>
+                <button onclick="registerWithEmail()" class="flex-1 bg-white border-2 border-brand-blue text-brand-blue py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition shadow-sm active:scale-95">
+                    Regisztráció
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</body> ```
+
+### 3. LÉPÉS: JavaScript módosítása (Modal kezelés és UI frissítés)
+
+Menj a `<script type="module">` részbe.
+
+**A. Új függvények a modal nyitására/zárására:**
+Másold be ezeket valahova a többi `window.` kezdetű függvény mellé (pl. a `loginWithEmail` fölé):
+
+```javascript
+// --- MODAL KEZELÉS (Felugró ablak) ---
+window.openEmailModal = function() {
+    const modal = document.getElementById('email-modal');
+    const modalContent = document.getElementById('email-modal-content');
+    modal.classList.remove('hidden');
+    // Kis animáció a megjelenéshez
+    setTimeout(() => {
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+};
+
+window.closeEmailModal = function() {
+    const modal = document.getElementById('email-modal');
+    const modalContent = document.getElementById('email-modal-content');
+    // Kis animáció az eltűnéshez
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        // Mezők törlése bezáráskor (opcionális, de hasznos)
+        document.getElementById('email-input-field').value = '';
+        document.getElementById('password-input-field').value = '';
+    }, 200); // Várjuk meg az animációt
+};
+
+// Bezárás, ha a sötét háttérre kattintanak
+document.getElementById('email-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            window.closeEmailModal();
+        }
+    });
+</script> </body>
 </html>
