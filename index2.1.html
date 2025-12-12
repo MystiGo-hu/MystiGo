@@ -4949,88 +4949,99 @@ window.loadMoreGames = function() {
             renderGameList(appState.currentFilteredGames);
         };
 
+        // --- HIÁNYZÓ FÜGGVÉNYEK PÓTLÁSA ---
+        
+        // Ez kezeli az URL-ből jövő szűréseket (pl. QR kódos indítás)
+        window.checkUrlParametersAndFilter = function() {
+            if (typeof window.handleInitialUrlFiltering === 'function') {
+                window.handleInitialUrlFiltering();
+            }
+        };
+
+        // Ez nyitja meg az Email/Jelszó ablakot
+        window.openEmailModal = function() {
+            const modal = document.getElementById('email-modal');
+            const modalContent = document.getElementById('email-modal-content');
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Kis animáció a megjelenéshez
+                setTimeout(() => {
+                    if(modalContent) {
+                        modalContent.classList.remove('scale-95');
+                        modalContent.classList.add('scale-100');
+                    }
+                }, 10);
+            }
+        };
+
+        // Ez zárja be az ablakot
+        window.closeEmailModal = function() {
+            const modal = document.getElementById('email-modal');
+            const modalContent = document.getElementById('email-modal-content');
+            
+            if (modal && modalContent) {
+                modalContent.classList.remove('scale-100');
+                modalContent.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    // Mezők törlése
+                    const emailInput = document.getElementById('email-input-field');
+                    const passInput = document.getElementById('password-input-field');
+                    if(emailInput) emailInput.value = '';
+                    if(passInput) passInput.value = '';
+                }, 200); 
+            }
+        };
+
+        // Bezárás, ha a sötét háttérre kattintanak
+        const emailModalEl = document.getElementById('email-modal');
+        if (emailModalEl) {
+            emailModalEl.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    window.closeEmailModal();
+                }
+            });
+        }
+
     </script>
 
-
-<div id="email-modal" class="fixed inset-0 bg-black/60 hidden z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
-    
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden transform transition-all scale-95" id="email-modal-content">
+    <div id="email-modal" class="fixed inset-0 bg-black/60 hidden z-[9999] flex items-center justify-center backdrop-blur-sm transition-opacity p-4">
         
-        <div class="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
-            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-brand-blue"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A7.501 7.501 0 0 1 4.501 20.118Z" /></svg>
-                Fiók kezelése
-            </h3>
-            <button onclick="closeEmailModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full p-1 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-            </button>
-        </div>
-
-        <div class="p-6 space-y-4">
-            <p class="text-sm text-gray-600 mb-4 text-center">Add meg az adataidat a belépéshez vagy új fiók létrehozásához.</p>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden transform transition-all scale-95" id="email-modal-content">
             
-            <div class="space-y-1">
-                <label for="email-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Email cím</label>
-                <input type="email" id="email-input-field" placeholder="pelda@email.hu" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
-            </div>
-            
-            <div class="space-y-1">
-                 <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
-                <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                <button onclick="loginWithEmail()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-md active:scale-95">
-   	 	Belépés
-	</button>
-                <button onclick="registerWithEmail()" class="flex-1 bg-white border-2 border-brand-blue text-brand-blue py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition shadow-sm active:scale-95">
-                    Regisztráció
+            <div class="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-brand-blue"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A7.501 7.501 0 0 1 4.501 20.118Z" /></svg>
+                    Fiók kezelése
+                </h3>
+                <button onclick="closeEmailModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full p-1 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-gray-600 mb-4 text-center">Add meg az adataidat a belépéshez vagy új fiók létrehozásához.</p>
+                
+                <div class="space-y-1">
+                    <label for="email-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Email cím</label>
+                    <input type="email" id="email-input-field" placeholder="pelda@email.hu" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
+                </div>
+                
+                <div class="space-y-1">
+                     <label for="password-input-field" class="text-xs font-bold text-gray-700 uppercase ml-1">Jelszó</label>
+                    <input type="password" id="password-input-field" placeholder="Minimum 6 karakter" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition">
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button onclick="loginWithEmail()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-md active:scale-95">
+                        Belépés
+                    </button>
+                    <button onclick="registerWithEmail()" class="flex-1 bg-white border-2 border-brand-blue text-brand-blue py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition shadow-sm active:scale-95">
+                        Regisztráció
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-</body> ```
-
-### 3. LÉPÉS: JavaScript módosítása (Modal kezelés és UI frissítés)
-
-Menj a `<script type="module">` részbe.
-
-**A. Új függvények a modal nyitására/zárására:**
-Másold be ezeket valahova a többi `window.` kezdetű függvény mellé (pl. a `loginWithEmail` fölé):
-
-```javascript
-// --- MODAL KEZELÉS (Felugró ablak) ---
-window.openEmailModal = function() {
-    const modal = document.getElementById('email-modal');
-    const modalContent = document.getElementById('email-modal-content');
-    modal.classList.remove('hidden');
-    // Kis animáció a megjelenéshez
-    setTimeout(() => {
-        modalContent.classList.remove('scale-95');
-        modalContent.classList.add('scale-100');
-    }, 10);
-};
-
-window.closeEmailModal = function() {
-    const modal = document.getElementById('email-modal');
-    const modalContent = document.getElementById('email-modal-content');
-    // Kis animáció az eltűnéshez
-    modalContent.classList.remove('scale-100');
-    modalContent.classList.add('scale-95');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        // Mezők törlése bezáráskor (opcionális, de hasznos)
-        document.getElementById('email-input-field').value = '';
-        document.getElementById('password-input-field').value = '';
-    }, 200); // Várjuk meg az animációt
-};
-
-// Bezárás, ha a sötét háttérre kattintanak
-document.getElementById('email-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            window.closeEmailModal();
-        }
-    });
-</script> </body>
+</body>
 </html>
