@@ -348,6 +348,27 @@
             font-size: 14px;
             cursor: pointer;
         }
+
+
+/* --- IUBENDA IKON KICSINYÍTÉSE --- */
+        #iubenda-cs-badge {
+            transform: scale(0.75) !important; /* 75%-os méret (állíthatod: 0.5 - 1.0) */
+            transform-origin: bottom left !important; /* Bal alsó sarokhoz igazítva zsugorodik */
+            bottom: 10px !important; /* Finomhangolás a képernyő szélétől */
+            left: 10px !important;
+            z-index: 9000 !important; /* Hogy biztosan ne takarja ki a mi dolgainkat */
+        }
+
+        /* Ha mobilnézeten még kisebbet szeretnél: */
+        @media (max-width: 640px) {
+            #iubenda-cs-badge {
+                transform: scale(0.65) !important; /* Mobilon még kisebb (65%) */
+                bottom: 50px !important; /* Feljebb, hogy ne lógjon bele az alsó menübe/gombokba */
+            }
+        }
+
+
+
     </style>
 </head>
 <body class="overflow-hidden">
@@ -378,7 +399,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.14
+       v1.0.15
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1022,6 +1043,31 @@
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
+
+
+<div class="bg-gray-50 border-b border-gray-200 py-2 px-4 flex flex-wrap justify-center gap-4 text-xs font-bold select-none shrink-0">
+            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition">
+                <input type="checkbox" id="chk-map-normal" checked onchange="updateMapMarkers()" class="accent-green-600 w-4 h-4"> 
+                <span class="text-green-700">🧭 Normal</span>
+            </label>
+
+            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition">
+                <input type="checkbox" id="chk-map-kids" checked onchange="updateMapMarkers()" class="accent-orange-500 w-4 h-4"> 
+                <span class="text-orange-600">🐈 Kids</span>
+            </label>
+
+            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition">
+                <input type="checkbox" id="chk-map-team" checked onchange="updateMapMarkers()" class="accent-indigo-600 w-4 h-4"> 
+                <span class="text-indigo-700">🧑‍🤝‍🧑 Team</span>
+            </label>
+            
+            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition">
+                <input type="checkbox" id="chk-map-explore" checked onchange="updateMapMarkers()" class="accent-cyan-600 w-4 h-4"> 
+                <span class="text-cyan-700">🌍 Explore</span>
+            </label>
+        </div>
+
+
 
         <div class="relative flex-grow w-full bg-gray-100">
             <div id="game-selection-map" class="w-full h-full z-10"></div>
@@ -4458,9 +4504,9 @@ window.openGameMap = function() {
     const modal = document.getElementById('game-map-modal');
     modal.classList.remove('hidden');
 
-    // 1. Térkép inicializálása (ha még nincs)
+    // Térkép létrehozása, ha még nincs
     if (!window.gameSelectionMapInstance) {
-        window.gameSelectionMapInstance = L.map('game-selection-map', { zoomControl: false }).setView([47.1625, 19.5033], 7); // Magyarország közepe kb.
+        window.gameSelectionMapInstance = L.map('game-selection-map', { zoomControl: false }).setView([47.1625, 19.5033], 7);
 
         L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             attribution: 'MapTiler',
@@ -4468,37 +4514,61 @@ window.openGameMap = function() {
         }).addTo(window.gameSelectionMapInstance);
     }
 
-    // 2. Méret frissítése (fontos, mert hidden div-ben volt)
+    // Méret frissítése
     setTimeout(() => {
         window.gameSelectionMapInstance.invalidateSize();
     }, 200);
 
-    // 3. Régi markerek törlése
+    // Szűrők visszaállítása alaphelyzetbe minden nyitáskor (hogy minden látszódjon)
+    document.getElementById('chk-map-normal').checked = true;
+    document.getElementById('chk-map-kids').checked = true;
+    document.getElementById('chk-map-team').checked = true;
+    document.getElementById('chk-map-explore').checked = true;
+
+    // Markerek kirajzolása
+    window.updateMapMarkers();
+};
+
+// 2. MARKEREK FRISSÍTÉSE (Ez fut a pipáláskor is)
+window.updateMapMarkers = function() {
+    if (!window.gameSelectionMapInstance) return;
+
+    // Régi markerek törlése
     window.gameSelectionMarkers.forEach(m => m.remove());
     window.gameSelectionMarkers = [];
 
-    // 4. Játékok kirajzolása
+    // Szűrő állapotok lekérése
+    const showNormal = document.getElementById('chk-map-normal').checked;
+    const showKids = document.getElementById('chk-map-kids').checked;
+    const showTeam = document.getElementById('chk-map-team').checked;
+    const showExplore = document.getElementById('chk-map-explore').checked;
+
     const bounds = [];
-    
-    // Ugyanazt a logikát használjuk, mint a listázásnál (rejtettek szűrése)
+
     Object.values(games).forEach(game => {
-        // SZŰRÉS: Rejtett / Tiltott játékok kezelése
+        // --- 1. Globális szűrések (Rejtett/Limit) ---
         if (!window.showHiddenGames) {
-            if (game.isHidden) return; // Rejtett
-            if (game.maxPlayCount === -1) return; // Letiltott
+            if (game.isHidden) return;
+            if (game.maxPlayCount === -1) return;
         }
 
+        // --- 2. Típus szerinti szűrés (CHECKBOXOK) ---
+        if (game.type === 'normal' && !showNormal) return; // Ha normal, de nincs pipa, kihagyjuk
+        if (game.type === 'kids' && !showKids) return;
+        if (game.type === 'team' && !showTeam) return;
+        if (game.type === 'explore' && !showExplore) return;
+
+        // Ha átment a szűrőkön, kirajzoljuk
         if (game.startLocation && game.startLocation.lat && game.startLocation.lng) {
             
-            // Ikon típus kiválasztása a játék típusa alapján
-            let markerEmoji = '📍';
-            let markerColor = 'bg-brand-blue';
+            // Ikon és Szín beállítása (A kért Iránytűs módosítással!)
+            let markerEmoji = '🧭'; 
+            let markerColor = 'bg-green-600'; 
             
             if (game.type === 'kids') { markerEmoji = '🐈'; markerColor = 'bg-yellow-500'; }
             else if (game.type === 'team') { markerEmoji = '🧑‍🤝‍🧑'; markerColor = 'bg-indigo-600'; }
             else if (game.type === 'explore') { markerEmoji = '🌍'; markerColor = 'bg-cyan-500'; }
 
-            // Egyedi marker stílus
             const customIcon = L.divIcon({
                 className: 'custom-game-marker',
                 html: `<div class="${markerColor} w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-lg">${markerEmoji}</div>`,
@@ -4512,17 +4582,15 @@ window.openGameMap = function() {
                 title: game.title 
             })
             .addTo(window.gameSelectionMapInstance)
-           .bindPopup(`
+            .bindPopup(`
                 <div class="text-center min-w-[160px]">
                     <h3 class="font-bold text-sm text-[#0D2B45] mb-1 leading-tight">${game.title}</h3>
-                    
                     <p class="text-[10px] text-gray-500 mb-3 uppercase tracking-wide">${game.type} típus</p>
                     
                     <div class="flex items-center justify-center gap-2">
                         <button id="map-start-btn-${game.id}" class="bg-[#FFA500] text-white text-xs font-bold py-1.5 px-3 rounded-md shadow hover:bg-orange-600 transition">
                             Indítás
                         </button>
-
                         <button id="map-cancel-btn-${game.id}" class="bg-gray-200 text-gray-600 text-xs font-bold py-1.5 px-3 rounded-md hover:bg-gray-300 transition">
                             Mégsem
                         </button>
@@ -4530,31 +4598,19 @@ window.openGameMap = function() {
                 </div>
             `);
 
-            // Popup eseményfigyelők (Start és Mégsem)
             marker.on('popupopen', () => {
-                
-                // 1. INDÍTÁS GOMB LOGIKA
                 const startBtn = document.getElementById(`map-start-btn-${game.id}`);
                 if(startBtn) {
                     startBtn.onclick = () => {
-                        // Bezárjuk a nagy térképet
                         window.closeGameMap();
-                        
-                        // Összeszedjük az adatokat és indítunk
                         const priceText = game.price > 0 ? `${game.price} Ft` : 'Ingyenes';
                         const hasSave = localStorage.getItem('MystiGoGameState_' + game.id) !== null;
-                        
                         handleGameSelect(game.id, game.title, game.type, priceText, hasSave);
                     };
                 }
-
-                // 2. MÉGSEM GOMB LOGIKA
                 const cancelBtn = document.getElementById(`map-cancel-btn-${game.id}`);
                 if(cancelBtn) {
-                    cancelBtn.onclick = () => {
-                        // Csak az adott marker popupját zárjuk be, a térkép marad
-                        marker.closePopup();
-                    };
+                    cancelBtn.onclick = () => { marker.closePopup(); };
                 }
             });
 
@@ -4563,38 +4619,37 @@ window.openGameMap = function() {
         }
     });
 
-    // 5. Saját pozíció megjelenítése (opcionális, de hasznos)
+    // Felhasználó pozíciója (ha van)
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
             const userLat = pos.coords.latitude;
             const userLng = pos.coords.longitude;
             
+            // Csak akkor rajzoljuk újra a saját pozíciót, ha nincs már a térképen
+            // (Egyszerűsítés: itt most mindig újrarajzoljuk a tisztaság kedvéért)
             const userIcon = L.divIcon({
                 className: 'user-pos-marker',
                 html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md pulse-ring"></div>',
                 iconSize: [16, 16]
             });
-            
             const userMarker = L.marker([userLat, userLng], { icon: userIcon }).addTo(window.gameSelectionMapInstance);
             window.gameSelectionMarkers.push(userMarker);
             bounds.push([userLat, userLng]);
-            
-            // Ha van pozíció, igazítsuk a térképet, hogy minden látsszon
-            if (bounds.length > 0) {
-                window.gameSelectionMapInstance.fitBounds(bounds, { padding: [50, 50] });
-            }
-        }, err => {
-            // Ha nincs GPS, csak a játékokra zoomolunk
-            if (bounds.length > 0) {
-                window.gameSelectionMapInstance.fitBounds(bounds, { padding: [50, 50] });
-            }
+
+            // Csak a legelső betöltéskor (amikor bounds üres volt előtte) zoomolunk rá mindenre,
+            // hogy pipálgatás közben ne ugráljon a térkép.
+            // De egyszerűbb, ha csak simán hagyjuk a zoomot, kivéve ha "nyitás" van.
         });
-    } else {
-        if (bounds.length > 0) {
-            window.gameSelectionMapInstance.fitBounds(bounds, { padding: [50, 50] });
-        }
     }
+
+    // Opcionális: Ha nagyon szeretnéd, hogy szűréskor is igazodjon a térkép, 
+    // akkor ide betehetsz egy fitBounds hívást, de jobb, ha a felhasználó kezében hagyod az irányítást.
 };
+
+
+
+
+
 
 window.closeGameMap = function() {
     document.getElementById('game-map-modal').classList.add('hidden');
