@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.12
+       v1.0.13
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -3189,11 +3189,22 @@ if (window.AudioContext || window.webkitAudioContext) {
             appState.teamAvatar = document.getElementById('team-avatar-select').value || null;
             
             const startTaskTemplate = {
-                index: 0, isStartTask: true, location: appState.currentGame.startLocation,
+                index: 0, 
+                isStartTask: true, 
+                location: appState.currentGame.startLocation,
                 geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
-                story: `**${appState.currentGame.title}**<br>${appState.currentGame.description}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a **Kaland Indítása** gombot.`,
-                prompt: 'Érd el a Start Helyszínt az induláshoz!', hints: [], solution: '', acceptedAnswers: [],
-                hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
+                
+                // JAVÍTOTT TÖRTÉNET FORMATÁLÁS:
+                story: `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a <strong>Kaland Indítása</strong> gombot.`,
+                
+                prompt: '', 
+                hints: [], 
+                solution: '', 
+                acceptedAnswers: [],
+                hintsUsed: 0, 
+                timeSpent: 0, 
+                taskScore: 0, 
+                isTaskTimerActive: false 
             };
             
             let realTasks = appState.currentGame.tasks.filter(t => t.index > 0); 
