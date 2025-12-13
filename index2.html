@@ -3789,7 +3789,7 @@ if (reviewBtn) {
     
                         // KÖZELI NÉZET:
                         if (distance <= radius + 20) {
-                            appState.map.setView(latLng, 17, { animate: true });
+                            appState.map.setView(latLng, 18, { animate: true });
                         } else {
                             // TÁVOLABBI NÉZET:
                             const bounds = L.latLngBounds(latLng, targetLatLng);
@@ -3797,7 +3797,7 @@ if (reviewBtn) {
                             appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                         }
                     } else {
-                        appState.map.setView(latLng, 17);
+                        appState.map.setView(latLng, 18);
                     }
                 }
             }
