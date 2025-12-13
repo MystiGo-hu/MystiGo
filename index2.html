@@ -350,23 +350,9 @@
         }
 
 
-/* --- IUBENDA IKON KICSINYÍTÉSE --- */
-        #iubenda-cs-badge {
-            transform: scale(0.5) !important; /* 50%-os méret (állíthatod: 0.5 - 1.0) */
-            transform-origin: bottom left !important; /* Bal alsó sarokhoz igazítva zsugorodik */
-            bottom: 10px !important; /* Finomhangolás a képernyő szélétől */
-            left: 10px !important;
-            z-index: 9000 !important; /* Hogy biztosan ne takarja ki a mi dolgainkat */
-        }
 
-        /* Ha mobilnézeten még kisebbet szeretnél: */
-        @media (max-width: 640px) {
-            #iubenda-cs-badge {
-                transform: scale(0.40) !important; /* Mobilon még kisebb (40%) */
-                bottom: 50px !important; /* Feljebb, hogy ne lógjon bele az alsó menübe/gombokba */
-            }
-        }
-
+/* Iubenda lebegő ikon elrejtése */
+        #iubenda-cs-badge { display: none !important; }
 
 
     </style>
@@ -399,7 +385,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.15
+       v1.0.16
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -881,8 +867,12 @@
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
                      
                      <div class="mt-4 p-2 text-center text-xs">
-                        <a href="https://www.iubenda.com/privacy-policy/40995967" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Privacy Policy ">Adatvédelmi Szabályzat</a> | 
-                        <a href="https://www.iubenda.com/privacy-policy/40995967/cookie-policy" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Cookie Policy ">Cookie Szabályzat</a>
+                        <a href="https://www.iubenda.com/privacy-policy/40995967" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Adatvédelmi Szabályzat">Adatvédelem</a> | 
+                        <a href="https://www.iubenda.com/privacy-policy/40995967/cookie-policy" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Cookie Szabályzat">Cookie-k</a> | 
+                        
+                        <a href="#" class="iubenda-cs-preferences-link text-brand-blue/80 hover:text-brand-cyan-500 transition font-bold">
+                            Süti Beállítások
+                        </a>
                     </div>
                     </section>
 
