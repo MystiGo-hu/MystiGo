@@ -385,7 +385,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.21
+       v1.0.22
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -4732,18 +4732,68 @@ window.closeGameMap = function() {
             const filterTypeSelect = document.getElementById('filter-type');
 
             function toggleKidsMode(isKidsActive) {
-                // 1. Logo csere
+                // 1. Logo csere (Ez marad a régi)
                 if (mainLogo) {
                     mainLogo.src = isKidsActive ? "logo/MystiGo_logo_cat.png" : "logo/MystiGo_logo.png";
                 }
-                // 2. Szűrő beállítása és lista frissítése
-                if (filterTypeSelect) {
-                    filterTypeSelect.value = isKidsActive ? 'kids' : 'all';
-                    if (typeof applyFilters === 'function') {
-                        applyFilters();
+
+                // 2. LOGIKA JAVÍTÁSA:
+                // Megnézzük, van-e aktív URL szűrés (Helyszín vagy ID)
+                const urlParams = new URLSearchParams(window.location.search);
+                const pLoc = urlParams.get('location') || urlParams.get('helyszin');
+                const pGameId = urlParams.get('game') || urlParams.get('id');
+
+                // A) HA VAN URL PARAMÉTER (Akkor azt tiszteletben tartva szűrünk)
+                if (pLoc || pGameId) {
+                    console.log("Kids mód váltás URL kontextusban...");
+                    
+                    let filteredGames = {};
+
+                    Object.values(games).forEach(game => {
+                        // Alapvető láthatósági szűrés
+                        if (!window.showHiddenGames && game.isHidden) return;
+                        
+                        // 1. Megfelel az URL-nek?
+                        let matchesUrl = true;
+                        
+                        if (pGameId) {
+                            // Ha konkrét játékra szűrtünk
+                            matchesUrl = (game.id.toLowerCase() === pGameId.trim().toLowerCase());
+                        } else if (pLoc) {
+                            // Ha helyszínre szűrtünk
+                            const gameLocs = (game.location || "").toLowerCase().split(',').map(s => s.trim());
+                            matchesUrl = gameLocs.some(l => l.includes(pLoc.toLowerCase()));
+                        }
+
+                        if (!matchesUrl) return; // Ha nem illik az URL-re, eldobjuk
+
+                        // 2. Megfelel a Kids módnak?
+                        // Ha be van pipálva, csak a 'kids' típus maradhat.
+                        if (isKidsActive) {
+                            if (game.type !== 'kids') return;
+                        }
+
+                        // Ha idáig eljutott, akkor megfelel az URL-nek ÉS a Kids módnak is
+                        filteredGames[game.id] = game;
+                    });
+
+                    // FONTOS: Frissítjük a globális szűrt állapotot, hogy a GPS rendezés is jó maradjon
+                    appState.currentFilteredGames = filteredGames;
+                    renderGameList(filteredGames);
+                } 
+                
+                // B) HA NINCS URL PARAMÉTER (Normál működés a Dropdownok alapján)
+                else {
+                    if (filterTypeSelect) {
+                        filterTypeSelect.value = isKidsActive ? 'kids' : 'all';
+                        if (typeof applyFilters === 'function') {
+                            applyFilters();
+                        }
                     }
                 }
             }
+
+
 
             // Betöltéskor
             const savedKidsMode = localStorage.getItem('mystigo_pref_kidsMode') === 'true';
