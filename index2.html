@@ -3585,7 +3585,7 @@ if (reviewBtn) {
                     setTimeout(() => { 
                         try {
                             endMap.invalidateSize(); 
-                            endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 18, animate: false }); 
+                            endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 19, animate: false }); 
                         } catch(e) { console.log("Térkép méretezési hiba (figyelmen kívül hagyható)"); }
                     }, 800);
 
@@ -3794,7 +3794,7 @@ if (reviewBtn) {
                             // TÁVOLABBI NÉZET:
                             const bounds = L.latLngBounds(latLng, targetLatLng);
                             // JAVÍTÁS: Itt is 17-re vettem a maximumot a 19 helyett!
-                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 17, animate: true }); 
+                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                         }
                     } else {
                         appState.map.setView(latLng, 17);
