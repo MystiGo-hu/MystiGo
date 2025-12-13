@@ -385,7 +385,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.20
+       v1.0.21
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -2838,30 +2838,32 @@ window.autoSortGamesByDistance = function() {
             let filteredGames = {};
             let matchFound = false;
 
-// --- ÚJ BLOKK KEZDETE (Rejtett játékok listázása) ---
-    if (pType === 'hidden' || pType === 'rejtett') {
-        Object.values(games).forEach(game => {
-            if (game.isHidden) {
-                filteredGames[game.id] = game;
-                matchFound = true;
+            // --- ÚJ BLOKK KEZDETE (Rejtett játékok listázása) ---
+            if (pType === 'hidden' || pType === 'rejtett') {
+                Object.values(games).forEach(game => {
+                    if (game.isHidden) {
+                        filteredGames[game.id] = game;
+                        matchFound = true;
+                    }
+                });
+                
+                if (matchFound) {
+                    console.log("Rejtett játékok listázása...");
+                    // FONTOS: Itt is el kell menteni az állapotot!
+                    appState.currentFilteredGames = filteredGames; 
+                    renderGameList(filteredGames);
+                    updateFilterUI(null, 'hidden', null);
+                    return; 
+                } else {
+                     alert("Nincsenek rejtett játékok az adatbázisban.");
+                     return;
+                }
             }
-        });
-        
-        if (matchFound) {
-            console.log("Rejtett játékok listázása...");
-            renderGameList(filteredGames);
-            updateFilterUI(null, 'hidden', null);
-            return; // Itt kilépünk, hogy ne fusson le a többi szűrés
-        } else {
-             alert("Nincsenek rejtett játékok az adatbázisban.");
-             return;
-        }
-    }
+            // ----------------------------------------------------
 
             // 1. ESET: Konkrét játék ID keresése
             if (pGameId) {
                 const searchKey = pGameId.trim().toLowerCase();
-                // Megkeressük a valódi ID-t (kisbetű/nagybetű nem számít)
                 const realId = Object.keys(games).find(id => id.trim().toLowerCase() === searchKey);
 
                 if (realId) {
@@ -2869,21 +2871,17 @@ window.autoSortGamesByDistance = function() {
                     matchFound = true;
                     console.log("✅ Játék megtalálva:", realId);
 
-                    // --- ÚJ RÉSZ: Egyedi logó beállítása, ha van ---
                     if (games[realId].headerLogo) {
                         const mainHeaderLogo = document.getElementById('main-header-logo');
                         if (mainHeaderLogo) {
                             mainHeaderLogo.src = games[realId].headerLogo;
-                            // Opcionális: Ha az új logó arányai mások, levehetjük a méretkorlátozást, vagy igazíthatunk rajta
-                            // mainHeaderLogo.style.maxWidth = '100%'; 
                         }
                     }
-                    // ----------------------------------------------
 
                 } else {
                     console.warn("❌ A keresett játék ID nem található:", pGameId);
                     alert(`A kért játék (${pGameId}) nem található.`);
-                    return; // Hagyjuk az összeset, vagy mutassunk üreset
+                    return; 
                 }
             } 
             // 2. ESET: Helyszín és/vagy Típus szűrés
@@ -2892,17 +2890,12 @@ window.autoSortGamesByDistance = function() {
                     let locMatch = true;
                     let typeMatch = true;
 
-                    // Helyszín ellenőrzés (ha van paraméter)
                     if (pLoc) {
-                        // A játék helyszíneit tömbbé alakítjuk és kisbetűsítjük
                         const gameLocs = (game.location || "").toLowerCase().split(',').map(s => s.trim());
-                        // Megnézzük, hogy a keresett szó benne van-e valamelyikben
                         const searchLoc = pLoc.toLowerCase().trim();
-                        // "Fuzzy" keresés: ha a keresett szó részlete a helyszínnek (pl. "buda" -> "Budapest")
                         locMatch = gameLocs.some(l => l.includes(searchLoc));
                     }
 
-                    // Típus ellenőrzés (ha van paraméter)
                     if (pType) {
                         if (game.type !== pType.toLowerCase()) {
                             typeMatch = false;
@@ -2918,12 +2911,16 @@ window.autoSortGamesByDistance = function() {
 
             // 3. EREDMÉNY KIRAJZOLÁSA
             if (matchFound) {
+                // --- EZT A SORT KELLETT HOZZÁADNI: ---
+                appState.currentFilteredGames = filteredGames; 
+                // --------------------------------------
+
                 renderGameList(filteredGames);
-                
-                // 4. UI VIZUÁLIS FRISSÍTÉSE (Hogy a felhasználó lássa, mi történt)
                 updateFilterUI(pLoc, pType, pGameId);
             } else {
-                // Ha szűrtünk, de üres lett az eredmény
+                // Ha nincs találat, nullázzuk a szűrt állapotot is
+                appState.currentFilteredGames = null; 
+                
                 document.getElementById('game-list').innerHTML = `
                     <div class="text-center p-8 bg-red-50 rounded-xl border border-red-200">
                         <p class="text-red-600 font-bold">Nincs találat a megadott feltételekre.</p>
@@ -2931,6 +2928,8 @@ window.autoSortGamesByDistance = function() {
                     </div>`;
             }
         }
+
+
 
         // Segédfüggvény a Dropdown-ok beállításához (Csak vizuális!)
         function updateFilterUI(locParam, typeParam, gameIdParam) {
