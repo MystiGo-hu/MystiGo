@@ -385,7 +385,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.18
+       v1.0.19
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -716,7 +716,14 @@
                 
                 <section id="game-page" class="hidden space-y-6">
                     <div class="content-card p-4">
-                        <div id="map"></div>
+
+
+                     
+<div id="zoom-level-indicator" class="absolute top-2 left-2 bg-white/90 border-2 border-red-500 text-red-600 font-bold px-2 py-1 text-xs rounded z-[1000] pointer-events-none">Zoom: -</div>
+
+
+
+   <div id="map"></div>
                         
 
                         <div class="mt-3 mb-2 flex justify-between items-center px-2 w-full">
@@ -3707,7 +3714,28 @@ if (reviewBtn) {
             appState.map.on('mousedown touchstart dragstart zoomstart', userActionHandler);
             // ----------------------------------------------
 
-            toggleMapClickMock(appState.isManualMock); 
+           // --- ÚJ: ZOOM KIJELZŐ BEKÖTÉSE ---
+            const updateZoomDisplay = () => {
+                const el = document.getElementById('zoom-level-indicator');
+                if(el && appState.map) {
+                    // Kiírjuk a zoom szintet 1 tizedesjegy pontossággal
+                    el.textContent = 'Zoom: ' + appState.map.getZoom().toFixed(1);
+                }
+            };
+            
+            // Minden zoomolásnál frissítjük a számot
+            appState.map.on('zoomend', updateZoomDisplay);
+            appState.map.on('moveend', updateZoomDisplay); // Mozgatáskor is frissítünk
+            
+            // Azonnal kiírjuk az induló értéket
+            updateZoomDisplay(); 
+            // ---------------------------------
+
+            toggleMapClickMock(appState.isManualMock);
+
+
+
+
         }
 
 
@@ -3759,13 +3787,14 @@ if (reviewBtn) {
                         const distance = latLng.distanceTo(targetLatLng);
                         const radius = appState.geofenceCircle.getRadius();
     
-                        // Ha közel vagyunk (< sugár + 20m), agresszív zoom (19), hazszám szintű (18), utcaszintű (17), háztömb (16)
+                        // KÖZELI NÉZET:
                         if (distance <= radius + 20) {
                             appState.map.setView(latLng, 17, { animate: true });
                         } else {
-                            // Ha távolabb, mindent mutatunk (maxZoom 18)
+                            // TÁVOLABBI NÉZET:
                             const bounds = L.latLngBounds(latLng, targetLatLng);
-                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
+                            // JAVÍTÁS: Itt is 17-re vettem a maximumot a 19 helyett!
+                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 17, animate: true }); 
                         }
                     } else {
                         appState.map.setView(latLng, 17);
