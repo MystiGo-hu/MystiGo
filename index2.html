@@ -5055,33 +5055,5 @@ window.loadMoreGames = function() {
 
     </script>
 
-<script>
-    (function() {
-        // Egy időzítőt indítunk, ami 100 milliszekundumonként ellenőrzi az ikont
-        var checkIubenda = setInterval(function() {
-            // Megkeressük az összes lehetséges elemet, amit az Iubenda létrehozhat
-            var badge = document.getElementById('iubenda-cs-badge');
-            var container = document.querySelector('.iubenda-cs-badge-container');
-            var mobileBadge = document.querySelector('.iubenda-cs-rat');
-            var iframe = document.getElementById('iubenda-iframe-footer');
-            
-            // Ha megtaláljuk, töröljük őket a DOM-ból
-            if (badge) badge.remove();
-            if (container) container.remove();
-            if (mobileBadge) mobileBadge.remove();
-            if (iframe) iframe.remove();
-            
-        }, 100); // 0.1 másodpercenként fut
-
-        // 15 másodperc után leállítjuk a keresést, hogy ne fogyassza feleslegesen az akkumulátort
-        // (Addigra biztosan betöltődik az Iubenda)
-        setTimeout(function() {
-            clearInterval(checkIubenda);
-        }, 15000);
-    })();
-</script>
-
-
-
 </body>
 </html>
