@@ -378,7 +378,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.13
+       v1.0.14
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1582,7 +1582,8 @@
             appState = { 
                 currentPage: 'landing-page', 
                 selectedGameId: null, 
-                currentGame: null, 
+                lastMapInteraction: 0,
+		currentGame: null, 
                 currentTaskIndex: 0, 
                 score: 0, 
                 timerInterval: null, 
@@ -1692,7 +1693,7 @@
                 
                 setTimeout(() => {
                     initializeMap();
-                    
+                    if(appState.map) appState.map.invalidateSize();
                     if(appState.isManualMock) {
                         toggleMapClickMock(true);
                     } else {
@@ -3231,6 +3232,7 @@ if (window.AudioContext || window.webkitAudioContext) {
             
             setTimeout(() => {
                 initializeMap();
+		if(appState.map) appState.map.invalidateSize();
                 loadTask(appState.currentTaskIndex);
                 watchPosition(); 
                 updateStatusDisplays(); 
@@ -3641,16 +3643,34 @@ if (reviewBtn) {
         function initializeMap() {
             if (appState.map) appState.map.remove();
             const startLoc = appState.currentGame.startLocation;
-            appState.map = L.map('map', { zoomControl: false }).setView([startLoc.lat, startLoc.lng], 16);
+            
+            // ZoomControl false marad, de a fadeAnimation-t bekapcsoljuk a szebb mozgásért
+            appState.map = L.map('map', { zoomControl: false, fadeAnimation: true }).setView([startLoc.lat, startLoc.lng], 16);
 
-            L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
-                attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+           L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+                attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>',
                 crossOrigin: true,
                 tileSize: 512,
                 zoomOffset: -1,
-                maxZoom: 18.5
-            }).addTo(appState.map);
+                
+                // --- JAVÍTOTT BEÁLLÍTÁSOK ---
+                minZoom: 1,
+                maxZoom: 20,       
+                maxNativeZoom: 18, 
+                
+                updateWhenIdle: false, 
+                updateWhenZooming: true,
+                keepBuffer: 4      
+                // ---------------------------
+            }).addTo(appState.map);  // <--- EDDIG TARTOTT A RÉGI KÓDOD (ez a TILELAYER vége)
 
+            // --- IDE ILLESZD BE AZ ÚJ RÉSZT (2. LÉPÉS): ---
+            const userActionHandler = () => {
+                appState.lastMapInteraction = Date.now();
+            };
+            // Figyeljük a húzást, zoomolást és a kattintást/érintést
+            appState.map.on('mousedown touchstart dragstart zoomstart', userActionHandler);
+            // ----------------------------------------------
 
             toggleMapClickMock(appState.isManualMock); 
         }
@@ -3690,22 +3710,31 @@ if (reviewBtn) {
                     }).addTo(appState.map);
                 }
                 
-                // 3. Térkép igazítása (Zoom logika)
-                if (appState.geofenceCircle && appState.playerMarker) { 
-                    const targetLatLng = appState.geofenceCircle.getLatLng();
-                    const distance = latLng.distanceTo(targetLatLng);
-                    const radius = appState.geofenceCircle.getRadius();
+                // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT KÉSLELTETÉSSEL
+                
+                // Megnézzük, mennyi idő telt el az utolsó kézi mozgatás óta
+                const now = Date.now();
+                const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
 
-                    // Ha közel vagyunk (< sugár + 20m), agresszív zoom (19)
-                    if (distance <= radius + 20) {
-                        appState.map.setView(latLng, 19, { animate: true });
+                // CSAK akkor igazítjuk a kamerát, ha eltelt 3 másodperc (3000 ms)
+                if (timeSinceLastInteraction > 3000) {
+                    
+                    if (appState.geofenceCircle && appState.playerMarker) { 
+                        const targetLatLng = appState.geofenceCircle.getLatLng();
+                        const distance = latLng.distanceTo(targetLatLng);
+                        const radius = appState.geofenceCircle.getRadius();
+    
+                        // Ha közel vagyunk (< sugár + 20m), agresszív zoom (19)
+                        if (distance <= radius + 20) {
+                            appState.map.setView(latLng, 19, { animate: true });
+                        } else {
+                            // Ha távolabb, mindent mutatunk (maxZoom 18)
+                            const bounds = L.latLngBounds(latLng, targetLatLng);
+                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 18, animate: true }); 
+                        }
                     } else {
-                        // Ha távolabb, mindent mutatunk (maxZoom 18)
-                        const bounds = L.latLngBounds(latLng, targetLatLng);
-                        appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 18, animate: true }); 
+                        appState.map.setView(latLng, 17);
                     }
-                } else {
-                    appState.map.setView(latLng, 17);
                 }
             }
             
