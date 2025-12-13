@@ -385,7 +385,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.17
+       v1.0.18
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -3765,7 +3765,7 @@ if (reviewBtn) {
                         } else {
                             // Ha távolabb, mindent mutatunk (maxZoom 18)
                             const bounds = L.latLngBounds(latLng, targetLatLng);
-                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 18, animate: true }); 
+                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                         }
                     } else {
                         appState.map.setView(latLng, 17);
@@ -3795,7 +3795,7 @@ if (reviewBtn) {
             if (playerMarkerForBounds) {
 		    const bounds = L.latLngBounds(playerMarkerForBounds.getLatLng(), currentTaskLoc);
 		    // Itt is add hozzá a maxZoom-ot:
-		    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 18, animate: true }); 
+		    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 19, animate: true }); 
 		} else {
 		    // Ez az alap zoom, ha még nincs GPS jel (pl. 16):
 		    appState.map.setView(currentTaskLoc, 16); 
