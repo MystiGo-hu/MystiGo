@@ -352,7 +352,21 @@
 
 
 /* Iubenda lebegő ikon elrejtése */
-        #iubenda-cs-badge { display: none !important; }
+        /* --- Iubenda GOMB TELJES ELTÜNTETÉSE (Mobilon is) --- */
+#iubenda-cs-badge,         /* Asztali ID */
+.iubenda-cs-badge,         /* Mobil Class */
+.iubenda-cs-rat,           /* Egyéb variáció */
+.iubenda-ibadge,           /* Lebegő badge class */
+.iub-badge-container,      /* Konténer */
+#iubenda-iframe-footer {   /* Iframe alapú lábléc */
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    z-index: -9999 !important;
+}
 
 
     </style>
@@ -385,7 +399,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.22
+       v1.0.23
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1839,6 +1853,10 @@
             const element = document.getElementById('pdf-content');
             if (!element) return;
             
+            // 1. Blokkoljuk a képernyőt, hogy ne lehessen elhúzni a térképet
+            showLoading(true); 
+            document.getElementById('loading-status').textContent = "Eredménylap generálása...";
+
             const originalStyle = element.style.cssText;
             
             // --- AVATAR JAVÍTÁS: Kényszerítjük a betűtípust a generálás idejére ---
@@ -1865,21 +1883,27 @@
 
             const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
 
+            // Kis késleltetés, hogy a Loading overlay biztosan megjelenjen a renderelés előtt
             setTimeout(() => {
                 html2pdf().from(element).set({
                     margin: 10, 
                     filename: fileName, 
                     image: { type: 'jpeg', quality: 0.98 },
-                    // useCORS fontos a képekhez, letterRendering a betűkhöz
                     html2canvas: { scale: 2, logging: false, useCORS: true, letterRendering: true, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).save().then(() => {
+                    // SIKER: Visszaállítjuk a stílust és levesszük a blokkolást
                     element.style.cssText = originalStyle;
+                    document.getElementById('loading-status').textContent = ""; // Szöveg törlése
+                    showLoading(false);
                 }).catch(err => {
+                    // HIBA: Akkor is levesszük a blokkolást
                     console.error("PDF generálási hiba:", err);
                     element.style.cssText = originalStyle;
+                    document.getElementById('loading-status').textContent = "";
+                    showLoading(false);
                 });
-            }, 2000); 
+            }, 500); // 500ms elég, hogy a DOM frissüljön
         }
 
 
@@ -3563,7 +3587,20 @@ if (reviewBtn) {
                     L.Browser.any3d = false; L.Browser.ielt9 = true; 
                     
                     // Térkép létrehozása
-                    const endMap = L.map('route-map', { zoomControl: false, fadeAnimation: false, markerZoomAnimation: false, preferCanvas: true });
+                    const endMap = L.map('route-map', { 
+    zoomControl: false, 
+    fadeAnimation: false, 
+    markerZoomAnimation: false, 
+    preferCanvas: true,
+    // --- ÚJ TILTÁSOK ---
+    dragging: false,
+    touchZoom: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    tap: false
+});
                     
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
                     
