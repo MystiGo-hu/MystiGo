@@ -3759,13 +3759,13 @@ if (reviewBtn) {
                         const distance = latLng.distanceTo(targetLatLng);
                         const radius = appState.geofenceCircle.getRadius();
     
-                        // Ha közel vagyunk (< sugár + 20m), agresszív zoom (19)
+                        // Ha közel vagyunk (< sugár + 20m), agresszív zoom (19), hazszám szintű (18), utcaszintű (17), háztömb (16)
                         if (distance <= radius + 20) {
-                            appState.map.setView(latLng, 19, { animate: true });
+                            appState.map.setView(latLng, 17, { animate: true });
                         } else {
                             // Ha távolabb, mindent mutatunk (maxZoom 18)
                             const bounds = L.latLngBounds(latLng, targetLatLng);
-                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 18, animate: true }); 
+                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 17, animate: true }); 
                         }
                     } else {
                         appState.map.setView(latLng, 17);
@@ -3795,7 +3795,7 @@ if (reviewBtn) {
             if (playerMarkerForBounds) {
 		    const bounds = L.latLngBounds(playerMarkerForBounds.getLatLng(), currentTaskLoc);
 		    // Itt is add hozzá a maxZoom-ot:
-		    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 18, animate: true }); 
+		    appState.map.fitBounds(bounds.pad(0.2), { maxZoom: 17, animate: true }); 
 		} else {
 		    // Ez az alap zoom, ha még nincs GPS jel (pl. 16):
 		    appState.map.setView(currentTaskLoc, 16); 
