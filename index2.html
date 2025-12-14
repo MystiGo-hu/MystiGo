@@ -406,7 +406,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.27
+       v1.0.28
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -4351,8 +4351,13 @@ function backToExploreMap() {
             document.getElementById('task-interaction-area').classList.add('hidden');
             document.getElementById('start-task-button-container').classList.add('hidden');
             const backBtn = document.getElementById('back-to-map-btn');
-	      if (backBtn) backBtn.classList.add('hidden');
-	    document.getElementById('explore-selection-container').classList.remove('hidden');
+	        if (backBtn) backBtn.classList.add('hidden');
+	        document.getElementById('explore-selection-container').classList.remove('hidden');
+            
+            // --- ÚJ SOR: Ez kényszeríti a zoomolást az összes pontra ---
+            appState.lastAutoZoomTime = 0; 
+            // -----------------------------------------------------------
+            
             renderTaskMarkers();
             if (appState.isManualMock && appState.map.clickHandler) { appState.map.off('click', appState.map.clickHandler); appState.map.clickHandler = null; }
             document.getElementById('distance-info').textContent = "Válassz feladatot a térképen!";
