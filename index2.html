@@ -406,7 +406,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.28
+       v1.0.29
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -4354,21 +4354,24 @@ function backToExploreMap() {
         }
 
         function showTaskSelectionMap() {
-    if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
-    if (appState.geofenceCircle) appState.geofenceCircle.remove();
-    document.getElementById('task-interaction-area').classList.add('hidden');
-    document.getElementById('start-task-button-container').classList.add('hidden');
-    const backBtn = document.getElementById('back-to-map-btn');
-    if (backBtn) backBtn.classList.add('hidden');
-    document.getElementById('explore-selection-container').classList.remove('hidden');
-    
-    // --- EZT A SORT TÖRÖLD KI INNEN! ---
-    // appState.lastAutoZoomTime = 0;  <-- KUKA
-    // -----------------------------------
-    
-    renderTaskMarkers();
-    // ... (többi kód marad)
-}
+            if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
+            if (appState.geofenceCircle) appState.geofenceCircle.remove();
+            document.getElementById('task-interaction-area').classList.add('hidden');
+            document.getElementById('start-task-button-container').classList.add('hidden');
+            const backBtn = document.getElementById('back-to-map-btn');
+            if (backBtn) backBtn.classList.add('hidden');
+            document.getElementById('explore-selection-container').classList.remove('hidden');
+            
+            // --- ÚJ RÉSZ: Távolság infó törlése ---
+            const distEl = document.getElementById('distance-info');
+            if (distEl) {
+                distEl.textContent = '';
+                distEl.className = ''; // A stílust is leszedjük, hogy biztosan eltűnjön
+            }
+            // --------------------------------------
+            
+            renderTaskMarkers();
+        }
 
         function startNavigation() {
     if (!appState.currentGame) return showMessage('Hiba', 'Nincs aktuális kaland elindítva.');
