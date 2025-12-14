@@ -376,6 +376,29 @@
 }
 
 
+/* --- Térkép copyright felirat kicsinyítése --- */
+.leaflet-control-attribution {
+    font-size: 7px !important; /* Nagyon pici betűméret */
+    line-height: 9px !important;
+    background: rgba(255, 255, 255, 0.5) !important; /* Félig átlátszó háttér */
+    padding: 0 4px !important;
+    border-radius: 4px 0 0 0;
+    opacity: 0.6; /* Alapból halvány */
+    transition: opacity 0.3s;
+}
+
+/* Ha fölé viszi az egeret (desktopon), legyen olvasható */
+.leaflet-control-attribution:hover {
+    opacity: 1;
+}
+
+/* A linkek színe legyen szürke, ne a feltűnő kék */
+.leaflet-control-attribution a {
+    color: #555 !important; 
+    text-decoration: none !important;
+}
+
+
     </style>
 </head>
 <body class="overflow-hidden">
@@ -406,7 +429,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.29
+       v1.0.30
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -3862,7 +3885,7 @@ if (reviewBtn) {
     keyboard: false,
     tap: false
 });
-                    
+                    endMap.attributionControl.setPrefix(false);
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
                     
 
@@ -3983,8 +4006,8 @@ if (reviewBtn) {
             const startLoc = appState.currentGame.startLocation;
             
             // ZoomControl false marad, de a fadeAnimation-t bekapcsoljuk a szebb mozgásért
-            appState.map = L.map('map', { zoomControl: false, fadeAnimation: true }).setView([startLoc.lat, startLoc.lng], 16);
-
+            appState.map = L.map('map', { zoomControl: false, fadeAnimation: true}).setView([startLoc.lat, startLoc.lng], 16);
+	    appState.map.attributionControl.setPrefix(false);
            L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
                 attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>',
                 crossOrigin: true,
@@ -4881,7 +4904,7 @@ window.openGameMap = function() {
     // Térkép létrehozása, ha még nincs
     if (!window.gameSelectionMapInstance) {
         window.gameSelectionMapInstance = L.map('game-selection-map', { zoomControl: false }).setView([47.1625, 19.5033], 7);
-
+	window.gameSelectionMapInstance.attributionControl.setPrefix(false);
         L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             attribution: 'MapTiler',
             maxZoom: 18
