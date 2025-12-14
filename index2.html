@@ -4057,7 +4057,7 @@ if (reviewBtn) {
                 } else {
                     const playerIcon = L.divIcon({
                         className: 'player-marker',
-                        html: '', // <--- EZ A SOR BIZTOSÍTJA, HOGY NE LEGYEN BENNE TŰ/EMOJI
+                        html: '',
                         iconSize: [20, 20],
                         iconAnchor: [10, 10],
                         popupAnchor: [0, -10]
@@ -4069,13 +4069,54 @@ if (reviewBtn) {
                     }).addTo(appState.map);
                 }
                 
-                // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT KÉSLELTETÉSSEL
+                // 3. Térkép igazítása (Zoom logika) - SPECIÁLIS JAVÍTÁS
                 
                 // Megnézzük, mennyi idő telt el az utolsó kézi mozgatás óta
                 const now = Date.now();
                 const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
 
-                // CSAK akkor igazítjuk a kamerát, ha eltelt 3 másodperc (3000 ms)
+                // --- ÚJ RÉSZ KEZDETE: EXPLORE MÓD KEZELÉSE ---
+                // Ellenőrizzük, hogy épp az Explore választó képernyőn vagyunk-e
+                const isExploreSelection = (
+                    appState.currentGame &&
+                    appState.currentGame.taskOrder === 'explore' &&
+                    !document.getElementById('explore-selection-container').classList.contains('hidden')
+                );
+
+                if (isExploreSelection) {
+                    // HA Explore választó nézetben vagyunk:
+                    
+                    // 1. Ha a felhasználó épp mozgatja (vagy az elmúlt 5 mp-ben mozgatta), NEM csinálunk semmit.
+                    // Hagyjuk, hadd nézelődjön szabadon.
+                    if (timeSinceLastInteraction < 5000) {
+                        return; 
+                    }
+
+                    // 2. Ha eltelt 5 másodperc interakció nélkül, visszaállítjuk a "Teljes Nézetet"
+                    // Összegyűjtjük az összes marker pozícióját
+                    const markerKeys = Object.keys(appState.taskMarkers);
+                    if (markerKeys.length > 0) {
+                        const bounds = [];
+                        // Hozzáadjuk a feladatokat
+                        markerKeys.forEach(key => {
+                            if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
+                        });
+                        // Hozzáadjuk a játékos pozícióját is, hogy ő is rajta legyen a képen
+                        bounds.push(latLng);
+
+                        // Finom igazítás (animate: true), hogy ne legyen darabos
+                        appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
+                    }
+                    
+                    // KILÉPÜNK, hogy a lenti (régi) zoom logika NE fusson le, ami ráhúzna a játékosra
+                    checkGeofence();
+                    return; 
+                }
+                // --- ÚJ RÉSZ VÉGE ---
+
+
+                // --- RÉGI LOGIKA (Normál játékmenethez) ---
+                // CSAK akkor igazítjuk a kamerát, ha eltelt 3 másodperc (3000 ms) és NEM Explore választóban vagyunk
                 if (timeSinceLastInteraction > 3000) {
                     
                     if (appState.geofenceCircle && appState.playerMarker) { 
@@ -4089,7 +4130,6 @@ if (reviewBtn) {
                         } else {
                             // TÁVOLABBI NÉZET:
                             const bounds = L.latLngBounds(latLng, targetLatLng);
-                            // JAVÍTÁS: Itt is 17-re vettem a maximumot a 19 helyett!
                             appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                         }
                     } else {
