@@ -1015,7 +1015,7 @@
                     <tr>
                         <th class="p-3 border-b">Dátum</th>
                         <th class="p-3 border-b">Játék Neve (ID)</th>
-                        <th class="p-3 border-b">Csapat</th>
+                        <th class="p-3 border-b">Név</th>
                         <th class="p-3 border-b text-right">Pont</th>
                         <th class="p-3 border-b text-right">Idő</th>
                     </tr>
@@ -1052,7 +1052,7 @@
                 <thead class="bg-gray-100 border-b">
                     <tr>
                         <th class="px-2 py-2 text-left text-gray-500">#</th>
-                        <th class="px-2 py-2 text-left text-gray-500">Csapat</th>
+                        <th class="px-2 py-2 text-left text-gray-500">Név</th>
                         <th class="px-2 py-2 text-center text-gray-500">Pont</th>
                         <th class="px-2 py-2 text-right text-gray-500">Idő</th>
                     </tr>
@@ -1277,7 +1277,7 @@
                 </button>
             </div>
             <div class="relative">
-                <input type="text" id="leaderboard-search" onkeyup="filterLeaderboard()" placeholder="🔍 Csapatnév keresése..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue outline-none">
+                <input type="text" id="leaderboard-search" onkeyup="filterLeaderboard()" placeholder="🔍 Név keresése..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue outline-none">
                 <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
           `;
@@ -1363,7 +1363,7 @@
             <tr>
                 <th class="px-1 py-2 text-center text-gray-500 w-6">#</th>
                 
-                <th class="px-1 py-2 text-left text-gray-500">Csapat</th>
+                <th class="px-1 py-2 text-left text-gray-500">Név</th>
                 
                 <th class="pl-1 pr-0 py-2 text-right text-gray-500 w-10">Pont</th> 
                 
@@ -2220,7 +2220,7 @@ async function sharePdfViaEmail() {
                 await navigator.share({
                     files: [file],
                     title: 'Játék Eredmény',
-                    text: `Sziasztok! Itt van a Játékom eredménye. Kaland: ${gameId}, Csapat: ${safeTeamName}`
+                    text: `Sziasztok! Itt van a Játékom eredménye. Kaland: ${gameId}, Név: ${safeTeamName}`
                 });
             } catch (error) {
                 if (error.name !== 'AbortError') console.error(error);
@@ -3790,7 +3790,7 @@ const backBtn = document.getElementById('back-to-map-btn');
             document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
             document.getElementById('final-score').textContent = appState.score;
             document.getElementById('final-time').textContent = formatTime(appState.totalTime); 
-            document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen Csapat";
+            document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
             document.getElementById('final-team-avatar-icon').textContent = AVATAR_ICONS[appState.teamAvatar] || '';
             document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
             document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime);
@@ -4415,7 +4415,7 @@ function backToExploreMap() {
             const finalTime = document.getElementById('final-time').textContent;
             const teamName = appState.teamName || "Név";
             const gameTitle = appState.currentGame ? appState.currentGame.title : "Kaland";
-            const text = `Éppen most fejeztem be a(z) ${gameTitle} kalandot a(z) ${teamName} csapattal! 🏆 Pontszám: ${finalScore}, Teljes idő: ${finalTime}. Próbáld ki te is! #MystiGo #VárosiKaland #KalandJáték`;
+            const text = `Éppen most fejeztem be a(z) ${gameTitle} kalandot a(z) ${teamName} néven! 🏆 Pontszám: ${finalScore}, Teljes idő: ${finalTime}. Próbáld ki te is! #MystiGo #VárosiKaland #KalandJáték`;
             const url = 'https://www.mystigo.hu/'; 
             let shareUrl = '';
             switch (platform) {
