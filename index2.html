@@ -851,11 +851,11 @@
                     </section>
                 
                 <section id="end-page" class="hidden space-y-6 text-center flex flex-col items-center pt-8">
-     <div id="pdf-content"> 
+     <div id="pdf-content" class="flex flex-col items-center text-center w-full"> 
         
                         <h2 class="text-4xl font-bold text-text-heading mt-10">Szép munka!</h2>
                         <p class="text-lg text-text-dark mb-4">Teljesítetted a kalandot.</p>
-                        <p id="end-timestamp" class="text-sm text-gray-500 mb-6"></p> 
+                         
                         <div id="route-map" style="height: 300px; width: 100%; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px 0;"></div> 
                         <p id="end-story" class="text-text-dark my-4 max-w-prose"></p>
 <div class="relative my-10"> <div class="absolute inset-0 flex flex-col items-center justify-center text-brand-orange-500">
@@ -869,6 +869,11 @@
     <p class="block">🧩Feladat Idő: <strong id="final-geofence-time">00:00</strong></p>
     <p class="block">⏱️Teljes Idő: <strong id="final-time">00:00</strong></p> 
     
+<div class="border-t border-gray-200 mt-3 pt-2">
+    <p id="end-timestamp" class="text-xs text-gray-400 pb-1 leading-relaxed"></p>
+</div>
+
+
 </div>
                   
                     </div> 
@@ -3852,8 +3857,8 @@ if (reviewBtn) {
                 const parent = oldMapDiv.parentNode;
                 const newMapDiv = document.createElement('div');
                 newMapDiv.id = 'route-map';
-                // Ugyanaz a stílus, ami a HTML-ben volt
-                newMapDiv.style.cssText = "height: 300px; width: 100%; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px 0;";
+// MÓDOSÍTÁS: width: 85%, max-width korlát, és margin: 20px auto (ez teszi középre)
+newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 500px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
                 
                 // Beillesztjük a régi helyére (az id="end-timestamp" után)
                 const refNode = document.getElementById('end-timestamp');
