@@ -2133,21 +2133,28 @@ function loadGameById(gameId) {
         const t = (key, ...args) => I18N.hu[key] ? (typeof I18N.hu[key] === 'function' ? I18N.hu[key](...args) : I18N.hu[key]) : key;
 
  // --- PDF GENERATION (Avatarral kiegészítve) ---
-        function downloadPDF() {
+       function downloadPDF() {
             const element = document.getElementById('pdf-content');
             if (!element) return;
             
-            // 1. Blokkoljuk a képernyőt, hogy ne lehessen elhúzni a térképet
             showLoading(true); 
             document.getElementById('loading-status').textContent = "Eredménylap generálása...";
 
             const originalStyle = element.style.cssText;
             
-            // --- AVATAR JAVÍTÁS: Kényszerítjük a betűtípust a generálás idejére ---
+            // --- UNIVERZÁLIS JAVÍTÁS (Desktop + Mobil) ---
+            
+            // 1. Kényszerítjük a szélességet A4 méretre (kb. 800px)
+            // Így nem "csúszik el" semmilyen képernyőn.
+            element.style.width = '790px'; 
+            element.style.margin = '0 auto'; // Középre igazítás
             element.style.padding = '20px'; 
             element.style.backgroundColor = '#ffffff';
-            element.style.fontFamily = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Poppins", sans-serif';
-            // -----------------------------------------------------------------------
+            
+            // 2. Biztonságos betűtípus
+            element.style.fontFamily = 'Arial, Helvetica, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
+            element.style.lineHeight = '1.5';
+            // ---------------------------
 
             const now = new Date();
             const year = now.getFullYear();
@@ -2161,46 +2168,56 @@ function loadGameById(gameId) {
             
             const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
             const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
-
-            // ID megőrzése
             const gameId = window.currentGameId || 'Eredmény'; 
 
             const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
 
-            // Kis késleltetés, hogy a Loading overlay biztosan megjelenjen a renderelés előtt
             setTimeout(() => {
                 html2pdf().from(element).set({
                     margin: 10, 
                     filename: fileName, 
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, logging: false, useCORS: true, letterRendering: true, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
+                    html2canvas: { 
+                        scale: 2, 
+                        logging: false, 
+                        useCORS: true, 
+                        letterRendering: false, 
+                        scrollY: 0,
+                        // KULCSFONTOSSÁGÚ: A virtuális ablak szélessége egyezzen meg az elem szélességével!
+                        windowWidth: 800,
+                        width: 800,
+                        x: 0
+                    },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).save().then(() => {
-                    // SIKER: Visszaállítjuk a stílust és levesszük a blokkolást
                     element.style.cssText = originalStyle;
-                    document.getElementById('loading-status').textContent = ""; // Szöveg törlése
+                    document.getElementById('loading-status').textContent = ""; 
                     showLoading(false);
                 }).catch(err => {
-                    // HIBA: Akkor is levesszük a blokkolást
                     console.error("PDF generálási hiba:", err);
                     element.style.cssText = originalStyle;
                     document.getElementById('loading-status').textContent = "";
                     showLoading(false);
                 });
-            }, 500); // 500ms elég, hogy a DOM frissüljön
+            }, 500); 
         }
 
 
 async function sharePdfViaEmail() {
-    // 1. Elemek és stílusok előkészítése
     const element = document.getElementById('pdf-content');
     if (!element) return;
 
     const originalStyle = element.style.cssText;
+    
+    // --- UNIVERZÁLIS JAVÍTÁS ITT IS ---
+    element.style.width = '790px'; 
+    element.style.margin = '0 auto';
     element.style.padding = '20px';
     element.style.backgroundColor = '#ffffff';
-    element.style.fontFamily = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Poppins", sans-serif';
-    // --- FÁJLNÉV GENERÁLÁS (Ugyanaz, mint a downloadPDF-ben) ---
+    element.style.fontFamily = 'Arial, Helvetica, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
+    element.style.lineHeight = '1.5';
+    // ----------------------------------
+
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -2210,39 +2227,38 @@ async function sharePdfViaEmail() {
     const second = String(now.getSeconds()).padStart(2, '0'); 
     
     const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-
-    // Biztonságos adatok lekérése
     const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
     const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
-    
-    // FONTOS: Itt is a window.currentGameId-t használjuk!
     const gameId = window.currentGameId || 'Eredmény';
 
-    // Egységes fájlnév struktúra
     const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
-    // -----------------------------------------------------------
 
-    console.log("Megosztandó fájl neve:", fileName);
     showLoading(true); 
 
     try {
-        // 2. PDF generálása Blob-ként
         const pdfBlob = await html2pdf().from(element).set({
             margin: 10,
             filename: fileName, 
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, logging: false, dpi: 192, letterRendering: true, useCORS: true },
+            html2canvas: { 
+                scale: 2, 
+                logging: false, 
+                useCORS: true,
+                letterRendering: false, 
+                scrollY: 0,
+                // Fix 800px szélesség itt is
+                windowWidth: 800,
+                width: 800,
+                x: 0
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         }).output('blob');
 
-        // 3. Fájl objektum létrehozása
         const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-        // 4. Stílusok visszaállítása
         element.style.cssText = originalStyle;
         showLoading(false);
 
-        // 5. Megosztás
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                 await navigator.share({
@@ -2254,14 +2270,13 @@ async function sharePdfViaEmail() {
                 if (error.name !== 'AbortError') console.error(error);
             }
         } else {
-            // Fallback letöltés (ha a megosztás nem támogatott)
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;
             a.click();
             URL.revokeObjectURL(url);
-            alert('A PDF letöltésre került (a megosztás ezen az eszközön nem támogatott).');
+            alert('A PDF letöltésre került.');
         }
 
     } catch (err) {
