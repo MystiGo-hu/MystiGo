@@ -861,7 +861,7 @@
 <div class="relative my-10"> <div class="absolute inset-0 flex flex-col items-center justify-center text-brand-orange-500">
         <span class="text-5xl font-extrabold" id="final-score" style="text-shadow: 0 1px 2px rgba(0,0,0,0.1);"></span> <span class="text-base font-bold">PONT</span> </div>
 </div>
-<div class="mt-20 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md">
+<div class="mt-4 text-center space-y-4 p-6 w-full max-w-xs bg-gray-50 rounded-lg mx-auto shadow-md">
     <p class="text-lg font-bold text-text-heading mb-1">
         <span id="final-team-avatar-icon" class="avatar-icon"></span>
         Név: <span id="final-team-display"></span>
@@ -3857,17 +3857,13 @@ if (reviewBtn) {
                 const parent = oldMapDiv.parentNode;
                 const newMapDiv = document.createElement('div');
                 newMapDiv.id = 'route-map';
-// MÓDOSÍTÁS: width: 85%, max-width korlát, és margin: 20px auto (ez teszi középre)
-newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 500px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
                 
-                // Beillesztjük a régi helyére (az id="end-timestamp" után)
-                const refNode = document.getElementById('end-timestamp');
-                if (refNode && refNode.nextSibling) {
-                    parent.insertBefore(newMapDiv, refNode.nextSibling);
-                } else {
-                    parent.appendChild(newMapDiv); // Fallback
-                }
-                oldMapDiv.remove();
+                // A kért középre igazított stílusok:
+                newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 500px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
+                
+                // JAVÍTÁS: replaceChild-ot használunk. Ez kicseréli a régi div-et az újra
+                // pontosan ott, ahol van, függetlenül attól, hol van a dátum.
+                parent.replaceChild(newMapDiv, oldMapDiv);
             }
 
             try {
