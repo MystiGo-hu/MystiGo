@@ -1250,24 +1250,23 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
           // Lekérjük az aktuális létszámot
           const snapshot = await get(ref(db, 'games/' + gameId + '/count'));
           
-          // Biztosítjuk, hogy szám legyen (ha a DB-ben stringként lenne)
+          // Biztosítjuk, hogy szám legyen
           const currentCount = parseInt(snapshot.val() || 0, 10);
           const limit = parseInt(maxPlayers, 10);
 
-          console.log(`Előzetes limit ellenőrzés (${gameId}): ${currentCount} / ${limit}`);
+          console.log(`Limit elő-ellenőrzés (${gameId}): Jelenleg ${currentCount} / Limit ${limit}`);
 
           // Ha a létszám már elérte vagy meghaladta a limitet, NEM engedjük be
           if (currentCount >= limit) {
-              console.warn("Limit előellenőrzés: BETELT!");
-              return false; 
+              console.warn("Limit elő-ellenőrzés: BETELT!");
+              return false; // FALSE = Nem mehet tovább
           }
           
           return true; // Van még hely
 
       } catch (error) {
-          console.error("Limit ellenőrzési hiba (csak olvasás):", error);
-          // SZIGORÚ MÓD: Ha nem tudjuk lekérni az adatot (pl. hiba), 
-          // inkább NE engedjük be, minthogy túllépjük a limitet.
+          console.error("Limit ellenőrzési hiba (Hálózat):", error);
+          // Hiba esetén SOHA nem engedjük be, különben kijátszható lenne a limit offline módban
           return false; 
       }
   };
@@ -3415,14 +3414,13 @@ window.autoSortGamesByDistance = function() {
                 return; 
             }
             
-        // D. FIREBASE LIMIT ELLENŐRZÉS (CSAK OLVASÁS - ELŐSZŰRÉS)
-            // Itt még nem vonunk le tokent, csak megnézzük, érdemes-e elindulni.
-            const limitFromExcel = gameConfig.globalLimit || 0;
-            const MAX_PLAYERS = limitFromExcel > 0 ? limitFromExcel : 100000; 
+   // D. FIREBASE LIMIT ELLENŐRZÉS (CSAK OLVASÁS - ELŐSZŰRÉS)
+            const limitFromExcel = gameConfig.globalLimit;
+            // Ha van limit megadva, azt használjuk, ha nincs, akkor 1 milliót
+            const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
 
-            // Csak akkor ellenőrzünk, ha van valós limit (< 100000) ÉS nem rejtett tesztről van szó
-            if (MAX_PLAYERS < 100000 && window.checkGameLimitOnly) {
-                
+            // MINDIG ellenőrizzük a Firebase-t, kivéve ha már mentésből töltünk vissza
+            if (window.checkGameLimitOnly) {
                 try {
                     showLoading(true);
                     document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
@@ -3440,8 +3438,7 @@ window.autoSortGamesByDistance = function() {
                 } catch (e) {
                     showLoading(false);
                     console.error("Hiba az előszűrésnél:", e);
-                    // Hiba esetén is megállítjuk, ha szigorúak akarunk lenni
-                    showMessage('Hiba', 'Nem sikerült ellenőrizni a szabad helyeket. Kérlek próbáld újra!');
+                    showMessage('Hiba', 'Nem sikerült ellenőrizni a szabad helyeket. Internetkapcsolat szükséges!');
                     return; 
                 }
             }
@@ -3542,33 +3539,37 @@ window.autoSortGamesByDistance = function() {
 
             if (appState.isTimerRunning) return; 
 
-            // 2. TOKEN LEVONÁS (SZIGORÚ VERZIÓ - TESZT MÓDBAN IS)
+            // 2. TOKEN LEVONÁS (SZIGORÚ ÉS MINDIG FUTÓ VERZIÓ)
             if (appState.currentGame) {
-                const limitFromExcel = appState.currentGame.globalLimit || 0;
-                const MAX_PLAYERS = limitFromExcel > 0 ? limitFromExcel : 100000;
+                const limitFromExcel = appState.currentGame.globalLimit;
+                // Ha 0 vagy üres, akkor végtelen (1 millió), egyébként a beírt szám (pl. 10)
+                const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
 
-                // KIVETTÜK A TESZT MÓD KIVÉTELT: Így Mock/Teszt módban is ellenőrzi a limitet!
-                if (MAX_PLAYERS < 100000 && typeof window.checkGameLimitAndIncrement === 'function') {
+                // --- JAVÍTÁS: KIVETTÜK A FELTÉTELEKET! ---
+                // Mostantól MINDEN indításnál fut a tranzakció.
+                // Ez létrehozza a 'count' változót a Firebase-ben és növeli 1-gyel.
+                if (typeof window.checkGameLimitAndIncrement === 'function') {
                     
                     try {
                         showLoading(true);
                         document.getElementById('loading-status').textContent = "Token érvényesítése...";
 
-                        // Tranzakció hívása
+                        // Tranzakció hívása: Megpróbáljuk növelni a számlálót
                         const allowed = await window.checkGameLimitAndIncrement(appState.currentGame.id, MAX_PLAYERS);
                         
                         showLoading(false);
                         document.getElementById('loading-status').textContent = "";
 
                         if (!allowed) {
+                            // HA A LIMIT BETELT:
                             showMessage('Sajnos elkéstél! 😔', `A játék kerete betelt (Max: ${MAX_PLAYERS} fő). Sajnos nem tudod elindítani.`);
-                            return; // MEGÁLLJ!
+                            return; // MEGÁLLJ! Nem indul az óra, nem indul a játék.
                         }
 
                     } catch (error) {
-                        // SZIGORÚ HIBAKEZELÉS
                         console.error("Indítási hiba:", error);
                         showLoading(false);
+                        // Ha hálózati hiba van, NEM engedjük tovább, mert akkor megkerülhető lenne a limit
                         showMessage('Hiba történt', 'Nem sikerült érvényesíteni a játék indítását (Limit vagy Hálózat). Próbáld újra!');
                         return; // MEGÁLLJ!
                     }
@@ -3576,18 +3577,18 @@ window.autoSortGamesByDistance = function() {
             }
             // ---------------------------------------------
 
-            // 3. JÁTÉK START LOGIKA
+            // 3. JÁTÉK START LOGIKA (Csak akkor fut le, ha a fenti token levonás sikeres volt)
             console.log("Játék indítása...");
             appState.startTime = new Date();
             appState.isTimerRunning = true;
             
-            // Töröljük a régi időzítőket, hogy ne akadjanak össze
+            // Töröljük a régi időzítőket
             if (appState.timerInterval) clearInterval(appState.timerInterval);
             
-            // Azonnal indítjuk az új, pontos időzítőt
+            // Azonnal indítjuk az időzítőt
             appState.timerInterval = setInterval(updateTimer, 1000);
             
-            // Időzítő változók nullázása az indulás pillanatában
+            // Időzítő változók nullázása
             lastTimeUpdate = Date.now(); 
             timeAccumulator = 0; 
             
