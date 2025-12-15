@@ -429,7 +429,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.30
+       v1.0.31
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1206,28 +1206,55 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // 1. LIMIT ELLENŐRZÉS ÉS NÖVELÉS
+ // 1. LIMIT ELLENŐRZÉS ÉS NÖVELÉS (SZIGORÚ MÓD)
   window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
-      if(!gameId) return true; // Ha nincs ID, átengedjük (teszt mód)
-      
+      if(!gameId) return true; 
+
+      const limit = parseInt(maxPlayers, 10);
+      if (isNaN(limit) || limit <= 0) return true; 
+
+      console.log(`Limit ellenőrzése: ${gameId}, Max: ${limit}`);
       const gameRef = ref(db, 'games/' + gameId + '/count');
+      
       try {
           const result = await runTransaction(gameRef, (currentCount) => {
               const count = (currentCount || 0);
-              // Ha elértük a limitet, undefined-et adunk vissza -> tranzakció megszakad
-              if (count >= maxPlayers) return undefined;
-              
-              // Egyébként növeljük eggyel -> Ez megfelel a Rules-nak!
+              // Ha betelt, MEGSZAKÍTJUK (undefined return)
+              if (count >= limit) {
+                  return undefined; 
+              }
               return count + 1;
           });
           
-          return result.committed; // True, ha sikerült növelni, False, ha limit miatt megszakadt
+          if (result.committed) {
+              console.log(`Sikeres belépés. Új létszám: ${result.snapshot.val()}`);
+              return true;
+          } else {
+              console.warn(`Limit elutasítva: Betelt (${limit} fő).`);
+              return false;
+          }
+
       } catch (error) { 
-          console.error("Limit ellenőrzési hiba:", error); 
-          // Ha hiba van (pl. nincs net), általában átengedjük a játékost, hogy ne rontsuk az élményt
-          return true; 
+          console.error("KRITIKUS Limit hiba:", error); 
+          // JAVÍTÁS: Szigorú mód! Ha hiba van, NEM engedjük be, mert lehet, hogy betelt.
+          return false; 
       }
   };
+
+
+// ÚJ FÜGGVÉNY: Csak ellenőrzés (nem növeli a számlálót)
+  window.checkGameLimitOnly = async function(gameId, maxPlayers) {
+      if(!gameId) return true;
+      try {
+          const snapshot = await get(ref(db, 'games/' + gameId + '/count'));
+          const currentCount = snapshot.val() || 0;
+          return currentCount < maxPlayers; // True, ha van még hely
+      } catch (error) {
+          console.error("Limit ellenőrzési hiba (csak olvasás):", error);
+          return true; // Hiba esetén átengedjük
+      }
+  };
+
 
   // 2. MENTÉS (Biztonságos verzió - validálással)
   window.saveScoreToFirebase = function(data) {
@@ -2571,7 +2598,6 @@ async function sharePdfViaEmail() {
                 const combinedGames = {};
                 
                 parsedGames.forEach(game => {
-                    
                     // Rejtett játék flag számítása
                     const isHiddenGame = (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true');
 
@@ -2579,23 +2605,30 @@ async function sharePdfViaEmail() {
                     const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
                     const cleanId = String(game.id).trim(); 
 
-                    // --- ÚJ LOGIKA: 0 = Letiltva, Üres = Korlátlan, Szám = Limit ---
-                    const oneTimeKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'maxplaycount');
-                    let rawVal = (oneTimeKey) ? game[oneTimeKey] : '';
-                    let maxPlayVal = 0; // Alapértelmezett: 0 = Korlátlan (ha üres a cella)
-
-                    // Csak akkor váltunk, ha VAN valami írva a cellába
-                    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
-                        const parsed = parseInt(rawVal);
-                        if (!isNaN(parsed)) {
-                            if (parsed === 0) {
-                                maxPlayVal = -1; // KÓD: -1 jelenti, hogy "Letiltva / Nem elérhető"
-                            } else {
-                                maxPlayVal = parsed; // Egyéb szám: A limit értéke
-                            }
-                        }
+                    // --- JAVÍTÁS: Keresés kis/nagybetű függetlenül ---
+                    
+                    // 1. MaxPlayCount (Helyi limit) keresése
+                    const maxPlayKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'maxplaycount');
+                    let rawMaxPlayVal = (maxPlayKey) ? game[maxPlayKey] : '';
+                    let maxPlayVal = 0; 
+                    if (rawMaxPlayVal !== undefined && rawMaxPlayVal !== null && String(rawMaxPlayVal).trim() !== '') {
+                        const parsed = parseInt(rawMaxPlayVal);
+                        if (!isNaN(parsed)) maxPlayVal = (parsed === 0) ? -1 : parsed;
                     }
-                    // ----
+
+                    // 2. GlobalLimit (Globális limit) keresése - EZ VOLT A HIBA OKA!
+                    const globalLimitKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'globallimit');
+                    let rawGlobalVal = (globalLimitKey) ? game[globalLimitKey] : '';
+                    let globalLimitVal = 0; // 0 = Korlátlan
+                    
+                    if (rawGlobalVal !== undefined && rawGlobalVal !== null && String(rawGlobalVal).trim() !== '') {
+                         const parsedGlobal = parseInt(rawGlobalVal);
+                         if (!isNaN(parsedGlobal)) {
+                             globalLimitVal = parsedGlobal;
+                             console.log(`Játék ${cleanId}: Globális limit beállítva: ${globalLimitVal} fő`); // Logoljuk a konzolra
+                         }
+                    }
+                    // ---------------------------------------------------------
 
                     combinedGames[cleanId] = { 
                         ...game, 
@@ -2607,9 +2640,8 @@ async function sharePdfViaEmail() {
                         headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null,
                         reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,
                         
-                        // --- JAVÍTÁS 2: Itt már csak a kész értéket használjuk ---
                         maxPlayCount: maxPlayVal, 
-                        
+                        globalLimit: globalLimitVal, // Most már biztosan bekerül
                         tasks: [] 
                     };
                 });
@@ -3367,19 +3399,23 @@ window.autoSortGamesByDistance = function() {
                 return; 
             }
             
-            // D. FIREBASE LIMIT ELLENŐRZÉS
-            const MAX_PLAYERS = 100000; 
-            if (window.checkGameLimitAndIncrement) {
+            // D. FIREBASE LIMIT ELLENŐRZÉS (CSAK OLVASÁS - ELŐSZŰRÉS)
+            // Itt még nem vonunk le tokent, csak megnézzük, érdemes-e elindulni.
+            const limitFromExcel = gameConfig.globalLimit || 0;
+            const MAX_PLAYERS = limitFromExcel > 0 ? limitFromExcel : 100000; 
+
+            if (window.checkGameLimitOnly) {
                 showLoading(true);
                 document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
                 
-                const allowed = await window.checkGameLimitAndIncrement(gameId, MAX_PLAYERS);
+                // ITT AZ ÚJ FÜGGVÉNYT HÍVJUK (Csak ellenőriz)
+                const allowed = await window.checkGameLimitOnly(gameId, MAX_PLAYERS);
                 
                 showLoading(false);
                 document.getElementById('loading-status').textContent = "";
 
                 if (!allowed) {
-                    showMessage('Betelt a játék!', `Sajnáljuk, a(z) <strong>${title}</strong> kaland elérte a maximális létszámot.`);
+                    showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) <strong>${title}</strong> kaland jelenleg elérte a maximális globális létszámot (${MAX_PLAYERS} játékos).`);
                     return; 
                 }
             }
@@ -3402,17 +3438,74 @@ window.autoSortGamesByDistance = function() {
             return `${minutes}:${secs}`;
         }
 
-        function startTimersAndGPS() {
 
-if (window.AudioContext || window.webkitAudioContext) {
+// --- JAVÍTOTT IDŐZÍTŐ LOGIKA (PONTOSABB + SZINKRONIZÁLT) ---
+        let lastTimeUpdate = 0;
+        let timeAccumulator = 0;
+
+        function updateTimer() {
+            if (!appState.isTimerRunning) return;
+
+            const now = Date.now();
+            if (!lastTimeUpdate) lastTimeUpdate = now;
+
+            const dt = now - lastTimeUpdate;
+            lastTimeUpdate = now;
+            
+            timeAccumulator += dt;
+
+            // Ha eltelt legalább 1 másodperc
+            if (timeAccumulator >= 1000) {
+                const secondsToAdd = Math.floor(timeAccumulator / 1000);
+                timeAccumulator %= 1000;
+
+                // 1. Teljes idő növelése
+                appState.totalTime += secondsToAdd;
+
+                // 2. Feladat idő növelése (csak ha a feladat aktív)
+                const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                if (currentTask && currentTask.isTaskTimerActive && !currentTask.isStartTask) {
+                    appState.geofenceTime += secondsToAdd;
+                    
+                    if (typeof currentTask.timeSpent === 'undefined') currentTask.timeSpent = 0;
+                    currentTask.timeSpent += secondsToAdd;
+                    
+                    const geoTimerDisplay = document.getElementById('geofence-timer-display');
+                    if (geoTimerDisplay) geoTimerDisplay.textContent = formatTime(appState.geofenceTime);
+                }
+
+                // --- BIZTONSÁGI SZINKRONIZÁCIÓ ---
+                // Ez javítja a hibát: A teljes idő sosem lehet kevesebb, mint a részidő!
+                if (appState.totalTime < appState.geofenceTime) {
+                    appState.totalTime = appState.geofenceTime;
+                }
+                // ---------------------------------
+
+                // UI Frissítés
+                const timerDisplay = document.getElementById('timer-display');
+                if (timerDisplay) timerDisplay.textContent = formatTime(appState.totalTime);
+
+                // Ritkább mentés
+                if (appState.totalTime % 5 === 0) {
+                    saveGameState();
+                }
+            }
+        }
+
+
+
+   // ASYNC lett a függvény, mert várni kell a Firebase-re
+      async function startTimersAndGPS() {
+
+            // 1. Hang feloldása (iOS kompatibilitás)
+            if (window.AudioContext || window.webkitAudioContext) {
                 try {
                     const AudioCtxt = window.AudioContext || window.webkitAudioContext;
                     const ctx = new AudioCtxt();
                     ctx.resume().then(() => {
-                        // Néma hang lejátszása az engedély megszerzéséhez
                         const osc = ctx.createOscillator();
                         const gain = ctx.createGain();
-                        gain.gain.value = 0.001; // Szinte néma
+                        gain.gain.value = 0.001;
                         osc.connect(gain);
                         gain.connect(ctx.destination);
                         osc.start(0);
@@ -3423,57 +3516,76 @@ if (window.AudioContext || window.webkitAudioContext) {
 
             if (appState.isTimerRunning) return; 
 
+            // 2. TOKEN LEVONÁS (SZIGORÚ VERZIÓ - TESZT MÓDBAN IS)
+            if (appState.currentGame) {
+                const limitFromExcel = appState.currentGame.globalLimit || 0;
+                const MAX_PLAYERS = limitFromExcel > 0 ? limitFromExcel : 100000;
+
+                // KIVETTÜK A TESZT MÓD KIVÉTELT: Így Mock/Teszt módban is ellenőrzi a limitet!
+                if (MAX_PLAYERS < 100000 && typeof window.checkGameLimitAndIncrement === 'function') {
+                    
+                    try {
+                        showLoading(true);
+                        document.getElementById('loading-status').textContent = "Token érvényesítése...";
+
+                        // Tranzakció hívása
+                        const allowed = await window.checkGameLimitAndIncrement(appState.currentGame.id, MAX_PLAYERS);
+                        
+                        showLoading(false);
+                        document.getElementById('loading-status').textContent = "";
+
+                        if (!allowed) {
+                            showMessage('Sajnos elkéstél! 😔', `A játék kerete betelt (Max: ${MAX_PLAYERS} fő). Sajnos nem tudod elindítani.`);
+                            return; // MEGÁLLJ!
+                        }
+
+                    } catch (error) {
+                        // SZIGORÚ HIBAKEZELÉS
+                        console.error("Indítási hiba:", error);
+                        showLoading(false);
+                        showMessage('Hiba történt', 'Nem sikerült érvényesíteni a játék indítását (Limit vagy Hálózat). Próbáld újra!');
+                        return; // MEGÁLLJ!
+                    }
+                }
+            }
+            // ---------------------------------------------
+
+            // 3. JÁTÉK START LOGIKA
+            console.log("Játék indítása...");
             appState.startTime = new Date();
             appState.isTimerRunning = true;
-            clearInterval(appState.timerInterval);
-            appState.timerInterval = setInterval(updateTimer, 1000);
-            lastTimeUpdate = appState.startTime.getTime(); 
             
+            // Töröljük a régi időzítőket, hogy ne akadjanak össze
+            if (appState.timerInterval) clearInterval(appState.timerInterval);
+            
+            // Azonnal indítjuk az új, pontos időzítőt
+            appState.timerInterval = setInterval(updateTimer, 1000);
+            
+            // Időzítő változók nullázása az indulás pillanatában
+            lastTimeUpdate = Date.now(); 
+            timeAccumulator = 0; 
+            
+            // UI frissítések
             if (appState.currentGame.taskOrder === 'explore') {
                 if (appState.completedTasks.indexOf(0) === -1) appState.completedTasks.push(0);
                 showTaskSelectionMap();
             } else {
-                const nextTaskIndex = appState.currentGame.tasks[1].index; 
-                appState.currentTaskIndex = nextTaskIndex; 
-                loadTask(appState.currentTaskIndex); 
+                // Normál mód: ugrás az 1. feladatra
+                if (appState.currentGame.tasks.length > 1) {
+                    const nextTaskIndex = appState.currentGame.tasks[1].index; 
+                    appState.currentTaskIndex = nextTaskIndex; 
+                    loadTask(appState.currentTaskIndex); 
+                } else {
+                    showMessage("Hiba", "Ehhez a játékhoz nincsenek feladatok töltve.");
+                }
             }
+            
             if (appState.map) checkGeofence();
             updateStatusDisplays(); 
             saveGameState(); 
         }
 
-        let lastTimeUpdate = new Date().getTime();
-        function updateTimer() {
-            if (!appState.isTimerRunning) return; 
-            
-            const now = new Date().getTime();
-            const diffInMs = now - lastTimeUpdate; // Eltelt idő ezredmásodpercben
 
-            // Csak akkor lépünk, ha eltelt legalább 1 másodperc (1000ms)
-            if (diffInMs >= 1000) {
-                // Kiszámoljuk, pontosan hány másodperc telt el (lehet, hogy 2, ha belassult a böngésző)
-                const secondsPassed = Math.floor(diffInMs / 1000);
-                
-                appState.totalTime += secondsPassed;
-                
-                // UI frissítése
-                document.getElementById('timer-display').textContent = formatTime(appState.totalTime);
-
-                // Geofence időzítő kezelése
-                const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null; 
-                if (currentTask && currentTask.isTaskTimerActive) {
-                    appState.geofenceTime += secondsPassed;
-                }
-                document.getElementById('geofence-timer-display').textContent = formatTime(appState.geofenceTime);
-
-                // FONTOS JAVÍTÁS:
-                // Nem a 'now'-ra állítjuk, hanem pontosan annyival növeljük, amennyit elszámoltunk.
-                // Így a maradék (pl. 50ms) megmarad a következő körre, és a számláló pontos marad.
-                lastTimeUpdate += (secondsPassed * 1000);
-                
-                saveGameState(); 
-            }
-        }
         
         function updateStatusDisplays() {
             if (!appState.currentGame) return;
@@ -3749,135 +3861,109 @@ const backBtn = document.getElementById('back-to-map-btn');
 	    saveGameState(); 
         }
         
-// --- END GAME (JAVÍTOTT VERZIÓ) ---
+// --- JAVÍTOTT ENDGAME FÜGGVÉNY ---
         function endGame() {
-    // --- GOOGLE ANALYTICS MÉRÉS ---
-    if (typeof gtag === 'function') {
-        gtag('event', 'game_complete', {
-            'game_id': appState.currentGame ? appState.currentGame.id : 'unknown',
-            'score': appState.score,
-            'total_time': appState.totalTime,
-            'team_name': appState.teamName
-        });
-    }
-    
-    // --- FONTOS: Elmentjük az ID-t és a pontot a modalnak ---
-    window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
-    window.currentScoreForHighlight = appState.score;
-    // --------------------------------------------------------
-
-// --- ÚJ RÉSZ: Tartós teljesítés számláló növelése ---
-    if (appState.currentGame) {
-        const countKey = 'MystiGo_Perm_Count_' + appState.currentGame.id;
-        
-        // Jelenlegi érték lekérése
-        let currentCount = parseInt(localStorage.getItem(countKey) || 0);
-        
-        // Visszakompatibilitás ellenőrzése növelés előtt
-        if (currentCount === 0 && localStorage.getItem('MystiGo_Perm_Completed_' + appState.currentGame.id) === 'true') {
-            currentCount = 1;
-        }
-
-        // Növeljük és mentjük
-        localStorage.setItem(countKey, currentCount + 1);
-        
-        // Biztonság kedvéért a régi boolean kulcsot is beállítjuk "true"-ra
-        localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
-    }
-
-    if (speechSynth.speaking) speechSynth.cancel();
-
-    // --- Mentés a Firebase Ranglistára ---
-    if (appState.currentGame && window.saveScoreToFirebase) {
-        const totalTaskTime = appState.currentGame.tasks.filter(t => !t.isStartTask).reduce((sum, task) => sum + (task.timeSpent || 0), 0);
-
-        window.saveScoreToFirebase({
-            gameId: appState.currentGame.id,
-            teamName: appState.teamName,
-            teamAvatar: appState.teamAvatar,
-            score: appState.score,
-            totalTime: appState.totalTime,
-            geofenceTime: totalTaskTime
-        });
-        
-        if (window.incrementGameCompletion) {
-                window.incrementGameCompletion(appState.currentGame.id);
+            // --- GOOGLE ANALYTICS MÉRÉS ---
+            if (typeof gtag === 'function') {
+                gtag('event', 'game_complete', {
+                    'game_id': appState.currentGame ? appState.currentGame.id : 'unknown',
+                    'score': appState.score,
+                    'total_time': appState.totalTime,
+                    'team_name': appState.teamName
+                });
             }
-        }
+            
+            window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
+            window.currentScoreForHighlight = appState.score;
 
-            // Jelenlegi idő meghatározása
+            // --- ÚJ RÉSZ: Tartós teljesítés számláló növelése ---
+            if (appState.currentGame) {
+                const countKey = 'MystiGo_Perm_Count_' + appState.currentGame.id;
+                let currentCount = parseInt(localStorage.getItem(countKey) || 0);
+                if (currentCount === 0 && localStorage.getItem('MystiGo_Perm_Completed_' + appState.currentGame.id) === 'true') {
+                    currentCount = 1;
+                }
+                localStorage.setItem(countKey, currentCount + 1);
+                localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
+            }
+
+            if (speechSynth.speaking) speechSynth.cancel();
+
+            // --- JAVÍTÁS: A GLOBÁLIS SZÁMLÁLÓKAT HASZNÁLJUK (NEM SZÁMOLJUK ÚJRA) ---
+            // Így pont ugyanazt látja a végén, mint játék közben a kijelzőn
+            const finalTotalTime = appState.totalTime; 
+            const finalTaskTime = appState.geofenceTime; 
+
+            // --- Mentés a Firebase Ranglistára ---
+            if (appState.currentGame && window.saveScoreToFirebase) {
+                window.saveScoreToFirebase({
+                    gameId: appState.currentGame.id,
+                    teamName: appState.teamName,
+                    teamAvatar: appState.teamAvatar,
+                    score: appState.score,
+                    totalTime: finalTotalTime,
+                    geofenceTime: finalTaskTime
+                });
+                
+                if (window.incrementGameCompletion) {
+                    window.incrementGameCompletion(appState.currentGame.id);
+                }
+            }
+
+            // Jelenlegi idő
             const endTime = new Date();
             const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
             
-            // Játék közbeni időzítők és figyelők leállítása
+            // Leállítás
             clearInterval(appState.timerInterval);
             if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
             
-            // Játék közbeni térkép (nagy térkép) törlése, ha létezik
             if (appState.map) { appState.map.remove(); appState.map = null; }
             if (manualMarker) { manualMarker.remove(); manualMarker = null; }
 
-            // Idők számítása
-            const totalTaskTime = appState.currentGame.tasks.filter(t => !t.isStartTask).reduce((sum, task) => sum + (task.timeSpent || 0), 0);
-            
-            // --- JAVÍTOTT LOGÓ CSERE KÓD ---
-            // 1. A kártyán belüli logó cseréje
+            // Logó csere
             const endPageLogo = document.getElementById('end-page-logo');
-            if (endPageLogo) {
-                endPageLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
-            }
-
-            // 2. A felső fejléc logó cseréje
+            if (endPageLogo) endPageLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
             const mainHeaderLogo = document.getElementById('main-header-logo');
-            if (mainHeaderLogo) {
-                mainHeaderLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
-            }
-            // ------------------------------------------
+            if (mainHeaderLogo) mainHeaderLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
 
-	    // HTML elemek kitöltése az eredményekkel
+            // HTML elemek kitöltése
             document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
             document.getElementById('final-score').textContent = appState.score;
-            document.getElementById('final-time').textContent = formatTime(appState.totalTime); 
             document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
             document.getElementById('final-team-avatar-icon').textContent = AVATAR_ICONS[appState.teamAvatar] || '';
             document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
-            document.getElementById('final-geofence-time').textContent = formatTime(totalTaskTime);
             
-            // Megjelenítjük a végső oldalt
+            // --- JAVÍTOTT IDŐKIÍRÁS ---
+            document.getElementById('final-time').textContent = formatTime(finalTotalTime); 
+            document.getElementById('final-geofence-time').textContent = formatTime(finalTaskTime);
+            
             showContentPage('end-page');
             
-// --- ÚJ RÉSZ KEZDETE: Értékelő gomb kezelése ---
-const reviewBtn = document.getElementById('game-review-btn');
-if (reviewBtn) {
-    // Ha az adatbázisban van megadva reviewUrl ehhez a játékhoz
-    if (appState.currentGame && appState.currentGame.reviewUrl) {
-        reviewBtn.href = appState.currentGame.reviewUrl; // Link beállítása
-        reviewBtn.classList.remove('hidden'); // Gomb megjelenítése
-        reviewBtn.classList.add('block');     // Biztosítjuk, hogy blokk elem legyen
-    } else {
-        // Ha nincs link, elrejtjük a gombot
-        reviewBtn.classList.add('hidden');
-        reviewBtn.classList.remove('block');
-    }
-}
-// --- ÚJ RÉSZ VÉGE ---
+            // Review gomb kezelése
+            const reviewBtn = document.getElementById('game-review-btn');
+            if (reviewBtn) {
+                if (appState.currentGame && appState.currentGame.reviewUrl) {
+                    reviewBtn.href = appState.currentGame.reviewUrl; 
+                    reviewBtn.classList.remove('hidden'); 
+                    reviewBtn.classList.add('block');     
+                } else {
+                    reviewBtn.classList.add('hidden');
+                    reviewBtn.classList.remove('block');
+                }
+            }
 
             // Kézi letöltés gomb láthatóvá tétele
             const manualPdfBtn = document.querySelector('button[onclick="downloadPDF()"]');
             if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
             
-            // --- TÉRKÉP RAJZOLÁSA BIZTONSÁGOSAN ---
+            // Térkép rajzolása
             const oldMapDiv = document.getElementById('route-map');
             if (oldMapDiv) {
                 const parent = oldMapDiv.parentNode;
                 const newMapDiv = document.createElement('div');
                 newMapDiv.id = 'route-map';
-                
-                // A kért középre igazított stílusok:
                 newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 500px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
-                
-                // JAVÍTÁS: replaceChild-ot használunk. Ez kicseréli a régi div-et az újra
-                // pontosan ott, ahol van, függetlenül attól, hol van a dátum.
                 parent.replaceChild(newMapDiv, oldMapDiv);
             }
 
@@ -3886,107 +3972,50 @@ if (reviewBtn) {
                     const originalAny3d = L.Browser.any3d; const originalIelt9 = L.Browser.ielt9;
                     L.Browser.any3d = false; L.Browser.ielt9 = true; 
                     
-                    // Térkép létrehozása
-                    const endMap = L.map('route-map', { 
-    zoomControl: false, 
-    fadeAnimation: false, 
-    markerZoomAnimation: false, 
-    preferCanvas: true,
-    // --- ÚJ TILTÁSOK ---
-    dragging: false,
-    touchZoom: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    boxZoom: false,
-    keyboard: false,
-    tap: false
-});
+                    const endMap = L.map('route-map', { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false });
                     endMap.attributionControl.setPrefix(false);
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
-                    
 
                     L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
-                        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
-                        crossOrigin: true,
-                        tileSize: 512,
-                        zoomOffset: -1,
-                        maxZoom: 20
+                        crossOrigin: true, tileSize: 512, zoomOffset: -1, maxZoom: 20
                     }).addTo(endMap);
-
                     
                     const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
                     endMap.fitBounds(polyline.getBounds().pad(0.2));
                     
                     setTimeout(() => { 
-                        try {
-                            endMap.invalidateSize(); 
-                            endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 19, animate: false }); 
-                        } catch(e) { console.log("Térkép méretezési hiba (figyelmen kívül hagyható)"); }
+                        try { endMap.invalidateSize(); endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 19, animate: false }); } catch(e) {}
                     }, 800);
 
-                    // Start pont
                     const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; 
-                    L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap).bindPopup('<b>Start Helyszín</b>');
+                    L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap);
 
-                    // Feladatok jelölése
                     appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
                         if (task.location) {
                             const isCompleted = appState.currentGame.taskOrder === 'explore' ? appState.completedTasks.includes(task.index) : true;
-                            
-                            // --- ÚJ LOGIKA: Piros X és háttér ha átugrottuk ---
-                            // Megnézzük, hogy van-e skipped jelölés, VAGY 0 pontot ért-e (biztonsági tartalék)
                             const isSkipped = (task.skipped === true || task.taskScore === 0);
-
-                            // Alap ikon és háttérszín (Zöld pipa vagy szám)
                             let iconContent = isCompleted ? '✅' : task.index.toString();
-                            // Fontos: a !bg-green-500 a Tailwind miatt kell, hogy felülírja a kéket
                             let bgClass = isCompleted ? '!bg-green-500' : ''; 
+                            if (isSkipped) { iconContent = '❌'; bgClass = '!bg-red-500 !border-white'; }
 
-                            // HA ÁTUGROTTUK: Piros X és piros háttér
-                            if (isSkipped) {
-                                iconContent = '❌';
-                                bgClass = '!bg-red-500 !border-white'; 
-                            }
-
-                            const taskMarkerIcon = L.divIcon({
-                                // Hozzáadjuk a bgClass-t a meglévő osztályhoz
-                                className: `task-selector-marker ${bgClass}`, 
-                                html: iconContent,
-                                iconSize: [30, 30], 
-                                iconAnchor: [15, 30], 
-                                popupAnchor: [0, -30]
-                            });
-                            // --------------------------------------------------
-
-                            L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon, title: `Feladat ${task.index}` }).addTo(endMap).bindPopup(`<b>Feladat ${task.index}</b>`);
+                            const taskMarkerIcon = L.divIcon({ className: `task-selector-marker ${bgClass}`, html: iconContent, iconSize: [30, 30], iconAnchor: [15, 30] });
+                            L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon }).addTo(endMap);
                         }
                     });
-                } else {
-                     routeMapDiv.innerHTML = `<p class="p-4 text-gray-500">Nem sikerült útvonalat rögzíteni (nincs GPS adat).</p>`;
                 }
-            } catch (err) {
-                console.error("Hiba az eredményjelző térkép rajzolásakor:", err);
-                routeMapDiv.innerHTML = `<p class="p-4 text-red-500">Térkép betöltési hiba.</p>`;
-                // Nem állítjuk meg a futást, hogy a mentés törlése mindenképp lefusson!
-            }
+            } catch (err) { console.error("Térkép hiba:", err); }
             
-            // --- FONTOS MŰVELETEK A TÉRKÉP UTÁN ---
+            setTimeout(() => { downloadPDF(); }, 1000); 
             
-            // 1. PDF Automatikus letöltés
-            setTimeout(() => {
-                downloadPDF();
-            }, 1000); 
-            
-            // 2. Mentés törlése (Hogy ne töltse vissza újra)
             if(appState.currentGame) {
-                console.log("Mentés törlése a játék végén:", appState.currentGame.id);
                 deleteSavedGame(appState.currentGame.id);
             }
-            
-            // 3. Játék állapot kinullázása
             appState.currentGame = null;
         }
-        
+      
+
+
+  
         function toggleMapClickMock(enable) {
             if (!appState.map) return;
             if (appState.currentGame && appState.currentGame.taskOrder === 'explore' && appState.currentTaskIndex === 0 && appState.isTimerRunning) {
