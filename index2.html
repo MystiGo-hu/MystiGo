@@ -1243,18 +1243,34 @@
 
 
 // ÚJ FÜGGVÉNY: Csak ellenőrzés (nem növeli a számlálót)
-  window.checkGameLimitOnly = async function(gameId, maxPlayers) {
+window.checkGameLimitOnly = async function(gameId, maxPlayers) {
       if(!gameId) return true;
+      
       try {
+          // Lekérjük az aktuális létszámot
           const snapshot = await get(ref(db, 'games/' + gameId + '/count'));
-          const currentCount = snapshot.val() || 0;
-          return currentCount < maxPlayers; // True, ha van még hely
+          
+          // Biztosítjuk, hogy szám legyen (ha a DB-ben stringként lenne)
+          const currentCount = parseInt(snapshot.val() || 0, 10);
+          const limit = parseInt(maxPlayers, 10);
+
+          console.log(`Előzetes limit ellenőrzés (${gameId}): ${currentCount} / ${limit}`);
+
+          // Ha a létszám már elérte vagy meghaladta a limitet, NEM engedjük be
+          if (currentCount >= limit) {
+              console.warn("Limit előellenőrzés: BETELT!");
+              return false; 
+          }
+          
+          return true; // Van még hely
+
       } catch (error) {
           console.error("Limit ellenőrzési hiba (csak olvasás):", error);
-          return true; // Hiba esetén átengedjük
+          // SZIGORÚ MÓD: Ha nem tudjuk lekérni az adatot (pl. hiba), 
+          // inkább NE engedjük be, minthogy túllépjük a limitet.
+          return false; 
       }
   };
-
 
   // 2. MENTÉS (Biztonságos verzió - validálással)
   window.saveScoreToFirebase = function(data) {
@@ -3399,23 +3415,33 @@ window.autoSortGamesByDistance = function() {
                 return; 
             }
             
-            // D. FIREBASE LIMIT ELLENŐRZÉS (CSAK OLVASÁS - ELŐSZŰRÉS)
+        // D. FIREBASE LIMIT ELLENŐRZÉS (CSAK OLVASÁS - ELŐSZŰRÉS)
             // Itt még nem vonunk le tokent, csak megnézzük, érdemes-e elindulni.
             const limitFromExcel = gameConfig.globalLimit || 0;
             const MAX_PLAYERS = limitFromExcel > 0 ? limitFromExcel : 100000; 
 
-            if (window.checkGameLimitOnly) {
-                showLoading(true);
-                document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
+            // Csak akkor ellenőrzünk, ha van valós limit (< 100000) ÉS nem rejtett tesztről van szó
+            if (MAX_PLAYERS < 100000 && window.checkGameLimitOnly) {
                 
-                // ITT AZ ÚJ FÜGGVÉNYT HÍVJUK (Csak ellenőriz)
-                const allowed = await window.checkGameLimitOnly(gameId, MAX_PLAYERS);
-                
-                showLoading(false);
-                document.getElementById('loading-status').textContent = "";
+                try {
+                    showLoading(true);
+                    document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
+                    
+                    // ITT AZ ÚJ FÜGGVÉNYT HÍVJUK
+                    const allowed = await window.checkGameLimitOnly(gameId, MAX_PLAYERS);
+                    
+                    showLoading(false);
+                    document.getElementById('loading-status').textContent = "";
 
-                if (!allowed) {
-                    showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) <strong>${title}</strong> kaland jelenleg elérte a maximális globális létszámot (${MAX_PLAYERS} játékos).`);
+                    if (!allowed) {
+                        showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) <strong>${title}</strong> kaland jelenleg elérte a maximális globális létszámot (${MAX_PLAYERS} játékos).`);
+                        return; // Itt megállítjuk a folyamatot, nem tölt be a térkép sem!
+                    }
+                } catch (e) {
+                    showLoading(false);
+                    console.error("Hiba az előszűrésnél:", e);
+                    // Hiba esetén is megállítjuk, ha szigorúak akarunk lenni
+                    showMessage('Hiba', 'Nem sikerült ellenőrizni a szabad helyeket. Kérlek próbáld újra!');
                     return; 
                 }
             }
