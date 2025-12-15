@@ -429,7 +429,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.31
+       v1.0.32
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1238,6 +1238,19 @@
           console.error("KRITIKUS Limit hiba:", error); 
           // JAVÍTÁS: Szigorú mód! Ha hiba van, NEM engedjük be, mert lehet, hogy betelt.
           return false; 
+      }
+  };
+
+
+// ÚJ: Csak a létszám lekérése (megjelenítéshez)
+  window.getGameCurrentCount = async function(gameId) {
+      if(!gameId) return 0;
+      try {
+          const snapshot = await get(ref(db, 'games/' + gameId + '/count'));
+          return parseInt(snapshot.val() || 0, 10);
+      } catch (error) {
+          console.error("Létszám lekérési hiba:", error);
+          return 0; // Hiba esetén 0-t mutatunk
       }
   };
 
@@ -2767,43 +2780,37 @@ async function sharePdfViaEmail() {
             const listEl = document.getElementById('game-list');
             listEl.innerHTML = '';
             
-            // 1. Nyers adatok
+            // ... (A rendezési és szűrési logika változatlan marad) ...
+            // ... (sourceData, rawArray, displayableGames stb.) ...
+
             const sourceData = gamesToRender || games;
             let rawArray = Object.values(sourceData);
 
-            // 2. RENDEZÉS TÁVOLSÁG SZERINT (Ha van kiszámolt távolság)
-            // Ez az új rész: ha a gomb megnyomása után vagyunk, sorba rendezi őket
             if (rawArray.length > 0 && typeof rawArray[0]._calculatedDistance !== 'undefined') {
                 rawArray.sort((a, b) => a._calculatedDistance - b._calculatedDistance);
             }
 
-            // 3. Szűrés (Rejtett és NEM AKTÍV játékok kiszűrése)
             const displayableGames = rawArray.filter(game => {
-                // Ha konkrét szűrés van (pl. keresés), akkor mindent mutatunk ami egyezik
-                if (gamesToRender) return true;
-                
-                // Fejlesztői módban mindent mutatunk
-                if (window.showHiddenGames) return true;
-                
-                // 1. Rejtett (hidden) flag ellenőrzése
-                if (game.isHidden) return false;
+                 // ... (itt marad a meglévő szűrési logikád) ...
+                 // (csak a helytakarékosság miatt nem másolom be az egészet)
+                 if (gamesToRender) return true;
+                 if (window.showHiddenGames) return true;
+                 if (game.isHidden) return false;
+                 
+                 let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
+                 const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
+                 if (playCount === 0 && oldBooleanSave === 'true') playCount = 1;
 
-                // 2. Limit és Tiltás ellenőrzése (hogy csak az aktívak látszódjanak)
-                let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
-                const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
-                if (playCount === 0 && oldBooleanSave === 'true') playCount = 1;
+                 const isManuallyDisabled = (game.maxPlayCount === -1);
+                 const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount);
 
-                const isManuallyDisabled = (game.maxPlayCount === -1);
-                const isLimitReached = (game.maxPlayCount > 0 && playCount >= game.maxPlayCount);
+                 if (isManuallyDisabled || isLimitReached) return false;
 
-                // Ha le van tiltva, vagy elérte a limitet, NE jelenjen meg a listában
-                if (isManuallyDisabled || isLimitReached) return false;
-
-                return true;
+                 return true;
             });
 
-            // Üres lista kezelése
             if (displayableGames.length === 0) {
+                 // ... (üres lista kezelése marad) ...
                  listEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-xl border border-gray-200">
                     <p class="text-gray-500 font-semibold">Nincs a szűrésnek megfelelő játék.</p>
                     <button onclick="applyFilters()" class="text-brand-blue underline mt-2 text-sm">Szűrők frissítése</button>
@@ -2815,15 +2822,14 @@ async function sharePdfViaEmail() {
                 populateLocationFilter();
             }
 
-            // Limitálás
             const currentLimit = appState.visibleGamesLimit;
             const visibleGames = displayableGames.slice(0, currentLimit);
 
-            // Kártyák generálása
             visibleGames.forEach(game => {
                 const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
                 const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
                 
+                // ... (típus badge, priceText, locationBadge logika változatlan) ...
                 let gameTypeBadge = '';
                 if (game.type === 'kids') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-xs font-medium text-yellow-800">Kids 🐈</span>`;
                 else if (game.type === 'team') gameTypeBadge = `<span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-medium text-indigo-800">Team 🧑‍🤝‍🧑</span>`;
@@ -2834,6 +2840,7 @@ async function sharePdfViaEmail() {
                 const gameTitleForMessage = game.title.replace(/'/g, "\\'");
                 const locationBadge = game.location ? `<span class="text-xs text-gray-500 font-semibold flex items-center mt-1"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>${game.location}</span>` : '';
 
+                // ... (playCount, contentOpacityClass, saveIndicator logika változatlan) ...
                 let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
                 const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
                 if (playCount === 0 && oldBooleanSave === 'true') playCount = 1;
@@ -2860,16 +2867,25 @@ async function sharePdfViaEmail() {
                     cardBorder = "border-2 border-brand-orange";
                 }
 
-                // --- ÚJ RÉSZ: Távolság jelző kék címke ---
+                // Távolság badge
                 let distanceBadge = "";
                 if (game._calculatedDistance !== undefined) {
                     const distText = game._calculatedDistance > 100 
                         ? Math.round(game._calculatedDistance) + " km" 
                         : game._calculatedDistance.toFixed(1) + " km";
-                    
                     distanceBadge = `<div class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded absolute bottom-2 left-2 shadow-md z-20 flex items-center gap-1">📍 ${distText}</div>`;
                 }
-                // ------------------------------------------
+
+                // -----------------------------------------------------
+                // --- ÚJ KÓD: LIMIT JELVÉNY (Jobb alsó sarok a képen) ---
+                // -----------------------------------------------------
+                let limitBadgeHtml = "";
+                if (game.globalLimit && game.globalLimit > 0) {
+                     limitBadgeHtml = `<div id="limit-badge-${game.id}" class="bg-grey-200 text-white text-xs font-bold px-2 py-1 rounded absolute bottom-2 right-2 shadow-md z-20 flex items-center gap-1 backdrop-blur-sm bg-opacity-20">
+                        <span class="text-[10px]">👥</span> <span class="loading-dots">...</span> / ${game.globalLimit}
+                    </div>`;
+                }
+                // -----------------------------------------------------
 
                 let deleteButtonHtml = "";
                 if (hasSave) {
@@ -2899,7 +2915,7 @@ async function sharePdfViaEmail() {
                         <div class="relative">
                             <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
                             ${distanceBadge}
-                        </div>
+                            ${limitBadgeHtml}  </div>
 
                         <div class="p-5 ${contentOpacityClass}">
                             <div class="flex justify-between items-start">
@@ -2914,6 +2930,7 @@ async function sharePdfViaEmail() {
                     </div>`;
             });
             
+            // "Továbbiak betöltése" gomb
             if (displayableGames.length > currentLimit) {
                 const remaining = displayableGames.length - currentLimit;
                 listEl.innerHTML += `
@@ -2924,6 +2941,33 @@ async function sharePdfViaEmail() {
                     </div>
                 `;
             }
+
+            // ----------------------------------------------------------------
+            // --- ÚJ KÓD: Adatok betöltése a generálás után (ASZINKRON) ---
+            // ----------------------------------------------------------------
+            visibleGames.forEach(game => {
+                // Csak akkor kérdezzük le, ha van limit, különben felesleges terhelés
+                if (game.globalLimit && game.globalLimit > 0) {
+                    if (window.getGameCurrentCount) {
+                        window.getGameCurrentCount(game.id).then(count => {
+                            const badgeEl = document.getElementById(`limit-badge-${game.id}`);
+                            if (badgeEl) {
+                                const isFull = count >= game.globalLimit;
+                                // Tartalom frissítése
+                                badgeEl.innerHTML = `<span class="text-[10px]">👥</span> ${count} / ${game.globalLimit}`;
+                                
+                                // Ha betelt, pirosra váltjuk
+                                if (isFull) {
+                                    badgeEl.classList.remove('bg-grey-200');
+                                    badgeEl.classList.add('bg-red-600');
+                                    badgeEl.title = "A limit betelt!";
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            // ----------------------------------------------------------------
         }
   
 
@@ -3432,7 +3476,7 @@ window.autoSortGamesByDistance = function() {
                     document.getElementById('loading-status').textContent = "";
 
                     if (!allowed) {
-                        showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) <strong>${title}</strong> kaland jelenleg elérte a maximális globális létszámot (${MAX_PLAYERS} játékos).`);
+                        showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) <strong>${title}</strong> kaland jelenleg elérte a maximálisan játszható számot (${MAX_PLAYERS} játékos).`);
                         return; // Itt megállítjuk a folyamatot, nem tölt be a térkép sem!
                     }
                 } catch (e) {
