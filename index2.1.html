@@ -430,7 +430,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.33
+       v1.1.01
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1191,7 +1191,7 @@
 <script type="module">
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set, push, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, set, push, onValue, get, runTransaction, query, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 
 // Segédfüggvény: Szöveg Hash-elése (SHA-256)
@@ -1251,14 +1251,15 @@
         }
     }
 
-    // SIKER! Betöltjük a memóriába
+  // SIKER! Betöltjük a memóriába
     if (!window.games) window.games = {};
     window.games[gameId] = gameData;
 
     showLoading(false);
     
-    // Most indítjuk el a tényleges játékot
-    startGame(gameId); 
+    // MÓDOSÍTÁS: Itt NE hívjuk meg a startGame(gameId)-t közvetlenül, 
+    // mert a handleGameSelect fogja továbbvinni a folyamatot a GPS kéréssel!
+    console.log("Játék adatok sikeresen előkészítve offline módra.");
 };
 
 
@@ -2218,26 +2219,58 @@ function loadGameById(gameId) {
             }
         }
         
-        async function loadLocalXlsx(filePath) {
-            showLoading(true);
-            document.getElementById('loading-status').textContent = `Adatbázis betöltése (${filePath})...`;
+        // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
+window.initializeGamesFromFirebase = async function() {
+    showLoading(true);
+    const statusText = document.getElementById('loading-status');
+    if(statusText) statusText.textContent = "Kalandok betöltése a felhőből...";
+
+    try {
+        const dbRef = ref(db);
+        // Lekérjük az összes játékot a 'games' csomópont alól
+        const snapshot = await get(child(dbRef, "games"));
+
+        if (snapshot.exists()) {
+            const rawData = snapshot.val();
             
-            try {
-                const response = await fetch(filePath);
-                if (!response.ok) throw new Error(`Hiba: ${response.status}`);
-                const arrayBuffer = await response.arrayBuffer();
-                const data = new Uint8Array(arrayBuffer);
-                const wb = XLSX.read(data, {type:'array'}); 
-                processExcelData(wb); 
-            } catch (error) {
-                document.getElementById('landing-page').classList.remove('hidden');
-                document.getElementById('content-wrapper').classList.add('hidden'); 
-                document.getElementById('loading-status').textContent = `Betöltés sikertelen.`;
-                const manualInputLabel = document.getElementById('manual-file-select-label');
-                if (manualInputLabel) manualInputLabel.classList.remove('hidden');
-                showLoading(false);
+            // FONTOS: Feltételezzük, hogy a JSON szerkezete megegyezik 
+            // azzal, amit az alkalmazás eddig használt (Game ID -> Game Object).
+            window.games = rawData;
+
+            // Ellenőrizzük, hogy a tasks tömbök léteznek-e, ha nem, pótoljuk üres tömbbel
+            // (Ez a biztonság kedvéért kell, ha a konverzió nem volt tökéletes)
+            Object.values(window.games).forEach(g => {
+                if (!g.tasks) g.tasks = [];
+                // Biztosítjuk, hogy a string számok számként legyenek kezelve
+                if (g.price) g.price = parseInt(g.price);
+                if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
+                if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
+            });
+
+            console.log("✅ Játékok sikeresen betöltve Firebase-ből:", Object.keys(window.games).length);
+            
+            // UI frissítése
+            populateLocationFilter();
+            
+            if (window.checkUrlParametersAndFilter) {
+                checkUrlParametersAndFilter();
             }
+            
+            showPage('game-list-page');
+            handleInitialUrlFiltering();
+            autoSortGamesByDistance(); // Ha van GPS, rendezünk
+        } else {
+            console.warn("Nincsenek játékok az adatbázisban.");
+            document.getElementById('game-list').innerHTML = '<div class="text-center p-4">Nincsenek elérhető játékok.</div>';
         }
+    } catch (error) {
+        console.error("Firebase betöltési hiba:", error);
+        showMessage("Hiba", "Nem sikerült betölteni a játékokat. Ellenőrizd az internetkapcsolatot!");
+    } finally {
+        showLoading(false);
+        if(statusText) statusText.textContent = "";
+    }
+};
 
         // --- I18N ---
         const I18N = { 
@@ -2555,49 +2588,42 @@ async function sharePdfViaEmail() {
         }
             
 
-        function resetApp() {
-            if (speechSynth.speaking) speechSynth.cancel();
-            if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
+  window.resetApp = function() {
+            // 1. Térkép és markerek takarítása
+            if (appState.map) {
+                appState.map.remove();
+                appState.map = null;
+            }
+            if (manualMarker) {
+                manualMarker.remove();
+                manualMarker = null;
+            }
+            if (appState.geoWatchId) {
+                navigator.geolocation.clearWatch(appState.geoWatchId);
+                appState.geoWatchId = null;
+            }
             if (appState.timerInterval) clearInterval(appState.timerInterval);
-            if (appState.geofenceTimerInterval) clearInterval(appState.geofenceTimerInterval);
-            
-            // Játék térkép takarítása
-            if (appState.map) { 
-                toggleMapClickMock(false); 
-                appState.map.remove(); appState.map = null; 
-            }
-            if (manualMarker) { manualMarker.remove(); manualMarker = null; } 
-            
-            // --- JAVÍTÁS KEZDTE: GPS Teszt takarítása ---
-            const gpsContainer = document.getElementById('gps-test-container');
-            if (gpsContainer) gpsContainer.classList.add('hidden'); // Elrejtjük a dobozt
 
-            // Leállítjuk a teszt figyelését, ha futna
-            if (typeof finishGpsTest === 'function') {
-                finishGpsTest(); 
-            }
-
-            // Töröljük a teszt térképet a memóriából, hogy legközelebb tisztán induljon
-            if (gpsTestMap) { 
-                gpsTestMap.remove(); 
-                gpsTestMap = null; 
-            }
-            gpsTestMarker = null;
-            gpsTestCircle = null;
-            // --- JAVÍTÁS VÉGE ---
-
-            document.getElementById('developer-options').classList.add('hidden');
-            document.getElementById('secret-switches-container').classList.add('hidden');
-
+            // 2. Változók alaphelyzetbe állítása
             initializeState();
-            
+
+            // 3. UI visszaállítása
             document.getElementById('landing-page').classList.add('hidden');
             document.getElementById('content-wrapper').classList.remove('hidden');
             document.getElementById('content-wrapper').classList.remove('translate-y-full');
+            
+            // UI elemek elrejtése a biztonság kedvéért
+            document.getElementById('task-interaction-area').classList.add('hidden');
+            document.getElementById('start-task-button-container').classList.add('hidden');
+            document.getElementById('game-status-bar').classList.add('hidden');
 
-            loadLocalXlsx(DEFAULT_GAME_FILE);
-            showPage('game-list-page'); 
-        }
+            // 4. Játéklista betöltése Firebase-ből
+            initializeGamesFromFirebase(); 
+            
+            // 5. Oldalváltás a listára
+            // (A initializeGamesFromFirebase a végén úgyis meghívja a showPage-t, 
+            // de nem baj, ha itt is megvan, a betöltésjelző addig látszik)
+        };
 
         const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
@@ -3559,14 +3585,31 @@ window.autoSortGamesByDistance = function() {
                 }
             }
 
-            // E. Végső megerősítés és Indítás
-            // --- ITT A VÁLTOZÁS: Ha skipConfirmation igaz, rögtön indítunk ---
-            if (skipConfirmation) {
+           // E. Végső megerősítés és Indítás
+
+            // Segédfüggvény: Előbb letöltés, utána indítás
+            const proceedToStart = async () => {
+                // 1. Letöltjük és elmentjük offline a játék adatait
+                // (Ez a függvény a 1047. sor környékén van definiálva)
+                await window.loadGameDataAndStart(gameId);
+                
+                // 2. Ha megvan az adat, indulhat a GPS kérés és a játék
                 requestGpsAndStart(gameId);
+            };
+
+            if (skipConfirmation) {
+                // Ha a térképes nézetből jövünk (már nyomtunk Startot), azonnal indul
+                proceedToStart();
             } else {
-                showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?`, () => requestGpsAndStart(gameId), true);
+                // Ha a listából jövünk, megerősítést kérünk
+                // FONTOS: Az "Igen" gomb (callback) most már a proceedToStart-ot hívja!
+                showMessage(
+                    'Kaland Indítása', 
+                    `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?`, 
+                    () => proceedToStart(), 
+                    true
+                );
             }
-        }
 
 
 
@@ -5393,7 +5436,7 @@ window.closeGameMap = function() {
             // --- ÚJ RÉSZ VÉGE ---
 
 	    initializeState();
-            loadLocalXlsx(DEFAULT_GAME_FILE);
+            initializeGamesFromFirebase();
 
             const logoO = document.getElementById('logo-o'); 
             const manualFileSelectLabel = document.getElementById('manual-file-select-label');
