@@ -5463,26 +5463,45 @@ window.closeGameMap = function() {
                 mainHeaderLogoContainer.addEventListener('click', () => { resetApp(); });
             }
 
+  // --- MANUÁLIS JÁTÉK BETÖLTŐ (JAVÍTOTT VERZIÓ) ---
             if (manualFileInput) {
-             manualFileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0]; if (!file) return; 
-                showLoading(true);
-                const reader = new FileReader();
-                reader.onload = (e) => { 
-                    try {
-                        const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                        processExcelData(wb);
-                        if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
-                    } catch (error) {  // <--- EZ A RÉSZ HIÁNYZOTT EDDIG!
-                        showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                        showLoading(false);
-                        if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
-                    }
-                };
-                reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                reader.readAsArrayBuffer(file);
-            });
-        }
+                 manualFileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0]; 
+                    if (!file) return; 
+                    
+                    showLoading(true);
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => { 
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'}); 
+                            processExcelData(wb);
+                            
+                            // Ha sikeres, elrejtjük a gombot
+                            if (manualFileSelectLabel) {
+                                manualFileSelectLabel.classList.add('hidden');
+                            }
+                        } catch (error) {
+                            // HIBAKEZELÉS (Ez hiányzott vagy volt hibás)
+                            console.error("Excel hiba:", error);
+                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                            showLoading(false);
+                            
+                            if (manualFileSelectLabel) {
+                                manualFileSelectLabel.classList.remove('hidden');
+                            }
+                        }
+                    };
+                    
+                    reader.onerror = () => { 
+                        showMessage('Hiba', 'Fájl olvasási hiba.'); 
+                        showLoading(false); 
+                    };
+                    
+                    reader.readAsArrayBuffer(file);
+                });
+            }
             
             const excelFileInput = document.getElementById('excel-file-input');
             if (excelFileInput) {
