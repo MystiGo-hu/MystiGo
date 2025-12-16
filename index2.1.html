@@ -5355,30 +5355,9 @@ window.closeGameMap = function() {
                 mainHeaderLogoContainer.addEventListener('click', () => { resetApp(); });
             }
 
-  
-                    };
-                    
-               
+            // --- ITT TÖRÖLTÜK KI A FELESLEGET ---
             
             const excelFileInput = document.getElementById('excel-file-input');
-            if (excelFileInput) {
-                excelFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; if (!file) return; 
-                    showLoading(true);
-                    const reader = new FileReader();
-                    reader.onload = (e) => { 
-                        try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                            processExcelData(wb);
-                        } catch (error) {
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                            showLoading(false);
-                        }
-                    };
-                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                    reader.readAsArrayBuffer(file);
-                });
-            }
 
             document.body.addEventListener('click', (e) => {
                  if (e.target && e.target.id === 'secret-trigger') {
