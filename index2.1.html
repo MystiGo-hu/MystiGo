@@ -2233,49 +2233,43 @@ window.initializeGamesFromFirebase = async function() {
 
     try {
         const dbRef = ref(db);
-        // Lekérjük az összes játékot a 'games' csomópont alól
         const snapshot = await get(child(dbRef, "games"));
 
         if (snapshot.exists()) {
             const rawData = snapshot.val();
-            
-            window.games = rawData; // Ez a biztonsági tartalék
+            window.games = rawData;
 
-            // Adatok tisztítása és konvertálása
+            // --- ADATOK TISZTÍTÁSA ÉS JAVÍTÁSA ---
             Object.values(window.games).forEach(g => {
-                // 1. Feladatok tömb pótlása
-                if (!g.tasks) g.tasks = [];
-                
+                // 1. JAVÍTÁS: A tasks legyen mindig Tömb (Array), ne Objektum!
+                if (g.tasks && !Array.isArray(g.tasks)) {
+                    // Ha objektumként jött (pl. {1: data, 2: data}), tömbbé alakítjuk
+                    // A filter(Boolean) kiveszi az üres (null/undefined) elemeket
+                    g.tasks = Object.values(g.tasks).filter(Boolean);
+                }
+                if (!g.tasks) g.tasks = []; // Ha nincs, legyen üres tömb
+
                 // 2. Ár konverzió
                 if (g.price) g.price = parseInt(g.price);
 
-                // 3. JAVÍTÁS: Koordináták biztonságos kezelése
-                // Ha van "lapos" koordináta adat (Lat/Lng), de hiányzik a startLocation objektum, létrehozzuk
+                // 3. Koordináták biztonságos kezelése
                 if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) {
                     g.startLocation = {};
                 }
-
-                // Most már biztonságosan beállíthatjuk az értékeket, mert a startLocation biztosan létezik
                 if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
+            // --------------------------------------
 
-            console.log("✅ Játékok sikeresen betöltve Firebase-ből:", Object.keys(window.games).length);
+            console.log("✅ Játékok sikeresen betöltve és javítva:", Object.keys(window.games).length);
             
-            // UI frissítése (szűrők feltöltése)
             populateLocationFilter();
-            
-            if (window.checkUrlParametersAndFilter) {
-                checkUrlParametersAndFilter();
-            }
+            if (window.checkUrlParametersAndFilter) checkUrlParametersAndFilter();
             
             showPage('game-list-page');
             handleInitialUrlFiltering();
             
-            // GPS alapú rendezés hívása (ezt kérdezted az előbb)
-            if (typeof autoSortGamesByDistance === 'function') {
-                autoSortGamesByDistance(); 
-            }
+            if (typeof autoSortGamesByDistance === 'function') autoSortGamesByDistance(); 
 
         } else {
             console.warn("Nincsenek játékok az adatbázisban.");
@@ -2289,7 +2283,6 @@ window.initializeGamesFromFirebase = async function() {
         if(statusText) statusText.textContent = "";
     }
 };
-
         // --- I18N ---
         const I18N = { 
             hu: { 
@@ -3572,98 +3565,73 @@ window.autoSortGamesByDistance = function() {
 
    // ASYNC lett a függvény, mert várni kell a Firebase-re
       window.startTimersAndGPS = async function() {
+    // 1. Hang feloldása (iOS fix)
+    if (window.AudioContext || window.webkitAudioContext) {
+        try {
+            const AudioCtxt = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioCtxt();
+            ctx.resume();
+        } catch (e) {}
+    }
 
-            // 1. Hang feloldása (iOS kompatibilitás)
-            if (window.AudioContext || window.webkitAudioContext) {
-                try {
-                    const AudioCtxt = window.AudioContext || window.webkitAudioContext;
-                    const ctx = new AudioCtxt();
-                    ctx.resume().then(() => {
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        gain.gain.value = 0.001;
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.start(0);
-                        osc.stop(0.1);
-                    });
-                } catch (e) { console.log("Audio unlock hiba (nem kritikus):", e); }
-            }
+    if (appState.isTimerRunning) return; 
 
-            if (appState.isTimerRunning) return; 
-
-            // 2. TOKEN LEVONÁS (SZIGORÚ ÉS MINDIG FUTÓ VERZIÓ)
-            if (appState.currentGame) {
-                const limitFromExcel = appState.currentGame.globalLimit;
-                // Ha 0 vagy üres, akkor végtelen (1 millió), egyébként a beírt szám (pl. 10)
-                const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
-
-                // --- JAVÍTÁS: KIVETTÜK A FELTÉTELEKET! ---
-                // Mostantól MINDEN indításnál fut a tranzakció.
-                // Ez létrehozza a 'count' változót a Firebase-ben és növeli 1-gyel.
-                if (typeof window.checkGameLimitAndIncrement === 'function') {
-                    
-                    try {
-                        showLoading(true);
-                        document.getElementById('loading-status').textContent = "Token érvényesítése...";
-
-                        // Tranzakció hívása: Megpróbáljuk növelni a számlálót
-                        const allowed = await window.checkGameLimitAndIncrement(appState.currentGame.id, MAX_PLAYERS);
-                        
-                        showLoading(false);
-                        document.getElementById('loading-status').textContent = "";
-
-                        if (!allowed) {
-                            // HA A LIMIT BETELT:
-                            showMessage('Sajnos elkéstél! 😔', `A játék kerete betelt (Max: ${MAX_PLAYERS} fő). Sajnos nem tudod elindítani.`);
-                            return; // MEGÁLLJ! Nem indul az óra, nem indul a játék.
-                        }
-
-                    } catch (error) {
-                        console.error("Indítási hiba:", error);
-                        showLoading(false);
-                        // Ha hálózati hiba van, NEM engedjük tovább, mert akkor megkerülhető lenne a limit
-                        showMessage('Hiba történt', 'Nem sikerült érvényesíteni a játék indítását (Limit vagy Hálózat). Próbáld újra!');
-                        return; // MEGÁLLJ!
-                    }
-                }
-            }
-            // ---------------------------------------------
-
-            // 3. JÁTÉK START LOGIKA (Csak akkor fut le, ha a fenti token levonás sikeres volt)
-            console.log("Játék indítása...");
-            appState.startTime = new Date();
-            appState.isTimerRunning = true;
+    // 2. JÁTÉK START LOGIKA (Limit ellenőrzés kikapcsolva a stabilitásért, vagy csak figyelmeztet)
+    /* MEGJEGYZÉS: Ha a Firebase Rules nincs beállítva a 'games/ID/count' írására, 
+       akkor a limit ellenőrzés hibát dobna. Most átugorjuk a kritikus hibát.
+    */
+    if (appState.currentGame && typeof window.checkGameLimitAndIncrement === 'function') {
+        try {
+            const limitFromExcel = appState.currentGame.globalLimit;
+            const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
             
-            // Töröljük a régi időzítőket
-            if (appState.timerInterval) clearInterval(appState.timerInterval);
-            
-            // Azonnal indítjuk az időzítőt
-            appState.timerInterval = setInterval(updateTimer, 1000);
-            
-            // Időzítő változók nullázása
-            lastTimeUpdate = Date.now(); 
-            timeAccumulator = 0; 
-            
-            // UI frissítések
-            if (appState.currentGame.taskOrder === 'explore') {
-                if (appState.completedTasks.indexOf(0) === -1) appState.completedTasks.push(0);
-                showTaskSelectionMap();
-            } else {
-                // Normál mód: ugrás az 1. feladatra
-                if (appState.currentGame.tasks.length > 1) {
-                    const nextTaskIndex = appState.currentGame.tasks[1].index; 
-                    appState.currentTaskIndex = nextTaskIndex; 
-                    loadTask(appState.currentTaskIndex); 
-                } else {
-                    showMessage("Hiba", "Ehhez a játékhoz nincsenek feladatok töltve.");
-                }
-            }
-            
-            if (appState.map) checkGeofence();
-            updateStatusDisplays(); 
-            saveGameState(); 
+            // Megpróbáljuk növelni, de nem blokkoljuk a játékot hiba esetén
+            window.checkGameLimitAndIncrement(appState.currentGame.id, MAX_PLAYERS).catch(err => {
+                console.warn("Limit számláló hiba (nem kritikus):", err);
+            });
+        } catch (e) {
+            console.warn("Limit logika hiba:", e);
         }
+    }
+
+    console.log("🚀 Játék indítása...");
+    appState.startTime = new Date();
+    appState.isTimerRunning = true;
+    
+    if (appState.timerInterval) clearInterval(appState.timerInterval);
+    appState.timerInterval = setInterval(updateTimer, 1000);
+    
+    lastTimeUpdate = Date.now(); 
+    timeAccumulator = 0; 
+    
+    // START FELADAT -> 1. FELADAT VÁLTÁS
+    if (appState.currentGame.taskOrder === 'explore') {
+        if (appState.completedTasks.indexOf(0) === -1) appState.completedTasks.push(0);
+        showTaskSelectionMap();
+    } else {
+        // Normál mód: ugrás az 1. feladatra
+        if (appState.currentGame.tasks && appState.currentGame.tasks.length > 1) {
+            // Megkeressük a következő feladatot (ami nem a 0-ás indexű)
+            const nextTask = appState.currentGame.tasks.find(t => t.index === 1) || appState.currentGame.tasks[1];
+            
+            if (nextTask) {
+                console.log("Váltás a következő feladatra:", nextTask.index);
+                appState.currentTaskIndex = nextTask.index; 
+                loadTask(appState.currentTaskIndex); 
+            } else {
+                 // Ha valamiért nem találjuk, próbáljuk index alapján
+                 appState.currentTaskIndex = 1;
+                 loadTask(1);
+            }
+        } else {
+            showMessage("Hiba", "Ehhez a játékhoz nincsenek feladatok töltve, vagy hibás az adatszerkezet.");
+        }
+    }
+    
+    if (appState.map) checkGeofence();
+    updateStatusDisplays(); 
+    saveGameState(); 
+};
 
 
         
@@ -4131,61 +4099,65 @@ const backBtn = document.getElementById('back-to-map-btn');
             }
         }
         
-        function initializeMap() {
-            if (appState.map) appState.map.remove();
-            const startLoc = appState.currentGame.startLocation;
-            
-            // ZoomControl false marad, de a fadeAnimation-t bekapcsoljuk a szebb mozgásért
-            appState.map = L.map('map', { zoomControl: false, fadeAnimation: true}).setView([startLoc.lat, startLoc.lng], 16);
-	    appState.map.attributionControl.setPrefix(false);
-           L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=kKSQCwzDF42YIfRHO4T5', {
-                attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>',
-                crossOrigin: true,
-                tileSize: 512,
-                zoomOffset: -1,
-                
-                // --- JAVÍTOTT BEÁLLÍTÁSOK ---
-                minZoom: 1,
-                maxZoom: 20,       
-                maxNativeZoom: 18, 
-                
-                updateWhenIdle: false, 
-                updateWhenZooming: true,
-                keepBuffer: 4      
-                // ---------------------------
-            }).addTo(appState.map);  // <--- EDDIG TARTOTT A RÉGI KÓDOD (ez a TILELAYER vége)
+  function initializeMap() {
+    // Ha már létezik térkép, takarítsuk el
+    if (appState.map) {
+        appState.map.remove();
+        appState.map = null;
+    }
 
-            // --- IDE ILLESZD BE AZ ÚJ RÉSZT (2. LÉPÉS): ---
-            const userActionHandler = () => {
-                appState.lastMapInteraction = Date.now();
-            };
-            // Figyeljük a húzást, zoomolást és a kattintást/érintést
-            appState.map.on('mousedown touchstart dragstart zoomstart', userActionHandler);
-            // ----------------------------------------------
+    // Ellenőrizzük, hogy van-e start pozíció
+    if (!appState.currentGame || !appState.currentGame.startLocation || !appState.currentGame.startLocation.lat) {
+        console.error("Térkép hiba: Nincs Start Location adat!");
+        return;
+    }
 
-           // --- ÚJ: ZOOM KIJELZŐ BEKÖTÉSE ---
-            const updateZoomDisplay = () => {
-                const el = document.getElementById('zoom-level-indicator');
-                if(el && appState.map) {
-                    // Kiírjuk a zoom szintet 1 tizedesjegy pontossággal
-                    el.textContent = 'Zoom: ' + appState.map.getZoom().toFixed(1);
-                }
-            };
-            
-            // Minden zoomolásnál frissítjük a számot
-            appState.map.on('zoomend', updateZoomDisplay);
-            appState.map.on('moveend', updateZoomDisplay); // Mozgatáskor is frissítünk
-            
-            // Azonnal kiírjuk az induló értéket
-            updateZoomDisplay(); 
-            // ---------------------------------
+    const startLoc = appState.currentGame.startLocation;
+    console.log("🗺️ Térkép indítása itt:", startLoc);
 
-            toggleMapClickMock(appState.isManualMock);
+    // Térkép létrehozása
+    appState.map = L.map('map', { 
+        zoomControl: false, 
+        fadeAnimation: true
+    }).setView([startLoc.lat, startLoc.lng], 16);
 
+    appState.map.attributionControl.setPrefix(false);
 
+    // Térkép réteg hozzáadása (MapTiler)
+    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=kKSQCwzDF42YIfRHO4T5', {
+        crossOrigin: true,
+        tileSize: 512,
+        zoomOffset: -1,
+        minZoom: 1,
+        maxZoom: 20,
+        maxNativeZoom: 18
+    }).addTo(appState.map);
 
+    // Interakció figyelése (Zoom kezeléshez)
+    const userActionHandler = () => {
+        appState.lastMapInteraction = Date.now();
+    };
+    appState.map.on('mousedown touchstart dragstart zoomstart', userActionHandler);
 
+    // Zoom kijelző frissítése
+    const updateZoomDisplay = () => {
+        const el = document.getElementById('zoom-level-indicator');
+        if(el && appState.map) {
+            el.textContent = 'Zoom: ' + appState.map.getZoom().toFixed(1);
         }
+    };
+    appState.map.on('zoomend', updateZoomDisplay);
+    appState.map.on('moveend', updateZoomDisplay);
+    updateZoomDisplay();
+
+    // Mock mód kezelése
+    toggleMapClickMock(appState.isManualMock);
+    
+    // Kényszerített méretfrissítés, hogy biztosan kitöltse a dobozt
+    setTimeout(() => {
+        appState.map.invalidateSize();
+    }, 200);
+}
 
 
 
