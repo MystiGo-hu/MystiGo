@@ -5358,14 +5358,7 @@ window.closeGameMap = function() {
   
                     };
                     
-                    reader.onerror = () => { 
-                        showMessage('Hiba', 'Fájl olvasási hiba.'); 
-                        showLoading(false); 
-                    };
-                    
-                    reader.readAsArrayBuffer(file);
-                });
-            }
+               
             
             const excelFileInput = document.getElementById('excel-file-input');
             if (excelFileInput) {
