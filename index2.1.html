@@ -5464,25 +5464,25 @@ window.closeGameMap = function() {
             }
 
             if (manualFileInput) {
-                 manualFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; if (!file) return; 
-                    showLoading(true);
-                    const reader = new FileReader();
-                    reader.onload = (e) => { 
-                        try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
-                            processExcelData(wb);
-                            if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
-                        } catch (error) {
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                            showLoading(false);
-                            if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
-                        }
-                    };
-                    reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
-                    reader.readAsArrayBuffer(file);
-                });
-            }
+             manualFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0]; if (!file) return; 
+                showLoading(true);
+                const reader = new FileReader();
+                reader.onload = (e) => { 
+                    try {
+                        const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
+                        processExcelData(wb);
+                        if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
+                    } catch (error) { // <--- EZ VOLT A HIÁNYZÓ RÉSZ
+                        showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
+                        showLoading(false);
+                        if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
+                    }
+                };
+                reader.onerror = () => { showMessage('Hiba', 'Fájl olvasási hiba.'); showLoading(false); };
+                reader.readAsArrayBuffer(file);
+            });
+        }
             
             const excelFileInput = document.getElementById('excel-file-input');
             if (excelFileInput) {
