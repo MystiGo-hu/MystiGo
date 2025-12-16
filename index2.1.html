@@ -4321,7 +4321,7 @@ window.autoSortGamesByDistance = function() {
                 const parent = oldMapDiv.parentNode;
                 const newMapDiv = document.createElement('div');
                 newMapDiv.id = 'route-map';
-                newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 500px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
+                newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 400px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
                 parent.replaceChild(newMapDiv, oldMapDiv);
             }
 
@@ -4558,14 +4558,14 @@ window.autoSortGamesByDistance = function() {
     
                         // KÖZELI NÉZET:
                         if (distance <= radius + 20) {
-                            appState.map.setView(latLng, 18, { animate: true });
+                            appState.map.setView(latLng, 19, { animate: true });
                         } else {
                             // TÁVOLABBI NÉZET:
                             const bounds = L.latLngBounds(latLng, targetLatLng);
                             appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                         }
                     } else {
-                        appState.map.setView(latLng, 18);
+                        appState.map.setView(latLng, 19);
                     }
                 }
             }
@@ -5351,7 +5351,7 @@ window.openGameMap = function() {
 	window.gameSelectionMapInstance.attributionControl.setPrefix(false);
         L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             attribution: 'MapTiler',
-            maxZoom: 18
+            maxZoom: 19
         }).addTo(window.gameSelectionMapInstance);
     }
 
