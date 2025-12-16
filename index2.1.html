@@ -20,6 +20,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -39,7 +41,6 @@
             'wait_for_update': 500 // 500 ms várakozás a CMP-re
         });
     </script>
-    
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-1SBQQGDGL7"></script>
     <script>
         gtag('js', new Date());
@@ -429,7 +430,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.0.32
+       v1.0.33
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1188,8 +1189,79 @@
 
 
 <script type="module">
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, runTransaction, push, query, orderByChild, limitToLast, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, set, push, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+
+// Segédfüggvény: Szöveg Hash-elése (SHA-256)
+    // Ezt hívjuk meg ellenőrzéskor és betöltéskor is
+    window.hashString = function(text) {
+        if (!text) return "";
+        const cleanText = String(text).trim().toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+            .replace(/[^a-z0-9]/g, ''); 
+        return CryptoJS.SHA256(cleanText).toString();
+    };
+
+    // Okos betöltő függvény (LocalStorage + Firebase)
+   window.loadGameDataAndStart = async function(gameId) {
+    const storageKey = `MystiGo_GameData_${gameId}`;
+    let gameData = null;
+
+    showLoading(true); // Homokóra bekapcsolása
+    const statusText = document.getElementById('loading-status');
+    if(statusText) statusText.textContent = "Játékadatok előkészítése...";
+
+    // 1. PRÓBA: Megnézzük a LocalStorage-ban (Offline mód)
+    try {
+        const cachedData = localStorage.getItem(storageKey);
+        if (cachedData) {
+            console.log("📦 Adatok betöltése a helyi tárolóból...");
+            gameData = JSON.parse(cachedData);
+        }
+    } catch (e) { console.warn("Hiba a LocalStorage olvasásakor:", e); }
+
+    // 2. PRÓBA: Ha nincs helyben, letöltjük a Firebase-ről (Online mód)
+    if (!gameData) {
+        console.log("🌐 Adatok letöltése a Firebase-ről...");
+        if(statusText) statusText.textContent = "Letöltés a szerverről...";
+        
+        try {
+            const db = getDatabase();
+            // Fontos: Itt a 'get' függvényt használjuk, amit az 1. lépésben importáltunk
+            const snapshot = await get(ref(db, 'games/' + gameId));
+
+            if (snapshot.exists()) {
+                gameData = snapshot.val();
+                // MENTÉS: Elmentjük későbbre
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(gameData));
+                } catch (err) { console.error("Tárhely hiba:", err); }
+            } else {
+                alert("Hiba: Ez a játék nem található a szerveren!");
+                showLoading(false);
+                return;
+            }
+        } catch (netError) {
+            console.error("Hálózati hiba:", netError);
+            alert("Nincs internetkapcsolat, és a játék nincs elmentve a telefonodon.");
+            showLoading(false);
+            return;
+        }
+    }
+
+    // SIKER! Betöltjük a memóriába
+    if (!window.games) window.games = {};
+    window.games[gameId] = gameData;
+
+    showLoading(false);
+    
+    // Most indítjuk el a tényleges játékot
+    startGame(gameId); 
+};
+
+
 
   // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
   const firebaseConfig = {
@@ -3934,6 +4006,11 @@ const backBtn = document.getElementById('back-to-map-btn');
         
 // --- JAVÍTOTT ENDGAME FÜGGVÉNY ---
         function endGame() {
+
+	    if (appState.currentGame && appState.currentGame.id) {
+        localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
+        console.log("🧹 Játékadatok törölve.");
+    }
             // --- GOOGLE ANALYTICS MÉRÉS ---
             if (typeof gtag === 'function') {
                 gtag('event', 'game_complete', {
@@ -5402,8 +5479,25 @@ window.closeGameMap = function() {
                 if (task.isStartTask) return;
                 const userAnswer = document.getElementById('answer-input').value;
                 const normalizedUserAnswer = normalizeAnswer(userAnswer);
-                let isCorrect = false;
-                if (task.acceptedAnswers && task.acceptedAnswers.includes(normalizedUserAnswer)) isCorrect = true;
+                
+		const rawInput = document.getElementById('answer-input').value;
+            
+            // 2. Titkosítjuk (Hash-eljük)
+            const userHash = window.hashString(rawInput);
+            
+            let isCorrect = false;
+
+            // 3. Ellenőrzés a titkosított kulcsok alapján (V3)
+            if (task.solutionHash && task.solutionHash === userHash) {
+                isCorrect = true;
+            }
+            else if (task.acceptedHashes && task.acceptedHashes.includes(userHash)) {
+                isCorrect = true;
+            }
+            // 4. (Tartalék) Régi módszer, ha a játékos még a régi típusú adatot használja
+            else if (typeof normalizedUserAnswer !== 'undefined' && task.acceptedAnswers && task.acceptedAnswers.includes(normalizedUserAnswer)) {
+                isCorrect = true;
+            }
                 
                 if (isCorrect) showMessage(t('correct_title'), `Ügyes vagy! (+${task.taskScore} pont)`, handleCorrectAnswer);
                 else {
