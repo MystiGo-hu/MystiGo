@@ -1912,7 +1912,7 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
 <script>
         // --- GLOBAL STATE & CONSTANTS ---
         window.games = {}; // A "let" törlése és window-ra rakása megoldja a láthatóságot
-	let badWordsList = [
+	const badWordsList = [
             "bazd", "basz", "geci", "picsa", "szar", "kurva", "fos", "buzi",
             "fasz", "pina", "ribanc", "köcsög", "anyád", "segg", "szop",
             "pöcs", "kurafi", "bunkó", "cigány", "nigger", "zsidó", "buzeráns",
@@ -2624,7 +2624,7 @@ async function sharePdfViaEmail() {
 
         window.showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
-        function showMessage(title, body, onClose, showCancel = false) {
+        window.showMessage = function(title, body, onClose, showCancel = false) {
             // --- iPad / Mobil FIX KEZDIDE ---
     		        // 1. Ha nyitva a billentyűzet (mert a beviteli mezőn van a fókusz), bezárjuk
  		           if (document.activeElement instanceof HTMLElement) {
@@ -2656,22 +2656,22 @@ async function sharePdfViaEmail() {
             document.getElementById('message-modal').classList.remove('hidden');
         }
 
-        function hideMessage() { 
+        window.hideMessage = function() { 
             document.getElementById('message-modal').classList.add('hidden');
             if(typeof modalCloseCallback === 'function') { modalCloseCallback(); modalCloseCallback = null; }
             document.getElementById('modal-ok-button').onclick = hideMessage;
         }
         
-        function showReportModal() {
+        window.showReportModal = function() {
             if (!appState.currentGame) return;
             checkGeofence();
             document.getElementById('report-error-modal').classList.remove('hidden');
             document.getElementById('error-description-input').value = '';
         }
 
-        function hideReportModal() { document.getElementById('report-error-modal').classList.add('hidden'); }
+        window.hideReportModal = function() { document.getElementById('report-error-modal').classList.add('hidden'); }
 
-        function handleSubmitError() {
+        window.handleSubmitError = function() {
     if (!appState.currentGame) return;
     const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
     if (!currentTask) return;
@@ -2700,7 +2700,7 @@ async function sharePdfViaEmail() {
         
         function handleExitGame() { resetApp(); }
 
-        function showExitConfirmation() {
+        window.showExitConfirmation = function() {
             showMessage('Kilépés', 'Biztosan vissza lépsz a főmenübe? A játék állása elmentésre kerül.', handleExitGame, true);
         }
 
@@ -2996,7 +2996,7 @@ async function sharePdfViaEmail() {
 }
 
 // --- EZ HIÁNYZOTT: Szűrés végrehajtása ---
-function applyFilters() {
+window.applyFilters = function() {
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
             const searchInput = document.getElementById('filter-search'); // ÚJ MEZŐ
@@ -3364,7 +3364,7 @@ window.autoSortGamesByDistance = function() {
         }
 
       
-        async function handleGameSelect(gameId, title, type, price, hasSave, skipConfirmation = false) {
+        window.handleGameSelect = async function(gameId, title, type, price, hasSave, skipConfirmation = false) {
 
             // --- 1. MENTÉS KEZELÉSE (Elsődleges prioritás) ---
             if (hasSave) {
@@ -3493,7 +3493,7 @@ window.autoSortGamesByDistance = function() {
                 );
             }
 
-
+ };
 
         
         function formatTime(seconds) {
@@ -3559,7 +3559,7 @@ window.autoSortGamesByDistance = function() {
 
 
    // ASYNC lett a függvény, mert várni kell a Firebase-re
-      async function startTimersAndGPS() {
+      window.startTimersAndGPS = async function() {
 
             // 1. Hang feloldása (iOS kompatibilitás)
             if (window.AudioContext || window.webkitAudioContext) {
@@ -4605,7 +4605,7 @@ function backToExploreMap() {
             osc.start(); osc.stop(ctx.currentTime + 0.5); 
         }
 
-        function shareResult(platform) {
+        window.shareResult = function(platform) {
             const finalScore = document.getElementById('final-score').textContent;
             const finalTime = document.getElementById('final-time').textContent;
             const teamName = appState.teamName || "Név";
