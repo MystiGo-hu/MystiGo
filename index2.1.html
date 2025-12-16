@@ -5473,7 +5473,7 @@ window.closeGameMap = function() {
                         const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'}); 
                         processExcelData(wb);
                         if (manualFileSelectLabel) manualFileSelectLabel.classList.add('hidden');
-                    } catch (error) { // <--- EZ VOLT A HIÁNYZÓ RÉSZ
+                    } catch (error) {  // <--- EZ A RÉSZ HIÁNYZOTT EDDIG!
                         showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
                         showLoading(false);
                         if (manualFileSelectLabel) manualFileSelectLabel.classList.remove('hidden');
