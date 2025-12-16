@@ -1254,6 +1254,11 @@
   // SIKER! Betöltjük a memóriába
     if (!window.games) window.games = {};
     window.games[gameId] = gameData;
+    
+    // JAVÍTÁS: A lokális változóba is betesszük, ha létezik
+    if (typeof games !== 'undefined') {
+        games[gameId] = gameData;
+    }
 
     showLoading(false);
     
@@ -2235,7 +2240,8 @@ window.initializeGamesFromFirebase = async function() {
             
             // FONTOS: Feltételezzük, hogy a JSON szerkezete megegyezik 
             // azzal, amit az alkalmazás eddig használt (Game ID -> Game Object).
-            window.games = rawData;
+            games = rawData;        // Ez kell a renderGameList-nek
+            window.games = rawData; // Ez a biztonsági tartalék
 
             // Ellenőrizzük, hogy a tasks tömbök léteznek-e, ha nem, pótoljuk üres tömbbel
             // (Ez a biztonság kedvéért kell, ha a konverzió nem volt tökéletes)
@@ -2715,6 +2721,28 @@ async function sharePdfViaEmail() {
 
 
 
+// --- SZŰRŐ DOBOZ LENYITÁSA / BECSUKÁSA ---
+        window.toggleFilterSection = function() {
+    const content = document.getElementById('filter-content');
+    const icon = document.getElementById('filter-toggle-icon');
+    
+    if (!content || !icon) return;
+
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.textContent = '–';
+        icon.classList.remove('text-brand-orange-500');
+        icon.classList.add('text-brand-blue');
+    } else {
+        content.classList.add('hidden');
+        icon.textContent = '+';
+        icon.classList.add('text-brand-orange-500');
+        icon.classList.remove('text-brand-blue');
+    }
+};
+
+
+
         function processExcelData(workbook) {
             try {
                 const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
@@ -2832,26 +2860,6 @@ async function sharePdfViaEmail() {
                 // -----------------------------------------------------
 
 
-// --- SZŰRŐ DOBOZ LENYITÁSA / BECSUKÁSA ---
-        window.toggleFilterSection = function() {
-            const content = document.getElementById('filter-content');
-            const icon = document.getElementById('filter-toggle-icon');
-            
-            if (!content || !icon) return;
-
-            if (content.classList.contains('hidden')) {
-                // Kinyitás
-                content.classList.remove('hidden');
-                icon.textContent = '–'; // Mínusz jel
-                icon.classList.remove('text-brand-orange-500'); // Opcionális színváltás
-                icon.classList.add('text-brand-blue');
-            } else {
-                // Bezárás
-                content.classList.add('hidden');
-                icon.textContent = '+'; // Plusz jel
-                icon.classList.add('text-brand-orange-500');
-                icon.classList.remove('text-brand-blue');
-            }
         };
 
 
