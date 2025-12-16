@@ -1255,11 +1255,7 @@
     if (!window.games) window.games = {};
     window.games[gameId] = gameData;
     
-    // JAVÍTÁS: A lokális változóba is betesszük, ha létezik
-    if (typeof games !== 'undefined') {
-        games[gameId] = gameData;
-    }
-
+    
     showLoading(false);
     
     // MÓDOSÍTÁS: Itt NE hívjuk meg a startGame(gameId)-t közvetlenül, 
@@ -1919,7 +1915,7 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
        
 <script>
         // --- GLOBAL STATE & CONSTANTS ---
-        let games = {};
+        window.games = {}; // A "let" törlése és window-ra rakása megoldja a láthatóságot
 	let badWordsList = [
             "bazd", "basz", "geci", "picsa", "szar", "kurva", "fos", "buzi",
             "fasz", "pina", "ribanc", "köcsög", "anyád", "segg", "szop",
@@ -2240,8 +2236,7 @@ window.initializeGamesFromFirebase = async function() {
             
             // FONTOS: Feltételezzük, hogy a JSON szerkezete megegyezik 
             // azzal, amit az alkalmazás eddig használt (Game ID -> Game Object).
-            games = rawData;        // Ez kell a renderGameList-nek
-            window.games = rawData; // Ez a biztonsági tartalék
+             window.games = rawData; // Ez a biztonsági tartalék
 
             // Ellenőrizzük, hogy a tasks tömbök léteznek-e, ha nem, pótoljuk üres tömbbel
             // (Ez a biztonság kedvéért kell, ha a konverzió nem volt tökéletes)
