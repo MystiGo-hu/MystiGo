@@ -2744,16 +2744,7 @@ async function sharePdfViaEmail() {
                     checkUrlParametersAndFilter();
                 }
                 
-                showLoading(false);
-                showPage('game-list-page');
-		handleInitialUrlFiltering();
-		autoSortGamesByDistance();
-
-            } catch (error) {
-                showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                showLoading(false);
-            }
-        }
+               
         
         // --- UI RENDERING ---
         function renderGameList(gamesToRender = null) {
