@@ -14,7 +14,7 @@
 
     <title>MystiGo - Városi Kalandjáték Platform</title>
     
-    <link rel="preload" href="games/games.xlsx" as="fetch" crossorigin="anonymous">
+    
     <link rel="preload" href="logo/MystiGo_logo.png" as="image">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,7 +22,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -416,10 +415,7 @@
             <div class="w-full flex flex-col justify-start flex-grow"> 
                 <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
                 
-                <label for="excel-file-input-manual" id="manual-file-select-label" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700 hidden">
-                    Manuális Játékfájl Kiválasztása
-                </label>
-                <input type="file" id="excel-file-input-manual" class="hidden" accept=".xlsx,.txt,.db">
+                
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
             </div>
             
@@ -523,7 +519,7 @@
 				<label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
                                      Manuális Játékfájl Kiválasztása
                                 </label>
-                                <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.txt,.db">
+                                
 
                                 <button onclick="window.open('MystiGo_game_creator.html', '_blank')" class="main-button w-full text-sm block !bg-blue-600 hover:!bg-blue-700 my-4">
                                      Game Creator (Megnyitás)
@@ -2738,124 +2734,7 @@ async function sharePdfViaEmail() {
 
 
 
-        function processExcelData(workbook) {
-            try {
-                const gamesSheet = workbook.Sheets['games'], tasksSheet = workbook.Sheets['tasks'];
-                if (!gamesSheet || !tasksSheet) throw new Error("A 'games' vagy 'tasks' munkalap hiányzik.");
-                const parsedGames = XLSX.utils.sheet_to_json(gamesSheet);
-                const parsedTasks = XLSX.utils.sheet_to_json(tasksSheet);
-                const combinedGames = {};
-                
-                parsedGames.forEach(game => {
-                    // Rejtett játék flag számítása
-                    const isHiddenGame = (game.isHidden == 1 || String(game.isHidden).trim().toLowerCase() === 'true');
-
-                    assertCols(game, ['id', 'title', 'type', 'startLocationLat', 'startLocationLng'], 'games');
-                    const lat = parseFloat(game.startLocationLat), lng = parseFloat(game.startLocationLng);
-                    const cleanId = String(game.id).trim(); 
-
-                    // --- JAVÍTÁS: Keresés kis/nagybetű függetlenül ---
-                    
-                    // 1. MaxPlayCount (Helyi limit) keresése
-                    const maxPlayKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'maxplaycount');
-                    let rawMaxPlayVal = (maxPlayKey) ? game[maxPlayKey] : '';
-                    let maxPlayVal = 0; 
-                    if (rawMaxPlayVal !== undefined && rawMaxPlayVal !== null && String(rawMaxPlayVal).trim() !== '') {
-                        const parsed = parseInt(rawMaxPlayVal);
-                        if (!isNaN(parsed)) maxPlayVal = (parsed === 0) ? -1 : parsed;
-                    }
-
-                    // 2. GlobalLimit (Globális limit) keresése - EZ VOLT A HIBA OKA!
-                    const globalLimitKey = Object.keys(game).find(key => key.toLowerCase().trim() === 'globallimit');
-                    let rawGlobalVal = (globalLimitKey) ? game[globalLimitKey] : '';
-                    let globalLimitVal = 0; // 0 = Korlátlan
-                    
-                    if (rawGlobalVal !== undefined && rawGlobalVal !== null && String(rawGlobalVal).trim() !== '') {
-                         const parsedGlobal = parseInt(rawGlobalVal);
-                         if (!isNaN(parsedGlobal)) {
-                             globalLimitVal = parsedGlobal;
-                             console.log(`Játék ${cleanId}: Globális limit beállítva: ${globalLimitVal} fő`); // Logoljuk a konzolra
-                         }
-                    }
-                    // ---------------------------------------------------------
-
-                    combinedGames[cleanId] = { 
-                        ...game, 
-                        id: cleanId,
-                        isHidden: isHiddenGame, 
-                        type: String(game.type || 'normal').trim().toLowerCase(),
-                        startLocation: { lat, lng }, 
-                        price: parseInt(game.price || 0),
-                        headerLogo: game.headerLogo ? String(game.headerLogo).trim() : null,
-                        reviewUrl: game.reviewUrl ? String(game.reviewUrl).trim() : null,
-                        
-                        maxPlayCount: maxPlayVal, 
-                        globalLimit: globalLimitVal, // Most már biztosan bekerül
-                        tasks: [] 
-                    };
-                });
-
-
-                parsedTasks.forEach(task => {
-                    if (!combinedGames[task.gameId]) return;
-                    const lat = parseFloat(task.locationLat), lng = parseFloat(task.locationLng);
-                    
-                    let allSolutions = [];
-                    if (task.solution) allSolutions.push(...String(task.solution).split(';').map(s => s.trim()));
-                    if (task.accepted_answers) allSolutions.push(...String(task.accepted_answers).split(';').map(s => s.trim()));
-                    if (task.synonyms) allSolutions.push(...String(task.synonyms).split(';').map(s => s.trim()));
-                    const acceptedAnswers = Array.from(new Set(allSolutions.filter(Boolean).map(a => normalizeAnswer(a))));
-                    
-                    combinedGames[task.gameId].tasks.push({ 
-                        ...task, index: parseInt(task.index, 10), isStartTask: false, 
-                        story: DOMPurify.sanitize(task.story || ''), location: { lat, lng }, 
-                        geofenceRadius: parseFloat(task.geofenceRadius || GEOFENCE_DEFAULT_RADIUS), 
-                        hints: [task.hint1, task.hint2].filter(Boolean).map(h => DOMPurify.sanitize(h)), 
-                        solution: String(task.solution || ''), acceptedAnswers: acceptedAnswers,
-		disableSolution: (task.disableSolution == 1 || String(task.disableSolution).toLowerCase() === 'true'), 
-                        hintsUsed: 0, timeSpent: 0, taskScore: 0, isTaskTimerActive: false 
-                    }); 
-                });
-
-                const validatedGames = {};
-                // HIBAKERESÉS: Számoljuk, hány játékot dobunk el
-                let droppedCount = 0;
-                
-                for (const gameId in combinedGames) {
-                    const game = combinedGames[gameId];
-                    // Ellenőrizzük, hogy érvényes-e a típusa
-                    if (!['normal', 'kids', 'team', 'explore'].includes(game.type)) {
-                        console.warn(`Játék kihagyva (${gameId}): Érvénytelen típus ("${game.type}")`);
-                        droppedCount++;
-                        continue;
-                    }
-                    if (game.tasks.length === 0) {
-                        console.warn(`Játék kihagyva (${gameId}): Nincsenek feladatok`);
-                        droppedCount++;
-                        continue;
-                    }
-                    game.tasks.sort((a, b) => a.index - b.index);
-                    validatedGames[gameId] = game;
-                }
-                games = validatedGames;
-
-                // --- DIAGNOSZTIKAI ABLAK (Ez megmondja az igazat!) ---
-                const loadedIds = Object.keys(games);
-                if (loadedIds.length === 0) {
-                    alert("HIBA: Egyetlen játékot sem sikerült betölteni! Ellenőrizd az Excel fájlt.");
-                } else {
-                    // Megnézzük, benne van-e a keresett ID a URL-ben
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const searchedId = urlParams.get('game') || urlParams.get('id');
-                    
-                    if (searchedId && !games[searchedId.trim()]) {
-                        alert(`HIBAKERESÉS:\nA rendszer betöltött ${loadedIds.length} db játékot, de a keresett "${searchedId}" NINCS köztük.\n\nBetöltött ID-k:\n` + loadedIds.join("\n"));
-                    }
-                }
-                // -----------------------------------------------------
-
-
-        };
+      
 
 
                 populateLocationFilter(); 
@@ -5439,23 +5318,36 @@ window.closeGameMap = function() {
             // --- ÚJ RÉSZ VÉGE ---
 
 	    initializeState();
+            
+            // Itt indítjuk a betöltést a Firebase-ből
             initializeGamesFromFirebase();
 
+            // UI elemek
             const logoO = document.getElementById('logo-o'); 
-            const manualFileSelectLabel = document.getElementById('manual-file-select-label');
-            const manualFileInput = document.getElementById('excel-file-input-manual'); 
+            // A manuális fájl változók (manualFileSelectLabel, manualFileInput) INNEN TÖRÖLVE LETTEK
+
+            // Fejlesztői eszközök (ha vannak a HTML-ben)
             const devOptions = document.getElementById('developer-options');
             const devToggle = document.getElementById('developer-tools-toggle');
 
-            document.getElementById('modal-ok-button').onclick = hideMessage;
-            document.getElementById('modal-cancel-button').onclick = hideMessage;
+            // Modális ablak gombok kezelése
+            const okBtn = document.getElementById('modal-ok-button');
+            const cancelBtn = document.getElementById('modal-cancel-button');
             
-            logoO.addEventListener('click', () => {
-                 const switchesContainer = document.getElementById('secret-switches-container');
-                 if (switchesContainer) {
-                    if (!document.getElementById('game-list-page').classList.contains('hidden')) switchesContainer.classList.toggle('hidden');
-                 }
-            });
+            if (okBtn) okBtn.onclick = hideMessage;
+            if (cancelBtn) cancelBtn.onclick = hideMessage;
+            
+            // Titkos menü kapcsoló (Logo 'O' betűje)
+            if (logoO) {
+                logoO.addEventListener('click', () => {
+                     const switchesContainer = document.getElementById('secret-switches-container');
+                     if (switchesContainer) {
+                        if (!document.getElementById('game-list-page').classList.contains('hidden')) {
+                            switchesContainer.classList.toggle('hidden');
+                        }
+                     }
+                });
+            }
             
             const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
             if (mainHeaderLogoContainer) {
@@ -5463,35 +5355,7 @@ window.closeGameMap = function() {
                 mainHeaderLogoContainer.addEventListener('click', () => { resetApp(); });
             }
 
-  // --- MANUÁLIS JÁTÉK BETÖLTŐ (JAVÍTOTT VERZIÓ) ---
-            if (manualFileInput) {
-                 manualFileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0]; 
-                    if (!file) return; 
-                    
-                    showLoading(true);
-                    
-                    const reader = new FileReader();
-                    
-                    reader.onload = (e) => { 
-                        try {
-                            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'}); 
-                            processExcelData(wb);
-                            
-                            // Ha sikeres, elrejtjük a gombot
-                            if (manualFileSelectLabel) {
-                                manualFileSelectLabel.classList.add('hidden');
-                            }
-                        } catch (error) {
-                            // HIBAKEZELÉS (Ez hiányzott vagy volt hibás)
-                            console.error("Excel hiba:", error);
-                            showMessage('Feldolgozási Hiba', `Hiba: ${error.message}`);
-                            showLoading(false);
-                            
-                            if (manualFileSelectLabel) {
-                                manualFileSelectLabel.classList.remove('hidden');
-                            }
-                        }
+  
                     };
                     
                     reader.onerror = () => { 
