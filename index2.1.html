@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.02
+       v1.1.03
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1399,7 +1399,92 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
       }
   };
 
-  // 2. MENTÉS (Biztonságos verzió - validálással)
+
+// --- OFFLINE SZINKRONIZÁCIÓS LOGIKA ---
+  
+  const PENDING_UPLOADS_KEY = 'MystiGo_PendingUploads';
+
+  // 1. Adat mentése az offline sorba
+  function saveToPendingUploads(data) {
+      try {
+          let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
+          pending.push(data);
+          localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(pending));
+          console.log("💾 Eredmény elmentve offline módba (későbbi feltöltésre).");
+      } catch (e) {
+          console.error("Hiba az offline mentésnél:", e);
+      }
+  }
+
+  // 2. Szinkronizáció végrehajtása (Feltöltés)
+  window.syncPendingUploads = async function() {
+      if (!navigator.onLine) return; // Ha még mindig nincs net, kilépünk
+
+      let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
+      if (pending.length === 0) return; // Nincs mit feltölteni
+
+      console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
+      
+      const newPending = [];
+      let uploadCount = 0;
+
+      for (const data of pending) {
+          try {
+              // Ugyanazt a struktúrát használjuk, mint a saveScoreToFirebase
+              const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
+              
+              // Megpróbáljuk feltölteni
+              await push(leaderboardRef, {
+                  teamName: data.teamName,
+                  teamAvatar: data.teamAvatar,
+                  score: data.score,
+                  totalTime: data.totalTime,
+                  geofenceTime: data.geofenceTime,
+                  timestamp: data.timestamp, // Fontos: az eredeti időbélyeget használjuk!
+                  dateString: data.dateString
+              });
+
+              // Ha sikerült, növeljük a statisztikát is
+              if (window.incrementGameCompletion) {
+                  window.incrementGameCompletion(data.gameId);
+              }
+              
+              uploadCount++;
+              console.log(`✅ ${data.teamName} eredménye feltöltve.`);
+
+          } catch (error) {
+              console.error("Szinkronizációs hiba:", error);
+              // Ha hiba van, megtartjuk a listában, hogy később újrapróbáljuk
+              newPending.push(data);
+          }
+      }
+
+      // Frissítjük a helyi tárolót (kivesszük belőle, ami sikerült)
+      localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
+      
+      if (uploadCount > 0) {
+          // Opcionális: Jelezhetünk a felhasználónak
+          const msg = `${uploadCount} db korábbi eredmény sikeresen feltöltve a felhőbe!`;
+           // Csak akkor mutatjuk, ha nem játék közben vagyunk (hogy ne zavarjon)
+          if(document.getElementById('landing-page') && !document.getElementById('landing-page').classList.contains('hidden')) {
+              alert(msg);
+          } else {
+              console.log(msg);
+          }
+      }
+  };
+
+  // 3. Eseményfigyelők indítása (Internet visszatérés figyelése)
+  window.addEventListener('online', () => {
+      console.log("🌐 Internet kapcsolat helyreállt. Szinkronizálás...");
+      window.syncPendingUploads();
+  });
+
+  // Indításkor is próbálja meg (hátha most van net, de tegnap nem volt)
+  setTimeout(() => window.syncPendingUploads(), 3000);
+
+
+  // 2. MENTÉS (Biztonságos verzió - Offline támogatással)
   window.saveScoreToFirebase = function(data) {
       if (!data.gameId) return;
 
@@ -1407,38 +1492,47 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
       const now = new Date();
       const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       
-      // --- BIZTONSÁGI ADATELŐKÉSZÍTÉS (A RULES MIATT) ---
-      
-      // 1. Név ellenőrzése (Max 30 karakter, String, Nem üres)
+      // --- ADATELŐKÉSZÍTÉS ---
       let safeTeamName = String(data.teamName || "Névtelen").trim();
-      // Ha üres lett a trim után, adunk neki alapértelmezett nevet
       if (safeTeamName.length === 0) safeTeamName = "Névtelen Játékos";
-      // Levágjuk 30 karakterre, hogy a Firebase ne dobja vissza
       if (safeTeamName.length > 30) safeTeamName = safeTeamName.substring(0, 30);
 
-      // 2. Pontszám ellenőrzése (Biztosan szám legyen)
       let safeScore = Number(data.score);
       if (isNaN(safeScore)) safeScore = 0;
 
-      // -----------------------
-
-      const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
-      
-      // A push() generál egy egyedi ID-t, a szabályrendszer engedi, mert !data.exists()
-      push(leaderboardRef, {
-          teamName: safeTeamName,   // Validált név
+      // Az adatobjektum összeállítása
+      const scoreData = {
+          gameId: data.gameId,
+          teamName: safeTeamName,
           teamAvatar: data.teamAvatar || "no avatar",
-          score: safeScore,         // Validált szám
+          score: safeScore,
           totalTime: data.totalTime || 0,
           geofenceTime: data.geofenceTime || 0,
-          timestamp: Date.now(),
-          dateString: readableDate 
-      }).then(() => {
-          console.log("Sikeres mentés!");
-      }).catch((error) => {
-          console.error("Mentés elutasítva a Firebase által (Jogosultsági hiba):", error);
-          // Itt esetleg jelezhetsz a felhasználónak, ha akarsz
-      });
+          timestamp: Date.now(), // Az aktuális időt mentjük
+          dateString: readableDate
+      };
+
+      // --- ELLENŐRZÉS: VAN INTERNET? ---
+      if (navigator.onLine) {
+          // VAN INTERNET -> Próbáljuk feltölteni
+          const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
+          
+          push(leaderboardRef, scoreData).then(() => {
+              console.log("✅ Sikeres azonnali mentés a Firebase-be!");
+              if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
+          }).catch((error) => {
+              console.warn("⚠️ Hiba a feltöltéskor (lehet, hogy megszakadt a net):", error);
+              // Ha hiba van a feltöltésnél, mentsük el offline-ba
+              saveToPendingUploads(scoreData);
+          });
+      } else {
+          // NINCS INTERNET -> Mentés offline sorba
+          console.warn("🌐 Nincs internetkapcsolat. Mentés az offline sorba...");
+          saveToPendingUploads(scoreData);
+          
+          // Opcionális: Értesítheted a felhasználót, hogy "Mentve (Offline)"
+          // De a felhasználói élmény simább, ha ezt a háttérben intézed.
+      }
   };
 
  // --- ÚJ FEJLETT RANGLISTA LOGIKA
@@ -4157,6 +4251,21 @@ window.autoSortGamesByDistance = function() {
                 if (window.incrementGameCompletion) {
                     window.incrementGameCompletion(appState.currentGame.id);
                 }
+            }
+
+// UI Visszajelzés a változóba
+            const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
+            
+            // Konzolba kiírjuk
+            console.log(saveStatusText);
+
+            // JAVASLAT: Írjuk ki a képernyőre is, hogy a játékos lássa!
+            // Megkeressük az időbélyeg mezőt az Eredmény oldalon, és hozzáadjuk ezt az infót:
+            const timestampEl = document.getElementById('end-timestamp');
+            if (timestampEl) {
+                // Hozzáadjuk az eredeti dátumhoz egy új sorban, piros vagy zöld színnel
+                const colorClass = navigator.onLine ? 'text-green-600' : 'text-red-500';
+                timestampEl.innerHTML += `<br><span class="${colorClass} font-bold">${saveStatusText}</span>`;
             }
 
             // Jelenlegi idő
