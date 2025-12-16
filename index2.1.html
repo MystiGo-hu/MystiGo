@@ -2028,7 +2028,7 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
              ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
         };
 
-        let appState = {};
+        window.appState = {};
         let modalCloseCallback = null;
         let manualMarker = null; 
         let speechSynth = window.speechSynthesis; 
@@ -2626,7 +2626,7 @@ async function sharePdfViaEmail() {
             // de nem baj, ha itt is megvan, a betöltésjelző addig látszik)
         };
 
-        const showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+        window.showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
         function showMessage(title, body, onClose, showCancel = false) {
             // --- iPad / Mobil FIX KEZDIDE ---
