@@ -2239,23 +2239,30 @@ window.initializeGamesFromFirebase = async function() {
         if (snapshot.exists()) {
             const rawData = snapshot.val();
             
-            // FONTOS: Feltételezzük, hogy a JSON szerkezete megegyezik 
-            // azzal, amit az alkalmazás eddig használt (Game ID -> Game Object).
-             window.games = rawData; // Ez a biztonsági tartalék
+            window.games = rawData; // Ez a biztonsági tartalék
 
-            // Ellenőrizzük, hogy a tasks tömbök léteznek-e, ha nem, pótoljuk üres tömbbel
-            // (Ez a biztonság kedvéért kell, ha a konverzió nem volt tökéletes)
+            // Adatok tisztítása és konvertálása
             Object.values(window.games).forEach(g => {
+                // 1. Feladatok tömb pótlása
                 if (!g.tasks) g.tasks = [];
-                // Biztosítjuk, hogy a string számok számként legyenek kezelve
+                
+                // 2. Ár konverzió
                 if (g.price) g.price = parseInt(g.price);
+
+                // 3. JAVÍTÁS: Koordináták biztonságos kezelése
+                // Ha van "lapos" koordináta adat (Lat/Lng), de hiányzik a startLocation objektum, létrehozzuk
+                if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) {
+                    g.startLocation = {};
+                }
+
+                // Most már biztonságosan beállíthatjuk az értékeket, mert a startLocation biztosan létezik
                 if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
 
             console.log("✅ Játékok sikeresen betöltve Firebase-ből:", Object.keys(window.games).length);
             
-            // UI frissítése
+            // UI frissítése (szűrők feltöltése)
             populateLocationFilter();
             
             if (window.checkUrlParametersAndFilter) {
@@ -2264,7 +2271,12 @@ window.initializeGamesFromFirebase = async function() {
             
             showPage('game-list-page');
             handleInitialUrlFiltering();
-            autoSortGamesByDistance(); // Ha van GPS, rendezünk
+            
+            // GPS alapú rendezés hívása (ezt kérdezted az előbb)
+            if (typeof autoSortGamesByDistance === 'function') {
+                autoSortGamesByDistance(); 
+            }
+
         } else {
             console.warn("Nincsenek játékok az adatbázisban.");
             document.getElementById('game-list').innerHTML = '<div class="text-center p-4">Nincsenek elérhető játékok.</div>';
