@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.03
+       v1.1.04
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1416,12 +1416,12 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
       }
   }
 
-  // 2. Szinkronizáció végrehajtása (Feltöltés)
+  // 2. Szinkronizáció végrehajtása (Feltöltés) - JAVÍTOTT VERZIÓ
   window.syncPendingUploads = async function() {
-      if (!navigator.onLine) return; // Ha még mindig nincs net, kilépünk
+      if (!navigator.onLine) return; 
 
       let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
-      if (pending.length === 0) return; // Nincs mit feltölteni
+      if (pending.length === 0) return; 
 
       console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
       
@@ -1430,46 +1430,48 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
 
       for (const data of pending) {
           try {
-              // Ugyanazt a struktúrát használjuk, mint a saveScoreToFirebase
               const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
               
-              // Megpróbáljuk feltölteni
+              // 1. Ranglista feltöltése (Megvárjuk!)
               await push(leaderboardRef, {
                   teamName: data.teamName,
                   teamAvatar: data.teamAvatar,
                   score: data.score,
                   totalTime: data.totalTime,
                   geofenceTime: data.geofenceTime,
-                  timestamp: data.timestamp, // Fontos: az eredeti időbélyeget használjuk!
+                  timestamp: data.timestamp, 
                   dateString: data.dateString
               });
 
-              // Ha sikerült, növeljük a statisztikát is
+              // 2. JAVÍTÁS: Számláló növelésének KÉNYSZERÍTETT megvárása
               if (window.incrementGameCompletion) {
-                  window.incrementGameCompletion(data.gameId);
+                  try {
+                      await window.incrementGameCompletion(data.gameId);
+                      console.log(`✅ ${data.teamName}: Számláló növelve.`);
+                  } catch (cntErr) {
+                      console.error(`⚠️ ${data.teamName}: Számláló hiba (de a pontszám mentve):`, cntErr);
+                  }
               }
               
               uploadCount++;
-              console.log(`✅ ${data.teamName} eredménye feltöltve.`);
+              console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
 
           } catch (error) {
               console.error("Szinkronizációs hiba:", error);
-              // Ha hiba van, megtartjuk a listában, hogy később újrapróbáljuk
+              // Ha a ranglista feltöltés hibás, visszakerül a sorba
               newPending.push(data);
           }
       }
 
-      // Frissítjük a helyi tárolót (kivesszük belőle, ami sikerült)
       localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
       
       if (uploadCount > 0) {
-          // Opcionális: Jelezhetünk a felhasználónak
-          const msg = `${uploadCount} db korábbi eredmény sikeresen feltöltve a felhőbe!`;
-           // Csak akkor mutatjuk, ha nem játék közben vagyunk (hogy ne zavarjon)
+           // Értesítés, ha nem a landing oldalon vagyunk épp
           if(document.getElementById('landing-page') && !document.getElementById('landing-page').classList.contains('hidden')) {
-              alert(msg);
+             // Csendben maradunk
           } else {
-              console.log(msg);
+             // Opcionális: console.log helyett toast üzenet is mehetne
+             console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
           }
       }
   };
@@ -4455,6 +4457,10 @@ window.autoSortGamesByDistance = function() {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
+appState.map.on('mousedown touchstart dragstart zoomstart', () => {
+        appState.lastMapInteraction = Date.now();
+    });
+
     // Mock click handler visszakapcsolása, ha szükséges
     if (appState.isManualMock) {
         toggleMapClickMock(true);
@@ -4520,7 +4526,7 @@ window.autoSortGamesByDistance = function() {
                     
                     // 1. Ha a felhasználó épp mozgatja (vagy az elmúlt 5 mp-ben mozgatta), NEM csinálunk semmit.
                     // Hagyjuk, hadd nézelődjön szabadon.
-                    if (timeSinceLastInteraction < 5000) {
+                    if (timeSinceLastInteraction < 5000) { // <--- ITT ÁLLÍTOTTUK ÁT 5000-re (5 mp)
                         return; 
                     }
 
@@ -4828,37 +4834,110 @@ function backToExploreMap() {
 
 
         function renderTaskMarkers() {
+            // 1. Alapvető ellenőrzések
             if (!appState.map || appState.currentGame.taskOrder !== 'explore') return;
+            
+            appState.map.invalidateSize();
+
+            // 2. Takarítás
             Object.values(appState.taskMarkers).forEach(m => m.remove());
             appState.taskMarkers = {};
             if (appState.geofenceCircle) appState.geofenceCircle.remove();
             
             const bounds = [];
+
+            // 3. Biztonsági lista-újratöltés
+            if (!appState.availableTasks || appState.availableTasks.length === 0) {
+                 if(appState.completedTasks.length <= 1) { 
+                     appState.availableTasks = appState.currentGame.tasks.filter(t => t.index > 0).map(t => t.index);
+                 }
+            }
+
+            // 4. MARKEREK KIRAJZOLÁSA
             appState.availableTasks.forEach(taskIndex => {
                 const task = appState.currentGame.tasks.find(t => t.index === taskIndex);
+                
                 if (!task) return;
-                const taskIcon = L.divIcon({ className: 'task-selector-marker', html: task.index.toString(), iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
-                const marker = L.marker([task.location.lat, task.location.lng], { icon: taskIcon, title: `Feladat ${task.index} - Válassz`, taskIndex: task.index }).addTo(appState.map).bindPopup(`<b>Feladat ${task.index}</b><br>Kattints a kiválasztáshoz!`);
+
+                // --- 🛠️ ADATBÁZIS ADAPTOR (EZ A LÉNYEG!) ---
+                // Létrehozzuk a location objektumot, ha nincs
+                if (!task.location) { task.location = {}; }
+
+                // Ha hiányzik a 'lat', de van 'locationLat' (az adatbázisodból), akkor átemeljük
+                if (typeof task.location.lat === 'undefined') {
+                    if (task.locationLat !== undefined) {
+                        task.location.lat = parseFloat(task.locationLat);
+                    } else if (task.lat !== undefined) {
+                        task.location.lat = parseFloat(task.lat);
+                    }
+                }
+
+                // Ugyanez a 'lng' és 'locationLng' esetében
+                if (typeof task.location.lng === 'undefined') {
+                    if (task.locationLng !== undefined) {
+                        task.location.lng = parseFloat(task.locationLng);
+                    } else if (task.lng !== undefined) {
+                        task.location.lng = parseFloat(task.lng);
+                    }
+                }
+                // -----------------------------------------------------------
+
+                // Ellenőrzés: Sikerült-e a javítás?
+                if (typeof task.location.lat === 'undefined' || typeof task.location.lng === 'undefined' || isNaN(task.location.lat)) {
+                    // Ha még mindig nincs meg, csak akkor szólunk
+                    console.warn(`Skipping task ${task.index}: Coordinates missing (Checked locationLat/locationLng).`);
+                    return; 
+                }
+
+                // Ha idáig eljutottunk, megvannak a koordináták!
+                const taskIcon = L.divIcon({ 
+                    className: 'task-selector-marker', 
+                    html: task.index.toString(), 
+                    iconSize: [30, 30], 
+                    iconAnchor: [15, 30], 
+                    popupAnchor: [0, -30] 
+                });
+
+                const marker = L.marker([task.location.lat, task.location.lng], { 
+                    icon: taskIcon, 
+                    title: `Feladat ${task.index} - Válassz`, 
+                    taskIndex: task.index 
+                })
+                .addTo(appState.map)
+                .bindPopup(`<b>Feladat ${task.index}</b><br>Kattints a kiválasztáshoz!`);
+                
                 marker.on('click', exploreSelectionMapMarkerSelectHandler);
                 appState.taskMarkers[task.index] = marker;
+                
                 bounds.push([task.location.lat, task.location.lng]);
             });
+
+            // 5. Játékos és Zoom beállítása
             const playerMarkerForBounds = appState.isManualMock ? manualMarker : appState.playerMarker;
             if (playerMarkerForBounds) bounds.push(playerMarkerForBounds.getLatLng());
             else if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
             
-            if (bounds.length > 0 && appState.isTimerRunning) {
-                 const now = Date.now();
-                 if (now - appState.lastAutoZoomTime > 10000 || appState.lastAutoZoomTime === 0) {
-                     appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
-                     appState.lastAutoZoomTime = now; 
+            if (bounds.length > 0) {
+                 if (appState.isTimerRunning) {
+                     setTimeout(() => {
+                         appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
+                         appState.map.invalidateSize();
+                     }, 100);
+                 } else {
+                     const startTask = appState.currentGame.tasks.find(t => t.index === 0);
+                     // Itt is figyelünk a locationLat-ra a Start pontnál
+                     let startLat = startTask?.location?.lat || startTask?.locationLat;
+                     let startLng = startTask?.location?.lng || startTask?.locationLng;
+                     
+                     if(startLat && startLng) {
+                         appState.map.setView([startLat, startLng], 16);
+                     }
                  }
-            } else if (bounds.length > 0) {
-                 const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location;
-                 appState.map.setView([startLoc.lat, startLoc.lng], 16);
             }
-            appState.map.invalidateSize(true);
         }
+
+
+
 
         function showTaskSelectionMap() {
             if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
