@@ -1276,6 +1276,15 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+window.db = db;
+  window.ref = ref;
+  window.child = child;
+  window.get = get;
+  window.set = set;
+  window.push = push;
+  window.runTransaction = runTransaction;
+  window.query = query;
+
  // 1. LIMIT ELLENŐRZÉS ÉS NÖVELÉS (SZIGORÚ MÓD)
   window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
       if(!gameId) return true; 
