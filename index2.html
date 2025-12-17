@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.13
+       v1.1.14
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -2385,63 +2385,63 @@ function loadGameById(gameId) {
 window.initializeGamesFromFirebase = async function() {
     showLoading(true);
     const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Kalandok betöltése a felhőből...";
+    if(statusText) statusText.textContent = "Kaland betöltése...";
 
-  try {
+    try {
         const dbRef = ref(db);
+        const urlParams = new URLSearchParams(window.location.search);
+        const pGameId = urlParams.get('game') || urlParams.get('id');
         
-        // Helyes útvonal a 'games' mappán belül
-        const snapshot = await get(child(dbRef, "games/public_games_list")); 
+        let snapshot;
+
+        // --- OPTIMALIZÁLÁS: Ha van konkrét ID az URL-ben ---
+        if (pGameId) {
+            console.log(`🎯 Célzott lekérés ID alapján: ${pGameId}`);
+            // Csak azt az egy játékot kérjük le a listából
+            snapshot = await get(child(dbRef, `games/public_games_list/${pGameId}`));
+        } else {
+            // Ha nincs ID, letöltjük a teljes listát (pl. a főoldalhoz vagy kategória szűréshez)
+            console.log("📂 Teljes lista letöltése...");
+            snapshot = await get(child(dbRef, "games/public_games_list"));
+        }
 
         if (snapshot.exists()) {
-            const rawData = snapshot.val();
-            window.games = rawData;
+            const data = snapshot.val();
+            
+            // Ha egyetlen játékot töltöttünk le, objektumba rakjuk, hogy a kód többi része értelmezze
+            if (pGameId) {
+                window.games = { [pGameId]: data };
+            } else {
+                window.games = data;
+            }
 
-            // --- ADATOK NORMALIZÁLÁSA ---
+            // --- ADATOK NORMALIZÁLÁSA (marad az eredeti logikád szerint) ---
             Object.values(window.games).forEach(g => {
-                if (g.tasks && !Array.isArray(g.tasks)) {
-                    g.tasks = Object.values(g.tasks).filter(Boolean);
-                }
+                if (g.tasks && !Array.isArray(g.tasks)) g.tasks = Object.values(g.tasks).filter(Boolean);
                 if (!g.tasks) g.tasks = [];
-
                 if (g.price) g.price = parseInt(g.price);
-
-                if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) {
-                    g.startLocation = {};
-                }
+                if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) g.startLocation = {};
                 if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
-            // ---------------------------
 
-            console.log("✅ Játékok sikeresen betöltve:", Object.keys(window.games).length);
+            console.log("✅ Betöltött játékok száma:", Object.keys(window.games).length);
             
             populateLocationFilter();
-            if (window.checkUrlParametersAndFilter) checkUrlParametersAndFilter();
-            
             showPage('game-list-page');
-            handleInitialUrlFiltering();
+            handleInitialUrlFiltering(); // Ez fogja véglegesíteni a megjelenítést
             
             if (typeof autoSortGamesByDistance === 'function') autoSortGamesByDistance(); 
-
-            // 🔥🔥🔥 EZ A SOR HIÁNYZOTT! 🔥🔥🔥
-            // Ez tünteti el a töltőképernyőt, ha minden sikerült:
             showLoading(false); 
-            const statusText = document.getElementById('loading-status');
-            if(statusText) statusText.textContent = "";
 
         } else {
-            console.warn("HIBA: A 'games/public_games_list' útvonalon nem található adat!");
-            document.getElementById('game-list').innerHTML = '<div class="text-center p-4">Nincsenek elérhető játékok az adatbázisban.</div>';
-            
-            // Itt is kapcsoljuk ki, ha üres a lista
+            console.warn("Nincs találat a megadott feltételekkel.");
+            document.getElementById('game-list').innerHTML = '<div class="text-center p-4">A kért kaland nem található.</div>';
             showLoading(false);
         }
     } catch (error) {
         console.error("Firebase betöltési hiba:", error);
-        showMessage("Hiba", "Nem sikerült betölteni a játékokat. <br>Hiba: " + error.message);
-        
-        // Hiba esetén is kapcsoljuk ki
+        showMessage("Hiba", "Hálózati hiba a betöltés során.");
         showLoading(false);
     }
 };
