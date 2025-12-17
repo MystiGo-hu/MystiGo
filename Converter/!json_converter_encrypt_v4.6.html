@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MystiGo Konverter (V4.6 - Eredeti Struktúra Fix)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background-color: #f8fafc; color: #1e293b; }
+        .container { background: white; padding: 2.5rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #0f172a; margin-bottom: 0.5rem; }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 2rem; font-size: 0.95rem; }
+        .step { margin-bottom: 2rem; }
+        label { font-weight: 600; display: block; margin-bottom: 0.75rem; color: #334155; }
+        .file-upload { position: relative; display: flex; align-items: center; justify-content: center; padding: 2rem; border: 2px dashed #cbd5e1; border-radius: 12px; transition: all 0.2s; background: #f8fafc; cursor: pointer; }
+        .file-upload:hover { border-color: #3b82f6; background: #eff6ff; }
+        .file-upload input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .upload-text { pointer-events: none; color: #64748b; font-weight: 500; }
+        button { width: 100%; padding: 14px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        #convertBtn { background-color: #0f172a; color: white; margin-top: 1rem; }
+        #convertBtn:hover { background-color: #1e293b; transform: translateY(-1px); }
+        #convertBtn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+        #downloadBtn { background-color: #10b981; color: white; display: none; margin-top: 1.5rem; }
+        #status { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; display: none; font-size: 0.95rem; line-height: 1.5; }
+        .success { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .stats { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.85rem; color: #64748b; justify-content: center; }
+        .stat-item { background: #f1f5f9; padding: 4px 12px; border-radius: 99px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>MystiGo Konverter <span style="font-size: 0.6em; vertical-align: middle; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 6px;">V4.6</span></h1>
+    <p class="subtitle">Eredeti (V4.1) struktúra + Többes megoldás támogatása (;)</p>
+
+    <div class="step">
+        <label>1. Excel fájl kiválasztása</label>
+        <div class="file-upload">
+            <input type="file" id="excelFile" accept=".xlsx, .xls">
+            <span class="upload-text" id="fileNameDisplay">Kattints vagy húzd ide a fájlt...</span>
+        </div>
+    </div>
+
+    <button id="convertBtn" disabled>Adatok Feldolgozása</button>
+    
+    <div id="status"></div>
+    <div id="statsContainer" class="stats" style="display:none;"></div>
+    
+    <button id="downloadBtn">JSON Letöltése (Firebase)</button>
+</div>
+
+<script>
+    let splitDatabase = {
+        public_games_list: {},
+        secure_game_contents: {}
+    };
+
+    const fileInput = document.getElementById('excelFile');
+    const convertBtn = document.getElementById('convertBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusMsg = document.getElementById('status');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const statsContainer = document.getElementById('statsContainer');
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            convertBtn.disabled = false;
+        }
+    });
+
+    function generateHash(text) {
+        if (!text) return "";
+        let cleanText = String(text).trim().toLowerCase();
+        cleanText = cleanText.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        cleanText = cleanText.replace(/[^a-z0-9]/g, '');
+        return CryptoJS.SHA256(cleanText).toString();
+    }
+
+    function safeFloat(val) {
+        if (!val) return 0;
+        const num = parseFloat(String(val).replace(',', '.').trim());
+        return isNaN(num) ? 0 : num;
+    }
+
+    function safeString(val) {
+        return (val === undefined || val === null) ? "" : String(val).trim();
+    }
+
+    function getValue(row, keys) {
+        if (!row) return null;
+        for (const key of keys) {
+            if (row[key] !== undefined) return row[key];
+        }
+        const rowKeys = Object.keys(row);
+        for (const key of keys) {
+            const foundKey = rowKeys.find(k => k.toLowerCase() === key.toLowerCase());
+            if (foundKey) return row[foundKey];
+        }
+        return null;
+    }
+
+    convertBtn.addEventListener('click', () => {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                const gamesSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('game')) || workbook.SheetNames[0];
+                const tasksSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('task')) || workbook.SheetNames[1];
+
+                const gamesData = XLSX.utils.sheet_to_json(workbook.Sheets[gamesSheetName]);
+                const tasksData = tasksSheetName ? XLSX.utils.sheet_to_json(workbook.Sheets[tasksSheetName]) : [];
+
+                splitDatabase = { public_games_list: {}, secure_game_contents: {} };
+                let tasksCount = 0;
+
+                // 1. JÁTÉKOK FELDOLGOZÁSA (V4.1-es logika szerint)
+                gamesData.forEach(row => {
+                    const gameIdRaw = getValue(row, ['id', 'gameId', 'ID']);
+                    if (!gameIdRaw) return;
+
+                    const gameId = String(gameIdRaw).trim();
+                    const sLat = safeFloat(getValue(row, ['startLocationLat', 'lat', 'kezdoLat']));
+                    const sLng = safeFloat(getValue(row, ['startLocationLng', 'lng', 'kezdoLng']));
+
+                    splitDatabase.public_games_list[gameId] = {
+                        id: gameId,
+                        version: getValue(row, ['version', 'ver']) ? parseInt(getValue(row, ['version', 'ver'])) : 1,
+                        title: safeString(getValue(row, ['title', 'nev'])),
+                        category: safeString(getValue(row, ['category', 'kategoria'])) || "family",
+                        type: safeString(getValue(row, ['type', 'tipus'])) || "normal",
+                        age: safeString(getValue(row, ['age', 'kor'])) || "6-99",
+                        price: getValue(row, ['price', 'ar']) ? parseInt(String(getValue(row, ['price', 'ar'])).replace(/\D/g,'')) : 0,
+                        location: safeString(getValue(row, ['location', 'helyszin'])),
+                        description: safeString(getValue(row, ['description', 'leiras'])),
+                        imageUrl: safeString(getValue(row, ['imageUrl', 'kep'])),
+                        headerLogo: safeString(getValue(row, ['headerLogo', 'logo'])) || "logo/default.png",
+                        isHidden: (String(getValue(row, ['isHidden', 'hidden'])).toLowerCase() === 'true' || getValue(row, ['isHidden', 'hidden']) === 1),
+                        reviewUrl: safeString(getValue(row, ['reviewUrl', 'ertekeles'])),
+                        maxPlayCount: getValue(row, ['maxPlayCount', 'maxPlay']) ? parseInt(getValue(row, ['maxPlayCount', 'maxPlay'])) : 0,
+                        globalLimit: getValue(row, ['globalLimit']) ? parseInt(getValue(row, ['globalLimit'])) : 0,
+                        startLocationLat: sLat,
+                        startLocationLng: sLng
+                    };
+
+                    splitDatabase.secure_game_contents[gameId] = {
+                        version: splitDatabase.public_games_list[gameId].version,
+                        startLocationLat: sLat,
+                        startLocationLng: sLng,
+                        geofenceRadius: getValue(row, ['geofenceRadius', 'radius', 'sugar']) ? parseInt(getValue(row, ['geofenceRadius', 'radius', 'sugar'])) : null,
+                        endStory: safeString(getValue(row, ['endStory', 'vegeSzoveg'])),
+                        tasks: []
+                    };
+                });
+
+                const SECRET_KEY = "MystiGo_Szuper_Titkos_Kulcs_2025"; 
+
+                // 2. FELADATOK FELDOLGOZÁSA
+                if (tasksData.length > 0) {
+                    tasksData.forEach(row => {
+                        const gId = safeString(getValue(row, ['gameId', 'id']));
+                        if (splitDatabase.secure_game_contents[gId]) {
+                            
+                            // MEGOLDÁS KEZELÉSE (Szétbontás és acceptedHashes feltöltése)
+                            const rawSol = safeString(getValue(row, ['solution', 'megoldas']));
+                            let solutions = rawSol.split(';').map(s => s.trim()).filter(s => s !== "");
+                            
+                            let solHash = "";
+                            let encryptedSol = "";
+                            let acceptedHashes = [];
+
+                            if (solutions.length > 0) {
+                                solHash = generateHash(solutions[0]);
+                                encryptedSol = CryptoJS.AES.encrypt(solutions[0], SECRET_KEY).toString();
+                                acceptedHashes = solutions.map(s => generateHash(s));
+                            } else {
+                                const existingHash = getValue(row, ['solutionHash', 'hash']);
+                                if (existingHash) {
+                                    solHash = existingHash;
+                                    acceptedHashes = [existingHash];
+                                }
+                            }
+
+                            const rawHint1 = safeString(getValue(row, ['hint1', 'segitseg1']));
+                            const rawHint2 = safeString(getValue(row, ['hint2', 'segitseg2']));
+                            const tLat = safeFloat(getValue(row, ['locationLat', 'lat', 'latitude']));
+                            const tLng = safeFloat(getValue(row, ['locationLng', 'lng', 'longitude']));
+
+                            const taskObj = {
+                                index: parseInt(getValue(row, ['index', 'sorszam']) || 0),
+                                story: safeString(getValue(row, ['story', 'tortenet'])),
+                                prompt: safeString(getValue(row, ['prompt', 'kerdes'])),
+                                locationLat: tLat,
+                                locationLng: tLng,
+                                location: { lat: tLat, lng: tLng },
+                                taskImage: safeString(getValue(row, ['taskImage', 'image', 'kep'])),
+                                points: getValue(row, ['points', 'pont']) ? parseInt(getValue(row, ['points', 'pont'])) : 10,
+                                geofenceRadius: getValue(row, ['geofenceRadius', 'sugar']) ? parseInt(getValue(row, ['geofenceRadius', 'sugar'])) : null,
+                                solution: encryptedSol,
+                                solutionHash: solHash,
+                                acceptedHashes: acceptedHashes, // Új mező a többes megoldásokhoz
+                                hints: [
+                                    rawHint1 ? CryptoJS.AES.encrypt(rawHint1, SECRET_KEY).toString() : "",
+                                    rawHint2 ? CryptoJS.AES.encrypt(rawHint2, SECRET_KEY).toString() : ""
+                                ]
+                            };
+                            
+                            if (taskObj.index === 0) taskObj.isStartTask = true;
+                            splitDatabase.secure_game_contents[gId].tasks.push(taskObj);
+                            tasksCount++;
+                        }
+                    });
+                }
+
+                Object.values(splitDatabase.secure_game_contents).forEach(game => {
+                    if (game.tasks) game.tasks.sort((a, b) => a.index - b.index);
+                });
+
+                statusMsg.style.display = 'block';
+                statusMsg.className = 'success';
+                statusMsg.innerHTML = `✅ Sikeres feldolgozás! Letöltheted a JSON-t.`;
+                downloadBtn.style.display = 'block';
+                convertBtn.disabled = true;
+
+            } catch (err) {
+                statusMsg.style.display = 'block';
+                statusMsg.className = 'error';
+                statusMsg.textContent = "Hiba: " + err.message;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        const filename = `mystigo_database_${new Date().toISOString().slice(0,10)}.json`;
+        const blob = new Blob([JSON.stringify(splitDatabase, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+    });
+</script>
+
+</body>
+</html>
