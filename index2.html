@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.06
+       v1.1.07_dev
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1200,14 +1200,14 @@
         return CryptoJS.SHA256(cleanText).toString();
     };
 
-    // Okos betöltő függvény (LocalStorage + Firebase)
-   window.loadGameDataAndStart = async function(gameId) {
+    // ✅ ÚJ loadGameDataAndStart FÜGGVÉNY (Split adatbázishoz igazítva)
+window.loadGameDataAndStart = async function(gameId) {
     const storageKey = `MystiGo_GameData_${gameId}`;
     let gameData = null;
 
     showLoading(true);
     const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Adatok ellenőrzése...";
+    if(statusText) statusText.textContent = "Kaland részleteinek letöltése...";
 
     console.log(`📥 Játék betöltése: ${gameId}`);
 
@@ -1215,38 +1215,53 @@
     try {
         const cachedData = localStorage.getItem(storageKey);
         if (cachedData) {
-            console.log("📦 Adatok betöltése cache-ből.");
-            gameData = JSON.parse(cachedData);
+            const parsed = JSON.parse(cachedData);
+            if (parsed.tasks && parsed.tasks.length > 0) {
+                console.log("📦 Adatok betöltése cache-ből.");
+                gameData = parsed;
+            }
         }
     } catch (e) { console.warn("Cache hiba:", e); }
 
-    // 2. Firebase letöltés (ha nincs cache vagy sérült)
-    if (!gameData || !gameData.tasks) {
-        console.log("🌐 Letöltés Firebase-ről...");
+    // 2. Firebase letöltés
+    if (!gameData) {
+        console.log("🌐 Titkos tartalom letöltése a szerverről...");
+        
+        const basicData = window.games[gameId];
+        if (!basicData) {
+            alert("Hiba: A játék alapadatai nem találhatók!");
+            showLoading(false);
+            return;
+        }
+
         try {
             const db = getDatabase();
-            const snapshot = await get(ref(db, 'games/' + gameId));
+            
+            // 🔥🔥🔥 ITT VOLT A HIBA: JAVÍTVA 'games/' ELŐTAGGAL 🔥🔥🔥
+            const snapshot = await get(ref(db, 'games/secure_game_contents/' + gameId));
 
             if (snapshot.exists()) {
-                gameData = snapshot.val();
+                const secureData = snapshot.val();
+                
+                gameData = {
+                    ...basicData,
+                    ...secureData
+                };
             } else {
-                alert("Hiba: Ez a játék nem található az adatbázisban!");
+                alert("Hiba: A játék részletes adatai nem elérhetők a szerveren (Rossz útvonal?)!");
                 showLoading(false);
                 return;
             }
         } catch (netError) {
-            console.error("Hálózati hiba:", netError);
-            alert("Hálózati hiba. Ellenőrizd az internetkapcsolatot.");
+            console.error("Hálózati / Jogosultsági hiba:", netError);
+            alert("Hiba a letöltéskor: " + netError.message); // Kiírjuk a pontos hibát
             showLoading(false);
             return;
         }
     }
 
-    // --- ADAT NORMALIZÁLÁS (A legfontosabb rész) ---
-    
-    // 1. Feladatok tömbbé alakítása
+    // --- ADAT NORMALIZÁLÁS (Változatlan) ---
     if (gameData.tasks) {
-        // Ha objektum (Firebase így tárolja), tömbbé konvertáljuk
         if (!Array.isArray(gameData.tasks)) {
             gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
         }
@@ -1254,42 +1269,34 @@
         gameData.tasks = [];
     }
 
-    // 2. Feladatok koordinátáinak javítása
     gameData.tasks.forEach(task => {
-        // Ha szövegként jön a szám, konvertáljuk
         if (task.location) {
             task.location.lat = parseFloat(task.location.lat);
             task.location.lng = parseFloat(task.location.lng);
         }
-        // Index biztosítása
         if (typeof task.index === 'string') task.index = parseInt(task.index);
     });
 
-    // 3. Start Location javítása
     if (!gameData.startLocation) {
         gameData.startLocation = {};
     }
-    // Megpróbáljuk kinyerni a koordinátákat többféle mezőnévből
     const lat = gameData.startLocationLat || gameData.startLocation?.lat;
     const lng = gameData.startLocationLng || gameData.startLocation?.lng;
 
     if (lat && lng) {
         gameData.startLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
     } else {
-        // VÉSZTARTALÉK: Ha nincs start koordináta, vesszük az 1. feladatét, vagy Budapestet
-        console.warn("⚠️ Nincs Start Location! Megpróbáljuk pótolni.");
         if (gameData.tasks.length > 0 && gameData.tasks[0].location) {
             gameData.startLocation = { ...gameData.tasks[0].location };
         } else {
-            gameData.startLocation = { lat: 47.4979, lng: 19.0402 }; // Budapest
+            gameData.startLocation = { lat: 47.4979, lng: 19.0402 };
         }
     }
 
-    // Adatok mentése a memóriába és a tárhelyre
     window.games[gameId] = gameData;
     localStorage.setItem(storageKey, JSON.stringify(gameData));
     
-    console.log("✅ Játék adatok rendben:", gameData);
+    console.log("✅ Játék adatok készen állnak:", gameData);
     showLoading(false);
 };
 
@@ -2359,37 +2366,34 @@ window.initializeGamesFromFirebase = async function() {
     const statusText = document.getElementById('loading-status');
     if(statusText) statusText.textContent = "Kalandok betöltése a felhőből...";
 
-    try {
+  try {
         const dbRef = ref(db);
-        const snapshot = await get(child(dbRef, "games"));
+        
+        // Helyes útvonal a 'games' mappán belül
+        const snapshot = await get(child(dbRef, "games/public_games_list")); 
 
         if (snapshot.exists()) {
             const rawData = snapshot.val();
             window.games = rawData;
 
-            // --- ADATOK TISZTÍTÁSA ÉS JAVÍTÁSA ---
+            // --- ADATOK NORMALIZÁLÁSA ---
             Object.values(window.games).forEach(g => {
-                // 1. JAVÍTÁS: A tasks legyen mindig Tömb (Array), ne Objektum!
                 if (g.tasks && !Array.isArray(g.tasks)) {
-                    // Ha objektumként jött (pl. {1: data, 2: data}), tömbbé alakítjuk
-                    // A filter(Boolean) kiveszi az üres (null/undefined) elemeket
                     g.tasks = Object.values(g.tasks).filter(Boolean);
                 }
-                if (!g.tasks) g.tasks = []; // Ha nincs, legyen üres tömb
+                if (!g.tasks) g.tasks = [];
 
-                // 2. Ár konverzió
                 if (g.price) g.price = parseInt(g.price);
 
-                // 3. Koordináták biztonságos kezelése
                 if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) {
                     g.startLocation = {};
                 }
                 if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
-            // --------------------------------------
+            // ---------------------------
 
-            console.log("✅ Játékok sikeresen betöltve és javítva:", Object.keys(window.games).length);
+            console.log("✅ Játékok sikeresen betöltve:", Object.keys(window.games).length);
             
             populateLocationFilter();
             if (window.checkUrlParametersAndFilter) checkUrlParametersAndFilter();
@@ -2399,19 +2403,32 @@ window.initializeGamesFromFirebase = async function() {
             
             if (typeof autoSortGamesByDistance === 'function') autoSortGamesByDistance(); 
 
+            // 🔥🔥🔥 EZ A SOR HIÁNYZOTT! 🔥🔥🔥
+            // Ez tünteti el a töltőképernyőt, ha minden sikerült:
+            showLoading(false); 
+            const statusText = document.getElementById('loading-status');
+            if(statusText) statusText.textContent = "";
+
         } else {
-            console.warn("Nincsenek játékok az adatbázisban.");
-            document.getElementById('game-list').innerHTML = '<div class="text-center p-4">Nincsenek elérhető játékok.</div>';
+            console.warn("HIBA: A 'games/public_games_list' útvonalon nem található adat!");
+            document.getElementById('game-list').innerHTML = '<div class="text-center p-4">Nincsenek elérhető játékok az adatbázisban.</div>';
+            
+            // Itt is kapcsoljuk ki, ha üres a lista
+            showLoading(false);
         }
     } catch (error) {
         console.error("Firebase betöltési hiba:", error);
-        showMessage("Hiba", "Nem sikerült betölteni a játékokat. Ellenőrizd az internetkapcsolatot!");
-    } finally {
+        showMessage("Hiba", "Nem sikerült betölteni a játékokat. <br>Hiba: " + error.message);
+        
+        // Hiba esetén is kapcsoljuk ki
         showLoading(false);
-        if(statusText) statusText.textContent = "";
     }
 };
-        // --- I18N ---
+       
+
+
+
+ // --- I18N ---
         const I18N = { 
             hu: { 
                 correct_title: 'Helyes!', 
