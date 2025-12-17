@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.07_dev
+       v1.1.10
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1202,111 +1202,114 @@
 
     // ✅ ÚJ loadGameDataAndStart FÜGGVÉNY (Split adatbázishoz igazítva)
 window.loadGameDataAndStart = async function(gameId) {
-        const storageKey = `MystiGo_GameData_${gameId}`;
-        let gameData = null;
+    const storageKey = `MystiGo_GameData_${gameId}`;
+    let gameData = null;
 
-        showLoading(true);
-        const statusText = document.getElementById('loading-status');
-        if(statusText) statusText.textContent = "Kaland részleteinek letöltése...";
+    showLoading(true);
+    const statusText = document.getElementById('loading-status');
+    if(statusText) statusText.textContent = "Verzió ellenőrzése és letöltés...";
 
-        console.log(`📥 Játék betöltése: ${gameId}`);
-
-        // 1. LocalStorage ellenőrzés (Szigorúbb feltétellel!)
-        try {
-            const cachedData = localStorage.getItem(storageKey);
-            if (cachedData) {
-                const parsed = JSON.parse(cachedData);
-                // Ellenőrizzük, hogy van-e benne feladat ÉS van-e megoldás (solution) a feladatoknál
-                if (parsed.tasks && parsed.tasks.length > 0) {
-                    const hasSolutionData = parsed.tasks.some(t => t.index > 0 && (t.solution || (t.acceptedAnswers && t.acceptedAnswers.length > 0)));
-                    
-                    if (hasSolutionData) {
-                        console.log("📦 Adatok betöltése cache-ből (Valid).");
-                        gameData = parsed;
-                    } else {
-                        console.warn("⚠️ A cache-elt adatok hiányosak (nincs megoldás). Kényszerített letöltés...");
-                        localStorage.removeItem(storageKey); // Töröljük a rossz cache-t
-                    }
-                }
-            }
-        } catch (e) { console.warn("Cache hiba:", e); }
-
-        // 2. Firebase letöltés (Ha nincs valid cache)
-        if (!gameData) {
-            console.log("🌐 Titkos tartalom letöltése a szerverről...");
-            
-            const basicData = window.games[gameId];
-            if (!basicData) {
-                alert("Hiba: A játék alapadatai nem találhatók! Kérlek frissítsd az oldalt.");
-                showLoading(false);
-                return;
-            }
-
-            try {
-                const db = getDatabase();
-                const snapshot = await get(ref(db, 'games/secure_game_contents/' + gameId));
-
-                if (snapshot.exists()) {
-                    const secureData = snapshot.val();
-                    gameData = {
-                        ...basicData,
-                        ...secureData
-                    };
-                    // Mentés a cache-be a jövőre nézve
-                    localStorage.setItem(storageKey, JSON.stringify(gameData));
-                } else {
-                    console.error("❌ A szerveren nem található részletes adat ehhez a játékhoz:", gameId);
-                    alert("Hiba: A játék részletes adatai nem elérhetők a szerveren. Kérlek jelezd a fejlesztőnek!");
-                    showLoading(false);
-                    return;
-                }
-            } catch (netError) {
-                console.error("Hálózati / Jogosultsági hiba:", netError);
-                alert("Hiba a letöltéskor: " + netError.message + "\nEllenőrizd az internetkapcsolatot!");
-                showLoading(false);
-                return;
-            }
-        }
-
-        // --- ADAT NORMALIZÁLÁS ---
-        if (gameData.tasks) {
-            if (!Array.isArray(gameData.tasks)) {
-                gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
-            }
-        } else {
-            gameData.tasks = [];
-        }
-
-        gameData.tasks.forEach(task => {
-            if (task.location) {
-                task.location.lat = parseFloat(task.location.lat);
-                task.location.lng = parseFloat(task.location.lng);
-            }
-            if (typeof task.index === 'string') task.index = parseInt(task.index);
-        });
-
-        if (!gameData.startLocation) {
-            gameData.startLocation = {};
-        }
-        const lat = gameData.startLocationLat || gameData.startLocation?.lat;
-        const lng = gameData.startLocationLng || gameData.startLocation?.lng;
-
-        if (lat && lng) {
-            gameData.startLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
-        } else {
-            if (gameData.tasks.length > 0 && gameData.tasks[0].location) {
-                gameData.startLocation = { ...gameData.tasks[0].location };
-            } else {
-                gameData.startLocation = { lat: 47.4979, lng: 19.0402 };
-            }
-        }
-
-        window.games[gameId] = gameData;
-        
-        console.log("✅ Játék adatok készen állnak:", gameData);
+    // 1. Szerver verzió ellenőrzése
+    const basicInfo = window.games[gameId];
+    if (!basicInfo) {
+        alert("Hiba: A játék nem található a listában.");
         showLoading(false);
-    };
+        return;
+    }
+    
+    const serverVersion = parseInt(basicInfo.version || 1);
+    console.log(`📥 Játék betöltése: ${gameId} (Szerver v${serverVersion})`);
 
+    // 2. LocalStorage vizsgálata (DE NEM TÖRLÜNK MÉG!)
+    let cachedDataJSON = null;
+    try {
+        cachedDataJSON = localStorage.getItem(storageKey);
+        if (cachedDataJSON) {
+            const parsed = JSON.parse(cachedDataJSON);
+            const localVersion = parseInt(parsed.version || 0);
+
+            // Ha a verzió megfelelő (vagy újabb), és van adat, használjuk
+            if (localVersion >= serverVersion && parsed.tasks && parsed.tasks.length > 0) {
+                console.log(`📦 Cache érvényes (v${localVersion}). Betöltés...`);
+                gameData = parsed;
+            } else {
+                console.warn(`♻️ Frissítés szükséges (Helyi: v${localVersion}, Szerver: v${serverVersion}). Letöltés indítása...`);
+                // Itt NEM törlünk, csak hagyjuk, hogy a gameData null maradjon -> így lemegy a 3-as lépésbe
+            }
+        }
+    } catch (e) { console.warn("Cache hiba:", e); }
+
+    // 3. Firebase letöltés (Ha nincs gameData, vagy frissíteni kell)
+    if (!gameData) {
+        console.log("🌐 Friss tartalom letöltése a szerverről...");
+
+        try {
+            const db = getDatabase();
+            const snapshot = await get(ref(db, 'games/secure_game_contents/' + gameId));
+
+            if (snapshot.exists()) {
+                const secureData = snapshot.val();
+                
+                // Adatok összefésülése
+                gameData = {
+                    ...basicInfo,
+                    ...secureData,
+                    version: serverVersion 
+                };
+
+                // SIKERES letöltés után felülírjuk a cache-t
+                localStorage.setItem(storageKey, JSON.stringify(gameData));
+                console.log(`✅ Adatok frissítve és elmentve (v${serverVersion}).`);
+            } else {
+                alert("Hiba: A játék részletes adatai nem elérhetők a szerveren.");
+                showLoading(false);
+                return;
+            }
+        } catch (netError) {
+            console.error("Hálózati hiba:", netError);
+            
+            // --- OFFLINE MENTŐÖV ---
+            // Ha hiba volt, megnézzük, van-e BÁRMILYEN régi adatunk (amit az előbb nem töröltünk ki)
+            if (cachedDataJSON) {
+                console.warn("⚠️ Nincs net, de van régi verzió. Azt indítjuk el.");
+                gameData = JSON.parse(cachedDataJSON);
+                alert("Figyelem: Nem sikerült frissíteni a játékot (nincs internet). A korábbi verzió indul el.");
+            } else {
+                alert("Hiba a letöltéskor: " + netError.message + "\nInternetkapcsolat szükséges az első indításhoz!");
+                showLoading(false);
+                return;
+            }
+        }
+    }
+
+    // --- ADAT NORMALIZÁLÁS (Ez a rész változatlan és jó) ---
+    if (gameData.tasks) {
+        if (!Array.isArray(gameData.tasks)) {
+            gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
+        }
+    } else {
+        gameData.tasks = [];
+    }
+
+    gameData.tasks.forEach(task => {
+        if (task.location) {
+            if(typeof task.location.lat === 'string') task.location.lat = parseFloat(task.location.lat);
+            if(typeof task.location.lng === 'string') task.location.lng = parseFloat(task.location.lng);
+        }
+        if (typeof task.index === 'string') task.index = parseInt(task.index);
+    });
+
+    if (!gameData.startLocation) gameData.startLocation = {};
+    if (gameData.startLocationLat) gameData.startLocation.lat = parseFloat(gameData.startLocationLat);
+    if (gameData.startLocationLng) gameData.startLocation.lng = parseFloat(gameData.startLocationLng);
+    
+    if (!gameData.startLocation.lat && gameData.tasks.length > 0 && gameData.tasks[0].location) {
+        gameData.startLocation = { ...gameData.tasks[0].location };
+    }
+
+    window.games[gameId] = gameData;
+    showLoading(false);
+};
 
 
   // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
