@@ -5348,36 +5348,51 @@ function finishGpsTest(forceError = false, errorMsg = "") {
 
 
 // --- ÚJ TESZT INDÍTÓ FÜGGVÉNY ---
-window.startSpecificTestGame = function() {
-    // -----------------------------------------------------------
+window.startSpecificTestGame = async function() {
     const FIX_GAME_ID = "teszt-game"; 
-    // -----------------------------------------------------------
 
-    // BIZTONSÁGI ELLENŐRZÉS
-    if (!games || Object.keys(games).length === 0) {
-        alert("Az adatbázis még nem töltődött be teljesen. Kérlek várj pár másodpercet!");
+    // 1. Ellenőrizzük, hogy a játék benne van-e a nyilvános listában
+    // (Ez az alapfeltétele annak, hogy tudjuk, létezik a játék)
+    if (!window.games || !window.games[FIX_GAME_ID]) {
+        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött listában! Ellenőrizd, hogy a Firebase 'public_games_list' ágában szerepel-e.`);
         return;
     }
 
-    if (!games[FIX_GAME_ID]) {
-        alert(`HIBA: A kódban megadott '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött Excel fájlban!\n\nEllenőrizd az 'id' oszlopot az Excelben.`);
-        return;
-    }
-    // 2. Automatikus kitöltés (hogy ne kelljen beírni a nevet/avatart)
+    // 2. Automatikus név/avatar kitöltés (hogy ne kérdezze folyton)
     const nameInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
 
-    // Csak akkor írjuk felül, ha üres
-    if (!nameInput.value) nameInput.value = "Fejlesztő";
-    if (!avatarSelect.value) avatarSelect.value = "robot"; // Robot avatar alapértelmezetten
+    if (nameInput && !nameInput.value) nameInput.value = "Fejlesztő";
+    if (avatarSelect && !avatarSelect.value) avatarSelect.value = "robot";
 
-    // 3. UI frissítése, mintha a felhasználó írta volna be (hogy a mentés is működjön)
-    localStorage.setItem('mystigo_pref_teamName', nameInput.value);
-    localStorage.setItem('mystigo_pref_teamAvatar', avatarSelect.value);
+    // Mentjük a localStorage-ba, mert a startGame onnan olvassa ki
+    if (nameInput) localStorage.setItem('mystigo_pref_teamName', nameInput.value);
+    if (avatarSelect) localStorage.setItem('mystigo_pref_teamAvatar', avatarSelect.value);
 
-    // 4. Játék indítása 'mock' (manuális GPS) módban
-    console.log(`Teszt játék indítása: ${FIX_GAME_ID} (Mock Mode)`);
-    startGame(FIX_GAME_ID, 'mock');
+    // 3. ADATOK LETÖLTÉSE (Ez a kulcsfontosságú hiányzó lépés!)
+    // Ugyanazt a függvényt hívjuk meg, amit a kártyára kattintáskor használunk.
+    try {
+        console.log(`📥 Teszt játék adatainak letöltése: ${FIX_GAME_ID}...`);
+        
+        // Ez a függvény letölti a 'secure_game_contents'-ből a feladatokat,
+        // és befrissíti a window.games[FIX_GAME_ID] objektumot.
+        await window.loadGameDataAndStart(FIX_GAME_ID);
+
+        // 4. Ellenőrzés: Tényleg megjöttek a feladatok?
+        const gameData = window.games[FIX_GAME_ID];
+        if (!gameData.tasks || gameData.tasks.length === 0) {
+             alert("Hiba: A játék részletes adatai letöltődtek, de a rendszer nem talált benne feladatokat (tasks array üres).");
+             return;
+        }
+
+        // 5. Játék indítása 'mock' (manuális GPS) módban
+        console.log(`✅ Adatok rendben. Indítás...`);
+        startGame(FIX_GAME_ID, 'mock');
+
+    } catch (error) {
+        console.error("Teszt játék indítási hiba:", error);
+        alert("Hiba történt a teszt játék adatainak letöltésekor.\n\n" + error.message);
+    }
 };
 
 
