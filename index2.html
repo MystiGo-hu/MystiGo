@@ -1202,103 +1202,110 @@
 
     // ✅ ÚJ loadGameDataAndStart FÜGGVÉNY (Split adatbázishoz igazítva)
 window.loadGameDataAndStart = async function(gameId) {
-    const storageKey = `MystiGo_GameData_${gameId}`;
-    let gameData = null;
+        const storageKey = `MystiGo_GameData_${gameId}`;
+        let gameData = null;
 
-    showLoading(true);
-    const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Kaland részleteinek letöltése...";
+        showLoading(true);
+        const statusText = document.getElementById('loading-status');
+        if(statusText) statusText.textContent = "Kaland részleteinek letöltése...";
 
-    console.log(`📥 Játék betöltése: ${gameId}`);
+        console.log(`📥 Játék betöltése: ${gameId}`);
 
-    // 1. LocalStorage ellenőrzés
-    try {
-        const cachedData = localStorage.getItem(storageKey);
-        if (cachedData) {
-            const parsed = JSON.parse(cachedData);
-            if (parsed.tasks && parsed.tasks.length > 0) {
-                console.log("📦 Adatok betöltése cache-ből.");
-                gameData = parsed;
-            }
-        }
-    } catch (e) { console.warn("Cache hiba:", e); }
-
-    // 2. Firebase letöltés
-    if (!gameData) {
-        console.log("🌐 Titkos tartalom letöltése a szerverről...");
-        
-        const basicData = window.games[gameId];
-        if (!basicData) {
-            alert("Hiba: A játék alapadatai nem találhatók!");
-            showLoading(false);
-            return;
-        }
-
+        // 1. LocalStorage ellenőrzés (Szigorúbb feltétellel!)
         try {
-            const db = getDatabase();
-            
-            // 🔥🔥🔥 ITT VOLT A HIBA: JAVÍTVA 'games/' ELŐTAGGAL 🔥🔥🔥
-            const snapshot = await get(ref(db, 'games/secure_game_contents/' + gameId));
+            const cachedData = localStorage.getItem(storageKey);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                // Ellenőrizzük, hogy van-e benne feladat ÉS van-e megoldás (solution) a feladatoknál
+                if (parsed.tasks && parsed.tasks.length > 0) {
+                    const hasSolutionData = parsed.tasks.some(t => t.index > 0 && (t.solution || (t.acceptedAnswers && t.acceptedAnswers.length > 0)));
+                    
+                    if (hasSolutionData) {
+                        console.log("📦 Adatok betöltése cache-ből (Valid).");
+                        gameData = parsed;
+                    } else {
+                        console.warn("⚠️ A cache-elt adatok hiányosak (nincs megoldás). Kényszerített letöltés...");
+                        localStorage.removeItem(storageKey); // Töröljük a rossz cache-t
+                    }
+                }
+            }
+        } catch (e) { console.warn("Cache hiba:", e); }
 
-            if (snapshot.exists()) {
-                const secureData = snapshot.val();
-                
-                gameData = {
-                    ...basicData,
-                    ...secureData
-                };
-            } else {
-                alert("Hiba: A játék részletes adatai nem elérhetők a szerveren (Rossz útvonal?)!");
+        // 2. Firebase letöltés (Ha nincs valid cache)
+        if (!gameData) {
+            console.log("🌐 Titkos tartalom letöltése a szerverről...");
+            
+            const basicData = window.games[gameId];
+            if (!basicData) {
+                alert("Hiba: A játék alapadatai nem találhatók! Kérlek frissítsd az oldalt.");
                 showLoading(false);
                 return;
             }
-        } catch (netError) {
-            console.error("Hálózati / Jogosultsági hiba:", netError);
-            alert("Hiba a letöltéskor: " + netError.message); // Kiírjuk a pontos hibát
-            showLoading(false);
-            return;
+
+            try {
+                const db = getDatabase();
+                const snapshot = await get(ref(db, 'games/secure_game_contents/' + gameId));
+
+                if (snapshot.exists()) {
+                    const secureData = snapshot.val();
+                    gameData = {
+                        ...basicData,
+                        ...secureData
+                    };
+                    // Mentés a cache-be a jövőre nézve
+                    localStorage.setItem(storageKey, JSON.stringify(gameData));
+                } else {
+                    console.error("❌ A szerveren nem található részletes adat ehhez a játékhoz:", gameId);
+                    alert("Hiba: A játék részletes adatai nem elérhetők a szerveren. Kérlek jelezd a fejlesztőnek!");
+                    showLoading(false);
+                    return;
+                }
+            } catch (netError) {
+                console.error("Hálózati / Jogosultsági hiba:", netError);
+                alert("Hiba a letöltéskor: " + netError.message + "\nEllenőrizd az internetkapcsolatot!");
+                showLoading(false);
+                return;
+            }
         }
-    }
 
-    // --- ADAT NORMALIZÁLÁS (Változatlan) ---
-    if (gameData.tasks) {
-        if (!Array.isArray(gameData.tasks)) {
-            gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
-        }
-    } else {
-        gameData.tasks = [];
-    }
-
-    gameData.tasks.forEach(task => {
-        if (task.location) {
-            task.location.lat = parseFloat(task.location.lat);
-            task.location.lng = parseFloat(task.location.lng);
-        }
-        if (typeof task.index === 'string') task.index = parseInt(task.index);
-    });
-
-    if (!gameData.startLocation) {
-        gameData.startLocation = {};
-    }
-    const lat = gameData.startLocationLat || gameData.startLocation?.lat;
-    const lng = gameData.startLocationLng || gameData.startLocation?.lng;
-
-    if (lat && lng) {
-        gameData.startLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
-    } else {
-        if (gameData.tasks.length > 0 && gameData.tasks[0].location) {
-            gameData.startLocation = { ...gameData.tasks[0].location };
+        // --- ADAT NORMALIZÁLÁS ---
+        if (gameData.tasks) {
+            if (!Array.isArray(gameData.tasks)) {
+                gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
+            }
         } else {
-            gameData.startLocation = { lat: 47.4979, lng: 19.0402 };
+            gameData.tasks = [];
         }
-    }
 
-    window.games[gameId] = gameData;
-    localStorage.setItem(storageKey, JSON.stringify(gameData));
-    
-    console.log("✅ Játék adatok készen állnak:", gameData);
-    showLoading(false);
-};
+        gameData.tasks.forEach(task => {
+            if (task.location) {
+                task.location.lat = parseFloat(task.location.lat);
+                task.location.lng = parseFloat(task.location.lng);
+            }
+            if (typeof task.index === 'string') task.index = parseInt(task.index);
+        });
+
+        if (!gameData.startLocation) {
+            gameData.startLocation = {};
+        }
+        const lat = gameData.startLocationLat || gameData.startLocation?.lat;
+        const lng = gameData.startLocationLng || gameData.startLocation?.lng;
+
+        if (lat && lng) {
+            gameData.startLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        } else {
+            if (gameData.tasks.length > 0 && gameData.tasks[0].location) {
+                gameData.startLocation = { ...gameData.tasks[0].location };
+            } else {
+                gameData.startLocation = { lat: 47.4979, lng: 19.0402 };
+            }
+        }
+
+        window.games[gameId] = gameData;
+        
+        console.log("✅ Játék adatok készen állnak:", gameData);
+        showLoading(false);
+    };
 
 
 
@@ -2159,7 +2166,7 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
         const WRONG_ANSWER_PENALTY = 1; 
         const RESCUE_TASK_CORRECT_ANSWER = '4'; 
         const RESCUE_TASK_SCORE = 0; 
-        
+        const HINT_SECRET_KEY = "MystiGo_Szuper_Titkos_Kulcs_2025";
         const LOCAL_STORAGE_PREFIX = 'MystiGoGameState_'; 
         const DEFAULT_GAME_FILE = 'games/games.xlsx'; 
 
@@ -2172,6 +2179,19 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
         let modalCloseCallback = null;
         let manualMarker = null; 
         let speechSynth = window.speechSynthesis; 
+
+function decryptHintText(encryptedText) {
+    if (!encryptedText) return "Nincs segítség megadva.";
+    try {
+        const bytes = CryptoJS.AES.decrypt(encryptedText, HINT_SECRET_KEY);
+        const originalText = bytes.toString(CryptoJS.enc.Utf8);
+        return originalText || "Hiba a visszafejtésnél (üres adat).";
+    } catch (e) {
+        console.error("Decryption error:", e);
+        return "Hiba: A segítség szövege sérült vagy nem titkosított.";
+    }
+}
+
 
         function initializeState() {
             appState = { 
@@ -5903,84 +5923,121 @@ window.closeGameMap = function() {
             });
 
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
-                
-                if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-                if (task.isStartTask) return; 
-                
-                if (speechSynth.speaking) speechSynth.cancel();
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task) return;
+    
+    // Ellenőrzés: Zónában van-e
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
+    if (task.isStartTask) return; 
+    
+    if (speechSynth.speaking) speechSynth.cancel();
 
-                // Szöveg előkészítése
-                const hints = task.hints || [];
-                const hintText = hints[0] ? hints[0] : "Sajnos ehhez a feladathoz nincs megadva segítség.";
+    // --- TITKOSÍTÁS FELOLDÁSA ---
+    const hints = task.hints || [];
+    // Megpróbáljuk visszafejteni. Ha nincs adat, vagy hiba van, alapértelmezett szöveget adunk.
+    const hintText = hints[0] ? decryptHintText(hints[0]) : "Sajnos ehhez a feladathoz nincs megadva segítség.";
+    // ----------------------------
 
-                // MÓDOSÍTÁS: Ellenőrizzük, hogy látta-e már
-                if (task.hintsUsed < 1) { 
-                    // MÉG NEM LÁTTA -> PONTLEVONÁS
-                    let currentScore = parseInt(task.taskScore || 0);
-                    task.taskScore = Math.max(0, currentScore - HINT1_PENALTY); 
-                    task.hintsUsed = 1;
+    // ELLENŐRIZZÜK, HOGY LÁTTA-E MÁR
+    if (task.hintsUsed < 1) { 
+        // MÉG NEM LÁTTA -> PONTLEVONÁS ÉS STÁTUSZ ÁLLÍTÁS
+        
+        let currentScore = parseInt(task.taskScore || 0);
+        task.taskScore = Math.max(0, currentScore - HINT1_PENALTY); 
+        
+        // FONTOS: Ez a sor engedélyezi majd a 2. gombot!
+        task.hintsUsed = 1; 
 
-                    if (typeof gtag === 'function') {
-                        gtag('event', 'hint_used', {
-                            'game_id': appState.currentGame.id,
-                            'level_index': appState.currentTaskIndex,
-                            'hint_type': 'hint_1',
-                            'team_name': appState.teamName || 'unknown'
-                        });
-                    }
-                    updateStatusDisplays(); 
-                    saveGameState(); 
-
-                    // Üzenet pontlevonással
-                    showMessage('1. Segítség', `1. Segítség (-${HINT1_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, () => { updateHintButtons(task); });
-                } else {
-                    // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
-                    showMessage('1. Segítség (Újra)', `1. Segítség: ${hintText}`, () => { updateHintButtons(task); });
-                }
+        // Statisztika mentése (Google Analytics)
+        if (typeof gtag === 'function') {
+            gtag('event', 'hint_used', {
+                'game_id': appState.currentGame.id,
+                'level_index': appState.currentTaskIndex,
+                'hint_type': 'hint_1',
+                'team_name': appState.teamName || 'unknown'
             });
+        }
+        
+        // Képernyő frissítése és mentés
+        updateStatusDisplays(); 
+        saveGameState(); 
+
+        // Üzenet megjelenítése (a callback-ben frissülnek a gombok, amikor bezárod az ablakot)
+        showMessage(
+            '1. Segítség', 
+            `1. Segítség (-${HINT1_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, 
+            () => { updateHintButtons(task); }
+        );
+    } else {
+        // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
+        showMessage(
+            '1. Segítség (Újra)', 
+            `1. Segítség: ${hintText}`, 
+            () => { updateHintButtons(task); }
+        );
+    }
+});
 
 
 
 
             document.getElementById('hint2-btn').addEventListener('click', (e) => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
-                
-                if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-                if (task.isStartTask) return; 
-                
-                if (speechSynth.speaking) speechSynth.cancel();
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task) return;
+    
+    // Ellenőrzés: Zónában van-e
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
+    if (task.isStartTask) return; 
+    
+    if (speechSynth.speaking) speechSynth.cancel();
 
-                const hints = task.hints || [];
-                const hintText = hints[1] ? hints[1] : "Sajnos ehhez a feladathoz nincs megadva második segítség.";
+    // --- TITKOSÍTÁS FELOLDÁSA ---
+    const hints = task.hints || [];
+    // Megpróbáljuk visszafejteni a 2. elemet (index 1)
+    const hintText = hints[1] ? decryptHintText(hints[1]) : "Sajnos ehhez a feladathoz nincs megadva második segítség.";
+    // ----------------------------
 
-                // MÓDOSÍTÁS: Ellenőrizzük, hogy látta-e már
-                if (task.hintsUsed < 2) { 
-                    // MÉG NEM LÁTTA -> PONTLEVONÁS
-                    let currentScore = parseInt(task.taskScore || 0);
-                    task.taskScore = Math.max(0, currentScore - HINT2_PENALTY); 
-                    task.hintsUsed = 2;
+    // ELLENŐRIZZÜK, HOGY LÁTTA-E MÁR
+    if (task.hintsUsed < 2) { 
+        // MÉG NEM LÁTTA -> PONTLEVONÁS, STÁTUSZ FRISSÍTÉS
+        
+        let currentScore = parseInt(task.taskScore || 0);
+        task.taskScore = Math.max(0, currentScore - HINT2_PENALTY); 
+        
+        // --- EZ A KULCSFONTOSSÁGÚ SOR HIÁNYZOTT: ---
+        task.hintsUsed = 2; // Beállítjuk, hogy a 2-est is ellőtte
+        // -------------------------------------------
 
-                    if (typeof gtag === 'function') {
-                        gtag('event', 'hint_used', {
-                            'game_id': appState.currentGame.id,
-                            'level_index': appState.currentTaskIndex,
-                            'hint_type': 'hint_2',
-                            'team_name': appState.teamName || 'unknown'
-                        });
-                    }                
-                    updateStatusDisplays(); 
-                    saveGameState(); 
-                    
-                    // Üzenet pontlevonással
-                    showMessage('2. Segítség', `2. Segítség (-${HINT2_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, () => { updateHintButtons(task); });
-                } else {
-                    // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
-                    showMessage('2. Segítség (Újra)', `2. Segítség: ${hintText}`, () => { updateHintButtons(task); });
-                }
+        // Statisztika (opcionális)
+        if (typeof gtag === 'function') {
+            gtag('event', 'hint_used', {
+                'game_id': appState.currentGame.id,
+                'level_index': appState.currentTaskIndex,
+                'hint_type': 'hint_2',
+                'team_name': appState.teamName || 'unknown'
             });
+        }                
+        
+        // MENTÉS ÉS FRISSÍTÉS
+        updateStatusDisplays(); 
+        saveGameState(); 
+        
+        // Üzenet megjelenítése
+        // A callback-ben lévő updateHintButtons fogja zöldre színezni és feloldani a megoldást!
+        showMessage(
+            '2. Segítség', 
+            `2. Segítség (-${HINT2_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, 
+            () => { updateHintButtons(task); }
+        );
+    } else {
+        // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
+        showMessage(
+            '2. Segítség (Újra)', 
+            `2. Segítség: ${hintText}`, 
+            () => { updateHintButtons(task); }
+        );
+    }
+});
          
 
 
@@ -6007,31 +6064,50 @@ const solBtn = document.getElementById('solution-btn');
                     updateStatusDisplays();
                     saveGameState();
 
-                    // 2. Megoldás szövegének előkészítése
-                    let solutionText = task.solution;
+                    // 2. MEGOLDÁS SZÖVEGÉNEK VISSZAFEJTÉSE (Javított)
+                    let solutionText = "";
 
-                    if (!solutionText || String(solutionText).trim() === "") {
+                    // Ha van titkosított megoldás, visszafejtjük
+                    if (task.solution) {
+                        solutionText = decryptHintText(task.solution);
+                    }
+
+                    // Fallback logikák
+                    if (!solutionText || String(solutionText).trim() === "" || solutionText.startsWith("Hiba")) {
                         if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
                             solutionText = `A helyes válasz: <strong>${task.acceptedAnswers[0]}</strong>`;
                         } else {
-                            solutionText = "A megoldás sajnos nincs rögzítve az adatbázisban.";
+                            // Ha tényleg semmi sincs, akkor valószínűleg sérült az adat
+                            console.error("HIBA: Nincs megoldás az adatbázisban ehhez a feladathoz:", task);
+                            solutionText = "Technikai hiba: A megoldás nem töltődött be rendesen.<br><br><strong>Tipp:</strong> Próbálj meg kilépni a főmenübe, majd újra elindítani a játékot (a mentés megmarad, de az adatok frissülnek).";
+                            
+                            // Opcionális: Kényszerítjük a cache törlést ehhez a játékhoz
+                            if(appState.currentGame && appState.currentGame.id) {
+                                localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
+                            }
                         }
                     }
 
                     // 3. Üzenet megjelenítése
                     showMessage('Megoldás', `A feladat megoldása (0 pont):<br><br>${solutionText}`, () => {
                         
-                        // Válasz beírása (vizuális)
+                        // Válasz automatikus beírása (vizuális segítség)
                         const answerInput = document.getElementById('answer-input');
-                        if (answerInput && task.acceptedAnswers && task.acceptedAnswers[0]) {
-                            answerInput.value = task.acceptedAnswers[0];
+                        if (answerInput) {
+                            // Csak a tiszta szöveget írjuk be (HTML tagek nélkül)
+                            const cleanText = solutionText.replace(/<[^>]*>?/gm, '').replace("A helyes válasz: ", "");
+                            // Ha nem hibaüzenet, akkor beírjuk
+                            if(!cleanText.includes("Technikai hiba")) {
+                                answerInput.value = cleanText;
+                            }
                         }
 
-                        // 4. TOVÁBBLÉPÉS (Kis késleltetéssel, hogy biztosan lefusson)
+                        // 4. TOVÁBBLÉPÉS
+                        // Kis késleltetéssel, hogy a felhasználó lássa a választ
                         console.log("Megoldás elfogadva, továbbugrás...");
                         setTimeout(() => {
                             handleCorrectAnswer();
-                        }, 100); 
+                        }, 100); // 2 másodpercet vár, hogy el lehessen olvasni
                     });
                 });
             }
