@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.10
+       v1.1.11
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -4701,7 +4701,7 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
     if (!currentTask) return;
 
     const currentTaskLoc = L.latLng(location.lat, location.lng);
-    const currentRadius = currentTask.geofenceRadius || GEOFENCE_DEFAULT_RADIUS;
+    const currentRadius = (currentTask.geofenceRadius && currentTask.geofenceRadius > 0) ? currentTask.geofenceRadius : GEOFENCE_DEFAULT_RADIUS;
 
     if (appState.geofenceCircle) {
         appState.geofenceCircle.setLatLng(currentTaskLoc); 
@@ -4783,7 +4783,7 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
             const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null;
             if (!currentTask) return;
 
-            const currentRadius = currentTask.geofenceRadius || GEOFENCE_DEFAULT_RADIUS;
+            const currentRadius = (currentTask.geofenceRadius && currentTask.geofenceRadius > 0) ? currentTask.geofenceRadius : GEOFENCE_DEFAULT_RADIUS;
             const isStartTask = currentTask.isStartTask; 
             
             if (appState.currentGame.taskOrder === 'explore' && isStartTask) {
