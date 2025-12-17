@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.11
+       v1.1.12
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -3987,9 +3987,9 @@ window.autoSortGamesByDistance = function() {
             const hint2Btn = document.getElementById('hint2-btn');
             const solutionBtn = document.getElementById('solution-btn');
 
-            // --- JAVÍTÁS: Ellenőrizzük, hogy van-e szöveg a segítségekhez ---
+            // --- ADATOK ELLENŐRZÉSE ---
             const hints = task.hints || [];
-            // Akkor van segítség, ha létezik és nem üres string
+            // Akkor tekintjük létezőnek a segítséget, ha van benne szöveg
             const hasHint1Data = (hints[0] && String(hints[0]).trim() !== "");
             const hasHint2Data = (hints[1] && String(hints[1]).trim() !== "");
 
@@ -4005,15 +4005,13 @@ window.autoSortGamesByDistance = function() {
             
             // --- 1. SEGÍTSÉG GOMB ---
             if (hint1Btn) {
-                // Ha NINCS adat, elrejtjük a gombot
                 if (!hasHint1Data) {
                     hint1Btn.style.display = 'none';
                 } else {
-                    hint1Btn.style.display = 'inline-block'; // Megjelenítjük, ha van adat
+                    hint1Btn.style.display = 'inline-block';
                     hint1Btn.disabled = false; 
-
                     if (hintsUsed >= 1) {
-                        hint1Btn.classList.add('used'); // Zöld lesz
+                        hint1Btn.classList.add('used');
                         hint1Btn.textContent = "1. Segítség (Megnézve)";
                     } else {
                         hint1Btn.classList.remove('used');
@@ -4024,60 +4022,47 @@ window.autoSortGamesByDistance = function() {
 
             // --- 2. SEGÍTSÉG GOMB ---
             if (hint2Btn) {
-                // Ha NINCS adat a 2. segítséghez, elrejtjük
                 if (!hasHint2Data) {
                     hint2Btn.style.display = 'none';
                 } else {
-                    hint2Btn.style.display = 'inline-block'; // Megjelenítjük
+                    hint2Btn.style.display = 'inline-block';
+                    // A 2-es gomb csak akkor aktív, ha az 1-est már megnézték
+                    hint2Btn.disabled = (hintsUsed < 1);
                     
-                    // Csak akkor engedélyezzük a kattintást, ha az 1-est már ellőttük
-                    if (hintsUsed < 1) {
-                        hint2Btn.disabled = true;
+                    if (hintsUsed >= 2) {
+                        hint2Btn.classList.add('used');
+                        hint2Btn.textContent = "2. Segítség (Megnézve)";
+                    } else {
                         hint2Btn.classList.remove('used');
                         hint2Btn.textContent = `Segítség 2 (Pont: -${HINT2_PENALTY})`;
-                    } else {
-                        hint2Btn.disabled = false; // Engedélyezzük, ha már ellőttük VAGY ha ellőhetjük
-                        
-                        if (hintsUsed >= 2) {
-                            hint2Btn.classList.add('used'); // Zöld lesz
-                            hint2Btn.textContent = "2. Segítség (Megnézve)";
-                        } else {
-                            hint2Btn.classList.remove('used');
-                            hint2Btn.textContent = `Segítség 2 (Pont: -${HINT2_PENALTY})`;
-                        }
                     }
                 }
             }
             
-            // Explore mód ellenőrzése
-            const isFinalTaskInExplore = appState.currentGame && appState.currentGame.taskOrder === 'explore' && appState.availableTasks && appState.availableTasks.length === 1; 
-
-            // --- MEGOLDÁS GOMB ÁLLAPOTA ---
+            // --- MEGOLDÁS GOMB (DINAMIKUS LOGIKA) ---
             if (solutionBtn) {
                 if (task.disableSolution) {
                     solutionBtn.style.display = 'none';
                 } else {
                     solutionBtn.style.display = 'inline-block';
                     
-                    // Logika: 
-                    // 1. Ha VAN 2. segítség, akkor azt el kell használni a megoldás előtt.
-                    // 2. Ha NINCS 2. segítség, de VAN 1., akkor az 1-est kell elhasználni.
-                    // 3. Ha egyik sincs, akkor a megoldás azonnal elérhető (vagy letiltható, ízlés szerint).
-                    
                     let canShowSolution = false;
 
+                    // DINAMIKUS FELTÉTEL:
                     if (hasHint2Data) {
-                        // Ha van 2-es, akkor mindkettőt el kellett használni (hintsUsed >= 2)
+                        // Ha van második segítség, akkor azt ki kell kérni a megoldáshoz
                         canShowSolution = (hintsUsed >= 2);
                     } else if (hasHint1Data) {
-                        // Ha csak 1-es van, akkor azt el kellett használni (hintsUsed >= 1)
+                        // Ha csak első segítség van, akkor az után már nyithat a megoldás
                         canShowSolution = (hintsUsed >= 1);
                     } else {
-                        // Ha egyik sincs, akkor elvileg mehet a megoldás (vagy tilthatjuk is)
+                        // Ha egyáltalán nincs segítség megadva, akkor alapból nyitva a megoldás
                         canShowSolution = true;
                     }
 
-                    if (isFinalTaskInExplore) canShowSolution = false; // Explore végén ne lehessen feladni
+                    // Explore mód utolsó feladatánál biztonsági tiltás (opcionális)
+                    const isFinalInExplore = appState.currentGame?.taskOrder === 'explore' && appState.availableTasks?.length === 1;
+                    if (isFinalInExplore) canShowSolution = false;
 
                     solutionBtn.disabled = !canShowSolution;
                 }
