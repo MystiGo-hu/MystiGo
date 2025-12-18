@@ -1,49 +1,46 @@
-// sw.js - MystiGo Optimalizált Service Worker
-const CACHE_NAME = 'mystigo-cache-v1.1';
+// sw.js - Dinamikus Cache stratégia
+const CACHE_NAME = 'mystigo-cache-v1.2';
 
-// Azok a fájlok, amiket offline is el akarunk érni (az app váza)
-const ASSETS_TO_CACHE = [
+// Csak az alap vázat mentjük el telepítéskor
+const STATIC_ASSETS = [
     'index2.html',
-    'logo/MystiGo_logo.png',
-    'logo/MystiGo_logo_cat.png',
     'manifest.json',
-    'https://cdn.tailwindcss.com',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    'logo/MystiGo_logo.png'
 ];
 
-// Telepítéskor elmentjük a fontos fájlokat
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            console.log('Fájlok gyorsítótárazása...');
-            return cache.addAll(ASSETS_TO_CACHE);
-        })
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
     );
     self.skipWaiting();
 });
 
-// Aktiváláskor töröljük a régi verziókat, ha vannak
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cache) => {
-                    if (cache !== CACHE_NAME) {
-                        console.log('Régi cache törlése:', cache);
-                        return caches.delete(cache);
-                    }
-                })
-            );
-        })
-    );
-});
-
-// Hálózati kérések kezelése: először a netről próbálja, ha nincs, a cache-ből
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        fetch(event.request).catch(() => {
-            return caches.match(event.request);
+        caches.match(event.request).then((cachedResponse) => {
+            // 1. Ha megvan a cache-ben, azonnal adjuk vissza (gyorsaság)
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            // 2. Ha nincs meg, kérjük le a hálózatról
+            return fetch(event.request).then((response) => {
+                // Ellenőrizzük, hogy érvényes-e a válasz
+                if (!response || response.status !== 200 || response.type !== 'basic') {
+                    return response;
+                }
+
+                // 3. Fontos: Klónozzuk a választ és tegyük be a cache-be a jövőre nézve
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    // Itt mentődnek el a JSON-ök és egyéb dinamikus adatok
+                    cache.put(event.request, responseToCache);
+                });
+
+                return response;
+            }).catch(() => {
+                // Itt lehetne egy offline hibaoldalt visszaadni, ha semmi nincs
+            });
         })
     );
 });
