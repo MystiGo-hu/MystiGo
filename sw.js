@@ -1,11 +1,10 @@
-const CACHE_NAME = 'mystigo-cache-v1.4'; // Verzió emelése!
+const CACHE_NAME = 'mystigo-cache-v1.5'; // v1.4-ről v1.5-re emelve!
 
 const STATIC_ASSETS = [
-    'index2.html',
-    'manifest.json',
-    'logo/MystiGo_logo.png',
-    'logo/icon-192_v3.png',
-    'logo/icon-512_v4.png'
+    './index2.html',
+    './manifest.json',
+    './logo/icon-192_v3.png',
+    './logo/icon-512_v4.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -15,7 +14,6 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// ÚJ: Régi cache törlése aktiváláskor
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -30,17 +28,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) return cachedResponse;
-            return fetch(event.request).then((response) => {
-                if (!response || response.status !== 200 || response.type !== 'basic') {
-                    return response;
-                }
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
-                });
-                return response;
-            });
+            return cachedResponse || fetch(event.request);
         })
     );
 });

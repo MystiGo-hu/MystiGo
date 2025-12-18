@@ -2,7 +2,7 @@
   "name": "MystiGo - Városi Kalandjáték",
   "short_name": "MystiGo",
   "description": "Fedezd fel a várost izgalmas rejtvényeken és kalandokon keresztül!",
-  "start_url": "index2.html",
+  "start_url": "./index2.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#E0F7FA",
