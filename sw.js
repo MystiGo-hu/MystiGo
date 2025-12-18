@@ -1,7 +1,5 @@
-// sw.js - Dinamikus Cache stratégia
-const CACHE_NAME = 'mystigo-cache-v1.3';
+const CACHE_NAME = 'mystigo-cache-v1.4'; // Verzió emelése!
 
-// Csak az alap vázat mentjük el telepítéskor
 const STATIC_ASSETS = [
     'index2.html',
     'manifest.json',
@@ -17,33 +15,32 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            // 1. Ha megvan a cache-ben, azonnal adjuk vissza (gyorsaság)
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-
-            // 2. Ha nincs meg, kérjük le a hálózatról
-            return fetch(event.request).then((response) => {
-                // Ellenőrizzük, hogy érvényes-e a válasz
-                if (!response || response.status !== 200 || response.type !== 'basic') {
-                    return response;
-                }
-
-                // 3. Fontos: Klónozzuk a választ és tegyük be a cache-be a jövőre nézve
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    // Itt mentődnek el a JSON-ök és egyéb dinamikus adatok
-                    cache.put(event.request, responseToCache);
-                });
-
-                return response;
-            }).catch(() => {
-                // Itt lehetne egy offline hibaoldalt visszaadni, ha semmi nincs
-            });
+// ÚJ: Régi cache törlése aktiváláskor
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.filter((name) => name !== CACHE_NAME)
+                          .map((name) => caches.delete(name))
+            );
         })
     );
 });
 
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) return cachedResponse;
+            return fetch(event.request).then((response) => {
+                if (!response || response.status !== 200 || response.type !== 'basic') {
+                    return response;
+                }
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
+                return response;
+            });
+        })
+    );
+});
