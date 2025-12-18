@@ -1,12 +1,12 @@
 // sw.js - Dinamikus Cache stratégia
-const CACHE_NAME = 'mystigo-cache-v1.2';
+const CACHE_NAME = 'mystigo-cache-v1.3';
 
 // Csak az alap vázat mentjük el telepítéskor
 const STATIC_ASSETS = [
     'index2.html',
     'manifest.json',
     'logo/MystiGo_logo.png',
-    'logo/icon-192_v3.png', // Add hozzá a manifest ikonokat is!
+    'logo/icon-192_v3.png',
     'logo/icon-512_v4.png'
 ];
 
