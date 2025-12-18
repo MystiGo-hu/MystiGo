@@ -5,7 +5,9 @@ const CACHE_NAME = 'mystigo-cache-v1.2';
 const STATIC_ASSETS = [
     'index2.html',
     'manifest.json',
-    'logo/MystiGo_logo.png'
+    'logo/MystiGo_logo.png',
+    'logo/icon-192_v3.png', // Add hozzá a manifest ikonokat is!
+    'logo/icon-512_v4.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -44,3 +46,4 @@ self.addEventListener('fetch', (event) => {
         })
     );
 });
+
