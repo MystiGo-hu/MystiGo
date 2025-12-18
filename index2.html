@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.17
+       v1.1.18
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -961,35 +961,51 @@
     </div>
  
 
-<div id="pwa-install-container" class="hidden fixed bottom-20 left-4 right-4 z-[9999] animate-bounce">
-        <div class="bg-[#0D2B45] text-white p-4 rounded-2xl shadow-2xl border-2 border-[#00CED1] flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img src="logo/MystiGo_logo.png" class="w-10 h-10 rounded-lg" alt="App">
-                <div>
-                    <p class="font-bold text-sm">MystiGo Alkalmazás</p>
-                    <p class="text-[10px] opacity-80">Telepítsd a gyorsabb eléréshez!</p>
-                </div>
+<div id="pwa-install-container" class="hidden fixed bottom-24 left-4 right-4 z-[9999] animate-bounce">
+    <div class="bg-white/95 backdrop-blur-md text-brand-blue p-4 rounded-2xl shadow-2xl border-2 border-brand-cyan flex items-center justify-between relative">
+        
+        <button onclick="document.getElementById('pwa-install-container').classList.add('hidden')" class="absolute -top-2 -right-2 bg-gray-200 text-gray-600 rounded-full p-1 hover:bg-gray-300 transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <div class="flex items-center gap-3 pr-4">
+            <img src="logo/MystiGo_logo.png" class="w-10 h-10 rounded-lg shadow-sm" alt="App">
+            <div>
+                <p class="font-bold text-sm text-[#0D2B45]">MystiGo Alkalmazás</p>
+                <p class="text-[10px] text-gray-500 font-medium">Telepítsd a gyorsabb eléréshez!</p>
             </div>
-            <button onclick="triggerPWAInstall()" class="bg-[#FFA500] px-4 py-2 rounded-full text-xs font-extrabold uppercase shadow-lg">
-                Telepítés
-            </button>
         </div>
+        
+        <button onclick="triggerPWAInstall()" class="bg-[#FFA500] text-white px-4 py-2 rounded-xl text-xs font-extrabold uppercase shadow-md active:scale-95 transition-transform shrink-0">
+            Telepítés
+        </button>
     </div>
+</div>
 
 
 
 <div id="ios-install-guide" class="hidden fixed bottom-24 left-6 right-6 z-[9999]">
-    <div class="bg-white text-[#0D2B45] p-5 rounded-3xl shadow-2xl border-2 border-[#00CED1] relative">
+    <div class="bg-white/95 backdrop-blur-md text-[#0D2B45] p-5 rounded-3xl shadow-2xl border-2 border-[#00CED1] relative">
         <div class="flex flex-col items-center text-center gap-3">
             <div class="flex items-center gap-2">
                 <img src="logo/MystiGo_logo.png" class="w-8 h-8 rounded-lg" alt="MystiGo">
                 <p class="font-bold text-sm">Telepítsd alkalmazásként!</p>
             </div>
             <p class="text-xs leading-relaxed">
-                Koppints a Safari alján a <img src="https://img.icons8.com/ios/50/000000/share-rounded.png" class="w-5 h-5 inline mx-1" alt="Megosztás"> **Megosztás** ikonra, majd válaszd a **„Főképernyőhöz adás”** opciót!
+                Koppints a Safari alján látható 
+                <span class="inline-block bg-gray-100 p-1 rounded-md mx-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                </span> 
+                **Megosztás** ikonra, majd görgess le és válaszd a **„Főképernyőhöz adás”** opciót!
             </p>
         </div>
-        <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-white"></div>
+        <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-white/95"></div>
     </div>
 </div>
 
@@ -6263,15 +6279,23 @@ window.loadMoreGames = function() {
     }
 
     // 2. Telepítési esemény elkapása
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // Akadályozzuk meg, hogy a böngésző azonnal feldobja a sajátját
-        e.preventDefault();
-        deferredPrompt = e;
+   window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
 
-        // Megjelenítjük a saját telepítési gombunkat (lásd 3. pont)
-        const installBtn = document.getElementById('pwa-install-container');
-        if (installBtn) installBtn.classList.remove('hidden');
-    });
+    const installBtn = document.getElementById('pwa-install-container');
+    if (installBtn) {
+        installBtn.classList.remove('hidden');
+
+        // AUTO-ELTÜNTETÉS: 8 másodperc után elrejti, ha addig nem nyomtak rá
+        setTimeout(() => {
+            if (!installBtn.classList.contains('hidden')) {
+                installBtn.classList.add('opacity-0'); // Finom elhalványítás
+                setTimeout(() => installBtn.classList.add('hidden'), 500);
+            }
+        }, 8000); 
+    }
+});
 
     // 3. Telepítés indítása a gombra kattintva
     async function triggerPWAInstall() {
