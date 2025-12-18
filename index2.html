@@ -977,6 +977,24 @@
     </div>
 
 
+
+<div id="ios-install-guide" class="hidden fixed bottom-24 left-6 right-6 z-[9999]">
+    <div class="bg-white text-[#0D2B45] p-5 rounded-3xl shadow-2xl border-2 border-[#00CED1] relative">
+        <div class="flex flex-col items-center text-center gap-3">
+            <div class="flex items-center gap-2">
+                <img src="logo/MystiGo_logo.png" class="w-8 h-8 rounded-lg" alt="MystiGo">
+                <p class="font-bold text-sm">Telepítsd alkalmazásként!</p>
+            </div>
+            <p class="text-xs leading-relaxed">
+                Koppints a Safari alján a <img src="https://img.icons8.com/ios/50/000000/share-rounded.png" class="w-5 h-5 inline mx-1" alt="Megosztás"> **Megosztás** ikonra, majd válaszd a **„Főképernyőhöz adás”** opciót!
+            </p>
+        </div>
+        <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-white"></div>
+    </div>
+</div>
+
+
+
    
     <div id="loading-overlay" class="modal-overlay fixed inset-0 bg-black/50 hidden items-center justify-center"><div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div></div>
     
@@ -5770,7 +5788,33 @@ window.closeGameMap = function() {
 
         });
     }
-    // --------------------------------------------------------
+  
+
+const isIos = () => {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+    };
+
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    if (isIos() && !isInStandaloneMode()) {
+        const iosGuide = document.getElementById('ios-install-guide');
+        if (iosGuide) {
+            // 3 másodperc múlva megjelenik
+            setTimeout(() => {
+                iosGuide.classList.remove('hidden');
+            }, 3000);
+
+            // Első kattintásra eltűnik
+            document.addEventListener('click', () => {
+                iosGuide.classList.add('hidden');
+            }, { once: true });
+        }
+    }
+
+
+
+  // --------------------------------------------------------
 
             // 1. Betöltés: Megnézzük, van-e elmentve adat
             const savedName = localStorage.getItem('mystigo_pref_teamName');
