@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.15
+       v1.1.16
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -3750,7 +3750,7 @@ window.autoSortGamesByDistance = function() {
 
    // ASYNC lett a függvény, mert várni kell a Firebase-re
       window.startTimersAndGPS = async function() {
-   if (typeof count !== 'undefined') { count = 0; }
+   
  // 1. Hang feloldása (iOS fix)
     if (window.AudioContext || window.webkitAudioContext) {
         try {
@@ -4423,7 +4423,7 @@ window.autoSortGamesByDistance = function() {
                     endMap.attributionControl.setPrefix(false);
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
 
-                    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+                    L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
     crossOrigin: true, 
     tileSize: 512, 
     zoomOffset: -1, 
@@ -4539,7 +4539,7 @@ window.autoSortGamesByDistance = function() {
 
     appState.map.attributionControl.setPrefix(false);
 
-    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+    L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
         crossOrigin: true,
         tileSize: 512,
         zoomOffset: -1,
@@ -5197,7 +5197,7 @@ window.testGpsConnection = function() {
             attributionControl: false 
         }).setView([47.4979, 19.0402], 13);
 
-        L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+        L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             maxZoom: 20
         }).addTo(gpsTestMap);
     }
@@ -5570,7 +5570,7 @@ window.openGameMap = function() {
     if (!window.gameSelectionMapInstance) {
         window.gameSelectionMapInstance = L.map('game-selection-map', { zoomControl: false }).setView([47.1625, 19.5033], 7);
 	window.gameSelectionMapInstance.attributionControl.setPrefix(false);
-        L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+        L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             attribution: 'MapTiler',
             maxZoom: 19
         }).addTo(window.gameSelectionMapInstance);
