@@ -6289,11 +6289,11 @@ window.loadMoreGames = function() {
 
         // AUTO-ELTÜNTETÉS: 8 másodperc után elrejti, ha addig nem nyomtak rá
         setTimeout(() => {
-            if (!installBtn.classList.contains('hidden')) {
-                installBtn.classList.add('opacity-0'); // Finom elhalványítás
-                setTimeout(() => installBtn.classList.add('hidden'), 500);
-            }
-        }, 8000); 
+    if (!installBtn.classList.contains('hidden')) {
+        installBtn.classList.add('opacity-0');
+        setTimeout(() => installBtn.classList.add('hidden'), 500);
+    }
+}, 8000);
     }
 });
 
