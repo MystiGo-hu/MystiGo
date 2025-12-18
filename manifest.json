@@ -9,24 +9,30 @@
   "theme_color": "#0D2B45",
   "scope": "./",
   "icons": [
-    {
-      "src": "logo/icon-192_v3.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "logo/icon-512_v4.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "logo/icon-512_v4.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
+  {
+    "src": "logo/icon-192_v3.png",
+    "sizes": "192x192",
+    "type": "image/png",
+    "purpose": "any"
+  },
+  {
+    "src": "logo/icon-192_v3.png",
+    "sizes": "192x192",
+    "type": "image/png",
+    "purpose": "maskable"
+  },
+  {
+    "src": "logo/icon-512_v4.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any"
+  },
+  {
+    "src": "logo/icon-512_v4.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "maskable"
+  }
+],
   "categories": ["games", "travel"]
 }
