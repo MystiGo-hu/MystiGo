@@ -3,8 +3,8 @@ const CACHE_NAME = 'mystigo-cache-v1.7';
 const STATIC_ASSETS = [
     './index2.html',
     './manifest.json',
-    './logo/icon-192_v3.png',
     './logo/icon-512_v4.png'
+    './logo/icon-192_v3.png',
 ];
 
 self.addEventListener('install', (event) => {

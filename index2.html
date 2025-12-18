@@ -398,6 +398,13 @@
     text-decoration: none !important;
 }
 
+#filter-container {
+            background-color: #f3f4f6 !important; /* Halvány szürke háttér */
+            border-color: #d1d5db !important;     /* Határozottabb, erősebb szürke szegély */
+            border-width: 1px !important;         /* 2 pixel vastagság a jó láthatóságért */
+            border-style: solid !important;
+            border-radius: 1rem !important;      /* Lekerekítés a többi boxhoz igazítva */
+        }
 
     </style>
 </head>
@@ -702,7 +709,7 @@
           
 
           
-<div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
+<div id="filter-container" class="bg-grey-200 p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
     <div onclick="toggleFilterSection()" class="cursor-pointer flex items-center justify-between select-none">
         <h3 class="text-sm font-bold text-brand-blue flex items-center">
             <span id="filter-toggle-icon" class="mr-2 text-lg font-extrabold text-black leading-none" style="margin-top: -2px;">+</span>
