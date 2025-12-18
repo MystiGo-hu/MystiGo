@@ -426,7 +426,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.14
+       v1.1.15
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -833,11 +833,23 @@
                                    <input type="text" id="answer-input" placeholder="Írd be a megoldást..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
                                    <button id="submit-answer-btn" class="p-3 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 transition flex-shrink-0"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></button>
                                 </div>
-                                 <div id="hint-buttons-container" class="flex justify-center gap-2 mt-4 text-xs font-semibold">
-                                    <button id="hint1-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50">Segítség 1 (Pont: -10)</button>
-                                    <button id="hint2-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Segítség 2 (Pont: -20)</button>
-                                    <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: 0)</button>
-                                </div>
+                                 
+	     <div id="hint-buttons-container" class="flex justify-between gap-2 mt-4 text-[10px] font-semibold">
+    <button id="hint1-btn" class="flex-1 flex flex-col items-center justify-center bg-gray-200 text-gray-700 py-2 rounded-xl disabled:opacity-50">
+        <span>Segítség 1</span>
+        <span>(-10 Pont)</span>
+    </button>
+    
+    <button id="hint2-btn" class="flex-1 flex flex-col items-center justify-center bg-gray-200 text-gray-700 py-2 rounded-xl disabled:opacity-50" disabled>
+        <span>Segítség 2</span>
+        <span>(-20 Pont)</span>
+    </button>
+    
+    <button id="solution-btn" class="flex-1 flex flex-col items-center justify-center bg-red-100 text-red-700 py-2 rounded-xl disabled:opacity-50" disabled>
+        <span>Megoldás</span>
+        <span>(0 Pont)</span>
+    </button>
+</div>
                                 
                                 <div style="height: 14rem;"> </div>
                             </div>
@@ -2460,8 +2472,8 @@ window.initializeGamesFromFirebase = async function() {
                 far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', 
                 in_zone: 'A célterületen vagy!', 
                 out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, 
-                hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, 
-                hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, 
+                hint1_body: (h) => `${h} `, 
+                hint2_body: (h) => `${h} `, 
                 rescue_correct: `Megkerülő sikeres! (+${RESCUE_TASK_SCORE} pont)`, 
                 rescue_wrong: 'Megkerülő hibás. Próbáld újra!', 
                 gps_required: 'Kérjük, engedélyezd a GPS-t az eszközödön a kaland elindításához. Normal módban a játék csak működő GPS-szel indul el.' 
@@ -2776,8 +2788,7 @@ async function sharePdfViaEmail() {
                 manualMarker = null;
             }
             if (appState.geoWatchId) {
-                navigator.geolocation.clearWatch(appState.geoWatchId);
-                appState.geoWatchId = null;
+                stopAllGpsActivity();
             }
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
@@ -4010,10 +4021,10 @@ window.autoSortGamesByDistance = function() {
                     hint1Btn.disabled = false; 
                     if (hintsUsed >= 1) {
                         hint1Btn.classList.add('used');
-                        hint1Btn.textContent = "1. Segítség (Megnézve)";
+                        hint1Btn.textContent = "1. Segítség (Felhasználva)";
                     } else {
                         hint1Btn.classList.remove('used');
-                        hint1Btn.textContent = `Segítség 1 (Pont: -${HINT1_PENALTY})`;
+                        hint1Btn.innerHTML = `Segítség 1<br> (-${HINT1_PENALTY} Pont)`;
                     }
                 }
             }
@@ -4029,10 +4040,10 @@ window.autoSortGamesByDistance = function() {
                     
                     if (hintsUsed >= 2) {
                         hint2Btn.classList.add('used');
-                        hint2Btn.textContent = "2. Segítség (Megnézve)";
+                        hint2Btn.textContent = "2. Segítség (Felhasználva)";
                     } else {
                         hint2Btn.classList.remove('used');
-                        hint2Btn.textContent = `Segítség 2 (Pont: -${HINT2_PENALTY})`;
+                        hint2Btn.innerHTML = `Segítség 2<br> (-${HINT2_PENALTY} Pont)`;
                     }
                 }
             }
@@ -4042,7 +4053,7 @@ window.autoSortGamesByDistance = function() {
                 if (task.disableSolution) {
                     solutionBtn.style.display = 'none';
                 } else {
-                    solutionBtn.style.display = 'inline-block';
+                    solutionBtn.style.display = 'flex';
                     
                     let canShowSolution = false;
 
@@ -4711,27 +4722,50 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
     }
 }
 
+
+function stopAllGpsActivity() {
+    if (appState.geoWatchId !== null) {
+        navigator.geolocation.clearWatch(appState.geoWatchId);
+        appState.geoWatchId = null;
+        console.log("🛰️ GPS figyelés leállítva.");
+    }
+}
+
         function watchPosition() {
-            if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
-            if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
-                appState.geoWatchId = navigator.geolocation.watchPosition(
-                    (pos) => { updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); }, 
-                    (err) => {
-                        console.warn(`GEO ERROR(${err.code}): ${err.message}`);
-                        if (!appState.isTestModeEnabled) { showLoading(false); showMessage('GPS Hiba', t('gps_required'), () => { resetApp(); }); } 
-                        else { showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); checkGeofence(); }
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000, frequency: 3000 }
-                );
-            } else if (appState.isTestModeEnabled && !appState.isManualMock) {
-                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                 appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
-                 checkGeofence();
-            } else if (appState.isManualMock) {
-                 appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
-                 checkGeofence();
-            }
-        }
+    // ELŐSZÖR LEÁLLÍTJUK A RÉGIT, HA VAN
+    stopAllGpsActivity();
+
+    if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
+        appState.geoWatchId = navigator.geolocation.watchPosition(
+            (pos) => { 
+                updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
+            }, 
+            (err) => {
+                console.warn(`GEO ERROR(${err.code}): ${err.message}`);
+                // Hiba esetén is nullázzuk az ID-t
+                appState.geoWatchId = null; 
+                
+                if (!appState.isTestModeEnabled) { 
+                    showLoading(false); 
+                    showMessage('GPS Hiba', t('gps_required'), () => { resetApp(); }); 
+                } 
+                else { 
+                    showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); 
+                    checkGeofence(); 
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        console.log("🛰️ Új GPS figyelés indítva, ID:", appState.geoWatchId);
+    } else if (appState.isTestModeEnabled && !appState.isManualMock) {
+         const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+         appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
+         checkGeofence();
+    } else if (appState.isManualMock) {
+         appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
+         checkGeofence();
+    }
+}
         
         function haversineDistance(c1, c2) {
             // --- BIZTONSÁGI ELLENŐRZÉS ---
@@ -4891,6 +4925,10 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
         
 // --- ÚJ FÜGGVÉNY: Visszalépés a térképre ---
 function backToExploreMap() {
+    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (currentTask) currentTask.isTaskTimerActive = false;
+
+
     // Csak Explore módban értelmezett
     if (appState.currentGame.taskOrder !== 'explore') return;
 
@@ -5068,7 +5106,7 @@ function backToExploreMap() {
     // Mobil-barát, univerzális Google Maps URL
     // Ez megpróbálja megnyitni az alkalmazást, ha van, különben böngészőben nyitja meg.
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
-}
+ }
 
         function speakStory(event) {
             event.preventDefault(); 
@@ -5134,6 +5172,7 @@ let lastTestLng = null;
 
 // --- ÚJ GPS TESZT FÜGGVÉNY ---
 window.testGpsConnection = function() {
+    stopAllGpsActivity();
     // UI elemek előkészítése
     const container = document.getElementById('gps-test-container');
     const statusText = document.getElementById('gps-test-status');
@@ -5966,14 +6005,14 @@ window.closeGameMap = function() {
         // Üzenet megjelenítése (a callback-ben frissülnek a gombok, amikor bezárod az ablakot)
         showMessage(
             '1. Segítség', 
-            `1. Segítség (-${HINT1_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, 
+            `<br> ${hintText} <br><br><strong>(Maradt ${task.taskScore} pont)</strong>`, 
             () => { updateHintButtons(task); }
         );
     } else {
         // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
         showMessage(
             '1. Segítség (Újra)', 
-            `1. Segítség: ${hintText}`, 
+            `${hintText}`, 
             () => { updateHintButtons(task); }
         );
     }
@@ -6027,14 +6066,14 @@ window.closeGameMap = function() {
         // A callback-ben lévő updateHintButtons fogja zöldre színezni és feloldani a megoldást!
         showMessage(
             '2. Segítség', 
-            `2. Segítség (-${HINT2_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, 
+            `<br> ${hintText} <br><br><strong>(Maradt ${task.taskScore} pont)</strong>`, 
             () => { updateHintButtons(task); }
         );
     } else {
         // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
         showMessage(
             '2. Segítség (Újra)', 
-            `2. Segítség: ${hintText}`, 
+            `${hintText}`, 
             () => { updateHintButtons(task); }
         );
     }
@@ -6119,13 +6158,16 @@ const solBtn = document.getElementById('solution-btn');
             document.getElementById('submit-error-report').addEventListener('click', handleSubmitError); 
 
             document.addEventListener('visibilitychange', () => {
-                if (!appState.currentGame) return;
-                if (document.hidden) { 
-                    if (speechSynth.speaking) speechSynth.cancel();
-                    if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId); appState.geoWatchId = null; 
-                } 
-                else if (!appState.geoWatchId) { watchPosition(); }
-            });
+    if (!appState.currentGame) return;
+    if (document.hidden) { 
+        if (speechSynth.speaking) speechSynth.cancel();
+        // Használd a központi függvényt a manuális clearWatch helyett:
+        stopAllGpsActivity(); 
+    } 
+    else if (!appState.geoWatchId) { 
+        watchPosition(); 
+    }
+});
 
             document.getElementById('answer-input').addEventListener('focus', (e) => {
                 const inputElement = e.target;
