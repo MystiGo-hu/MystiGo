@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mystigo-cache-v1.5'; // v1.4-ről v1.5-re emelve!
+const CACHE_NAME = 'mystigo-cache-v1.6';
 
 const STATIC_ASSETS = [
     './index2.html',
@@ -31,4 +31,5 @@ self.addEventListener('fetch', (event) => {
             return cachedResponse || fetch(event.request);
         })
     );
+
 });
