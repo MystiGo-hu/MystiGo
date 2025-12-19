@@ -1499,43 +1499,25 @@ window.loadGameDataAndStart = async function(gameId) {
 
 
  
-  const firebaseConfig = {
-    apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
-    authDomain: "mystigo-7b149.firebaseapp.com",
-    databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "mystigo-7b149",
-    storageBucket: "mystigo-7b149.firebasestorage.app",
-    messagingSenderId: "616896082200",
-    appId: "1:616896082200:web:b13c243df8eaac6d542e6d",
-    measurementId: "G-PFDMYCJ9J1"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-window.db = db;
-  window.ref = ref;
-  window.child = child;
-  window.get = get;
-  window.set = set;
-  window.push = push;
-  window.runTransaction = runTransaction;
-  window.query = query;
+ 
 
  // 1. LIMIT ELLENŐRZÉS ÉS NÖVELÉS (SZIGORÚ MÓD)
-  window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
+  // 1. LIMIT ELLENŐRZÉS ÉS NÖVELÉS (SZIGORÚ MÓD) - JAVÍTOTT
+window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
     if(!gameId) return true; 
+    if (!window.db || !window.runTransaction) return true; // Ha offline, átengedjük (kockázat)
 
     const limit = parseInt(maxPlayers, 10);
     if (isNaN(limit) || limit <= 0) return true; 
 
     console.log(`Limit ellenőrzése: ${gameId}, Max: ${limit}`);
     
-    // MÓDOSÍTVA: games -> game_stats
-    const gameRef = ref(db, 'game_stats/' + gameId + '/count');
+    // MÓDOSÍTVA: window.ref használata
+    const gameRef = window.ref(window.db, 'game_stats/' + gameId + '/count');
     
     try {
-        const result = await runTransaction(gameRef, (currentCount) => {
+        // MÓDOSÍTVA: window.runTransaction használata
+        const result = await window.runTransaction(gameRef, (currentCount) => {
             const count = (currentCount || 0);
             if (count >= limit) {
                 return undefined; 
@@ -1543,35 +1525,56 @@ window.db = db;
             return count + 1;
         });
           
-          if (result.committed) {
-              console.log(`Sikeres belépés. Új létszám: ${result.snapshot.val()}`);
-              return true;
-          } else {
-              console.warn(`Limit elutasítva: Betelt (${limit} fő).`);
-              return false;
-          }
+        if (result.committed) {
+            console.log(`Sikeres belépés. Új létszám: ${result.snapshot.val()}`);
+            return true;
+        } else {
+            console.warn(`Limit elutasítva: Betelt (${limit} fő).`);
+            return false;
+        }
 
-      } catch (error) { 
-          console.error("KRITIKUS Limit hiba:", error); 
-          // JAVÍTÁS: Szigorú mód! Ha hiba van, NEM engedjük be, mert lehet, hogy betelt.
-          return false; 
-      }
-  };
+    } catch (error) { 
+        console.error("KRITIKUS Limit hiba:", error); 
+        return false; 
+    }
+};
 
-
-// ÚJ: Csak a létszám lekérése (megjelenítéshez)
-  window.getGameCurrentCount = async function(gameId) {
-    if(!gameId) return 0;
+// ÚJ FÜGGVÉNY: Csak ellenőrzés - JAVÍTOTT
+window.checkGameLimitOnly = async function(gameId, maxPlayers) {
+    if(!gameId) return true;
+    if (!window.db || !window.get) return true;
+    
     try {
-        // MÓDOSÍTVA: games -> game_stats
-        const snapshot = await get(ref(db, 'game_stats/' + gameId + '/count'));
+        const snapshot = await window.get(window.ref(window.db, 'game_stats/' + gameId + '/count'));
+        const currentCount = parseInt(snapshot.val() || 0, 10);
+        const limit = parseInt(maxPlayers, 10);
+
+        if (currentCount >= limit) {
+            return false; // BETELT
+        }
+        return true; // VAN HELY
+
+    } catch (error) {
+        return false; 
+    }
+};
+
+
+// ÚJ: Csak a létszám lekérése (megjelenítéshez) - JAVÍTOTT
+window.getGameCurrentCount = async function(gameId) {
+    if(!gameId) return 0;
+    // Ellenőrzés: Van-e Firebase?
+    if (!window.db || !window.get) return 0;
+
+    try {
+        // MÓDOSÍTVA: window.get és window.ref használata!
+        const snapshot = await window.get(window.ref(window.db, 'game_stats/' + gameId + '/count'));
         return parseInt(snapshot.val() || 0, 10);
     } catch (error) {
         console.error("Létszám lekérési hiba:", error);
         return 0; 
     }
 };
-
 
 // ÚJ FÜGGVÉNY: Csak ellenőrzés (nem növeli a számlálót)
 window.checkGameLimitOnly = async function(gameId, maxPlayers) {
@@ -1689,56 +1692,55 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
   setTimeout(() => window.syncPendingUploads(), 3000);
 
 
-  // 2. MENTÉS (Biztonságos verzió - Offline támogatással)
-  window.saveScoreToFirebase = function(data) {
-      if (!data.gameId) return;
+  // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
+window.saveScoreToFirebase = function(data) {
+    if (!data.gameId) return;
 
-      // --- Dátum formázása ---
-      const now = new Date();
-      const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      
-      // --- ADATELŐKÉSZÍTÉS ---
-      let safeTeamName = String(data.teamName || "Névtelen").trim();
-      if (safeTeamName.length === 0) safeTeamName = "Névtelen Játékos";
-      if (safeTeamName.length > 30) safeTeamName = safeTeamName.substring(0, 30);
+    // --- Dátum formázása ---
+    const now = new Date();
+    const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    // --- ADATELŐKÉSZÍTÉS ---
+    let safeTeamName = String(data.teamName || "Névtelen").trim();
+    if (safeTeamName.length === 0) safeTeamName = "Névtelen Játékos";
+    if (safeTeamName.length > 30) safeTeamName = safeTeamName.substring(0, 30);
 
-      let safeScore = Number(data.score);
-      if (isNaN(safeScore)) safeScore = 0;
+    let safeScore = Number(data.score);
+    if (isNaN(safeScore)) safeScore = 0;
 
-      // Az adatobjektum összeállítása
-      const scoreData = {
-          gameId: data.gameId,
-          teamName: safeTeamName,
-          teamAvatar: data.teamAvatar || "no avatar",
-          score: safeScore,
-          totalTime: data.totalTime || 0,
-          geofenceTime: data.geofenceTime || 0,
-          timestamp: Date.now(), // Az aktuális időt mentjük
-          dateString: readableDate
-      };
+    // Az adatobjektum összeállítása
+    const scoreData = {
+        gameId: data.gameId,
+        teamName: safeTeamName,
+        teamAvatar: data.teamAvatar || "no avatar",
+        score: safeScore,
+        totalTime: data.totalTime || 0,
+        geofenceTime: data.geofenceTime || 0,
+        timestamp: Date.now(),
+        dateString: readableDate
+    };
 
-      // --- ELLENŐRZÉS: VAN INTERNET? ---
-      if (navigator.onLine) {
-          // VAN INTERNET -> Próbáljuk feltölteni
-          const leaderboardRef = ref(db, 'leaderboard/' + data.gameId);
-          
-          push(leaderboardRef, scoreData).then(() => {
-              console.log("✅ Sikeres azonnali mentés a Firebase-be!");
-              if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
-          }).catch((error) => {
-              console.warn("⚠️ Hiba a feltöltéskor (lehet, hogy megszakadt a net):", error);
-              // Ha hiba van a feltöltésnél, mentsük el offline-ba
-              saveToPendingUploads(scoreData);
-          });
-      } else {
-          // NINCS INTERNET -> Mentés offline sorba
-          console.warn("🌐 Nincs internetkapcsolat. Mentés az offline sorba...");
-          saveToPendingUploads(scoreData);
-          
-          // Opcionális: Értesítheted a felhasználót, hogy "Mentve (Offline)"
-          // De a felhasználói élmény simább, ha ezt a háttérben intézed.
-      }
-  };
+    // --- ELLENŐRZÉS: VAN INTERNET ÉS FIREBASE? ---
+    if (navigator.onLine && window.db && window.push) {
+        // MÓDOSÍTVA: window.ref, window.push
+        const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
+        
+        window.push(leaderboardRef, scoreData).then(() => {
+            console.log("✅ Sikeres azonnali mentés a Firebase-be!");
+            if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
+        }).catch((error) => {
+            console.warn("⚠️ Hiba a feltöltéskor:", error);
+            saveToPendingUploads(scoreData);
+        });
+    } else {
+        // NINCS INTERNET -> Mentés offline sorba
+        console.warn("🌐 Nincs internetkapcsolat. Mentés az offline sorba...");
+        saveToPendingUploads(scoreData);
+    }
+};
+
+
+
 
  // --- ÚJ FEJLETT RANGLISTA LOGIKA
 
@@ -1869,50 +1871,61 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
           `;
       }
 
-      modal.classList.remove('hidden');
       
-      listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Betöltés...</td></tr>';
+// 1. Megnyitjuk a modalt
+    modal.classList.remove('hidden');
+    listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Betöltés...</td></tr>';
 
-      try {
-          const q = query(ref(db, 'leaderboard/' + gameId));
-          const snapshot = await get(q);
+    // 2. ADATLEKÉRÉS (JAVÍTOTT)
+    // Ellenőrizzük, hogy elérhető-e a Firebase (window.db, window.get, stb.)
+    if (!window.db || !window.get || !window.query) {
+        listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">Nincs kapcsolat a szerverrel (Offline).</td></tr>';
+        return;
+    }
 
-          if (!snapshot.exists()) {
-              listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény ehhez a játékhoz.</td></tr>';
-              window.currentLeaderboardData = [];
-              return;
-          }
+    try {
+        // MÓDOSÍTVA: window.query, window.ref, window.get használata
+        const q = window.query(window.ref(window.db, 'leaderboard/' + gameId));
+        const snapshot = await window.get(q);
 
-          let results = [];
-          snapshot.forEach((child) => {
-              const val = child.val();
-              if (val.score === undefined || val.score === null) {
-                  val.score = 0; 
-                  val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
-              }
-              results.push(val);
-          });
+        if (!snapshot.exists()) {
+            listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Még nincs eredmény ehhez a játékhoz.</td></tr>';
+            window.currentLeaderboardData = [];
+            return;
+        }
 
-          window.currentLeaderboardData = results;
-          
-          setTimeout(() => {
-              // 1. Kirajzoljuk a listát
-              filterLeaderboard('today'); 
-              
-              // 2. ÚJ: Odagörgetünk a saját sorhoz (kis késleltetéssel, hogy biztosan ott legyen már a DOM-ban)
-              setTimeout(() => {
-                  const myRow = document.getElementById('my-leaderboard-row');
-                  if (myRow) {
-                      myRow.scrollIntoView({ behavior: "smooth", block: "center" });
-                  }
-              }, 100);
-              
-          }, 50);
+        let results = [];
+        snapshot.forEach((child) => {
+            const val = child.val();
+            if (val.score === undefined || val.score === null) {
+                val.score = 0; 
+                val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
+            }
+            results.push(val);
+        });
 
-   } catch (error) {
-          console.error("Hiba:", error);
-          listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba történt: ${error.message}</td></tr>`;
-      }
+        window.currentLeaderboardData = results;
+        
+        setTimeout(() => {
+            // 1. Kirajzoljuk a listát
+            filterLeaderboard('today'); 
+            
+            // 2. Odagörgetünk a saját sorhoz
+            setTimeout(() => {
+                const myRow = document.getElementById('my-leaderboard-row');
+                if (myRow) {
+                    myRow.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }, 100);
+            
+        }, 50);
+
+    } catch (error) {
+        console.error("Hiba:", error);
+        listBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Hiba történt: ${error.message}</td></tr>`;
+    }
+
+
   };
 
 
@@ -2107,29 +2120,37 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
       modal.classList.remove('hidden');
       tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10"><div class="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-2"></div>Adatok betöltése a Firebase-ről...</td></tr>';
 
+      // JAVÍTÁS: Ellenőrzés
+      if (!window.db || !window.get) {
+           tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-600">Nincs Firebase kapcsolat.</td></tr>';
+           return;
+      }
+
       try {
-          // 1. Lekérjük a TELJES ranglista csomópontot
-          const snapshot = await get(ref(db, 'leaderboard'));
+          // MÓDOSÍTVA: window.ref, window.get
+          const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
           
           if (!snapshot.exists()) {
               tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">Még nincs egyetlen eredmény sem az adatbázisban.</td></tr>';
               return;
           }
-
+          // ... (A függvény többi része változatlan, mert ott már nincs Firebase hívás) ...
+          
           const rawData = snapshot.val();
+          // ... (kód folytatása) ...
+          
+          // Ezt a részt másold vissza az eredetiből, vagy hagyd, ha csak a try elejét cserélted.
+          // A lényeg a window.get(window.ref(...)) hívás volt.
+          
           let flatData = [];
           const gameIdsSet = new Set();
-
-          // 2. Adatok feldolgozása (Flattening)
-          // A szerkezet: { gameId: { scoreId: { ...adatok... } } }
-          Object.keys(rawData).forEach(gameId => {
+          
+           Object.keys(rawData).forEach(gameId => {
               const gameScores = rawData[gameId];
-              
-              // Játék nevének kikeresése a betöltött 'games' objektumból
               const gameObj = window.games ? window.games[gameId] : null;
               const gameTitle = gameObj ? gameObj.title : gameId;
               
-              gameIdsSet.add(JSON.stringify({id: gameId, title: gameTitle})); // Select feltöltéshez
+              gameIdsSet.add(JSON.stringify({id: gameId, title: gameTitle})); 
 
               Object.keys(gameScores).forEach(scoreId => {
                   const entry = gameScores[scoreId];
@@ -2146,12 +2167,9 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
               });
           });
 
-          // 3. Rendezés: Legfrissebb elől
           flatData.sort((a, b) => b.timestamp - a.timestamp);
-          
           window.globalLeaderboardData = flatData;
-
-          // 4. Select (Filter) feltöltése
+          
           gameSelect.innerHTML = '<option value="all">Összes Játék</option>';
           Array.from(gameIdsSet).map(s => JSON.parse(s)).sort((a, b) => a.title.localeCompare(b.title)).forEach(g => {
               const opt = document.createElement('option');
@@ -2159,8 +2177,6 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
               opt.textContent = g.title;
               gameSelect.appendChild(opt);
           });
-
-          // 5. Megjelenítés
           filterGlobalLeaderboard();
 
       } catch (error) {
@@ -2168,6 +2184,9 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
           tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-600">Hiba történt: ${error.message}</td></tr>`;
       }
   };
+
+
+
 
  window.filterGlobalLeaderboard = function() {
       const searchTerm = document.getElementById('global-search-input').value.toLowerCase();
