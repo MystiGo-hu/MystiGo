@@ -415,6 +415,10 @@
 </head>
 <body class="overflow-hidden">
 
+<div id="offline-indicator" class="hidden fixed top-0 left-2 text-[9px] font-mono font-bold text-red-500 opacity-50 z-[9999] pointer-events-none select-none uppercase tracking-widest" style="text-shadow: 0 0 2px white;">
+    ⚡ Offline
+</div>
+
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
         <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
@@ -438,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.25
+       v1.1.26
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1358,6 +1362,20 @@
         return CryptoJS.SHA256(cleanText).toString();
     };
 
+
+// Offline jelző kapcsolója
+window.updateOfflineIndicator = function(isOffline) {
+    const el = document.getElementById('offline-indicator');
+    if (el) {
+        if (isOffline) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    }
+};
+
+
     // ✅ ÚJ loadGameDataAndStart FÜGGVÉNY (Split adatbázishoz igazítva)
 window.loadGameDataAndStart = async function(gameId) {
     const storageKey = `MystiGo_GameData_${gameId}`;
@@ -1367,7 +1385,6 @@ window.loadGameDataAndStart = async function(gameId) {
     const statusText = document.getElementById('loading-status');
     if(statusText) statusText.textContent = "Részletes adatok betöltése...";
 
-    // 1. Alap infók ellenőrzése
     const basicInfo = window.games[gameId];
     if (!basicInfo) {
         alert("Hiba: A játék alapadatai nincsenek a memóriában. Próbáld frissíteni a listát!");
@@ -1376,8 +1393,6 @@ window.loadGameDataAndStart = async function(gameId) {
     }
     
     const serverVersion = parseInt(basicInfo.version || 1);
-
-    // 2. LocalStorage előzetes vizsgálata (Van-e már mentés?)
     let cachedDataJSON = null;
     try {
         cachedDataJSON = localStorage.getItem(storageKey);
@@ -1385,42 +1400,35 @@ window.loadGameDataAndStart = async function(gameId) {
         console.warn("LocalStorage olvasási hiba:", e);
     }
 
-    // 3. Adatok beszerzése (Netről VAGY Cache-ből)
     try {
-        // Ha van netkapcsolat, megpróbáljuk letölteni és FRISSÍTENI a mentést
         if (navigator.onLine) {
              if(statusText) statusText.textContent = "Letöltés a szerverről...";
              
-             // Timeout növelése 10 másodpercre!
              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), 10000));
              
-             // Biztosítjuk, hogy a megfelelő Firebase referenciát használjuk (Fallback kompatibilitás)
              let dbRef;
              let getFn;
              
              if (window.ref && window.db) {
-                 // Ha a fallback rendszer aktív
                  dbRef = window.ref(window.db, 'games/secure_game_contents/' + gameId);
                  getFn = window.get;
              } else {
-                 // Ha a modul rendszer aktív (eredeti)
                  const db = getDatabase();
                  dbRef = ref(db, 'games/secure_game_contents/' + gameId);
                  getFn = get;
              }
 
              const fetchPromise = getFn(dbRef);
-             
-             // Versenyeztetjük a letöltést az időzítővel
              const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
              if (snapshot.exists()) {
+                // --- SIKERES FRISSÍTÉS ---
+                // 🟢 JELZŐ ELREJTÉSE
+                if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
+
                 const secureData = snapshot.val();
-                
-                // Adatok összefésülése
                 gameData = { ...basicInfo, ...secureData, version: serverVersion };
                 
-                // --- KRITIKUS RÉSZ: MENTÉS ---
                 try {
                     localStorage.setItem(storageKey, JSON.stringify(gameData));
                     console.log(`✅ ${gameId} adatai sikeresen FRISSÍTVE és MENTVE offline módra.`);
@@ -1441,6 +1449,9 @@ window.loadGameDataAndStart = async function(gameId) {
         // --- OFFLINE ÁG ---
         if (cachedDataJSON) {
             try {
+                // 🔴 JELZŐ BEKAPCSOLÁSA
+                if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
+
                 gameData = JSON.parse(cachedDataJSON);
                 console.log("📦 Cache-elt részletes adatok betöltése.");
                 if(statusText) statusText.textContent = "Offline mód: Mentett játék indítása...";
@@ -1451,7 +1462,6 @@ window.loadGameDataAndStart = async function(gameId) {
                 return;
             }
         } else {
-            // Ha se net, se mentés
             const msg = navigator.onLine ? "Időtúllépés a letöltésnél." : "Nincs internetkapcsolat.";
             alert(`${msg}\nEhhez a játékhoz még nincsenek elmentve a feladatok.\n\nKérlek, egyszer indítsd el a játékot stabil internet mellett, hogy elmentődhessen!`);
             showLoading(false);
@@ -1465,7 +1475,6 @@ window.loadGameDataAndStart = async function(gameId) {
         return;
     }
 
-    // --- ADATOK NORMALIZÁLÁSA (Régi kód) ---
     if (gameData.tasks) {
         if (!Array.isArray(gameData.tasks)) {
             gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
@@ -1474,7 +1483,6 @@ window.loadGameDataAndStart = async function(gameId) {
         gameData.tasks = [];
     }
     
-    // Koordináták javítása
     gameData.tasks.forEach(task => {
         if (task.location) {
             if(typeof task.location.lat === 'string') task.location.lat = parseFloat(task.location.lat);
@@ -1491,10 +1499,8 @@ window.loadGameDataAndStart = async function(gameId) {
         gameData.startLocation = { ...gameData.tasks[0].location };
     }
 
-    // Eredmény visszaírása a globális objektumba
     window.games[gameId] = gameData;
-    
-    showLoading(false); // KÉSZ!
+    showLoading(false);
 };
 
 
@@ -2596,8 +2602,7 @@ window.initializeGamesFromFirebase = async function() {
 
     const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
 
-    // --- 1. ELLENŐRZÉS: Betöltődött-e a Firebase motor? ---
-    // Ha az initAppSystem nem tudta betölteni (pl. offline és nincs a SW cache-ben), akkor null.
+    // 1. ELLENŐRZÉS: Van-e Firebase motor?
     if (!window.db || !window.get) {
         console.warn("A Firebase motor nem elérhető. Offline mód indítása.");
         loadFromCacheOrError("Offline mód");
@@ -2609,9 +2614,6 @@ window.initializeGamesFromFirebase = async function() {
         const urlParams = new URLSearchParams(window.location.search);
         const pGameId = urlParams.get('game') || urlParams.get('id');
         
-        // --- 2. IDŐKORLÁT NÖVELÉSE ---
-        // 3000ms (3 mp) helyett 10000ms (10 mp)-et adunk neki.
-        // Mobilneten a 3 másodperc gyakran kevés a kapcsolat felépítéséhez.
         const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Network Timeout')), 5000)
         );
@@ -2623,11 +2625,13 @@ window.initializeGamesFromFirebase = async function() {
             fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
         }
 
-        // Versenyeztetjük a letöltést az időzítővel
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (snapshot.exists()) {
             // --- SIKERES ONLINE LETÖLTÉS ---
+            // 🟢 JELZŐ ELREJTÉSE
+            if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
+
             const data = snapshot.val();
             
             if (pGameId) {
@@ -2636,7 +2640,6 @@ window.initializeGamesFromFirebase = async function() {
                 window.games = data;
             }
 
-            // MENTÉS a későbbi offline használathoz
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
             console.log("✅ Játéklista sikeresen frissítve a szerverről.");
             
@@ -2647,33 +2650,29 @@ window.initializeGamesFromFirebase = async function() {
         }
 
     } catch (error) {
-        // --- SIKERTELEN (OFFLINE VAGY TIMEOUT) ---
         console.warn("⚠️ Nem sikerült frissíteni (Offline vagy lassú net):", error);
         loadFromCacheOrError("Offline mód");
     }
 
-    // --- SEGÉDFÜGGVÉNY: BETÖLTÉS MENTÉSBŐL ---
     function loadFromCacheOrError(reasonMsg) {
         const cachedList = localStorage.getItem(CACHE_KEY_LIST);
         
         if (cachedList) {
             console.log("📂 Mentett (Offline) lista betöltése...");
+            
+            // 🔴 JELZŐ BEKAPCSOLÁSA (Mert cache-ből töltünk)
+            if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
+
             try {
                 window.games = JSON.parse(cachedList);
-                
-                // KEVÉSBÉ RIASZTÓ ÜZENET:
-                // Ha van mentett adat, az nem "Hiba", hanem "Offline mód".
                 if(statusText) {
                     statusText.innerHTML = `<span style='color:orange'>${reasonMsg}: Mentett adatok betöltése...</span>`;
                 }
-                
                 processGameDataAndRender();
                 
-                // Kis toast üzenet a felhasználónak, hogy tudja, mi történik
                 setTimeout(() => {
-                    // Csak akkor szólunk, ha tényleg a főoldalon vagyunk
                     if(!document.getElementById('game-list-page').classList.contains('hidden')){
-                         // Opcionális: showMessage("Offline Mód", "Nem sikerült kapcsolódni a szerverhez, ezért a legutóbb mentett játéklistát látod.");
+                         // Opcionális toast üzenet
                     }
                 }, 1000);
 
@@ -2683,14 +2682,12 @@ window.initializeGamesFromFirebase = async function() {
                 showLoading(false);
             }
         } else {
-            // Ha nincs net ÉS nincs mentés sem
             document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Nem sikerült kapcsolódni.<br>Az első indításhoz internet szükséges!</div>`;
             showLoading(false);
         }
     }
 
     function processGameDataAndRender() {
-        // Adatok normalizálása (hogy biztosan tömbök legyenek)
         if(window.games) {
             Object.values(window.games).forEach(g => {
                 if (g.tasks && !Array.isArray(g.tasks)) g.tasks = Object.values(g.tasks).filter(Boolean);
@@ -2701,16 +2698,13 @@ window.initializeGamesFromFirebase = async function() {
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
         }
-
         populateLocationFilter();
         showPage('game-list-page');
         handleInitialUrlFiltering(); 
-        
-        // GPS rendezés (csak ha van GPS jel, ne omoljon össze)
         if (typeof autoSortGamesByDistance === 'function') {
             try { autoSortGamesByDistance(); } catch(e){} 
         }
-        showLoading(false); // Töltés vége
+        showLoading(false); 
     }
 };
        
@@ -4820,7 +4814,7 @@ if (taskImageEl) {
   function initializeMap() {
     const mapContainer = document.getElementById('map');
     
-    // BIZTONSÁGI ELLENŐRZÉS: Ha a térkép nem látható, ne inicializáljunk
+    // BIZTONSÁGI ELLENŐRZÉS
     if (!mapContainer || mapContainer.clientHeight === 0) {
         console.warn("⚠️ Térkép konténer még rejtett vagy 0 magas. Újrapróbálkozás 100ms múlva...");
         setTimeout(initializeMap, 100);
@@ -4832,6 +4826,17 @@ if (taskImageEl) {
         appState.map.remove();
         appState.map = null;
     }
+
+    // --- JAVÍTÁS: MARKEREK TÖRLÉSE ---
+    // Ez a rész hiányzott! Ha új térképet csinálunk, a régi markereket el kell felejteni,
+    // különben a GPS a régi (láthatatlan) marker pozícióját frissíti, és nem hoz létre újat.
+    appState.playerMarker = null;
+    appState.geofenceCircle = null;
+    appState.taskMarkers = {};
+    if (typeof manualMarker !== 'undefined' && manualMarker) {
+        manualMarker = null;
+    }
+    // ---------------------------------
 
     // Start pozíció meghatározása
     let startLat = 47.4979;
@@ -4868,7 +4873,7 @@ if (taskImageEl) {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
-appState.map.on('mousedown touchstart dragstart zoomstart', () => {
+    appState.map.on('mousedown touchstart dragstart zoomstart', () => {
         appState.lastMapInteraction = Date.now();
     });
 
@@ -4879,7 +4884,7 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
     
     // Végső méret frissítés
     setTimeout(() => {
-        appState.map.invalidateSize();
+        if(appState.map) appState.map.invalidateSize();
     }, 200);
 }
 
