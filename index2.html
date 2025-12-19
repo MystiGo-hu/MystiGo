@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.27
+       v1.1.28
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -2439,6 +2439,72 @@ function decryptHintText(encryptedText) {
         return "Hiba: A segítség szövege sérült vagy nem titkosított.";
     }
 }
+
+
+// --- ÚJ TÉRKÉP RÉTEG KEZELŐ (403/API HIBA BIZTOS VERZIÓ) ---
+window.addSmartTileLayer = function(mapInstance) {
+    if (!mapInstance) return;
+
+    // 1. URL-ek és Beállítások
+    const mapTilerUrl = 'https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ';
+    const mapTilerOptions = {
+        crossOrigin: true,
+        tileSize: 512,
+        zoomOffset: -1,
+        minZoom: 1,
+        maxZoom: 20,
+        attribution: 'MapTiler'
+    };
+
+    const osmUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const osmOptions = {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    };
+
+    // 2. Lépés: AZONNAL betöltjük a biztosan működő OpenStreetMap-et
+    // Így a felhasználó rögtön lát térképet, nem villan be a szürke háttér.
+    const osmLayer = L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
+
+    // 3. Lépés: Tesztelünk EGYETLEN csempét a MapTiler-től a háttérben
+    // Egy budapesti koordinátát használunk tesztnek (Zoom:10, X:550, Y:350)
+    const testTileUrl = mapTilerUrl
+        .replace('{z}', '10')
+        .replace('{x}', '550')
+        .replace('{y}', '350');
+
+    fetch(testTileUrl, { method: 'HEAD' }) // Csak a fejlécet kérjük le, gyorsabb
+        .then(response => {
+            if (response.ok) {
+                // 4. Lépés: HA MŰKÖDIK A KULCS -> CSERE
+                console.log("✅ MapTiler API kulcs érvényes. Váltás prémium térképre...");
+                
+                // Létrehozzuk a MapTiler réteget
+                const mtLayer = L.tileLayer(mapTilerUrl, mapTilerOptions);
+                
+                // Hozzáadjuk a térképhez
+                mtLayer.addTo(mapInstance);
+                
+                // Levesszük az OSM réteget (hogy ne töltsük feleslegesen)
+                // Egy kis késleltetéssel, hogy a MapTiler betölthessen alá
+                setTimeout(() => {
+                    if (mapInstance.hasLayer(osmLayer)) {
+                        mapInstance.removeLayer(osmLayer);
+                    }
+                }, 1000);
+            } else {
+                // Ha 403 vagy más hiba van
+                console.warn("⚠️ MapTiler hiba (pl. rossz API kulcs). Maradunk az OpenStreetMap-nél.");
+                // Nem csinálunk semmit, az OSM már ott van.
+            }
+        })
+        .catch(error => {
+            console.warn("⚠️ Hálózati hiba a MapTiler ellenőrzésnél. Maradunk az OpenStreetMap-nél.", error);
+        });
+};
+
+
+
 
 
         function initializeState() {
@@ -4776,12 +4842,7 @@ if (taskImageEl) {
                     endMap.attributionControl.setPrefix(false);
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
 
-                    L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
-    crossOrigin: true, 
-    tileSize: 512, 
-    zoomOffset: -1, 
-    maxZoom: 20
-}).addTo(endMap);
+                    addSmartTileLayer(endMap);
                     
                     const polyline = L.polyline(appState.routeCoordinates, { 
     color: 'var(--brand-orange)', 
@@ -4903,13 +4964,7 @@ if (taskImageEl) {
 
     appState.map.attributionControl.setPrefix(false);
 
-    L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
-        crossOrigin: true,
-        tileSize: 512,
-        zoomOffset: -1,
-        minZoom: 1,
-        maxZoom: 20
-    }).addTo(appState.map);
+    addSmartTileLayer(appState.map);
 
     // Zoom kezelés
     const updateZoomDisplay = () => {
@@ -5590,9 +5645,7 @@ window.testGpsConnection = function() {
             attributionControl: false 
         }).setView([47.4979, 19.0402], 13);
 
-        L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
-            maxZoom: 20
-        }).addTo(gpsTestMap);
+        addSmartTileLayer(gpsTestMap);
     }
     container.classList.remove('hidden');
     setTimeout(() => { 
@@ -5993,10 +6046,7 @@ window.openGameMap = function() {
     if (!window.gameSelectionMapInstance) {
         window.gameSelectionMapInstance = L.map('game-selection-map', { zoomControl: false }).setView([47.1625, 19.5033], 7);
 	window.gameSelectionMapInstance.attributionControl.setPrefix(false);
-        L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
-            attribution: 'MapTiler',
-            maxZoom: 19
-        }).addTo(window.gameSelectionMapInstance);
+        addSmartTileLayer(window.gameSelectionMapInstance);
     }
 
     // Méret frissítése
