@@ -415,7 +415,7 @@
 </head>
 <body class="overflow-hidden">
 
-<div id="offline-indicator" class="hidden fixed top-0 left-2 text-[7px] font-mono font-bold text-red-700 opacity-50 z-[9999] pointer-events-none select-none uppercase tracking-widest" style="text-shadow: 0 0 2px white;">
+<div id="offline-indicator" class="hidden fixed top-0 left-2 text-[7px] font-mono font-bold text-red-700 opacity-50 z-[9999] pointer-events-none select-none tracking-widest" style="text-shadow: 0 0 2px white;">
     🔴 Offline
 </div>
 
@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.26
+       v1.1.27
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -1383,8 +1383,9 @@ window.loadGameDataAndStart = async function(gameId) {
 
     showLoading(true);
     const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Részletes adatok betöltése...";
+    if(statusText) statusText.textContent = "Indítás...";
 
+    // 1. Alap infók ellenőrzése
     const basicInfo = window.games[gameId];
     if (!basicInfo) {
         alert("Hiba: A játék alapadatai nincsenek a memóriában. Próbáld frissíteni a listát!");
@@ -1393,112 +1394,104 @@ window.loadGameDataAndStart = async function(gameId) {
     }
     
     const serverVersion = parseInt(basicInfo.version || 1);
-    let cachedDataJSON = null;
-    try {
-        cachedDataJSON = localStorage.getItem(storageKey);
-    } catch (e) {
-        console.warn("LocalStorage olvasási hiba:", e);
+
+    // 2. Van-e mentett adatunk? (Gyors ellenőrzés)
+    let cachedDataJSON = localStorage.getItem(storageKey);
+    const hasCache = !!cachedDataJSON;
+
+    // 3. Van-e lehetőségünk letölteni? (Net + Firebase működik)
+    // Csak akkor próbálunk letölteni, ha van Net ÉS a rendszer betöltötte a Firebase-t (window.db)
+    const canDownload = navigator.onLine && window.db && window.get;
+
+    // --- KRITIKUS PONT: HA NINCS SEMMI, AZONNAL LEÁLLUNK ---
+    if (!canDownload && !hasCache) {
+        console.warn("⛔ Nincs net, nincs Firebase, és nincs mentés sem. Leállás.");
+        showLoading(false); // Karika levétele
+        
+        let errorMsg = "Ehhez a játékhoz nincsenek letöltött adatok.\n\n";
+        if (!navigator.onLine) errorMsg += "⚠️ Nincs internetkapcsolat.\n";
+        else if (!window.db) errorMsg += "⚠️ A szerver nem érhető el.\n";
+        
+        errorMsg += "Az első indításhoz aktív internetkapcsolat szükséges!";
+        alert(errorMsg);
+        return;
     }
 
     try {
-        if (navigator.onLine) {
-             if(statusText) statusText.textContent = "Letöltés a szerverről...";
+        // Ha van esély letölteni, megpróbáljuk
+        if (canDownload) {
+             if(statusText) statusText.textContent = "Adatok frissítése...";
              
              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), 10000));
              
-             let dbRef;
-             let getFn;
-             
-             if (window.ref && window.db) {
-                 dbRef = window.ref(window.db, 'games/secure_game_contents/' + gameId);
-                 getFn = window.get;
-             } else {
-                 const db = getDatabase();
-                 dbRef = ref(db, 'games/secure_game_contents/' + gameId);
-                 getFn = get;
-             }
+             // Kizárólag a window. objektumokat használjuk!
+             const dbRef = window.ref(window.db, 'games/secure_game_contents/' + gameId);
+             const fetchPromise = window.get(dbRef);
 
-             const fetchPromise = getFn(dbRef);
              const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
              if (snapshot.exists()) {
-                // --- SIKERES FRISSÍTÉS ---
-                // 🟢 JELZŐ ELREJTÉSE
+                // --- SIKERES LETÖLTÉS ---
                 if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
 
                 const secureData = snapshot.val();
                 gameData = { ...basicInfo, ...secureData, version: serverVersion };
                 
-                // --- 🖼️ ÚJ RÉSZ: KÉPEK GYORSÍTÓTÁRAZÁSA (Offline módhoz) ---
+                // Képek előtöltése (Cache-elés)
                 if (gameData.tasks) {
                     const tasksWithImages = Object.values(gameData.tasks).filter(t => t.taskImage && t.taskImage.trim() !== "");
-                    
                     if (tasksWithImages.length > 0) {
-                        if(statusText) statusText.textContent = `Képek mentése offline módra (${tasksWithImages.length} db)...`;
-                        console.log(`🖼️ ${tasksWithImages.length} db kép előtöltése offline módhoz...`);
-
-                        // Párhuzamosan elindítjuk az összes kép letöltését
-                        const imagePromises = tasksWithImages.map(t => 
-                            fetch(t.taskImage)
-                                .then(res => {
-                                    if(res.ok) console.log("✅ Kép cache-elve:", t.taskImage);
-                                    else console.warn("⚠️ Kép hiba:", t.taskImage);
-                                })
-                                .catch(err => console.warn("⚠️ Kép letöltési hiba (lehet, hogy már offline?):", err))
-                        );
-
-                        // Megvárjuk, amíg a böngésző és a Service Worker elmenti őket
+                        if(statusText) statusText.textContent = `Képek mentése (${tasksWithImages.length} db)...`;
+                        const imagePromises = tasksWithImages.map(t => fetch(t.taskImage).catch(e => console.warn(e)));
                         await Promise.all(imagePromises);
                     }
                 }
-                // ------------------------------------------------------------
                 
+                // Mentés
                 try {
                     localStorage.setItem(storageKey, JSON.stringify(gameData));
-                    console.log(`✅ ${gameId} adatai sikeresen FRISSÍTVE és MENTVE offline módra.`);
+                    console.log(`✅ ${gameId} frissítve és mentve.`);
                 } catch(storageErr) {
-                    console.error("❌ Nem sikerült menteni (Betelt a memória?):", storageErr);
-                    alert("Figyelem: A telefon tárhelye megtelt, nem tudtuk elmenteni a játékot offline módra!");
+                    console.error("Memória hiba:", storageErr);
+                    alert("A telefon tárhelye megtelt, nem tudtuk elmenteni a játékot!");
                 }
              } else {
-                 console.warn("A szerveren nem található részletes adat, próbáljuk a cache-t.");
                  throw new Error("NoServerData");
              }
         } else {
-            throw new Error("Offline");
+            // Ha canDownload hamis, de ideértünk, az azt jelenti van Cache (a fenti ellenőrzés miatt)
+            throw new Error("OfflineMode");
         }
-    } catch (netError) {
-        console.log("🌐 Offline indítás vagy hálózati hiba:", netError);
+    } catch (error) {
+        console.log("🌐 Offline indítás vagy hálózati hiba:", error);
         
-        // --- OFFLINE ÁG ---
-        if (cachedDataJSON) {
+        // --- OFFLINE ÁG (CACHE BETÖLTÉSE) ---
+        if (hasCache) {
             try {
-                // 🔴 JELZŐ BEKAPCSOLÁSA
-                if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
+                if(window.updateOfflineIndicator) window.updateOfflineIndicator(true); // Piros felirat
 
                 gameData = JSON.parse(cachedDataJSON);
-                console.log("📦 Cache-elt részletes adatok betöltése.");
-                if(statusText) statusText.textContent = "Offline mód: Mentett játék indítása...";
+                console.log("📦 Cache betöltve.");
+                if(statusText) statusText.textContent = "Offline indítás...";
             } catch(parseErr) {
-                console.error("Hiba a mentett adat olvasásakor:", parseErr);
-                alert("A mentett játékadatok sérültek. Internet szükséges a javításhoz.");
+                alert("A mentett játékadatok sérültek. Töröld a mentést és töltsd le újra!");
                 showLoading(false);
                 return;
             }
         } else {
-            const msg = navigator.onLine ? "Időtúllépés a letöltésnél." : "Nincs internetkapcsolat.";
-            alert(`${msg}\nEhhez a játékhoz még nincsenek elmentve a feladatok.\n\nKérlek, egyszer indítsd el a játékot stabil internet mellett, hogy elmentődhessen!`);
+            // Ez az ág elvileg elérhetetlen a fenti "Kritikus pont" miatt, de a biztonság kedvéért:
             showLoading(false);
+            alert("Hiba: Nem sikerült betölteni az adatokat.");
             return;
         }
     }
 
     if (!gameData) {
-        alert("Hiba: Nem sikerült betölteni a játék adatait.");
         showLoading(false);
         return;
     }
 
+    // --- ADAT NORMALIZÁLÁS (Hogy biztosan működjön a játék) ---
     if (gameData.tasks) {
         if (!Array.isArray(gameData.tasks)) {
             gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
@@ -1524,7 +1517,7 @@ window.loadGameDataAndStart = async function(gameId) {
     }
 
     window.games[gameId] = gameData;
-    showLoading(false);
+    showLoading(false); // KÉSZ!
 };
 
 
