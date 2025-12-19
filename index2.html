@@ -416,7 +416,7 @@
 <body class="overflow-hidden">
 
 <div id="offline-indicator" class="hidden fixed top-0 left-2 text-[9px] font-mono font-bold text-red-500 opacity-50 z-[9999] pointer-events-none select-none uppercase tracking-widest" style="text-shadow: 0 0 2px white;">
-    ⚡ Offline
+    🔴 Offline
 </div>
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
@@ -1690,16 +1690,40 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
 
   // 3. Eseményfigyelők indítása (Internet visszatérés figyelése)
   window.addEventListener('online', () => {
-      console.log("🌐 Internet kapcsolat helyreállt. Szinkronizálás...");
-      window.syncPendingUploads();
+      console.log("🌐 Internet kapcsolat helyreállt.");
+      
+      // A) Piros felirat azonnali eltüntetése
+      if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
+      
+      // B) Esetleges hibaüzenetek (Toast) eltüntetése
+      const statusText = document.getElementById('loading-status');
+      if(statusText && statusText.textContent.includes('Offline')) {
+          statusText.textContent = "";
+      }
+
+      // C) Elmentett eredmények feltöltése
+      if(window.syncPendingUploads) window.syncPendingUploads();
+      
+      // D) Ha épp a főoldalon (játéklista) vagyunk, logolunk
+      if (!document.getElementById('game-list-page').classList.contains('hidden')) {
+          console.log("A lista nézet aktív, a következő interakció már online lesz.");
+      }
+  });
+
+  // Amikor elmegy a net (játék közben):
+  window.addEventListener('offline', () => {
+      console.log("⚠️ Internet kapcsolat megszakadt.");
+      
+      // Piros felirat azonnali megjelenítése
+      if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
   });
 
   // Indításkor is próbálja meg (hátha most van net, de tegnap nem volt)
-  setTimeout(() => window.syncPendingUploads(), 3000);
+  setTimeout(() => { if(window.syncPendingUploads) window.syncPendingUploads(); }, 3000);
 
 
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
-window.saveScoreToFirebase = function(data) {
+  window.saveScoreToFirebase = function(data) {
     if (!data.gameId) return;
 
     // --- Dátum formázása ---
@@ -1743,7 +1767,7 @@ window.saveScoreToFirebase = function(data) {
         console.warn("🌐 Nincs internetkapcsolat. Mentés az offline sorba...");
         saveToPendingUploads(scoreData);
     }
-};
+  };
 
 
 
