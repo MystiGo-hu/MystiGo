@@ -1,5 +1,5 @@
-const CACHE_NAME = 'mystigo-v2-static'; // Verziót növeltünk, hogy frissüljön!
-const DYNAMIC_CACHE = 'mystigo-v2-dynamic';
+const CACHE_NAME = 'mystigo-v3-static'; // Verziót növeltünk, hogy frissüljön!
+const DYNAMIC_CACHE = 'mystigo-v3-dynamic';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -50,27 +50,39 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // 1. KIVÉTEL: A Firebase ADATBÁZIS kéréseket (ahol az adat jön) NE cache-eljük!
-  // A .js fájlokat viszont IGEN (lásd feljebb az ASSETS_TO_CACHE-t).
-  // A Firebase adatbázis URL-je tartalmazza a projekt nevét vagy a "firebasedatabase.app" tagot.
+  // 1. KIVÉTEL: A Firebase ADATBÁZIS kéréseket NE cache-eljük!
   if (url.includes('firebasedatabase.app') || url.includes('.json')) {
-      return; // Hagyjuk, hogy a JS kód kezelje (vagy hibára fusson és LocalStorage-ból olvasson)
+      return; 
   }
 
-  // 2. Minden más kérésre (HTML, CSS, JS, Képek) először Cache, aztán Net
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // Ha megvan cache-ben, visszaadjuk
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((networkResponse) => {
-        return caches.open(DYNAMIC_CACHE).then((cache) => {
-            if(url.startsWith('http')) {
-                cache.put(event.request.url, networkResponse.clone());
-            }
-            return networkResponse;
+      
+      // Ha nincs, megpróbáljuk letölteni a netről
+      return fetch(event.request)
+        .then((networkResponse) => {
+            // Ha sikerült letölteni, elmentjük a dinamikus cache-be
+            return caches.open(DYNAMIC_CACHE).then((cache) => {
+                // Csak érvényes http(s) kéréseket mentünk
+                if(url.startsWith('http')) {
+                    cache.put(event.request.url, networkResponse.clone());
+                }
+                return networkResponse;
+            });
+        })
+        .catch((error) => {
+            // --- ITT A JAVÍTÁS: HIBAKEZELÉS ---
+            // Ez fut le, ha nincs net (Offline) és a fájl nincs a cache-ben sem.
+            console.warn('[Service Worker] Hálózati hiba (Offline?):', url);
+            
+            // Itt visszaadhatnánk egy "offline.html"-t vagy egy helyettesítő képet, 
+            // de most egyszerűen hagyjuk, hogy a böngésző kezelje a hiányt,
+            // csak ne omoljon össze a kód (Uncaught Error).
         });
-      });
     })
   );
 });

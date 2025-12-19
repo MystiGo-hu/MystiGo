@@ -1429,6 +1429,30 @@ window.loadGameDataAndStart = async function(gameId) {
                 const secureData = snapshot.val();
                 gameData = { ...basicInfo, ...secureData, version: serverVersion };
                 
+                // --- 🖼️ ÚJ RÉSZ: KÉPEK GYORSÍTÓTÁRAZÁSA (Offline módhoz) ---
+                if (gameData.tasks) {
+                    const tasksWithImages = Object.values(gameData.tasks).filter(t => t.taskImage && t.taskImage.trim() !== "");
+                    
+                    if (tasksWithImages.length > 0) {
+                        if(statusText) statusText.textContent = `Képek mentése offline módra (${tasksWithImages.length} db)...`;
+                        console.log(`🖼️ ${tasksWithImages.length} db kép előtöltése offline módhoz...`);
+
+                        // Párhuzamosan elindítjuk az összes kép letöltését
+                        const imagePromises = tasksWithImages.map(t => 
+                            fetch(t.taskImage)
+                                .then(res => {
+                                    if(res.ok) console.log("✅ Kép cache-elve:", t.taskImage);
+                                    else console.warn("⚠️ Kép hiba:", t.taskImage);
+                                })
+                                .catch(err => console.warn("⚠️ Kép letöltési hiba (lehet, hogy már offline?):", err))
+                        );
+
+                        // Megvárjuk, amíg a böngésző és a Service Worker elmenti őket
+                        await Promise.all(imagePromises);
+                    }
+                }
+                // ------------------------------------------------------------
+                
                 try {
                     localStorage.setItem(storageKey, JSON.stringify(gameData));
                     console.log(`✅ ${gameId} adatai sikeresen FRISSÍTVE és MENTVE offline módra.`);
@@ -4213,7 +4237,20 @@ window.autoSortGamesByDistance = function() {
     // Logó beállítása
     const gameLogo = document.getElementById('game-header-logo');
     if (gameLogo) {
-        gameLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+        let logoSrc = appState.currentGame.headerLogo;
+        
+        // Ha a logoSrc "logo/default.png" vagy üres, akkor használjuk a MystiGo logót
+        if (!logoSrc || logoSrc === "logo/default.png") {
+            logoSrc = "logo/MystiGo_logo.png";
+        }
+        
+        gameLogo.src = logoSrc;
+        
+        // Extra biztonság: Ha mégsem töltene be, cseréljük le hibakezelővel
+        gameLogo.onerror = function() {
+            this.src = "logo/MystiGo_logo.png";
+            this.onerror = null; // Végtelen ciklus elkerülése
+        };
     }
 
     // Feladat sorrend beállítása
