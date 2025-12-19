@@ -2613,7 +2613,7 @@ window.initializeGamesFromFirebase = async function() {
         // 3000ms (3 mp) helyett 10000ms (10 mp)-et adunk neki.
         // Mobilneten a 3 másodperc gyakran kevés a kapcsolat felépítéséhez.
         const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Network Timeout')), 10000)
+            setTimeout(() => reject(new Error('Network Timeout')), 5000)
         );
         
         let fetchPromise;
