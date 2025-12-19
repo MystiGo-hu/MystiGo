@@ -9,9 +9,9 @@
     <meta http-equiv="Expires" content="0">
 
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0D2B45">
-    <link rel="apple-touch-icon" href="icon-192_v3.png">
-    <link rel="icon" type="image/png" href="logo/MystiGo_logo.png">
+<meta name="theme-color" content="#0D2B45">
+<link rel="apple-touch-icon" href="logo/icon-192_v3.png">
+<link rel="icon" type="image/png" href="logo/icon-192_v3.png">
     <title>MystiGo - Városi Kalandjáték Platform</title>
     
     
@@ -398,6 +398,18 @@
     text-decoration: none !important;
 }
 
+#team-name-input {
+            margin-bottom: 2px !important; /* Itt állíthatod a pixel értéket */
+        }
+
+
+#filter-container {
+            background-color: #f3f4f6 !important; /* Halvány szürke háttér */
+            border-color: #d1d5db !important;     /* Határozottabb, erősebb szürke szegély */
+            border-width: 1px !important;         /* 2 pixel vastagság a jó láthatóságért */
+            border-style: solid !important;
+            border-radius: 1rem !important;      /* Lekerekítés a többi boxhoz igazítva */
+        }
 
     </style>
 </head>
@@ -426,7 +438,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.12
+       v1.1.25
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -683,26 +695,33 @@
         🛰️ GPS Működésének Tesztelése
     </button>
 
+<div id="gps-test-container" class="hidden mt-3 bg-white p-2 rounded-lg border border-gray-200 shadow-inner relative">
+    
+    <button onclick="closeGpsTest()" class="absolute top-1 right-1 p-1 text-gray-400 hover:text-red-500 transition rounded-full hover:bg-gray-100" title="Bezárás">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
+    <p id="gps-test-status" class="text-xs font-bold text-center text-brand-blue mb-2">📡 Jel keresése... (Kérlek várj)</p>
+    
+    <div id="gps-test-map" class="w-full h-40 rounded border border-gray-300 relative z-10"></div>
+    <div id="gps-result-message" class="hidden mt-2 p-2 rounded text-xs font-bold text-center"></div>
+    <div class="mt-2 text-[10px] text-gray-400 text-center">
+        Pontosság: <span id="gps-accuracy-value">-</span> méter
+    </div>
+</div>
+
+
     <button onclick="startSpecificTestGame()" class="w-full mt-2 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
         🎮 Teszt Játék Indítása (GPS nélkül)
     </button>
 
-    <div id="gps-test-container" class="hidden mt-3 bg-white p-2 rounded-lg border border-gray-200 shadow-inner">
-        <p id="gps-test-status" class="text-xs font-bold text-center text-brand-blue mb-2">📡 Jel keresése... (Kérlek várj)</p>
-        
-        <div id="gps-test-map" class="w-full h-40 rounded border border-gray-300 relative z-10"></div>
-        
-        <div id="gps-result-message" class="hidden mt-2 p-2 rounded text-xs font-bold text-center"></div>
-        
-        <div class="mt-2 text-[10px] text-gray-400 text-center">
-            Pontosság: <span id="gps-accuracy-value">-</span> méter
-        </div>
-    </div>
+    
 </div>
           
 
           
-<div id="filter-container" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
+<div id="filter-container" class="bg-grey-200 p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
     <div onclick="toggleFilterSection()" class="cursor-pointer flex items-center justify-between select-none">
         <h3 class="text-sm font-bold text-brand-blue flex items-center">
             <span id="filter-toggle-icon" class="mr-2 text-lg font-extrabold text-black leading-none" style="margin-top: -2px;">+</span>
@@ -829,15 +848,29 @@
                                  <p id="prompt" class="font-bold text-lg text-text-heading mb-4"></p>
 
 
+				<img id="task-image" onclick="openImageModal(this.src)" src="" alt="Feladat kép" class="hidden w-full max-h-64 object-contain rounded-xl shadow-sm mb-4 border border-gray-100 cursor-zoom-in hover:opacity-95 transition-opacity">
+
                                  <div id="answer-input-container" class="flex items-center gap-2">
                                    <input type="text" id="answer-input" placeholder="Írd be a megoldást..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
                                    <button id="submit-answer-btn" class="p-3 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 transition flex-shrink-0"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></button>
                                 </div>
-                                 <div id="hint-buttons-container" class="flex justify-center gap-2 mt-4 text-xs font-semibold">
-                                    <button id="hint1-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50">Segítség 1 (Pont: -10)</button>
-                                    <button id="hint2-btn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Segítség 2 (Pont: -20)</button>
-                                    <button id="solution-btn" class="bg-red-100 text-red-700 px-3 py-1 rounded-full disabled:opacity-50" disabled>Megoldás (Pont: 0)</button>
-                                </div>
+                                 
+	     <div id="hint-buttons-container" class="flex justify-between gap-2 mt-4 text-[10px] font-semibold">
+    <button id="hint1-btn" class="flex-1 flex flex-col items-center justify-center bg-gray-200 text-gray-700 py-2 rounded-xl disabled:opacity-50">
+        <span>Segítség 1</span>
+        <span>(-10 Pont)</span>
+    </button>
+    
+    <button id="hint2-btn" class="flex-1 flex flex-col items-center justify-center bg-gray-200 text-gray-700 py-2 rounded-xl disabled:opacity-50" disabled>
+        <span>Segítség 2</span>
+        <span>(-20 Pont)</span>
+    </button>
+    
+    <button id="solution-btn" class="flex-1 flex flex-col items-center justify-center bg-red-100 text-red-700 py-2 rounded-xl disabled:opacity-50" disabled>
+        <span>Megoldás</span>
+        <span>(0 Pont)</span>
+    </button>
+</div>
                                 
                                 <div style="height: 14rem;"> </div>
                             </div>
@@ -947,7 +980,59 @@
             </div>
         </div>
     </div>
-    
+ 
+
+<div id="pwa-install-container" class="hidden fixed bottom-24 left-4 right-4 z-[9999] animate-bounce">
+    <div class="bg-white/95 backdrop-blur-md text-brand-blue p-4 rounded-2xl shadow-2xl border-2 border-brand-cyan flex items-center justify-between relative">
+        
+        <button onclick="document.getElementById('pwa-install-container').classList.add('hidden')" class="absolute -top-2 -right-2 bg-gray-200 text-gray-600 rounded-full p-1 hover:bg-gray-300 transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <div class="flex items-center gap-3 pr-4">
+            <img src="logo/MystiGo_logo.png" class="w-10 h-10 rounded-lg shadow-sm" alt="App">
+            <div>
+                <p class="font-bold text-sm text-[#0D2B45]">MystiGo Alkalmazás</p>
+                <p class="text-[10px] text-gray-500 font-medium">Telepítsd a gyorsabb eléréshez!</p>
+            </div>
+        </div>
+        
+        <button onclick="triggerPWAInstall()" class="bg-[#FFA500] text-white px-4 py-2 rounded-xl text-xs font-extrabold uppercase shadow-md active:scale-95 transition-transform shrink-0">
+            Telepítés
+        </button>
+    </div>
+</div>
+
+
+
+<div id="ios-install-guide" class="hidden fixed bottom-24 left-6 right-6 z-[9999]">
+    <div class="bg-white/95 backdrop-blur-md text-[#0D2B45] p-5 rounded-3xl shadow-2xl border-2 border-[#00CED1] relative">
+        <div class="flex flex-col items-center text-center gap-3">
+            <div class="flex items-center gap-2">
+                <img src="logo/MystiGo_logo.png" class="w-8 h-8 rounded-lg" alt="MystiGo">
+                <p class="font-bold text-sm">Telepítsd alkalmazásként!</p>
+            </div>
+            <p class="text-xs leading-relaxed">
+                Koppints a Safari-ban látható 
+                <span class="inline-block bg-gray-100 p-1 rounded-md mx-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                </span> 
+                "Megosztás" ikonra, majd görgess le és válaszd a „Főképernyőhöz adás” opciót!
+            </p>
+        </div>
+        <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-white/95"></div>
+    </div>
+</div>
+
+
+
+   
     <div id="loading-overlay" class="modal-overlay fixed inset-0 bg-black/50 hidden items-center justify-center"><div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div></div>
     
     <div id="message-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4">
@@ -972,6 +1057,16 @@
             </div>
         </div>
     </div>
+
+
+<div id="image-zoom-modal" onclick="closeImageModal()" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[9999] cursor-pointer p-4 transition-opacity duration-300">
+    
+    <button class="absolute top-4 right-4 text-white text-4xl font-bold opacity-70 hover:opacity-100">&times;</button>
+    
+    <img id="image-zoom-content" src="" alt="Nagyított kép" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform transition-transform duration-300 scale-95">
+    
+    <p class="absolute bottom-4 left-0 right-0 text-center text-white/50 text-xs pointer-events-none">Kattints bárhova a bezáráshoz</p>
+</div>
 
 
     <div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
@@ -1207,82 +1302,70 @@ window.loadGameDataAndStart = async function(gameId) {
 
     showLoading(true);
     const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Verzió ellenőrzése és letöltés...";
+    if(statusText) statusText.textContent = "Játék indítása...";
 
-    // 1. Szerver verzió ellenőrzése
+    // 1. Alap infók (Cím, stb) a listából
     const basicInfo = window.games[gameId];
     if (!basicInfo) {
-        alert("Hiba: A játék nem található a listában.");
+        alert("Hiba: A játék nem található a memóriában.");
         showLoading(false);
         return;
     }
     
+    // Server verzió (ha offline vagyunk, lehet undefined, akkor 1-nek vesszük)
     const serverVersion = parseInt(basicInfo.version || 1);
-    console.log(`📥 Játék betöltése: ${gameId} (Szerver v${serverVersion})`);
 
-    // 2. LocalStorage vizsgálata (DE NEM TÖRLÜNK MÉG!)
+    // 2. LocalStorage vizsgálata
     let cachedDataJSON = null;
     try {
         cachedDataJSON = localStorage.getItem(storageKey);
-        if (cachedDataJSON) {
-            const parsed = JSON.parse(cachedDataJSON);
-            const localVersion = parseInt(parsed.version || 0);
+    } catch (e) {}
 
-            // Ha a verzió megfelelő (vagy újabb), és van adat, használjuk
-            if (localVersion >= serverVersion && parsed.tasks && parsed.tasks.length > 0) {
-                console.log(`📦 Cache érvényes (v${localVersion}). Betöltés...`);
-                gameData = parsed;
-            } else {
-                console.warn(`♻️ Frissítés szükséges (Helyi: v${localVersion}, Szerver: v${serverVersion}). Letöltés indítása...`);
-                // Itt NEM törlünk, csak hagyjuk, hogy a gameData null maradjon -> így lemegy a 3-as lépésbe
-            }
-        }
-    } catch (e) { console.warn("Cache hiba:", e); }
+    // 3. Próbáljuk frissíteni a netről, de ha nem megy, használjuk a cache-t
+    try {
+        // Ha van net, próbáljuk letölteni
+        if (navigator.onLine) {
+             const db = getDatabase();
+             // 3 másodperces timeout, hogy ne várjon örökké, ha lassú a net
+             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000));
+             const fetchPromise = get(ref(db, 'games/secure_game_contents/' + gameId));
+             
+             const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
-    // 3. Firebase letöltés (Ha nincs gameData, vagy frissíteni kell)
-    if (!gameData) {
-        console.log("🌐 Friss tartalom letöltése a szerverről...");
-
-        try {
-            const db = getDatabase();
-            const snapshot = await get(ref(db, 'games/secure_game_contents/' + gameId));
-
-            if (snapshot.exists()) {
+             if (snapshot.exists()) {
                 const secureData = snapshot.val();
-                
-                // Adatok összefésülése
-                gameData = {
-                    ...basicInfo,
-                    ...secureData,
-                    version: serverVersion 
-                };
-
-                // SIKERES letöltés után felülírjuk a cache-t
+                gameData = { ...basicInfo, ...secureData, version: serverVersion };
+                // Cache frissítése
                 localStorage.setItem(storageKey, JSON.stringify(gameData));
-                console.log(`✅ Adatok frissítve és elmentve (v${serverVersion}).`);
-            } else {
-                alert("Hiba: A játék részletes adatai nem elérhetők a szerveren.");
-                showLoading(false);
-                return;
-            }
-        } catch (netError) {
-            console.error("Hálózati hiba:", netError);
-            
-            // --- OFFLINE MENTŐÖV ---
-            // Ha hiba volt, megnézzük, van-e BÁRMILYEN régi adatunk (amit az előbb nem töröltünk ki)
-            if (cachedDataJSON) {
-                console.warn("⚠️ Nincs net, de van régi verzió. Azt indítjuk el.");
-                gameData = JSON.parse(cachedDataJSON);
-                alert("Figyelem: Nem sikerült frissíteni a játékot (nincs internet). A korábbi verzió indul el.");
-            } else {
-                alert("Hiba a letöltéskor: " + netError.message + "\nInternetkapcsolat szükséges az első indításhoz!");
-                showLoading(false);
-                return;
-            }
+                console.log("✅ Játékadatok frissítve a szerverről.");
+             }
+        } else {
+            throw new Error("Offline");
+        }
+    } catch (netError) {
+        console.log("🌐 Offline indítás vagy hálózati hiba:", netError);
+        
+        // --- OFFLINE ÁG ---
+        if (cachedDataJSON) {
+            gameData = JSON.parse(cachedDataJSON);
+            console.log("📦 Cache-elt játékadatok betöltése.");
+            // Ha a statusText látható, írjuk ki
+            if(statusText) statusText.textContent = "Offline indítás...";
+        } else {
+            alert("Ehhez a játékhoz még nincsenek letöltött adatok. Az első indításhoz internet szükséges!");
+            showLoading(false);
+            return;
         }
     }
 
-    // --- ADAT NORMALIZÁLÁS (Ez a rész változatlan és jó) ---
+    if (!gameData) {
+        // Ez elvileg nem futhat le a fenti ágak miatt, de biztonság
+        alert("Hiba: Nem sikerült betölteni az adatokat.");
+        showLoading(false);
+        return;
+    }
+
+    // --- ADAT NORMALIZÁLÁS ---
     if (gameData.tasks) {
         if (!Array.isArray(gameData.tasks)) {
             gameData.tasks = Object.values(gameData.tasks).filter(t => t !== null && t !== undefined);
@@ -1290,7 +1373,8 @@ window.loadGameDataAndStart = async function(gameId) {
     } else {
         gameData.tasks = [];
     }
-
+    
+    // ... (Koordináta javítások maradnak a régiek) ...
     gameData.tasks.forEach(task => {
         if (task.location) {
             if(typeof task.location.lat === 'string') task.location.lat = parseFloat(task.location.lat);
@@ -1307,12 +1391,14 @@ window.loadGameDataAndStart = async function(gameId) {
         gameData.startLocation = { ...gameData.tasks[0].location };
     }
 
+    // Eredmény visszaírása a globális objektumba
     window.games[gameId] = gameData;
-    showLoading(false);
+    
+    showLoading(false); // KÉSZ!
 };
 
 
-  // --- !!! MÁSOLD VISSZA A SAJÁT KULCSAIDAT A FÁJLBÓL !!! ---
+ 
   const firebaseConfig = {
     apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
     authDomain: "mystigo-7b149.firebaseapp.com",
@@ -2387,64 +2473,98 @@ function loadGameById(gameId) {
 window.initializeGamesFromFirebase = async function() {
     showLoading(true);
     const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Kalandok betöltése a felhőből...";
+    if(statusText) statusText.textContent = "Kaland betöltése...";
 
-  try {
+    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList'; // Kulcs a mentéshez
+
+    try {
         const dbRef = ref(db);
+        const urlParams = new URLSearchParams(window.location.search);
+        const pGameId = urlParams.get('game') || urlParams.get('id');
         
-        // Helyes útvonal a 'games' mappán belül
-        const snapshot = await get(child(dbRef, "games/public_games_list")); 
+        let snapshot;
+
+        // Próbáljuk letölteni a netről
+        if (pGameId) {
+            snapshot = await get(child(dbRef, `games/public_games_list/${pGameId}`));
+        } else {
+            snapshot = await get(child(dbRef, "games/public_games_list"));
+        }
 
         if (snapshot.exists()) {
-            const rawData = snapshot.val();
-            window.games = rawData;
-
-            // --- ADATOK NORMALIZÁLÁSA ---
-            Object.values(window.games).forEach(g => {
-                if (g.tasks && !Array.isArray(g.tasks)) {
-                    g.tasks = Object.values(g.tasks).filter(Boolean);
-                }
-                if (!g.tasks) g.tasks = [];
-
-                if (g.price) g.price = parseInt(g.price);
-
-                if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) {
-                    g.startLocation = {};
-                }
-                if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
-                if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
-            });
-            // ---------------------------
-
-            console.log("✅ Játékok sikeresen betöltve:", Object.keys(window.games).length);
+            const data = snapshot.val();
             
-            populateLocationFilter();
-            if (window.checkUrlParametersAndFilter) checkUrlParametersAndFilter();
-            
-            showPage('game-list-page');
-            handleInitialUrlFiltering();
-            
-            if (typeof autoSortGamesByDistance === 'function') autoSortGamesByDistance(); 
+            if (pGameId) {
+                window.games = { [pGameId]: data };
+            } else {
+                window.games = data;
+            }
 
-            // 🔥🔥🔥 EZ A SOR HIÁNYZOTT! 🔥🔥🔥
-            // Ez tünteti el a töltőképernyőt, ha minden sikerült:
-            showLoading(false); 
-            const statusText = document.getElementById('loading-status');
-            if(statusText) statusText.textContent = "";
+            // --- SIKERES LETÖLTÉS: MENTÉS LOCALSTORAGE-BA ---
+            // Így legközelebb offline is meglesz a lista
+            localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
+            console.log("💾 Játéklista frissítve és elmentve offline módra.");
 
+            processGameDataAndRender();
         } else {
-            console.warn("HIBA: A 'games/public_games_list' útvonalon nem található adat!");
-            document.getElementById('game-list').innerHTML = '<div class="text-center p-4">Nincsenek elérhető játékok az adatbázisban.</div>';
+            console.warn("Nincs találat a szerveren.");
+            // Ha szerveren nincs, nézzük meg a cache-t végső esetben
+            loadFromCacheOrError("A kért kaland nem található a szerveren.");
+        }
+
+    } catch (error) {
+        console.warn("⚠️ Hálózati hiba (Offline?):", error);
+        
+        // --- OFFLINE MENTŐÖV ---
+        loadFromCacheOrError("Hálózati hiba. Kérlek ellenőrizd az internetkapcsolatot!");
+    }
+
+    // Segédfüggvény a cache betöltéshez
+    function loadFromCacheOrError(errorMsg) {
+        const cachedList = localStorage.getItem(CACHE_KEY_LIST);
+        
+        if (cachedList) {
+            console.log("📂 Offline mód: Lista betöltése a gyorsítótárból...");
+            window.games = JSON.parse(cachedList);
             
-            // Itt is kapcsoljuk ki, ha üres a lista
+            // Értesítés a felhasználónak
+            if(statusText) statusText.textContent = "Offline mód: Mentett adatok betöltése...";
+            
+            processGameDataAndRender(); // Kirajzoljuk a mentett listát
+            
+            // Opcionális: Toast üzenet, hogy offline vagyunk
+            setTimeout(() => {
+                showMessage("Offline Mód", "Nincs internetkapcsolat. A korábban betöltött játéklistát látod.");
+            }, 1000);
+            
+        } else {
+            // Ha nincs cache sem, akkor tényleg baj van
+            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">${errorMsg}<br>Első indításhoz internet szükséges!</div>`;
             showLoading(false);
         }
-    } catch (error) {
-        console.error("Firebase betöltési hiba:", error);
-        showMessage("Hiba", "Nem sikerült betölteni a játékokat. <br>Hiba: " + error.message);
+    }
+
+    // Segédfüggvény a megjelenítéshez (hogy ne duplikáljuk a kódot)
+    function processGameDataAndRender() {
+        // --- ADATOK NORMALIZÁLÁSA (Régi kód) ---
+        Object.values(window.games).forEach(g => {
+            if (g.tasks && !Array.isArray(g.tasks)) g.tasks = Object.values(g.tasks).filter(Boolean);
+            if (!g.tasks) g.tasks = [];
+            if (g.price) g.price = parseInt(g.price);
+            if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) g.startLocation = {};
+            if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
+            if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
+        });
+
+        populateLocationFilter();
+        showPage('game-list-page');
+        handleInitialUrlFiltering(); 
         
-        // Hiba esetén is kapcsoljuk ki
-        showLoading(false);
+        if (typeof autoSortGamesByDistance === 'function') {
+            // Offline módban a GPS néha lassú vagy nem megy, de megpróbáljuk
+            try { autoSortGamesByDistance(); } catch(e){} 
+        }
+        showLoading(false); // FONTOS: Ez tünteti el a karikát!
     }
 };
        
@@ -2462,8 +2582,8 @@ window.initializeGamesFromFirebase = async function() {
                 far_body: 'Lépj be a zónába a megoldás beküldéséhez, vagy a segítség kéréséhez!', 
                 in_zone: 'A célterületen vagy!', 
                 out_zone: (m) => `Még kb. ${m} méterre vagy a céltól.`, 
-                hint1_body: (h) => `1. Segítség (-${HINT1_PENALTY} pont): ${h} `, 
-                hint2_body: (h) => `2. Segítség (-${HINT2_PENALTY} pont): ${h} `, 
+                hint1_body: (h) => `${h} `, 
+                hint2_body: (h) => `${h} `, 
                 rescue_correct: `Megkerülő sikeres! (+${RESCUE_TASK_SCORE} pont)`, 
                 rescue_wrong: 'Megkerülő hibás. Próbáld újra!', 
                 gps_required: 'Kérjük, engedélyezd a GPS-t az eszközödön a kaland elindításához. Normal módban a játék csak működő GPS-szel indul el.' 
@@ -2778,8 +2898,7 @@ async function sharePdfViaEmail() {
                 manualMarker = null;
             }
             if (appState.geoWatchId) {
-                navigator.geolocation.clearWatch(appState.geoWatchId);
-                appState.geoWatchId = null;
+                stopAllGpsActivity();
             }
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
@@ -2856,6 +2975,47 @@ async function sharePdfViaEmail() {
             // EZT A SORT TÖRÖLTÜK KI, MERT EZ OKOZTA A HIBÁT:
             // document.getElementById('error-description-input').value = '';
         }
+
+
+// --- KÉP NAGYÍTÓ FUNKCIÓK ---
+
+window.openImageModal = function(imgSrc) {
+    if (!imgSrc) return;
+    
+    const modal = document.getElementById('image-zoom-modal');
+    const modalImg = document.getElementById('image-zoom-content');
+    
+    // Beállítjuk a képet
+    modalImg.src = imgSrc;
+    
+    // Megjelenítjük a modalt (flex-re váltunk a hidden helyett)
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Kis animáció a megjelenéshez
+    setTimeout(() => {
+        modalImg.classList.remove('scale-95');
+        modalImg.classList.add('scale-100');
+    }, 10);
+};
+
+window.closeImageModal = function() {
+    const modal = document.getElementById('image-zoom-modal');
+    const modalImg = document.getElementById('image-zoom-content');
+    
+    // Animáció vissza
+    modalImg.classList.remove('scale-100');
+    modalImg.classList.add('scale-95');
+    
+    // Eltüntetés kis késleltetéssel
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modalImg.src = ""; // Töröljük a forrást
+    }, 200);
+};
+
+
 
         window.hideReportModal = function() { 
             document.getElementById('report-error-modal').classList.add('hidden'); 
@@ -3741,7 +3901,7 @@ window.autoSortGamesByDistance = function() {
 
    // ASYNC lett a függvény, mert várni kell a Firebase-re
       window.startTimersAndGPS = async function() {
-   if (typeof count !== 'undefined') { count = 0; }
+   
  // 1. Hang feloldása (iOS fix)
     if (window.AudioContext || window.webkitAudioContext) {
         try {
@@ -4012,10 +4172,10 @@ window.autoSortGamesByDistance = function() {
                     hint1Btn.disabled = false; 
                     if (hintsUsed >= 1) {
                         hint1Btn.classList.add('used');
-                        hint1Btn.textContent = "1. Segítség (Megnézve)";
+                        hint1Btn.textContent = "1. Segítség (Felhasználva)";
                     } else {
                         hint1Btn.classList.remove('used');
-                        hint1Btn.textContent = `Segítség 1 (Pont: -${HINT1_PENALTY})`;
+                        hint1Btn.innerHTML = `Segítség 1<br> (-${HINT1_PENALTY} Pont)`;
                     }
                 }
             }
@@ -4031,10 +4191,10 @@ window.autoSortGamesByDistance = function() {
                     
                     if (hintsUsed >= 2) {
                         hint2Btn.classList.add('used');
-                        hint2Btn.textContent = "2. Segítség (Megnézve)";
+                        hint2Btn.textContent = "2. Segítség (Felhasználva)";
                     } else {
                         hint2Btn.classList.remove('used');
-                        hint2Btn.textContent = `Segítség 2 (Pont: -${HINT2_PENALTY})`;
+                        hint2Btn.innerHTML = `Segítség 2<br> (-${HINT2_PENALTY} Pont)`;
                     }
                 }
             }
@@ -4044,7 +4204,7 @@ window.autoSortGamesByDistance = function() {
                 if (task.disableSolution) {
                     solutionBtn.style.display = 'none';
                 } else {
-                    solutionBtn.style.display = 'inline-block';
+                    solutionBtn.style.display = 'flex';
                     
                     let canShowSolution = false;
 
@@ -4163,6 +4323,21 @@ window.autoSortGamesByDistance = function() {
             // Tartalom megjelenítése
             document.getElementById('story').innerHTML = task.story || "Nincs történet.";
             document.getElementById('prompt').innerHTML = task.prompt || "";
+
+
+// --- ÚJ RÉSZ KEZDETE: Task Image Kezelés ---
+const taskImageEl = document.getElementById('task-image');
+if (taskImageEl) {
+    // Ellenőrizzük, hogy van-e kép az adatbázisban ehhez a feladathoz
+    if (task.taskImage && task.taskImage.trim() !== "") {
+        taskImageEl.src = task.taskImage; // Beállítjuk a forrást
+        taskImageEl.classList.remove('hidden'); // Megjelenítjük
+    } else {
+        taskImageEl.classList.add('hidden'); // Elrejtjük, ha nincs kép
+        taskImageEl.src = ""; // Kitöröljük a forrást a biztonság kedvéért
+    }
+}
+
             document.getElementById('answer-input').value = '';
             
             const detailsEl = document.getElementById('story-details');
@@ -4414,7 +4589,7 @@ window.autoSortGamesByDistance = function() {
                     endMap.attributionControl.setPrefix(false);
                     L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
 
-                    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+                    L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
     crossOrigin: true, 
     tileSize: 512, 
     zoomOffset: -1, 
@@ -4530,7 +4705,7 @@ window.autoSortGamesByDistance = function() {
 
     appState.map.attributionControl.setPrefix(false);
 
-    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+    L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
         crossOrigin: true,
         tileSize: 512,
         zoomOffset: -1,
@@ -4713,27 +4888,50 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
     }
 }
 
+
+function stopAllGpsActivity() {
+    if (appState.geoWatchId !== null) {
+        navigator.geolocation.clearWatch(appState.geoWatchId);
+        appState.geoWatchId = null;
+        console.log("🛰️ GPS figyelés leállítva.");
+    }
+}
+
         function watchPosition() {
-            if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
-            if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
-                appState.geoWatchId = navigator.geolocation.watchPosition(
-                    (pos) => { updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); }, 
-                    (err) => {
-                        console.warn(`GEO ERROR(${err.code}): ${err.message}`);
-                        if (!appState.isTestModeEnabled) { showLoading(false); showMessage('GPS Hiba', t('gps_required'), () => { resetApp(); }); } 
-                        else { showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); checkGeofence(); }
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000, frequency: 3000 }
-                );
-            } else if (appState.isTestModeEnabled && !appState.isManualMock) {
-                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                 appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
-                 checkGeofence();
-            } else if (appState.isManualMock) {
-                 appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
-                 checkGeofence();
-            }
-        }
+    // ELŐSZÖR LEÁLLÍTJUK A RÉGIT, HA VAN
+    stopAllGpsActivity();
+
+    if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
+        appState.geoWatchId = navigator.geolocation.watchPosition(
+            (pos) => { 
+                updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
+            }, 
+            (err) => {
+                console.warn(`GEO ERROR(${err.code}): ${err.message}`);
+                // Hiba esetén is nullázzuk az ID-t
+                appState.geoWatchId = null; 
+                
+                if (!appState.isTestModeEnabled) { 
+                    showLoading(false); 
+                    showMessage('GPS Hiba', t('gps_required'), () => { resetApp(); }); 
+                } 
+                else { 
+                    showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); 
+                    checkGeofence(); 
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        console.log("🛰️ Új GPS figyelés indítva, ID:", appState.geoWatchId);
+    } else if (appState.isTestModeEnabled && !appState.isManualMock) {
+         const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+         appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
+         checkGeofence();
+    } else if (appState.isManualMock) {
+         appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
+         checkGeofence();
+    }
+}
         
         function haversineDistance(c1, c2) {
             // --- BIZTONSÁGI ELLENŐRZÉS ---
@@ -4893,6 +5091,10 @@ appState.map.on('mousedown touchstart dragstart zoomstart', () => {
         
 // --- ÚJ FÜGGVÉNY: Visszalépés a térképre ---
 function backToExploreMap() {
+    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (currentTask) currentTask.isTaskTimerActive = false;
+
+
     // Csak Explore módban értelmezett
     if (appState.currentGame.taskOrder !== 'explore') return;
 
@@ -5070,7 +5272,7 @@ function backToExploreMap() {
     // Mobil-barát, univerzális Google Maps URL
     // Ez megpróbálja megnyitni az alkalmazást, ha van, különben böngészőben nyitja meg.
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
-}
+ }
 
         function speakStory(event) {
             event.preventDefault(); 
@@ -5136,6 +5338,7 @@ let lastTestLng = null;
 
 // --- ÚJ GPS TESZT FÜGGVÉNY ---
 window.testGpsConnection = function() {
+    stopAllGpsActivity();
     // UI elemek előkészítése
     const container = document.getElementById('gps-test-container');
     const statusText = document.getElementById('gps-test-status');
@@ -5160,12 +5363,18 @@ window.testGpsConnection = function() {
             attributionControl: false 
         }).setView([47.4979, 19.0402], 13);
 
-        L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+        L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             maxZoom: 20
         }).addTo(gpsTestMap);
     }
-    
-    setTimeout(() => { gpsTestMap.invalidateSize(); }, 200);
+    container.classList.remove('hidden');
+    setTimeout(() => { 
+        // 1. Odagörgetjük a képernyőt a dobozhoz
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // 2. Frissítjük a térkép méretét (hogy ne legyen szürke)
+        if (gpsTestMap) gpsTestMap.invalidateSize(); 
+    }, 200);
 
     if (!navigator.geolocation) {
         finishGpsTest(false, "A böngésző nem támogatja a GPS-t.");
@@ -5185,6 +5394,30 @@ window.testGpsConnection = function() {
             finishGpsTest(); // Idő lejárt
         }
     }, 1000);
+
+// --- ÚJ FÜGGVÉNY: GPS Teszt ablak bezárása és folyamatok leállítása ---
+window.closeGpsTest = function() {
+    // 1. Minden futó folyamat leállítása (hogy ne fogyassza az akkut)
+    if (typeof gpsTestWatchId !== 'undefined' && gpsTestWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsTestWatchId);
+        gpsTestWatchId = null;
+    }
+    if (typeof gpsTestInterval !== 'undefined' && gpsTestInterval !== null) {
+        clearInterval(gpsTestInterval);
+        gpsTestInterval = null;
+    }
+
+    // 2. Ablak elrejtése
+    const container = document.getElementById('gps-test-container');
+    if (container) container.classList.add('hidden');
+
+    // 3. Indító gomb újra engedélyezése
+    const testBtn = document.getElementById('gps-test-btn');
+    if (testBtn) testBtn.disabled = false;
+
+    console.log("GPS teszt megszakítva és bezárva.");
+};
+
 
     // 3. Pozíció figyelése
     gpsTestWatchId = navigator.geolocation.watchPosition(
@@ -5533,7 +5766,7 @@ window.openGameMap = function() {
     if (!window.gameSelectionMapInstance) {
         window.gameSelectionMapInstance = L.map('game-selection-map', { zoomControl: false }).setView([47.1625, 19.5033], 7);
 	window.gameSelectionMapInstance.attributionControl.setPrefix(false);
-        L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
+        L.tileLayer('https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ', {
             attribution: 'MapTiler',
             maxZoom: 19
         }).addTo(window.gameSelectionMapInstance);
@@ -5715,7 +5948,33 @@ window.closeGameMap = function() {
 
         });
     }
-    // --------------------------------------------------------
+  
+
+const isIos = () => {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+    };
+
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    if (isIos() && !isInStandaloneMode()) {
+        const iosGuide = document.getElementById('ios-install-guide');
+        if (iosGuide) {
+            // 3 másodperc múlva megjelenik
+            setTimeout(() => {
+                iosGuide.classList.remove('hidden');
+            }, 3000);
+
+            // Első kattintásra eltűnik
+            document.addEventListener('click', () => {
+                iosGuide.classList.add('hidden');
+            }, { once: true });
+        }
+    }
+
+
+
+  // --------------------------------------------------------
 
             // 1. Betöltés: Megnézzük, van-e elmentve adat
             const savedName = localStorage.getItem('mystigo_pref_teamName');
@@ -5968,14 +6227,14 @@ window.closeGameMap = function() {
         // Üzenet megjelenítése (a callback-ben frissülnek a gombok, amikor bezárod az ablakot)
         showMessage(
             '1. Segítség', 
-            `1. Segítség (-${HINT1_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, 
+            `<br> ${hintText} <br><br><strong>(Maradt ${task.taskScore} pont)</strong>`, 
             () => { updateHintButtons(task); }
         );
     } else {
         // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
         showMessage(
             '1. Segítség (Újra)', 
-            `1. Segítség: ${hintText}`, 
+            `${hintText}`, 
             () => { updateHintButtons(task); }
         );
     }
@@ -6029,14 +6288,14 @@ window.closeGameMap = function() {
         // A callback-ben lévő updateHintButtons fogja zöldre színezni és feloldani a megoldást!
         showMessage(
             '2. Segítség', 
-            `2. Segítség (-${HINT2_PENALTY} pont): ${hintText} <br><br><strong>(Maradt pont: ${task.taskScore})</strong>`, 
+            `<br> ${hintText} <br><br><strong>(Maradt ${task.taskScore} pont)</strong>`, 
             () => { updateHintButtons(task); }
         );
     } else {
         // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
         showMessage(
             '2. Segítség (Újra)', 
-            `2. Segítség: ${hintText}`, 
+            `${hintText}`, 
             () => { updateHintButtons(task); }
         );
     }
@@ -6121,13 +6380,16 @@ const solBtn = document.getElementById('solution-btn');
             document.getElementById('submit-error-report').addEventListener('click', handleSubmitError); 
 
             document.addEventListener('visibilitychange', () => {
-                if (!appState.currentGame) return;
-                if (document.hidden) { 
-                    if (speechSynth.speaking) speechSynth.cancel();
-                    if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId); appState.geoWatchId = null; 
-                } 
-                else if (!appState.geoWatchId) { watchPosition(); }
-            });
+    if (!appState.currentGame) return;
+    if (document.hidden) { 
+        if (speechSynth.speaking) speechSynth.cancel();
+        // Használd a központi függvényt a manuális clearWatch helyett:
+        stopAllGpsActivity(); 
+    } 
+    else if (!appState.geoWatchId) { 
+        watchPosition(); 
+    }
+});
 
             document.getElementById('answer-input').addEventListener('focus', (e) => {
                 const inputElement = e.target;
@@ -6150,6 +6412,50 @@ window.loadMoreGames = function() {
         };
 
     </script>
+
+<script>
+    let deferredPrompt;
+
+    // 1. Service Worker regisztrálása
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("Service Worker regisztrálva."));
+    }
+
+    // 2. Telepítési esemény elkapása
+   window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    const installBtn = document.getElementById('pwa-install-container');
+    if (installBtn) {
+        installBtn.classList.remove('hidden');
+
+        // AUTO-ELTÜNTETÉS: 8 másodperc után elrejti, ha addig nem nyomtak rá
+        setTimeout(() => {
+    if (!installBtn.classList.contains('hidden')) {
+        installBtn.classList.add('opacity-0');
+        setTimeout(() => installBtn.classList.add('hidden'), 500);
+    }
+}, 8000);
+    }
+});
+
+    // 3. Telepítés indítása a gombra kattintva
+    async function triggerPWAInstall() {
+        if (!deferredPrompt) return;
+        
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+            console.log('A felhasználó telepítette az appot.');
+        }
+        deferredPrompt = null;
+        document.getElementById('pwa-install-container').classList.add('hidden');
+    }
+</script>
+
 
 </body>
 </html>
