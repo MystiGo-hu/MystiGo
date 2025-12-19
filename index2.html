@@ -1279,10 +1279,73 @@
 
 
 
-<script type="module">
+<script>
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set, push, onValue, get, runTransaction, query, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+
+// Globális változók előkészítése (hogy offline is létezzenek)
+  window.db = null;
+  window.ref = null;
+  window.child = null;
+  window.get = null;
+  window.set = null;
+  window.push = null;
+  window.runTransaction = null;
+  window.query = null;
+  window.isFirebaseLoaded = false;
+
+  // Ez a függvény próbálja meg betölteni a Firebase-t
+  async function initAppSystem() {
+      const firebaseConfig = {
+        apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
+        authDomain: "mystigo-7b149.firebaseapp.com",
+        databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "mystigo-7b149",
+        storageBucket: "mystigo-7b149.firebasestorage.app",
+        messagingSenderId: "616896082200",
+        appId: "1:616896082200:web:b13c243df8eaac6d542e6d",
+        measurementId: "G-PFDMYCJ9J1"
+      };
+
+      try {
+          // Dinamikus import: Ha ez elhasal (nincs net), a catch ág fut le, de a program NEM ÁLL LE!
+          const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+          const { getDatabase, ref, set, push, onValue, get, runTransaction, query, child } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+
+          const app = initializeApp(firebaseConfig);
+          const db = getDatabase(app);
+
+          // Változók beállítása
+          window.db = db;
+          window.ref = ref;
+          window.child = child;
+          window.get = get;
+          window.set = set;
+          window.push = push;
+          window.runTransaction = runTransaction;
+          window.query = query;
+          window.isFirebaseLoaded = true;
+
+          console.log("✅ Firebase sikeresen betöltve.");
+
+      } catch (e) {
+          console.warn("⚠️ Firebase betöltése sikertelen (Offline mód):", e);
+          window.isFirebaseLoaded = false;
+      }
+
+      // AKÁR SIKERÜLT, AKÁR NEM: Indítjuk a játéklistát!
+      // Mivel ez a függvény "async", meg kell várnunk, hogy a lenti kód definiálja az initializeGamesFromFirebase-t.
+      // Ezért rakjuk setTimeout-ba vagy hívjuk meg a HTML végén.
+      if (window.initializeGamesFromFirebase) {
+          window.initializeGamesFromFirebase();
+      }
+  }
+
+  // Azonnal elindítjuk a betöltést
+  initAppSystem();
+
+
+
 
 
 // Segédfüggvény: Szöveg Hash-elése (SHA-256)
@@ -2475,21 +2538,34 @@ window.initializeGamesFromFirebase = async function() {
     const statusText = document.getElementById('loading-status');
     if(statusText) statusText.textContent = "Kaland betöltése...";
 
-    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList'; // Kulcs a mentéshez
+    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
+
+    // --- 1. ELLENŐRZÉS: Van-e Firebase kapcsolat? ---
+    if (!window.db || !window.get) {
+        console.warn("Nincs adatbázis kapcsolat. Azonnali offline mód.");
+        loadFromCacheOrError("Offline mód (Nincs szerverkapcsolat).");
+        return;
+    }
 
     try {
-        const dbRef = ref(db);
+        const dbRef = window.ref(window.db);
         const urlParams = new URLSearchParams(window.location.search);
         const pGameId = urlParams.get('game') || urlParams.get('id');
         
         let snapshot;
 
         // Próbáljuk letölteni a netről
+        // Időzítő a letöltéshez: Ha 3 mp alatt nem jön válasz, Offline-nak tekintjük!
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), 3000));
+        
+        let fetchPromise;
         if (pGameId) {
-            snapshot = await get(child(dbRef, `games/public_games_list/${pGameId}`));
+            fetchPromise = window.get(window.child(dbRef, `games/public_games_list/${pGameId}`));
         } else {
-            snapshot = await get(child(dbRef, "games/public_games_list"));
+            fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
         }
+
+        snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (snapshot.exists()) {
             const data = snapshot.val();
@@ -2500,71 +2576,68 @@ window.initializeGamesFromFirebase = async function() {
                 window.games = data;
             }
 
-            // --- SIKERES LETÖLTÉS: MENTÉS LOCALSTORAGE-BA ---
-            // Így legközelebb offline is meglesz a lista
+            // SIKERES LETÖLTÉS: MENTÉS
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
             console.log("💾 Játéklista frissítve és elmentve offline módra.");
 
             processGameDataAndRender();
         } else {
-            console.warn("Nincs találat a szerveren.");
-            // Ha szerveren nincs, nézzük meg a cache-t végső esetben
             loadFromCacheOrError("A kért kaland nem található a szerveren.");
         }
 
     } catch (error) {
-        console.warn("⚠️ Hálózati hiba (Offline?):", error);
-        
-        // --- OFFLINE MENTŐÖV ---
-        loadFromCacheOrError("Hálózati hiba. Kérlek ellenőrizd az internetkapcsolatot!");
+        console.warn("⚠️ Hálózati hiba vagy Timeout:", error);
+        loadFromCacheOrError("Hálózati hiba. Offline adatok keresése...");
     }
 
-    // Segédfüggvény a cache betöltéshez
     function loadFromCacheOrError(errorMsg) {
         const cachedList = localStorage.getItem(CACHE_KEY_LIST);
         
         if (cachedList) {
-            console.log("📂 Offline mód: Lista betöltése a gyorsítótárból...");
-            window.games = JSON.parse(cachedList);
-            
-            // Értesítés a felhasználónak
-            if(statusText) statusText.textContent = "Offline mód: Mentett adatok betöltése...";
-            
-            processGameDataAndRender(); // Kirajzoljuk a mentett listát
-            
-            // Opcionális: Toast üzenet, hogy offline vagyunk
-            setTimeout(() => {
-                showMessage("Offline Mód", "Nincs internetkapcsolat. A korábban betöltött játéklistát látod.");
-            }, 1000);
-            
+            console.log("📂 Offline mód: Lista betöltése...");
+            try {
+                window.games = JSON.parse(cachedList);
+                if(statusText) statusText.textContent = "Offline mód: Mentett adatok betöltése...";
+                
+                processGameDataAndRender();
+                
+                // Toast üzenet
+                setTimeout(() => {
+                    showMessage("Offline Mód", "Nem sikerült csatlakozni a szerverhez. A korábban mentett játéklistát látod.");
+                }, 500);
+            } catch(e) {
+                console.error("Cache hiba:", e);
+                document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Mentett adatok sérültek.<br>Internet szükséges!</div>`;
+                showLoading(false);
+            }
         } else {
-            // Ha nincs cache sem, akkor tényleg baj van
             document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">${errorMsg}<br>Első indításhoz internet szükséges!</div>`;
             showLoading(false);
         }
     }
 
-    // Segédfüggvény a megjelenítéshez (hogy ne duplikáljuk a kódot)
     function processGameDataAndRender() {
-        // --- ADATOK NORMALIZÁLÁSA (Régi kód) ---
-        Object.values(window.games).forEach(g => {
-            if (g.tasks && !Array.isArray(g.tasks)) g.tasks = Object.values(g.tasks).filter(Boolean);
-            if (!g.tasks) g.tasks = [];
-            if (g.price) g.price = parseInt(g.price);
-            if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) g.startLocation = {};
-            if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
-            if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
-        });
+        // Adatok normalizálása
+        if(window.games) {
+            Object.values(window.games).forEach(g => {
+                if (g.tasks && !Array.isArray(g.tasks)) g.tasks = Object.values(g.tasks).filter(Boolean);
+                if (!g.tasks) g.tasks = [];
+                if (g.price) g.price = parseInt(g.price);
+                if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) g.startLocation = {};
+                if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
+                if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
+            });
+        }
 
         populateLocationFilter();
         showPage('game-list-page');
         handleInitialUrlFiltering(); 
         
+        // Ha van GPS rendezés, próbáljuk meg, de ne omoljon össze ha nincs
         if (typeof autoSortGamesByDistance === 'function') {
-            // Offline módban a GPS néha lassú vagy nem megy, de megpróbáljuk
             try { autoSortGamesByDistance(); } catch(e){} 
         }
-        showLoading(false); // FONTOS: Ez tünteti el a karikát!
+        showLoading(false); // Töltés vége!
     }
 };
        
@@ -6459,123 +6532,23 @@ window.loadMoreGames = function() {
 
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Várunk egy kicsit, hogy a modul scriptnek legyen ideje lefutni (ha van net)
-        setTimeout(() => {
-            // Ha a modul lefutott, ez true lesz. Ha nem (pl. import hiba offline miatt), akkor undefined.
-            if (window.isFirebaseModuleLoaded) {
-                console.log("✅ Online modul sikeresen betöltődött.");
-                return; // Minden oké, nem avatkozunk be.
-            }
-
-            console.warn("⚠️ A Firebase modul nem indult el (Offline mód?). Biztonsági rendszer aktiválása...");
-            const statusText = document.getElementById('loading-status');
-            if(statusText) statusText.textContent = "Offline mód aktiválása...";
-
-            // 1. JÁTÉKLISTA BETÖLTÉSE CACHE-BŐL
-            const cachedList = localStorage.getItem('MystiGo_Cached_GameList');
-            if (cachedList) {
-                try {
-                    console.log("📂 Offline lista betöltése...");
-                    window.games = JSON.parse(cachedList);
-                    
-                    // Adatok javítása (hogy ne legyen hiba a renderelésnél)
-                    Object.values(window.games).forEach(g => {
-                        if (!g.tasks) g.tasks = [];
-                        // Koordináták biztosítása
-                        if ((g.startLocationLat || g.startLocationLng) && !g.startLocation) g.startLocation = {};
-                        if (g.startLocationLat) g.startLocation.lat = parseFloat(g.startLocationLat);
-                        if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
-                    });
-
-                    // Lista kirajzolása (ez a függvény a lenti scriptben van, így elérhető!)
-                    if (typeof renderGameList === 'function') {
-                        populateLocationFilter(); // Szűrők feltöltése
-                        renderGameList(); // Kártyák kirajzolása
-                        showPage('game-list-page'); // Oldal váltás
-                    }
-                } catch (e) {
-                    console.error("Hiba a cache betöltésekor:", e);
-                }
+    // Végső biztonsági ellenőrzés
+    setTimeout(() => {
+        const loader = document.getElementById('loading-overlay');
+        // Ha még mindig látszik a töltő
+        if (loader && !loader.classList.contains('hidden')) {
+            console.warn("⚠️ A töltés beragadt, kényszerített feloldás...");
+            
+            // Ha a játéklista betöltő függvény létezik, hívjuk meg kézzel
+            if (typeof window.initializeGamesFromFirebase === 'function') {
+                window.initializeGamesFromFirebase();
             } else {
-                if(statusText) statusText.innerHTML = "<span style='color:red'>Nincs internet és nincs mentett adat.</span>";
+                // Ha még a függvény sem létezik (nagyon nagy baj van), legalább vegyük le a töltőt
+                loader.classList.add('hidden');
+                alert("Kritikus hiba: A rendszer nem tudott elindulni. Kérlek frissítsd az oldalt!");
             }
-
-            // 2. HIÁNYZÓ FÜGGVÉNYEK PÓTLÁSA
-            // Mivel a modul meghalt, ezeket a függvényeket kézzel kell létrehoznunk,
-            // hogy a gombok működjenek.
-
-            // A) Játék indítása (Csak LocalStorage-ból)
-            window.loadGameDataAndStart = async function(gameId) {
-                console.log("🚀 Offline indítás (Fallback)...", gameId);
-                showLoading(true);
-                
-                const storageKey = `MystiGo_GameData_${gameId}`;
-                let gameData = null;
-
-                // 1. Cache olvasása
-                try {
-                    const cachedDataJSON = localStorage.getItem(storageKey);
-                    if (cachedDataJSON) {
-                        gameData = JSON.parse(cachedDataJSON);
-                    }
-                } catch (e) { console.error(e); }
-
-                // 2. Ha nincs cache, de van alap infó a listában
-                if (!gameData && window.games[gameId]) {
-                    // Ha szerencsénk van, a lista tartalmaz elég infót (pl. Start pont)
-                    // De a feladatok (tasks) valószínűleg hiányozni fognak a részletes letöltés nélkül.
-                    console.warn("Nincs részletes offline adat, megpróbáljuk az alapokkal.");
-                    gameData = window.games[gameId];
-                }
-
-                if (gameData) {
-                    // Adat normalizálás (ugyanaz, mint a modulban)
-                    if (gameData.tasks && !Array.isArray(gameData.tasks)) {
-                        gameData.tasks = Object.values(gameData.tasks).filter(t => t);
-                    }
-                    if (!gameData.tasks) gameData.tasks = [];
-                    
-                    // Koordináta javítások
-                    gameData.tasks.forEach(task => {
-                        if (task.location) {
-                            if(typeof task.location.lat === 'string') task.location.lat = parseFloat(task.location.lat);
-                            if(typeof task.location.lng === 'string') task.location.lng = parseFloat(task.location.lng);
-                        }
-                        if (typeof task.index === 'string') task.index = parseInt(task.index);
-                    });
-
-                    // Eredmény beírása
-                    window.games[gameId] = gameData;
-                    showLoading(false);
-                    return; // Kész, a handleGameSelect folytathatja
-                } else {
-                    showLoading(false);
-                    alert("Ehhez a játékhoz nincsenek letöltött adatok. Az első indításhoz internet szükséges!");
-                }
-            };
-
-            // B) Limit ellenőrzés (Offline mindig átenged, ha van helyi adat)
-            window.checkGameLimitOnly = async function() { return true; };
-            window.checkGameLimitAndIncrement = async function() { return true; };
-            
-            // C) Feltöltés szinkronizáció (Offline nem csinál semmit)
-            window.syncPendingUploads = async function() { };
-            
-            // D) Mentés (Offline sorba mentés - egyszerűsített)
-            window.saveScoreToFirebase = function(data) {
-                const PENDING_KEY = 'MystiGo_PendingUploads';
-                let pending = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
-                pending.push(data);
-                localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
-                console.log("💾 Offline mentés a helyi sorba.");
-            };
-
-            // 3. TÖLTŐKÉPERNYŐ ELTÜNTETÉSE
-            showLoading(false);
-            
-        }, 1500); // 1.5 másodpercet várunk, mielőtt offline-nak nyilvánítjuk
-    });
+        }
+    }, 4000);
 </script>
 
 
