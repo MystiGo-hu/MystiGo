@@ -6457,5 +6457,37 @@ window.loadMoreGames = function() {
 </script>
 
 
+<script>
+    // Biztonsági időzítő: Ha 5 másodperc alatt nem indul el a rendszer (pl. script hiba miatt)
+    setTimeout(() => {
+        const loader = document.getElementById('loading-overlay');
+        const landing = document.getElementById('landing-page');
+        const content = document.getElementById('content-wrapper');
+        const statusText = document.getElementById('loading-status');
+
+        // Csak akkor avatkozunk be, ha még mindig látszik a töltő (vagy a landing oldal töltés szövege)
+        if ((loader && !loader.classList.contains('hidden')) || 
+            (statusText && statusText.textContent.includes('...'))) {
+            
+            console.warn("⚠️ Az alkalmazás lassan töltődik vagy hiba történt. Kényszerített indítás...");
+            
+            if(loader) loader.classList.add('hidden');
+            
+            // Ha van mentett játéklista, próbáljuk megmutatni
+            const cachedList = localStorage.getItem('MystiGo_Cached_GameList');
+            if (cachedList && window.games && Object.keys(window.games).length === 0) {
+                 try {
+                     window.games = JSON.parse(cachedList);
+                     if(typeof renderGameList === 'function') renderGameList();
+                     if(statusText) statusText.textContent = "Offline mód (Kényszerített)";
+                 } catch(e) { console.error(e); }
+            } else if (!cachedList) {
+                if(statusText) statusText.innerHTML = "<span style='color:red'>Hiba: Nincs internet és nincs mentett adat.</span>";
+            }
+        }
+    }, 5000); // 5000 ms = 5 másodperc
+</script>
+
+
 </body>
 </html>
