@@ -438,7 +438,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.22
+       v1.1.23
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -848,7 +848,7 @@
                                  <p id="prompt" class="font-bold text-lg text-text-heading mb-4"></p>
 
 
-				<img id="task-image" src="" alt="Feladat kép" class="hidden w-full max-h-64 object-contain rounded-xl shadow-sm mb-4 border border-gray-100">
+				<img id="task-image" onclick="openImageModal(this.src)" src="" alt="Feladat kép" class="hidden w-full max-h-64 object-contain rounded-xl shadow-sm mb-4 border border-gray-100 cursor-zoom-in hover:opacity-95 transition-opacity">
 
                                  <div id="answer-input-container" class="flex items-center gap-2">
                                    <input type="text" id="answer-input" placeholder="Írd be a megoldást..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
@@ -1057,6 +1057,16 @@
             </div>
         </div>
     </div>
+
+
+<div id="image-zoom-modal" onclick="closeImageModal()" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[9999] cursor-pointer p-4 transition-opacity duration-300">
+    
+    <button class="absolute top-4 right-4 text-white text-4xl font-bold opacity-70 hover:opacity-100">&times;</button>
+    
+    <img id="image-zoom-content" src="" alt="Nagyított kép" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform transition-transform duration-300 scale-95">
+    
+    <p class="absolute bottom-4 left-0 right-0 text-center text-white/50 text-xs pointer-events-none">Kattints bárhova a bezáráshoz</p>
+</div>
 
 
     <div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
@@ -2938,6 +2948,47 @@ async function sharePdfViaEmail() {
             // EZT A SORT TÖRÖLTÜK KI, MERT EZ OKOZTA A HIBÁT:
             // document.getElementById('error-description-input').value = '';
         }
+
+
+// --- KÉP NAGYÍTÓ FUNKCIÓK ---
+
+window.openImageModal = function(imgSrc) {
+    if (!imgSrc) return;
+    
+    const modal = document.getElementById('image-zoom-modal');
+    const modalImg = document.getElementById('image-zoom-content');
+    
+    // Beállítjuk a képet
+    modalImg.src = imgSrc;
+    
+    // Megjelenítjük a modalt (flex-re váltunk a hidden helyett)
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Kis animáció a megjelenéshez
+    setTimeout(() => {
+        modalImg.classList.remove('scale-95');
+        modalImg.classList.add('scale-100');
+    }, 10);
+};
+
+window.closeImageModal = function() {
+    const modal = document.getElementById('image-zoom-modal');
+    const modalImg = document.getElementById('image-zoom-content');
+    
+    // Animáció vissza
+    modalImg.classList.remove('scale-100');
+    modalImg.classList.add('scale-95');
+    
+    // Eltüntetés kis késleltetéssel
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modalImg.src = ""; // Töröljük a forrást
+    }, 200);
+};
+
+
 
         window.hideReportModal = function() { 
             document.getElementById('report-error-modal').classList.add('hidden'); 
