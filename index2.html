@@ -5044,40 +5044,69 @@ function stopAllGpsActivity() {
 }
 
         function watchPosition() {
-    // ELŐSZÖR LEÁLLÍTJUK A RÉGIT, HA VAN
-    stopAllGpsActivity();
+            // ELŐSZÖR LEÁLLÍTJUK A RÉGIT, HA VAN
+            stopAllGpsActivity();
 
-    if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
-        appState.geoWatchId = navigator.geolocation.watchPosition(
-            (pos) => { 
-                updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
-            }, 
-            (err) => {
-                console.warn(`GEO ERROR(${err.code}): ${err.message}`);
-                // Hiba esetén is nullázzuk az ID-t
-                appState.geoWatchId = null; 
-                
-                if (!appState.isTestModeEnabled) { 
-                    showLoading(false); 
-                    showMessage('GPS Hiba', t('gps_required'), () => { resetApp(); }); 
-                } 
-                else { 
-                    showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); 
-                    checkGeofence(); 
-                }
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-        console.log("🛰️ Új GPS figyelés indítva, ID:", appState.geoWatchId);
-    } else if (appState.isTestModeEnabled && !appState.isManualMock) {
-         const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-         appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
-         checkGeofence();
-    } else if (appState.isManualMock) {
-         appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
-         checkGeofence();
-    }
-}
+            if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
+                appState.geoWatchId = navigator.geolocation.watchPosition(
+                    (pos) => { 
+                        // SIKER: Ha visszajött a jel, a updatePlayerMarker majd frissíti a térképet
+                        updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
+                    }, 
+                    (err) => {
+                        // HIBA KEZELÉSE (Módosítva: Nem lép ki!)
+                        console.warn(`GEO ERROR(${err.code}): ${err.message}`);
+                        
+                        // Hiba esetén is nullázzuk az ID-t, hogy tiszta lappal indulhassunk újra
+                        appState.geoWatchId = null; 
+                        
+                        if (!appState.isTestModeEnabled) { 
+                            showLoading(false); 
+                            
+                            // --- ITT A VÁLTOZÁS ---
+                            // 1. Eset: Ha már megy a játék (számláló pörög)
+                            if (appState.isTimerRunning) {
+                                // NEM hívunk resetApp()-ot! Csak jelezzük a hibát a képernyőn.
+                                const distEl = document.getElementById('distance-info');
+                                if (distEl) {
+                                    distEl.className = 'text-center text-xs font-bold mt-2 text-red-600 animate-pulse';
+                                    distEl.innerHTML = '⚠️ GPS jel elveszett! Menj nyílt terepre...';
+                                }
+                                
+                                // Megpróbáljuk újraindítani a figyelést 5 másodperc múlva (automatikus retry)
+                                setTimeout(() => {
+                                    if(!appState.geoWatchId && appState.isTimerRunning) {
+                                        console.log("♻️ GPS újraindítási kísérlet...");
+                                        watchPosition();
+                                    }
+                                }, 5000);
+                            } 
+                            // 2. Eset: Ha még nem indult el a játék (Start képernyő)
+                            else {
+                                // Ilyenkor feldobjuk a segítő ablakot, de NEM resetelünk automatikusan.
+                                document.getElementById('gps-help-modal').classList.remove('hidden');
+                            }
+                        } 
+                        else { 
+                            // Teszt módban csak logolunk
+                            showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); 
+                            checkGeofence(); 
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
+                console.log("🛰️ Új GPS figyelés indítva, ID:", appState.geoWatchId);
+            } else if (appState.isTestModeEnabled && !appState.isManualMock) {
+                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                 appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
+                 checkGeofence();
+            } else if (appState.isManualMock) {
+                 appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
+                 checkGeofence();
+            }
+        }
+
+
         
         function haversineDistance(c1, c2) {
             // --- BIZTONSÁGI ELLENŐRZÉS ---
