@@ -2441,12 +2441,14 @@ function decryptHintText(encryptedText) {
 // --- ÚJ TÉRKÉP RÉTEG KEZELŐ (403/API HIBA BIZTOS VERZIÓ) ---
 window.addSmartTileLayer = function(mapInstance) {
     if (!mapInstance) return;
-
-    // Ha már van réteg a térképen, ne adjunk hozzá újat (duplikálás elkerülése)
+    
+    // Ha már hozzáadtunk réteget, ne csináljunk semmit (duplázás elkerülése)
     if (mapInstance._layerAdded) return;
+    mapInstance._layerAdded = true; // Azonnal megjelöljük, hogy folyamatban van
 
-    // 1. URL-ek definiálása
-    const mapTilerUrl = 'https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ';
+    // 1. Beállítások
+    const apiKey = 'kKSQCwzDF42YIfRHO4T5';
+    const mapTilerUrl = `https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${apiKey}`;
     const osmUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     const mapTilerOptions = {
@@ -2463,52 +2465,30 @@ window.addSmartTileLayer = function(mapInstance) {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     };
 
-    // 2. Létrehozzuk a MapTiler réteget (DE még "meghackeljük" a hibakezelését)
-    const mtLayer = L.tileLayer(mapTilerUrl, mapTilerOptions);
+    // 2. Felderítő URL (Egy konkrét csempe Budapest felett)
+    // Ez csak egy teszt kérés, nem jelenik meg a térképen
+    const testUrl = `https://api.maptiler.com/maps/streets-v4/10/550/350.png?key=${apiKey}`;
 
-    // --- A "HACK": Közvetlen hibafelügyelet a képeken ---
-    // Elmentjük az eredeti kép-létrehozó függvényt
-    const originalCreateTile = mtLayer.createTile;
+    // 3. A DÖNTÉS LOGIKÁJA
+    console.log("🔍 Térkép szolgáltató ellenőrzése...");
 
-    // Felülírjuk a sajátunkkal, ami figyeli a hibákat
-    mtLayer.createTile = function(coords, done) {
-        // Létrehozatjuk a képet az eredeti módszerrel
-        const tile = originalCreateTile.call(this, coords, done);
-
-        // Rátesszük a "figyelőt" a képre
-        tile.onerror = function() {
-            // HA HIBA TÖRTÉNIK (pl. 403 Forbidden, Nincs Net, API hiba):
-            
-            // Csak akkor avatkozunk közbe, ha még nem váltottunk át OSM-re
-            if (mapInstance && !mapInstance._fallbackActive) {
-                console.warn("🚨 MapTiler betöltési hiba! Azonnali váltás OpenStreetMap-re.");
-                
-                // 1. Beállítjuk a jelzőt, hogy többször ne fussunk le
-                mapInstance._fallbackActive = true;
-
-                // 2. Eltávolítjuk a hibás MapTiler réteget
-                // (setTimeout kell, hogy ne akadjon össze a Leaflet belső ciklusával)
-                setTimeout(() => {
-                    if (mapInstance.hasLayer(mtLayer)) {
-                        mapInstance.removeLayer(mtLayer);
-                    }
-                    // 3. Hozzáadjuk a biztosan működő OpenStreetMap-et
-                    L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
-                }, 0);
+    fetch(testUrl, { method: 'HEAD' }) // Csak a fejlécet kérjük le (gyors)
+        .then(response => {
+            if (response.ok) {
+                // SIKER (200 OK): A MapTiler működik, van keret, jó a kulcs.
+                console.log("✅ MapTiler elérhető. Prémium réteg betöltése.");
+                L.tileLayer(mapTilerUrl, mapTilerOptions).addTo(mapInstance);
+            } else {
+                // HIBA (403 Forbidden, 401 Unauthorized, stb.)
+                console.warn(`⚠️ MapTiler hiba (${response.status}). Váltás OpenStreetMap-re.`);
+                L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
             }
-
-            // Jelezzük a Leafletnek, hogy ez a csempe hibás (így nem ragad be a töltés jelző)
-            done(new Error('Tile fail'), tile);
-        };
-
-        return tile;
-    };
-
-    // 3. Azonnal hozzáadjuk a MapTilert (ez az alapértelmezett)
-    mtLayer.addTo(mapInstance);
-    
-    // Megjelöljük, hogy a térkép inicializálva van
-    mapInstance._layerAdded = true;
+        })
+        .catch(error => {
+            // HÁLÓZATI HIBA (Pl. offline, vagy DNS hiba)
+            console.warn("⚠️ Hálózati hiba az ellenőrzésnél. Váltás OpenStreetMap-re.");
+            L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
+        });
 };
 
 
