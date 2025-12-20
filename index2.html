@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.1.28
+       v1.1.29
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -532,10 +532,7 @@
 				<button id="list-all-games-btn" class="main-button w-full text-sm block !bg-indigo-600 hover:!bg-indigo-700 my-4">
 			         Összes Játék Listázása (Rejtett is)
 			        </button>
-				<label for="excel-file-input" class="main-button w-full text-sm block cursor-pointer my-4 !bg-brand-blue hover:!bg-cyan-700">
-                                     Manuális Játékfájl Kiválasztása
-                                </label>
-                                
+                             
 
                                 <button onclick="window.open('MystiGo_game_creator.html', '_blank')" class="main-button w-full text-sm block !bg-blue-600 hover:!bg-blue-700 my-4">
                                      Game Creator (Megnyitás)
@@ -2445,8 +2442,13 @@ function decryptHintText(encryptedText) {
 window.addSmartTileLayer = function(mapInstance) {
     if (!mapInstance) return;
 
-    // 1. URL-ek és Beállítások
+    // Ha már van réteg a térképen, nem csinálunk semmit (elkerüljük a duplázást)
+    if (mapInstance._layerAdded) return;
+
+    // URL-ek
     const mapTilerUrl = 'https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=6zyg285SLPbgmb1LZStQ';
+    const osmUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
     const mapTilerOptions = {
         crossOrigin: true,
         tileSize: 512,
@@ -2456,53 +2458,44 @@ window.addSmartTileLayer = function(mapInstance) {
         attribution: 'MapTiler'
     };
 
-    const osmUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
     const osmOptions = {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     };
 
-    // 2. Lépés: AZONNAL betöltjük a biztosan működő OpenStreetMap-et
-    // Így a felhasználó rögtön lát térképet, nem villan be a szürke háttér.
-    const osmLayer = L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
-
-    // 3. Lépés: Tesztelünk EGYETLEN csempét a MapTiler-től a háttérben
-    // Egy budapesti koordinátát használunk tesztnek (Zoom:10, X:550, Y:350)
+    // --- TESZTURL ÖSSZEÁLLÍTÁSA ---
+    // Egy konkrét csempét kérünk le tesztnek
     const testTileUrl = mapTilerUrl
         .replace('{z}', '10')
         .replace('{x}', '550')
         .replace('{y}', '350');
 
-    fetch(testTileUrl, { method: 'HEAD' }) // Csak a fejlécet kérjük le, gyorsabb
+    // --- LOGIKA: ELŐBB ELLENŐRZÜNK, AZTÁN TÖLTÜNK ---
+    fetch(testTileUrl, { method: 'HEAD' })
         .then(response => {
             if (response.ok) {
-                // 4. Lépés: HA MŰKÖDIK A KULCS -> CSERE
-                console.log("✅ MapTiler API kulcs érvényes. Váltás prémium térképre...");
-                
-                // Létrehozzuk a MapTiler réteget
-                const mtLayer = L.tileLayer(mapTilerUrl, mapTilerOptions);
-                
-                // Hozzáadjuk a térképhez
-                mtLayer.addTo(mapInstance);
-                
-                // Levesszük az OSM réteget (hogy ne töltsük feleslegesen)
-                // Egy kis késleltetéssel, hogy a MapTiler betölthessen alá
-                setTimeout(() => {
-                    if (mapInstance.hasLayer(osmLayer)) {
-                        mapInstance.removeLayer(osmLayer);
-                    }
-                }, 1000);
+                // SIKER: A MapTiler működik, ezt használjuk.
+                // Az OSM-et be sem töltjük, így nem terheljük őket feleslegesen.
+                console.log("✅ MapTiler aktív. (OSM kímélve)");
+                L.tileLayer(mapTilerUrl, mapTilerOptions).addTo(mapInstance);
             } else {
-                // Ha 403 vagy más hiba van
-                console.warn("⚠️ MapTiler hiba (pl. rossz API kulcs). Maradunk az OpenStreetMap-nél.");
-                // Nem csinálunk semmit, az OSM már ott van.
+                // HIBA: A MapTiler (403/Quota) nem jó.
+                // Csak ekkor nyúlunk az OSM-hez tartalékként.
+                console.warn("⚠️ MapTiler nem elérhető (403). Fallback: OpenStreetMap.");
+                L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
             }
         })
         .catch(error => {
-            console.warn("⚠️ Hálózati hiba a MapTiler ellenőrzésnél. Maradunk az OpenStreetMap-nél.", error);
+            // HÁLÓZATI HIBA: Ha a fetch elszáll (pl. offline vagy DNS hiba),
+            // akkor is az OSM-et próbáljuk meg.
+            console.warn("⚠️ MapTiler hálózati hiba. Fallback: OpenStreetMap.");
+            L.tileLayer(osmUrl, osmOptions).addTo(mapInstance);
+        })
+        .finally(() => {
+            // Megjelöljük, hogy a térkép kapott réteget
+            mapInstance._layerAdded = true;
         });
 };
-
 
 
 
