@@ -4727,13 +4727,13 @@ if (taskImageEl) {
             }
         }
         
-  function initializeMap() {
+  function initializeMap(gameData = null) {
     const mapContainer = document.getElementById('map');
     
     // BIZTONSÁGI ELLENŐRZÉS
     if (!mapContainer || mapContainer.clientHeight === 0) {
         console.warn("⚠️ Térkép konténer még rejtett vagy 0 magas. Újrapróbálkozás 100ms múlva...");
-        setTimeout(initializeMap, 100);
+        setTimeout(() => initializeMap(gameData), 100); // Itt is továbbadjuk az adatot!
         return;
     }
 
@@ -4743,24 +4743,25 @@ if (taskImageEl) {
         appState.map = null;
     }
 
-    // --- JAVÍTÁS: MARKEREK TÖRLÉSE ---
-    // Ez a rész hiányzott! Ha új térképet csinálunk, a régi markereket el kell felejteni,
-    // különben a GPS a régi (láthatatlan) marker pozícióját frissíti, és nem hoz létre újat.
     appState.playerMarker = null;
     appState.geofenceCircle = null;
     appState.taskMarkers = {};
     if (typeof manualMarker !== 'undefined' && manualMarker) {
         manualMarker = null;
     }
-    // ---------------------------------
 
     // Start pozíció meghatározása
-    let startLat = 47.4979;
-    let startLng = 19.0402;
+    let startLat = 47.4979; // Budapest default
+    let startLng = 19.0402; // Budapest default
     
-    if (appState.currentGame && appState.currentGame.startLocation) {
-        startLat = appState.currentGame.startLocation.lat;
-        startLng = appState.currentGame.startLocation.lng;
+    // ✅ JAVÍTÁS: Prioritás kezelés
+    // 1. Ha kaptunk direkt adatot (betöltéskor), azt használjuk
+    // 2. Ha nincs, akkor a futó játékét (appState)
+    const source = gameData || appState.currentGame;
+
+    if (source && source.startLocation) {
+        startLat = source.startLocation.lat;
+        startLng = source.startLocation.lng;
     }
 
     console.log(`🗺️ Térkép létrehozása itt: ${startLat}, ${startLng}`);
