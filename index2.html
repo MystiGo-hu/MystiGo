@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.03
+       v1.2.04
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -2619,9 +2619,9 @@ window.initializeGamesFromFirebase = async function() {
         
         let fetchPromise;
         if (pGameId) {
-            fetchPromise = window.get(window.child(dbRef, `public_games_list/${pGameId}`));
+            fetchPromise = window.get(window.child(dbRef, `games/public_games_list/${pGameId}`));
         } else {
-            fetchPromise = window.get(window.child(dbRef, "public_games_list"));
+            fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
         }
 
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
@@ -5773,7 +5773,7 @@ window.startSpecificTestGame = async function() {
     // 1. Ellenőrizzük, hogy a játék benne van-e a nyilvános listában
     // (Ez az alapfeltétele annak, hogy tudjuk, létezik a játék)
     if (!window.games || !window.games[FIX_GAME_ID]) {
-        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött listában! Ellenőrizd, hogy a Firebase 'public_games_list' ágában szerepel-e.`);
+        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött listában! Ellenőrizd, hogy a Firebase 'games/public_games_list' ágában szerepel-e.`);
         return;
     }
 
@@ -5793,7 +5793,7 @@ window.startSpecificTestGame = async function() {
     try {
         console.log(`📥 Teszt játék adatainak letöltése: ${FIX_GAME_ID}...`);
         
-        // Ez a függvény letölti a 'secure_game_contents'-ből a feladatokat,
+        // Ez a függvény letölti a 'games/secure_game_contents'-ből a feladatokat,
         // és befrissíti a window.games[FIX_GAME_ID] objektumot.
         await window.loadGameDataAndStart(FIX_GAME_ID);
 
@@ -6877,8 +6877,8 @@ window.loadGameDataAndStart = async function(gameId) {
             try {
                 if(statusText) statusText.textContent = "Adatok letöltése...";
                 
-                // Útvonal: Általában 'secure_game_contents/' + ID
-                const dbPath = 'secure_game_contents/' + gameId;
+                // Útvonal: Általában 'games/secure_game_contents/' + ID
+                const dbPath = 'games/secure_game_contents/' + gameId;
                 const dbRef = window.ref(window.db, dbPath);
                 
                 // Adat lekérése
