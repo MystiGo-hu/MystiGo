@@ -713,9 +713,6 @@
     </button>
 
 
-<button id="instant-adventure-btn" onclick="startInstantAdventure()" class="w-full mt-2 py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-        🎲 Azonnali Kaland (Véletlen generálás)
-    </button>
 
     
 </div>
@@ -775,6 +772,26 @@
             <p id="nearby-status" class="text-[10px] text-center text-gray-400 mt-1 hidden"></p>
         </div>
     </div>
+</div>
+
+
+<div id="instant-adventure-container" class="bg-orange-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+    <div class="mb-2">
+        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide ml-1">Azonnali Kaland a közeledben:</label>
+        
+    </div>
+
+    <button id="instant-adventure-btn" onclick="startInstantAdventure()" class="w-full py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-sm">
+        🎲 Azonnali Kaland Indítása
+    </button>
+
+<select id="instant-difficulty-select" class="w-full px-4 py-1 border-2 border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-brand-blue outline-none cursor-pointer text-center">
+            <option value="all">🔀 Nehézség (Véletlenszerű)</option>
+            <option value="easy">🟢 Könnyű</option>
+            <option value="medium">🟡 Közepes</option>
+            <option value="hard">🔴 Nehéz</option>
+        </select>
+
 </div>
 
 
@@ -3687,26 +3704,38 @@ window.autoSortGamesByDistance = function() {
         // Segédfüggvény a Dropdown-ok beállításához (Csak vizuális!)
         function updateFilterUI(locParam, typeParam, gameIdParam) {
             const filterContainer = document.getElementById('filter-container');
+            // ✅ ÚJ: Azonnali Kaland doboz kiválasztása
+            const instantContainer = document.getElementById('instant-adventure-container');
+            
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
 
-            // --- MÓDOSÍTÁS: Ha bármilyen URL paraméter van, ELREJTJÜK a dobozt ---
+            // --- MÓDOSÍTÁS: Ha bármilyen URL paraméter van, ELREJTJÜK a dobozokat ---
             if (gameIdParam || locParam || typeParam) {
                 if (filterContainer) {
-                    filterContainer.classList.add('hidden'); // Teljesen eltünteti a szűrő dobozt
+                    filterContainer.classList.add('hidden'); // Szűrő doboz elrejtése
                 }
+                // ✅ ÚJ: Azonnali Kaland doboz elrejtése is
+                if (instantContainer) {
+                    instantContainer.classList.add('hidden');
+                }
+                
                 // Mivel elrejtettük, nem kell tovább állítgatni a select-eket
                 return;
             }
             
-            // Ha NINCS paraméter, biztosítjuk, hogy látható legyen
+            // Ha NINCS paraméter, biztosítjuk, hogy láthatóak legyenek
             if (filterContainer) {
                 filterContainer.classList.remove('hidden');
+            }
+            // ✅ ÚJ: Azonnali Kaland megjelenítése is
+            if (instantContainer) {
+                instantContainer.classList.remove('hidden');
             }
 
             // --- INNENTŐL A RÉGI LOGIKA (Csak akkor fut le, ha nincs URL szűrés) ---
             
-            // Helyszín beállítása (ha manuálisan hívnánk meg később)
+            // Helyszín beállítása
             if (locParam && locSelect) {
                 const option = Array.from(locSelect.options).find(opt => 
                     opt.value.toLowerCase().includes(locParam.toLowerCase())
@@ -6584,6 +6613,7 @@ function calculateNextPoint(lat, lng, distanceMeters, bearingDegrees) {
  */
 window.startInstantAdventure = async function() {
     const btn = document.getElementById('instant-adventure-btn');
+    const diffSelect = document.getElementById('instant-difficulty-select'); // Választó elem
     if (!btn) return;
 
     const originalContent = btn.innerHTML;
@@ -6592,7 +6622,11 @@ window.startInstantAdventure = async function() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generálás...';
         btn.disabled = true;
 
-        // 1. ADATOK LEKÉRÉSE
+        // 1. Választott nehézség lekérése
+        const selectedDifficulty = diffSelect ? diffSelect.value : 'all';
+        console.log("Választott nehézség:", selectedDifficulty);
+
+        // 2. ADATOK LEKÉRÉSE
         if (!window.db || !window.ref || !window.get) {
              throw new Error("A rendszer még nem állt fel. Várj egy picit!");
         }
@@ -6603,12 +6637,28 @@ window.startInstantAdventure = async function() {
 
         if (!data) throw new Error("Nem található feladatbázis!");
 
-        // 2. ADATOK ELŐKÉSZÍTÉSE
-        const allTasks = Object.values(data);
+        // 3. ADATOK SZŰRÉSE ÉS ELŐKÉSZÍTÉSE
+        let allTasks = Object.values(data);
+        
+        // --- SZŰRÉS LOGIKA ---
+        if (selectedDifficulty !== 'all') {
+            const filteredTasks = allTasks.filter(t => 
+                t.category && t.category.toString().toLowerCase().trim() === selectedDifficulty
+            );
+
+            if (filteredTasks.length >= 5) {
+                console.log(`Szűrés sikeres: ${filteredTasks.length} db '${selectedDifficulty}' feladat.`);
+                allTasks = filteredTasks;
+            } else {
+                alert(`Nincs elég "${selectedDifficulty}" nehézségű feladat (min. 5 db kell). Vegyes nehézséget generálunk helyette.`);
+            }
+        }
+        // ---------------------
+
         const shuffled = allTasks.sort(() => 0.5 - Math.random());
         const selectedTasks = shuffled.slice(0, 5); 
 
-        // 3. KOORDINÁTÁK GENERÁLÁSA
+        // 4. KOORDINÁTÁK GENERÁLÁSA
         let startLat, startLng;
         try {
             const pos = await new Promise((resolve, reject) => 
@@ -6625,7 +6675,7 @@ window.startInstantAdventure = async function() {
         let currentLng = startLng;
 
         const tasksWithLocation = selectedTasks.map((task, index) => {
-     // Minimum 100m + 0-200 véletlen szám
+            // Minimum 200m + 0-100 véletlen szám (kissé távolabb visszük)
             const dist = 200 + Math.random() * 100; 
             const bearing = Math.random() * 360;
             const nextPoint = calculateNextPoint(currentLat, currentLng, dist, bearing);
@@ -6652,9 +6702,8 @@ window.startInstantAdventure = async function() {
                 lng: nextPoint.lng,
                 location: { lat: nextPoint.lat, lng: nextPoint.lng },
                 
-       geofenceRadius: 50,
+                geofenceRadius: 50, // Nagyobb sugár a biztonságért
 
-                // ✅ EZT A SORT KELL HOZZÁADNI (A kérdés átmásolása a prompt mezőbe):
                 prompt: task.question || task.prompt || "Nincs kérdés megadva",
 
                 answers: processedAnswers, 
@@ -6663,16 +6712,18 @@ window.startInstantAdventure = async function() {
             };
         });
 
-        // 4. JÁTÉK OBJEKTUM LÉTREHOZÁSA
+        // 5. JÁTÉK OBJEKTUM LÉTREHOZÁSA (Címben a nehézséggel)
+        const difficultyLabels = { easy: "Könnyű", medium: "Közepes", hard: "Nehéz", all: "Vegyes" };
+        const diffLabel = difficultyLabels[selectedDifficulty] || "Vegyes";
+        
         const instantGameId = "instant_" + Date.now();
         const instantGame = {
             id: instantGameId,
-            title: "Generált Városi Kaland",
+            title: `Generált Városi Kaland (${diffLabel})`,
             description: "Véletlenszerűen generált feladatok a közeledben.",
             type: "Instant",
             tasks: tasksWithLocation,
             taskOrder: "fixed",
-            // ✅ JAVÍTÁS 2: A start helyszín beállítása (nélküle a térkép "undefined"-re ugrik)
             startLocation: tasksWithLocation[0].location
         };
 
