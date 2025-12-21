@@ -4341,7 +4341,8 @@ window.autoSortGamesByDistance = function() {
             // --- 🛠️ MEGOLDÁS ADAT JAVÍTÁSA ---
             if (!task.solution || String(task.solution).trim() === "") {
                 if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
-                    task.solution = "A helyes válasz: " + task.acceptedAnswers[0];
+                    // ✅ ÚJ SOR: HTML <strong> tagek hozzáadása a vastagításhoz
+                    task.solution = "<strong>" + task.acceptedAnswers[0] + "</strong>";
                 }
             }
 
@@ -6412,71 +6413,73 @@ const isIos = () => {
 
 const solBtn = document.getElementById('solution-btn');
             
-            if (solBtn) {
-                // Eltávolítjuk a korábbi eseményfigyelőket (klónozással), hogy ne fusson le többször
-                const newSolBtn = solBtn.cloneNode(true);
-                solBtn.parentNode.replaceChild(newSolBtn, solBtn);
+if (solBtn) {
+    // Eltávolítjuk a korábbi eseményfigyelőket (hogy ne fusson le többször)
+    const newSolBtn = solBtn.cloneNode(true);
+    solBtn.parentNode.replaceChild(newSolBtn, solBtn);
 
-                newSolBtn.addEventListener('click', () => {
-                    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                    if (!task) return;
+    newSolBtn.addEventListener('click', () => {
+        const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+        if (!task) return;
 
-                    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
-                    if (task.isStartTask) return;
+        if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
+        if (task.isStartTask) return;
 
-                    // 1. Pontszám nullázása és mentés
-                    task.taskScore = 0;
-                    updateStatusDisplays();
-                    saveGameState();
+        // 1. Pontszám nullázása és mentés
+        task.taskScore = 0;
+        updateStatusDisplays();
+        saveGameState();
 
-                    // 2. MEGOLDÁS SZÖVEGÉNEK VISSZAFEJTÉSE (Javított)
-                    let solutionText = "";
+        // 2. MEGOLDÁS SZÖVEGÉNEK ELŐKÉSZÍTÉSE (JAVÍTOTT RÉSZ)
+        let solutionText = "";
+        let cleanAnswer = "";
 
-                    // Ha van titkosított megoldás, visszafejtjük
-                    if (task.solution) {
-                        solutionText = decryptHintText(task.solution);
-                    }
+        // A) Ha van titkosított megoldás (Adatbázisból jön)
+        if (task.solution) {
+            let decrypted = decryptHintText(task.solution);
+            
+            // 🧹 TAKARÍTÁS: Kiszedjük a "A helyes válasz:" részt és a HTML kódokat, ha benne maradtak
+            // Így csak a tiszta válasz marad (pl. "Mark Zuckerberg")
+            cleanAnswer = decrypted.replace(/^A helyes válasz:\s*/i, "").replace(/<[^>]*>/g, "").trim();
+        } 
+        
+        // B) Ha nincs titkosítva, de van elfogadott válasz (Régi játékok / Azonnali kaland)
+        if ((!cleanAnswer || cleanAnswer === "") && task.acceptedAnswers && task.acceptedAnswers.length > 0) {
+            cleanAnswer = task.acceptedAnswers[0];
+        }
 
-                    // Fallback logikák
-                    if (!solutionText || String(solutionText).trim() === "" || solutionText.startsWith("Hiba")) {
-                        if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
-                            solutionText = `A helyes válasz: <strong>${task.acceptedAnswers[0]}</strong>`;
-                        } else {
-                            // Ha tényleg semmi sincs, akkor valószínűleg sérült az adat
-                            console.error("HIBA: Nincs megoldás az adatbázisban ehhez a feladathoz:", task);
-                            solutionText = "Technikai hiba: A megoldás nem töltődött be rendesen.<br><br><strong>Tipp:</strong> Próbálj meg kilépni a főmenübe, majd újra elindítani a játékot (a mentés megmarad, de az adatok frissülnek).";
-                            
-                            // Opcionális: Kényszerítjük a cache törlést ehhez a játékhoz
-                            if(appState.currentGame && appState.currentGame.id) {
-                                localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
-                            }
-                        }
-                    }
+        // C) Végső formázás: Csak a válasz legyen vastag!
+        if (cleanAnswer && !cleanAnswer.includes("Technikai hiba")) {
+            solutionText = `<strong>${cleanAnswer}</strong>`;
+        } else {
+            // Hiba esetén
+            solutionText = cleanAnswer || "Technikai hiba: Nincs elérhető megoldás.";
+        }
 
-                    // 3. Üzenet megjelenítése
-                    showMessage('Megoldás', `A feladat megoldása (0 pont):<br><br>${solutionText}`, () => {
-                        
-                        // Válasz automatikus beírása (vizuális segítség)
-                        const answerInput = document.getElementById('answer-input');
-                        if (answerInput) {
-                            // Csak a tiszta szöveget írjuk be (HTML tagek nélkül)
-                            const cleanText = solutionText.replace(/<[^>]*>?/gm, '').replace("A helyes válasz: ", "");
-                            // Ha nem hibaüzenet, akkor beírjuk
-                            if(!cleanText.includes("Technikai hiba")) {
-                                answerInput.value = cleanText;
-                            }
-                        }
-
-                        // 4. TOVÁBBLÉPÉS
-                        // Kis késleltetéssel, hogy a felhasználó lássa a választ
-                        console.log("Megoldás elfogadva, továbbugrás...");
-                        setTimeout(() => {
-                            handleCorrectAnswer();
-                        }, 100); // 2 másodpercet vár, hogy el lehessen olvasni
-                    });
-                });
+        // 3. Üzenet megjelenítése (FONTOS: Kivettem a külső <strong> taget!)
+        showMessage('Megoldás', `A feladat megoldása (0 pont):<br><br>${solutionText}`, () => {
+            
+            // Válasz automatikus beírása a mezőbe (csak a tiszta szöveget)
+            const answerInput = document.getElementById('answer-input');
+            if (answerInput && cleanAnswer) {
+                // Ha nem hibaüzenet, akkor beírjuk
+                if(!cleanAnswer.includes("Technikai hiba")) {
+                    answerInput.value = cleanAnswer;
+                }
             }
+
+            // 4. TOVÁBBLÉPÉS
+            console.log("Megoldás elfogadva, továbbugrás...");
+            setTimeout(() => {
+                handleCorrectAnswer();
+            }, 100); // 2 másodpercet vár, hogy el lehessen olvasni
+        });
+    });
+}
      
+
+
+
             document.getElementById('start-game-btn').addEventListener('click', startTimersAndGPS);
             document.getElementById('exit-game-btn').addEventListener('click', showExitConfirmation);
             document.getElementById('report-error-btn').addEventListener('click', showReportModal); 
@@ -6626,7 +6629,7 @@ window.startInstantAdventure = async function() {
         const selectedDifficulty = diffSelect ? diffSelect.value : 'all';
         console.log("Választott nehézség:", selectedDifficulty);
 
-        // 2. Adatok
+        // 2. Adatok lekérése
         if (!window.db || !window.ref || !window.get) {
              throw new Error("A rendszer még nem állt fel. Várj egy picit!");
         }
@@ -6680,38 +6683,13 @@ window.startInstantAdventure = async function() {
             currentLat = nextPoint.lat;
             currentLng = nextPoint.lng;
 
-            // --- JAVÍTOTT VÁLASZ FELDOLGOZÁS (MINDEN MEZŐT ÁTNÉZÜNK) ---
-            let rawAnswers = [];
+            // --- VÁLASZ ÉS MEGOLDÁS OKOS FELDOLGOZÁSA ---
+            
+            // Megnézzük, hogy ez egy ÚJ (biztonságos) feladat-e?
+            // Onnan tudjuk, hogy van benne 'acceptedHashes'.
+            const isSecureTask = task.acceptedHashes && Array.isArray(task.acceptedHashes) && task.acceptedHashes.length > 0;
 
-            // Begyűjtjük az összes lehetséges helyről
-            if (task.answers) rawAnswers.push(task.answers);
-            if (task.answer) rawAnswers.push(task.answer);
-            if (task.solution) rawAnswers.push(task.solution); // Ha ide írták a "kutya; eb"-et
-
-            let processedAnswers = [];
-
-            rawAnswers.forEach(item => {
-                if (Array.isArray(item)) {
-                    item.forEach(sub => processedAnswers.push(String(sub).trim()));
-                } else if (typeof item === 'string') {
-                    // Itt történik a varázslat: pontosvessző mentén darabolunk
-                    item.split(';').forEach(s => {
-                        const clean = s.trim();
-                        if (clean) processedAnswers.push(clean);
-                    });
-                }
-            });
-
-            // Duplikációk törlése (pl. ha az answer és a solution ugyanaz volt)
-            processedAnswers = [...new Set(processedAnswers)];
-
-            // Segítségek feldolgozása
-            let processedHints = task.hints || [];
-            if (typeof processedHints === 'string') {
-                processedHints = processedHints.split(';').map(s => s.trim());
-            }
-
-            return {
+            let finalTaskData = {
                 ...task, 
                 id: `task_${index}`,
                 lat: nextPoint.lat,
@@ -6719,17 +6697,53 @@ window.startInstantAdventure = async function() {
                 location: { lat: nextPoint.lat, lng: nextPoint.lng },
                 geofenceRadius: 50,
                 prompt: task.question || task.prompt || "Nincs kérdés megadva",
-
-                // A feldolgozott, darabolt tömböt adjuk át
-                answers: processedAnswers, 
-                acceptedAnswers: processedAnswers,
                 
-                // FONTOS: Nullázzuk a solution-t, hogy a rendszer NE a nyers szöveget mutassa,
-                // hanem automatikusan az acceptedAnswers[0]-át vegye elő.
-                solution: null,
-
-                hints: processedHints      
+                // Segítségek feldolgozása (string esetén darabolás)
+                hints: (typeof task.hints === 'string') ? task.hints.split(';').map(s => s.trim()) : (task.hints || [])
             };
+
+            if (isSecureTask) {
+                // ✅ A) BIZTONSÁGOS FELADAT (v5 konverterrel)
+                // - A 'solution' mező TITKOSÍTOTT -> MEG KELL TARTANI! (Nem szabad nullázni)
+                // - Az 'answers' mező üres vagy nem létezik (ez jó, mert hash-el ellenőrzünk)
+                // - A 'acceptedHashes' mezőt átvisszük
+                
+                finalTaskData.solution = task.solution; // Ez az encryptText(...) eredménye
+                finalTaskData.acceptedHashes = task.acceptedHashes;
+                // Nem teszünk bele answers-t, hogy ne legyen olvasható
+            
+            } else {
+                // ⚠️ B) RÉGI / SIMA FELADAT (Kézzel írt vagy régi konverter)
+                // Itt fel kell dolgozni a szöveges válaszokat
+                
+                let rawAnswers = [];
+                if (task.answers) rawAnswers.push(task.answers);
+                if (task.answer) rawAnswers.push(task.answer);
+                if (task.solution) rawAnswers.push(task.solution); // Régi formátumnál itt volt a válasz
+
+                let processedAnswers = [];
+                rawAnswers.forEach(item => {
+                    if (Array.isArray(item)) {
+                        item.forEach(sub => processedAnswers.push(String(sub).trim()));
+                    } else if (typeof item === 'string') {
+                        item.split(';').forEach(s => {
+                            const clean = s.trim();
+                            if (clean) processedAnswers.push(clean);
+                        });
+                    }
+                });
+                
+                // Duplikációk törlése
+                processedAnswers = [...new Set(processedAnswers)];
+
+                finalTaskData.answers = processedAnswers;
+                finalTaskData.acceptedAnswers = processedAnswers;
+                
+                // Itt NULLÁZZUK a solution-t, hogy a rendszer az első választ mutassa
+                finalTaskData.solution = null; 
+            }
+
+            return finalTaskData;
         });
 
         // 5. Játék létrehozása
