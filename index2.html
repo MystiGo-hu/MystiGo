@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.02
+       v1.2.03
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -797,6 +797,20 @@
         <option value="medium">🟡 Közepes</option>
         <option value="hard">🔴 Nehéz</option>
     </select>
+
+<div id="instant-resume-ui" class="hidden mt-3 pt-3 border-t border-orange-200 justify-between items-center">
+    <button onclick="resumeInstantAdventure()" class="text-[10px] font-bold text-green-700 bg-green-100 hover:bg-green-200 px-4 py-2 rounded-lg transition-all flex items-center gap-1 shadow-sm">
+        <span>▶</span> Folytatás
+    </button>
+
+    <button onclick="deleteInstantAdventure()" class="bg-red-100 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-full transition-all shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
+</div>
+
+
 </div>
 
 
@@ -2318,6 +2332,79 @@ window.addSmartTileLayer = function(mapInstance) {
 
 
 
+window.checkInstantProgress = function() {
+    const resumeUI = document.getElementById('instant-resume-ui');
+    if (!resumeUI) return;
+
+    // Megkeressük az instant mentést (GameState)
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+
+    if (saveKey) {
+        // HA VAN MENTÉS: Megjelenítjük (flex)
+        resumeUI.classList.remove('hidden');
+        resumeUI.classList.add('flex');
+    } else {
+        // HA NINCS: Teljesen elrejtjük (hidden) és levesszük a flex-et
+        resumeUI.classList.add('hidden');
+        resumeUI.classList.remove('flex');
+    }
+};
+
+/**
+ * Instant Kaland folytatása: Betölti az adatokat és az állást is
+ */
+window.resumeInstantAdventure = function() {
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+    if (!saveKey) return;
+
+    const gameId = saveKey.replace('MystiGoGameState_', '');
+    const dataKey = `MystiGo_GameData_${gameId}`;
+    const savedGameData = localStorage.getItem(dataKey);
+
+    if (savedGameData) {
+        // Fontos: Előbb a játék definíciót kell visszaállítani a window.games-be
+        window.games[gameId] = JSON.parse(savedGameData);
+        // Majd betölteni az állapotot
+        loadGameById(gameId);
+    } else {
+        alert("A kaland adatai elvesztek.");
+        window.deleteInstantAdventure(true);
+    }
+};
+
+/**
+ * Instant Kaland törlése: Takarít a memóriában és frissíti a UI-t
+ */
+window.deleteInstantAdventure = function(force = false) {
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+    
+    if (!saveKey) {
+        window.checkInstantProgress();
+        return;
+    }
+
+    if (force || confirm("Biztosan törlöd a folyamatban lévő azonnali kalandot?")) {
+        const gameId = saveKey.replace('MystiGoGameState_', '');
+        
+        // 1. Törlés a LocalStorage-ból
+        localStorage.removeItem(saveKey); // Állapot törlése
+        localStorage.removeItem(`MystiGo_GameData_${gameId}`); // Játékadatok törlése
+        
+        // 2. Törlés a futó memóriából
+        if (window.games && window.games[gameId]) {
+            delete window.games[gameId];
+        }
+
+        console.log("Instant játék teljesen törölve.");
+        
+        // 3. UI AZONNALI FRISSÍTÉSE
+        window.checkInstantProgress();
+    }
+};
+
+
+
+
 
         function initializeState() {
             appState = { 
@@ -2911,7 +2998,8 @@ async function sharePdfViaEmail() {
                 
                 if (pageId === 'game-list-page') {
                     // Logó visszaállítása a főmenüben
-                    const mainHeaderLogo = document.getElementById('main-header-logo');
+                    window.checkInstantProgress();
+		    const mainHeaderLogo = document.getElementById('main-header-logo');
                     if (mainHeaderLogo) {
                         // Megnézzük, hogy be van-e kapcsolva a Kids mód
                         const isKidsMode = localStorage.getItem('mystigo_pref_kidsMode') === 'true';
@@ -2923,6 +3011,9 @@ async function sharePdfViaEmail() {
                     if (Object.keys(games).length > 0) applyFilters();
                     if (Object.keys(games).length > 0) document.getElementById('team-setup').classList.remove('hidden');
                     
+		    if (typeof window.checkInstantProgress === 'function') window.checkInstantProgress();
+
+
                     // Titkos kapcsoló visszaállítása a cím mellé (csak ha van cím elem és látható)
                     if (titleEl && !titleEl.classList.contains('hidden')) {
                         const secretTrigger = document.createElement('span');
@@ -4057,6 +4148,10 @@ window.autoSortGamesByDistance = function() {
             }
             return array;
         }
+
+
+
+
 
         function startGame(gameId, modeOverride = null) {
     // --- GOOGLE ANALYTICS MÉRÉS ---
@@ -6640,160 +6735,79 @@ window.startInstantAdventure = async function() {
     const originalContent = btn.innerHTML;
     
     try {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generálás...';
+        btn.innerHTML = '🎲 Generálás...';
         btn.disabled = true;
 
-        // 1. Nehézség
         const selectedDifficulty = diffSelect ? diffSelect.value : 'all';
-        console.log("Választott nehézség:", selectedDifficulty);
-
-        // 2. Adatok lekérése
         if (!window.db || !window.ref || !window.get) {
-             throw new Error("A rendszer még nem állt fel. Várj egy picit!");
+             throw new Error("A rendszer még nem állt fel.");
         }
 
         const dbRef = window.ref(window.db, 'generic_tasks'); 
         const snapshot = await window.get(dbRef);
         const data = snapshot.val();
-
         if (!data) throw new Error("Nem található feladatbázis!");
 
-        // 3. Szűrés
         let allTasks = Object.values(data);
-        
-        if (selectedDifficulty !== 'all') {
-            const filteredTasks = allTasks.filter(t => 
-                t.category && t.category.toString().toLowerCase().trim() === selectedDifficulty
-            );
-
-            if (filteredTasks.length >= 5) {
-                allTasks = filteredTasks;
-            } else {
-                alert(`Nincs elég "${selectedDifficulty}" nehézségű feladat. Vegyeset generálunk.`);
-            }
-        }
-
         const shuffled = allTasks.sort(() => 0.5 - Math.random());
         const selectedTasks = shuffled.slice(0, 5); 
 
-        // 4. Koordináták
-        let startLat, startLng;
-        try {
-            const pos = await new Promise((resolve, reject) => 
-                navigator.geolocation.getCurrentPosition(resolve, reject)
+        let {lat: startLat, lng: startLng} = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                (p) => resolve({lat: p.coords.latitude, lng: p.coords.longitude}),
+                () => resolve({lat: 47.4979, lng: 19.0402})
             );
-            startLat = pos.coords.latitude;
-            startLng = pos.coords.longitude;
-        } catch (e) {
-            startLat = 47.4979; 
-            startLng = 19.0402;
-        }
+        });
 
         let currentLat = startLat;
         let currentLng = startLng;
 
-        // --- FELADATOK FELDOLGOZÁSA ---
         const tasksWithLocation = selectedTasks.map((task, index) => {
-            const dist = 200 + Math.random() * 100; 
-            const bearing = Math.random() * 360;
-            const nextPoint = calculateNextPoint(currentLat, currentLng, dist, bearing);
-            
+            const nextPoint = calculateNextPoint(currentLat, currentLng, 250, Math.random() * 360);
             currentLat = nextPoint.lat;
             currentLng = nextPoint.lng;
-
-            // --- VÁLASZ ÉS MEGOLDÁS OKOS FELDOLGOZÁSA ---
-            
-            // Megnézzük, hogy ez egy ÚJ (biztonságos) feladat-e?
-            // Onnan tudjuk, hogy van benne 'acceptedHashes'.
-            const isSecureTask = task.acceptedHashes && Array.isArray(task.acceptedHashes) && task.acceptedHashes.length > 0;
-
-            let finalTaskData = {
-                ...task, 
-                id: `task_${index}`,
-                lat: nextPoint.lat,
-                lng: nextPoint.lng,
-                location: { lat: nextPoint.lat, lng: nextPoint.lng },
-                geofenceRadius: 50,
-                prompt: task.question || task.prompt || "Nincs kérdés megadva",
-                
-                // Segítségek feldolgozása (string esetén darabolás)
-                hints: (typeof task.hints === 'string') ? task.hints.split(';').map(s => s.trim()) : (task.hints || [])
+            return {
+                ...task,
+                index: index + 1,
+                location: nextPoint,
+                prompt: task.question || task.prompt || "Kérdés?",
+                geofenceRadius: 40
             };
-
-            if (isSecureTask) {
-                // ✅ A) BIZTONSÁGOS FELADAT (v5 konverterrel)
-                // - A 'solution' mező TITKOSÍTOTT -> MEG KELL TARTANI! (Nem szabad nullázni)
-                // - Az 'answers' mező üres vagy nem létezik (ez jó, mert hash-el ellenőrzünk)
-                // - A 'acceptedHashes' mezőt átvisszük
-                
-                finalTaskData.solution = task.solution; // Ez az encryptText(...) eredménye
-                finalTaskData.acceptedHashes = task.acceptedHashes;
-                // Nem teszünk bele answers-t, hogy ne legyen olvasható
-            
-            } else {
-                // ⚠️ B) RÉGI / SIMA FELADAT (Kézzel írt vagy régi konverter)
-                // Itt fel kell dolgozni a szöveges válaszokat
-                
-                let rawAnswers = [];
-                if (task.answers) rawAnswers.push(task.answers);
-                if (task.answer) rawAnswers.push(task.answer);
-                if (task.solution) rawAnswers.push(task.solution); // Régi formátumnál itt volt a válasz
-
-                let processedAnswers = [];
-                rawAnswers.forEach(item => {
-                    if (Array.isArray(item)) {
-                        item.forEach(sub => processedAnswers.push(String(sub).trim()));
-                    } else if (typeof item === 'string') {
-                        item.split(';').forEach(s => {
-                            const clean = s.trim();
-                            if (clean) processedAnswers.push(clean);
-                        });
-                    }
-                });
-                
-                // Duplikációk törlése
-                processedAnswers = [...new Set(processedAnswers)];
-
-                finalTaskData.answers = processedAnswers;
-                finalTaskData.acceptedAnswers = processedAnswers;
-                
-                // Itt NULLÁZZUK a solution-t, hogy a rendszer az első választ mutassa
-                finalTaskData.solution = null; 
-            }
-
-            return finalTaskData;
         });
 
-        // 5. Játék létrehozása
-        const difficultyLabels = { easy: "Könnyű", medium: "Közepes", hard: "Nehéz", all: "Vegyes" };
-        const diffLabel = difficultyLabels[selectedDifficulty] || "Vegyes";
-        
         const instantGameId = "instant_" + Date.now();
         const instantGame = {
             id: instantGameId,
-            title: `Generált Városi Kaland (${diffLabel})`,
-            description: "Véletlenszerűen generált feladatok a közeledben.",
+            title: `Generált Kaland (${selectedDifficulty})`,
             type: "Instant",
             tasks: tasksWithLocation,
-            taskOrder: "fixed",
-            startLocation: tasksWithLocation[0].location
+            startLocation: { lat: startLat, lng: startLng }
         };
 
-        window.games = window.games || {};
         window.games[instantGameId] = instantGame;
         
-        console.log("Generált játék indítása:", instantGameId);
+        // 1. Elmentjük a generált játék adatait
+        localStorage.setItem(`MystiGo_GameData_${instantGameId}`, JSON.stringify(instantGame));
         
+        // 2. Elindítjuk a játékot
         handleGameSelect(instantGameId, instantGame.title, "Instant", "Ingyenes", false, true);
 
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
+        // 3. KÉNYSZERÍTETT MENTÉS ÉS UI FRISSÍTÉS:
+        // Rövid késleltetés kell, hogy a handleGameSelect beállítsa az appState-et
+        setTimeout(() => {
+            if (typeof saveGameState === 'function') {
+                saveGameState(); // Létrehozza a MystiGoGameState_ kezdetű kulcsot
+            }
+            window.checkInstantProgress(); // Ezután már látni fogja a mentést és megjeleníti a gombokat
+        }, 800);
 
     } catch (error) {
-        console.error("Hiba:", error);
-        alert("Hiba a generálás közben: " + error.message);
+        alert("Hiba: " + error.message);
+    } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
+        // Itt is meghívjuk a biztonság kedvéért
+        window.checkInstantProgress();
     }
 };
 
