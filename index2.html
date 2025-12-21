@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.01
+       v1.2.02
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -775,23 +775,28 @@
 </div>
 
 
-<div id="instant-adventure-container" class="bg-orange-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+<div id="instant-adventure-container" class="relative bg-orange-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+    
+    <button onclick="openLeaderboardModal('instant_kozos')" 
+            class="absolute top-2 right-2 bg-white text-orange-500 w-8 h-8 rounded-full shadow-md border border-orange-200 hover:bg-orange-100 transition flex items-center justify-center z-10" 
+            title="Azonnali Kaland Közös Ranglista">
+        🏆
+    </button>
+
     <div class="mb-2">
-        <label class="text-[10px] font-bold text-black-500 uppercase tracking-wide ml-1">Azonnali Kaland a közeledben:</label>
-        
+        <label class="text-[12px] font-bold text-black-500 uppercase tracking-wide ml-1">Azonnali Kaland a közeledben:</label>
     </div>
 
     <button id="instant-adventure-btn" onclick="startInstantAdventure()" class="w-full py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-sm">
         🎲 Azonnali Kaland Indítása
     </button>
 
-<select id="instant-difficulty-select" class="w-full px-4 py-1 border-2 border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-brand-blue outline-none cursor-pointer text-center">
-            <option value="all">🔀 Nehézség (Véletlenszerű)</option>
-            <option value="easy">🟢 Könnyű</option>
-            <option value="medium">🟡 Közepes</option>
-            <option value="hard">🔴 Nehéz</option>
-        </select>
-
+    <select id="instant-difficulty-select" class="w-full mt-2 px-4 py-1 border-2 border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-brand-blue outline-none cursor-pointer text-center">
+        <option value="all">🔀 Nehézség (Véletlenszerű)</option>
+        <option value="easy">🟢 Könnyű</option>
+        <option value="medium">🟡 Közepes</option>
+        <option value="hard">🔴 Nehéz</option>
+    </select>
 </div>
 
 
@@ -1563,8 +1568,15 @@ window.getGameCurrentCount = async function(gameId) {
 
     // --- ELLENŐRZÉS: VAN INTERNET ÉS FIREBASE? ---
     if (navigator.onLine && window.db && window.push) {
+        
+        // ✅ MÓDOSÍTÁS: Azonnali kalandok közösítéséhez
+        let targetLeaderboardId = data.gameId;
+        if (String(targetLeaderboardId).startsWith('instant_')) {
+            targetLeaderboardId = 'instant_kozos'; // Ez lesz a közös lista neve
+        }
+
         // MÓDOSÍTVA: window.ref, window.push
-        const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
+        const leaderboardRef = window.ref(window.db, 'leaderboard/' + targetLeaderboardId);
         
         window.push(leaderboardRef, scoreData).then(() => {
             console.log("✅ Sikeres azonnali mentés a Firebase-be!");
@@ -1590,11 +1602,16 @@ window.getGameCurrentCount = async function(gameId) {
 
   // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: Még szűkebb oszlopok és paddingok)
   window.openLeaderboardModal = async function(specificGameId = null) {
-      const gameId = specificGameId || window.currentGameId;
+      let gameId = specificGameId || window.currentGameId;
 
       if (!gameId) {
         alert("Nincs aktív játék azonosító. Előbb válassz egy játékot!");
         return;
+    }
+
+    // ✅ MÓDOSÍTÁS: Ha ez azonnali kaland, a közös ID-t használjuk lekérdezéshez
+    if (String(gameId).startsWith('instant_')) {
+        gameId = 'instant_kozos';
     }
 
       const modal = document.getElementById('leaderboard-modal');
