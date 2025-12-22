@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.05
+       v1.2.06
 
    </span>
 
@@ -2618,24 +2618,31 @@ function loadGameById(gameId) {
         }
 
         function deleteSavedGame(gameId) {
+    // Saját modális ablak használata megerősítésre
+    showMessage(
+        'Mentés törlése', 
+        'Biztosan törölni szeretnéd a mentett állást? Ez a folyamat nem vonható vissza, a kalandot elölről kell majd kezdened és ha fizettél érte akkor új kupont kell hozzá vásárolnod.', 
+        () => {
+            // Ez a rész csak akkor fut le, ha az "Igen" gombra nyomnak
             localStorage.removeItem(getStorageKey(gameId));
             
-            // --- JAVÍTÁS: Ellenőrizzük, hogy van-e aktív URL szűrés ---
+            // UI frissítése (eredeti logikád megőrzése)
             const urlParams = new URLSearchParams(window.location.search);
             const pGameId = urlParams.get('game') || urlParams.get('id');
             const pLoc = urlParams.get('location') || urlParams.get('helyszin');
             const pType = urlParams.get('type') || urlParams.get('tipus');
 
-            // Ha bármilyen szűrő paraméter van az URL-ben, akkor az URL szűrőt futtatjuk újra
             if (pGameId || pLoc || pType) {
                 console.log("Mentés törölve, URL szűrés frissítése...");
                 handleInitialUrlFiltering();
             } else {
-                // Ha nincs URL paraméter, akkor a legördülő menük (dropdown) alapján frissítünk
                 console.log("Mentés törölve, Dropdown szűrés frissítése...");
                 applyFilters(); 
             }
-        }
+        }, 
+        true // Ez a paraméter kapcsolja be a "Mégse" gombot a modalban
+    );
+}
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
