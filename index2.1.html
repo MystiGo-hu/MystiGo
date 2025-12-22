@@ -669,7 +669,7 @@
         <div id="total-score-display" class="hidden text-right pr-1">
             <p class="text-[9px] font-bold text-gray-400 uppercase leading-none mb-0.5">Össz pont</p>
             <p class="text-sm font-black text-brand-blue tracking-tight leading-none">
-                <span id="user-total-score">0</span> XP
+                <span id="user-total-score">0</span> ⭐
             </p>
         </div>
     </div>
@@ -7255,29 +7255,33 @@ onAuthStateChanged(auth, (user) => {
         const profileRef = ref(db, `users/${user.uid}/profile`);
         
         profileListener = onValue(profileRef, (snapshot) => {
-            const profile = snapshot.val() || {};
-            console.log("🔄 Profil adatok frissültek:", profile);
+    const profile = snapshot.val() || {};
+    console.log("🔄 Profil adatok frissültek:", profile);
 
-            // UI elemek láthatósága
-            if (btnGroup) btnGroup.classList.add('hidden');
-            if (logoutBtn) logoutBtn.classList.remove('hidden');
-            if (scoreDisplay) scoreDisplay.classList.remove('hidden');
+    // UI elemek láthatósága és fejléc frissítése
+    if (btnGroup) btnGroup.classList.add('hidden');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
+    if (scoreDisplay) scoreDisplay.classList.remove('hidden');
 
-            // Név és pontszám azonnali frissítése
-            const displayName = profile.teamName || user.displayName;
-            if (authUserName) authUserName.textContent = displayName;
-            if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
-            
-            // Mezők kitöltése (csak ha még nem írt bele a user)
-            if (teamInput && !teamInput.value) {
-                teamInput.value = displayName;
-            }
-            if (avatarSelect && profile.avatar) {
-                avatarSelect.value = profile.avatar;
-            }
-        }, (error) => {
-            console.warn("Hiba a valós idejű figyelésnél:", error);
-        });
+    const displayName = profile.teamName || user.displayName;
+    if (authUserName) authUserName.textContent = displayName;
+    if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
+    
+    // ✅ JAVÍTÁS: Mindig írjuk felül az inputot, ha van mentett név az adatbázisban
+    if (teamInput && profile.teamName) {
+        teamInput.value = profile.teamName;
+        // Frissítjük a localStorage-t is, hogy a játék motorja (appState) is ezt lássa
+        localStorage.setItem('mystigo_pref_teamName', profile.teamName);
+    }
+
+    // Avatar frissítése (ez nálad már jól működött)
+    if (avatarSelect && profile.avatar) {
+        avatarSelect.value = profile.avatar;
+        localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+    }
+}, (error) => {
+    console.warn("Hiba a valós idejű figyelésnél:", error);
+});
 
     } else {
         // Kijelentkezve
