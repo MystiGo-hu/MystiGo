@@ -1449,21 +1449,27 @@ window.updateOfflineIndicator = function(isOffline) {
 
 
  
-window.checkOnlineStatus = function() {
+wwindow.checkOnlineStatus = function() {
     const indicator = document.getElementById('offline-indicator');
     const loadingStatus = document.getElementById('loading-status');
     
-    // Ha van net ÉS a Firebase is betöltött (window.db létezik)
-    if (navigator.onLine && window.db && window.ref) {
-        // Minden oké -> Rejtjük a piros csíkot
+    // 1. Ha van internet kapcsolat
+    if (navigator.onLine) {
+        // Ha van net, de a Firebase még inicializál, ne mutassunk hiba jelzést
+        if (!window.db || !window.ref) {
+            console.log("Hálózat OK, Firebase betöltése folyamatban...");
+            return; 
+        }
+
+        // Ha minden kész (Net + Firebase), elrejtjük a piros csíkot
         if(indicator) indicator.classList.add('hidden');
         
-        // Ha beragadt volna az "Offline" felirat a töltőképernyőn, töröljük
+        // Takarítjuk a töltőképernyő szövegét
         if(loadingStatus && loadingStatus.textContent.includes('Offline')) {
             loadingStatus.textContent = "Csatlakozva.";
         }
     } else {
-        // Nincs net vagy nincs adatbázis -> Mutatjuk a piros csíkot
+        // 2. Tényleg nincs internet -> Megjelenítjük a piros jelzőt
         if(indicator) indicator.classList.remove('hidden');
     }
 };
@@ -1566,9 +1572,15 @@ window.getGameCurrentCount = async function(gameId) {
 
   // 2. Szinkronizáció végrehajtása (Feltöltés) - JAVÍTOTT VERZIÓ
   window.syncPendingUploads = async function() {
-      if (!navigator.onLine) return; 
+    if (!navigator.onLine) return; 
 
-      let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
+    // ✅ JAVÍTÁS: Csak akkor fusson, ha a modul már betöltötte a Firebase-t
+    if (typeof window.push !== 'function' || !window.db) {
+        console.warn("⏳ Firebase modul betöltése folyamatban...");
+        return; 
+    }
+
+    let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
       if (pending.length === 0) return; 
 
       console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
@@ -1651,7 +1663,7 @@ window.getGameCurrentCount = async function(gameId) {
   });
 
   // Indításkor is próbálja meg (hátha most van net, de tegnap nem volt)
-  setTimeout(() => { if(window.syncPendingUploads) window.syncPendingUploads(); }, 3000);
+  setTimeout(() => { if(window.syncPendingUploads) window.syncPendingUploads(); }, 6000);
 
 
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
@@ -2736,7 +2748,7 @@ window.initializeGamesFromFirebase = async function() {
         const pGameId = urlParams.get('game') || urlParams.get('id');
         
         const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Network Timeout')), 5000)
+            setTimeout(() => reject(new Error('Network Timeout')), 15000)
         );
         
         let fetchPromise;
@@ -7186,7 +7198,16 @@ window.loadGameDataAndStart = async function(gameId) {
         // Globális elérés biztosítása a többi scriptnek
         window.db = db;
         window.auth = auth;
-        window.ref = ref; window.get = get; window.set = set; window.update = update; window.runTransaction = runTransaction;
+        window.ref = ref; 
+        window.get = get; 
+        window.child = child; // Ez hiányzott!
+        window.push = push;   // Ez is hiányzott!
+        window.set = set; 
+        window.update = update; 
+        window.query = query; // Ez is hiányzott!
+        window.onValue = onValue; // Ez is hiányzott!
+        window.runTransaction = runTransaction;
+        
         window.isFirebaseReady = true;
 
         // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE ---
