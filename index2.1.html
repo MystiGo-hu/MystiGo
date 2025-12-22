@@ -7162,7 +7162,7 @@ window.loadGameDataAndStart = async function(gameId) {
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
+    import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -7233,53 +7233,54 @@ window.loadGameDataAndStart = async function(gameId) {
         };
 
         // --- UI ÁLLAPOTFIGYELŐ ---
-        onAuthStateChanged(auth, async (user) => {
+        let profileListener = null; // Változó a figyelő leállításához
+
+onAuthStateChanged(auth, (user) => {
     const btnGroup = document.getElementById('auth-buttons-group');
     const logoutBtn = document.getElementById('logout-btn');
     const scoreDisplay = document.getElementById('total-score-display');
     const scoreSpan = document.getElementById('user-total-score');
     const authUserName = document.getElementById('auth-user-name');
     const teamInput = document.getElementById('team-name-input');
-    const avatarSelect = document.getElementById('team-avatar-select'); // Avatar választó lekérése
-    
+    const avatarSelect = document.getElementById('team-avatar-select');
+
+    // Ha volt korábbi figyelő, leállítjuk
+    if (profileListener) {
+        profileListener();
+        profileListener = null;
+    }
+
     if (user) {
-        let profile = {};
+        // ✅ VALÓS IDEJŰ FIGYELŐ INDÍTÁSA
+        const profileRef = ref(db, `users/${user.uid}/profile`);
         
-        try {
-            // Adatok betöltése a Firebase-ből
-            const snapshot = await get(ref(db, `users/${user.uid}/profile`));
-            if (snapshot.exists()) {
-                profile = snapshot.val();
+        profileListener = onValue(profileRef, (snapshot) => {
+            const profile = snapshot.val() || {};
+            console.log("🔄 Profil adatok frissültek:", profile);
+
+            // UI elemek láthatósága
+            if (btnGroup) btnGroup.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+            if (scoreDisplay) scoreDisplay.classList.remove('hidden');
+
+            // Név és pontszám azonnali frissítése
+            const displayName = profile.teamName || user.displayName;
+            if (authUserName) authUserName.textContent = displayName;
+            if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
+            
+            // Mezők kitöltése (csak ha még nem írt bele a user)
+            if (teamInput && !teamInput.value) {
+                teamInput.value = displayName;
             }
-        } catch (dbError) {
-            // Ha még nincs kész a Rule a konzolban, itt fogja elkapni a hibát, és nem omlik össze a script
-            console.warn("Profil adat nem elérhető:", dbError.message);
-        }
-
-        // 1. UI elemek láthatósága
-        if (btnGroup) btnGroup.classList.add('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
-        if (scoreDisplay) scoreDisplay.classList.remove('hidden');
-
-        // 2. Név és pontszám megjelenítése
-        const displayName = profile.teamName || user.displayName;
-        if (authUserName) authUserName.textContent = displayName;
-        if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
-        
-        // 3. Név automatikus kitöltése az inputban, ha még üres
-        if (teamInput && !teamInput.value) {
-            teamInput.value = displayName;
-        }
-
-        // 4. ✅ AVATAR BETÖLTÉSE: A legördülő menüt a mentett értékre állítjuk
-        if (avatarSelect && profile.avatar) {
-            avatarSelect.value = profile.avatar;
-            // Jelezzük a LocalStorage-nak is a változást
-            localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-        }
+            if (avatarSelect && profile.avatar) {
+                avatarSelect.value = profile.avatar;
+            }
+        }, (error) => {
+            console.warn("Hiba a valós idejű figyelésnél:", error);
+        });
 
     } else {
-        // KIJELENTKEZVE: Visszaállítjuk az alaphelyzetet
+        // Kijelentkezve
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
