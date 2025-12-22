@@ -1449,7 +1449,7 @@ window.updateOfflineIndicator = function(isOffline) {
 
 
  
-wwindow.checkOnlineStatus = function() {
+window.checkOnlineStatus = function() {
     const indicator = document.getElementById('offline-indicator');
     const loadingStatus = document.getElementById('loading-status');
     
@@ -4139,11 +4139,10 @@ window.autoSortGamesByDistance = function() {
       window.startTimersAndGPS = async function() {
     // ✅ ÚJ: Profil mentése indításkor
     if (window.auth && window.auth.currentUser) {
-        try {
-            const teamName = document.getElementById('team-name-input').value;
-            const avatar = document.getElementById('team-avatar-select').value;
-            await window.saveUserProfile(teamName, avatar);
-        } catch (e) { console.error(e); }
+        console.log("Küldés a profilba. Pontszám:", appState.score); // Debug log
+        window.addPointsToUser(appState.score)
+            .then(() => console.log("✅ Profil frissítési kérelem elküldve."))
+            .catch(e => console.error("❌ Hiba a híváskor:", e));
     }
     
     if (appState.isTimerRunning) return;
@@ -7261,22 +7260,30 @@ window.loadGameDataAndStart = async function(gameId) {
         window.addPointsToUser = async (points) => {
             const user = auth.currentUser;
             if (user) {
-                // Kényszerítjük, hogy a 'points' valódi SZÁM legyen (nem szöveg)
+                // Kényszerítjük, hogy a 'points' valódi SZÁM legyen
                 const pointsToAdd = parseInt(points) || 0;
-                if (pointsToAdd === 0) return;
+                if (pointsToAdd <= 0) {
+                    console.log("ℹ️ Nincs hozzáadandó pont (0 vagy NaN).");
+                    return;
+                }
 
                 const scoreRef = ref(db, `users/${user.uid}/profile/totalScore`);
                 
                 try {
-                    await runTransaction(scoreRef, (currentScore) => {
-                        // Ha még nincs pontja, 0-ról indul
+                    const result = await runTransaction(scoreRef, (currentScore) => {
+                        // Ha még nincs pontja az adatbázisban, 0-ról indul
                         const oldScore = parseInt(currentScore) || 0;
                         return oldScore + pointsToAdd;
                     });
-                    console.log(`✅ ${pointsToAdd} pont hozzáadva a profilhoz.`);
+                    
+                    if (result.committed) {
+                        console.log(`✅ SIKER: ${pointsToAdd} pont hozzáadva. Új összérték: ${result.snapshot.val()}`);
+                    }
                 } catch (e) {
-                    console.error("❌ Hiba a tranzakció során:", e);
+                    console.error("❌ Hiba az összpontszám tranzakció közben:", e);
                 }
+            } else {
+                console.warn("⚠️ Nincs bejelentkezett felhasználó, a pontok nem mentődnek a profilba.");
             }
         };
 
