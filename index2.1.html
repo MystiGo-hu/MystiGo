@@ -638,7 +638,7 @@
             <button id="google-login-btn" onclick="loginWithGoogle()" 
                     class="w-9 h-9 flex items-center justify-center bg-white border border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95"
                     title="Google">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
+                <img src="logo/google_logo.svg" class="w-5 h-5">
             </button>
 
             <button class="w-9 h-9 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-xl text-gray-400 cursor-not-allowed" title="Email (Hamarosan)">
@@ -7127,14 +7127,16 @@ window.loadGameDataAndStart = async function(gameId) {
 </script>
 
 <script type="module">
+    // 1. Szükséges Firebase modulok importálása
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     
-    // --- ÚJ: Google Auth importálása ---
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
+    // Auth modulok importálása (Redirect és SignOut is benne van)
+    import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // 2. Firebase konfiguráció
     const firebaseConfig = {
         apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw", 
         authDomain: "mystigo-7b149.firebaseapp.com",
@@ -7146,75 +7148,83 @@ window.loadGameDataAndStart = async function(gameId) {
     };
 
     try {
+        // 3. Inicializálás
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const auth = getAuth(app); // Auth inicializálása
+        const auth = getAuth(app);
 
+        // 4. Globális elérhetőség biztosítása a többi script számára
         window.db = db;
-        window.auth = auth; // Elérhetővé tesszük globálisan
+        window.auth = auth;
         window.ref = ref;
         window.get = get;
+        window.child = child;
         window.push = push;
+        window.update = update;
         window.set = set;
         window.query = query;
         window.runTransaction = runTransaction;
 
-        // --- Google Bejelentkezés Logika ---
-        
-import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // --- AUTH FUNKCIÓK ---
 
-wwindow.loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-        // Pop-up helyett Redirect-et használunk
-        await signInWithRedirect(auth, provider);
-    } catch (error) {
-        console.error("Belépési hiba:", error);
-    }
-};
+        // Google Bejelentkezés (Redirect módszerrel a COOP hibák elkerülésére)
+        window.loginWithGoogle = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithRedirect(auth, provider);
+            } catch (error) {
+                console.error("Belépési hiba:", error);
+                alert("Hiba a bejelentkezés indításakor.");
+            }
+        };
 
-        // Állapotfigyelő: Automatikusan kezeli a UI-t, ha belépett a user
+        // Kijelentkezés
+        window.logout = async () => {
+            if(confirm("Biztosan ki szeretnél jelentkezni?")) {
+                try {
+                    await signOut(auth);
+                    console.log("Sikeres kijelentkezés");
+                } catch (error) {
+                    console.error("Kijelentkezési hiba:", error);
+                }
+            }
+        };
+
+        // 5. Állapotfigyelő: Kezeli a UI-t be/kijelentkezéskor
         onAuthStateChanged(auth, (user) => {
-    const authButtonGroup = document.getElementById('auth-buttons-group');
-    const logoutBtn = document.getElementById('logout-btn');
-    const authLabel = document.getElementById('auth-status-label');
-    const authUserName = document.getElementById('auth-user-name');
-    const teamInput = document.getElementById('team-name-input');
-    
-    if (user) {
-        // HA BE VAN JELENTKEZVE
-        if (authButtonGroup) authButtonGroup.classList.add('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
-        if (authLabel) authLabel.textContent = "Bejelentkezve:";
-        if (authUserName) authUserName.textContent = user.displayName;
-        
-        // Név automatikus kitöltése, ha üres
-        if (teamInput && !teamInput.value) {
-            teamInput.value = user.displayName;
-            localStorage.setItem('mystigo_pref_teamName', user.displayName);
-        }
-    } else {
-        // HA KI VAN JELENTKEZVE
-        if (authButtonGroup) authButtonGroup.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
-        if (authLabel) authLabel.textContent = "Belépés";
-        if (authUserName) authUserName.textContent = "";
-    }
-});
+            const authButtonGroup = document.getElementById('auth-buttons-group');
+            const logoutBtn = document.getElementById('logout-btn');
+            const authLabel = document.getElementById('auth-status-label');
+            const authUserName = document.getElementById('auth-user-name');
+            const teamInput = document.getElementById('team-name-input');
+            
+            if (user) {
+                // HA BE VAN JELENTKEZVE
+                if (authButtonGroup) authButtonGroup.classList.add('hidden');
+                if (logoutBtn) logoutBtn.classList.remove('hidden');
+                if (authLabel) authLabel.textContent = "Bejelentkezve:";
+                if (authUserName) authUserName.textContent = user.displayName;
+                
+                // Név automatikus kitöltése az input mezőben
+                if (teamInput && !teamInput.value) {
+                    teamInput.value = user.displayName;
+                    localStorage.setItem('mystigo_pref_teamName', user.displayName);
+                }
+            } else {
+                // HA KI VAN JELENTKEZVE
+                if (authButtonGroup) authButtonGroup.classList.remove('hidden');
+                if (logoutBtn) logoutBtn.classList.add('hidden');
+                if (authLabel) authLabel.textContent = "Belépés";
+                if (authUserName) authUserName.textContent = "";
+            }
+        });
 
-// Kijelentkezés függvény (biztosítva a globális elérhetőséget)
-window.logout = async () => {
-    if(confirm("Biztosan ki szeretnél jelentkezni?")) {
-        try {
-            await signOut(auth);
-        } catch (error) {
-            console.error("Hiba a kijelentkezéskor:", error);
-        }
+        console.log("✅ Firebase Auth & DB Ready");
+
+    } catch (error) {
+        console.error("❌ Firebase inicializálási hiba:", error);
     }
-};
 </script>
-
 
 
 
