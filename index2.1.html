@@ -7127,16 +7127,14 @@ window.loadGameDataAndStart = async function(gameId) {
 </script>
 
 <script type="module">
-    // 1. Szükséges Firebase modulok importálása
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     
-    // Auth modulok importálása (Redirect és SignOut is benne van)
-    import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } 
+    // ✅ JAVÍTÁS: getRedirectResult hozzáadva az importokhoz
+    import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // 2. Firebase konfiguráció
     const firebaseConfig = {
         apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw", 
         authDomain: "mystigo-7b149.firebaseapp.com",
@@ -7148,12 +7146,10 @@ window.loadGameDataAndStart = async function(gameId) {
     };
 
     try {
-        // 3. Inicializálás
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // 4. Globális elérhetőség biztosítása a többi script számára
         window.db = db;
         window.auth = auth;
         window.ref = ref;
@@ -7167,9 +7163,23 @@ window.loadGameDataAndStart = async function(gameId) {
 
         // --- AUTH FUNKCIÓK ---
 
-        // Google Bejelentkezés (Redirect módszerrel a COOP hibák elkerülésére)
+        // ✅ JAVÍTÁS: A Redirect eredményének kezelése betöltéskor
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result?.user) {
+                    console.log("✅ Sikeres belépés redirect után:", result.user.displayName);
+                }
+            }).catch((error) => {
+                console.error("❌ Redirect hiba:", error.code, error.message);
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    alert("Ez az e-mail cím már társítva van egy másik belépési módhoz.");
+                }
+            });
+
         window.loginWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
+            // Kényszerítjük a fiókválasztót, hogy ne ragadjon be
+            provider.setCustomParameters({ prompt: 'select_account' });
             try {
                 await signInWithRedirect(auth, provider);
             } catch (error) {
@@ -7178,7 +7188,6 @@ window.loadGameDataAndStart = async function(gameId) {
             }
         };
 
-        // Kijelentkezés
         window.logout = async () => {
             if(confirm("Biztosan ki szeretnél jelentkezni?")) {
                 try {
@@ -7190,7 +7199,6 @@ window.loadGameDataAndStart = async function(gameId) {
             }
         };
 
-        // 5. Állapotfigyelő: Kezeli a UI-t be/kijelentkezéskor
         onAuthStateChanged(auth, (user) => {
             const authButtonGroup = document.getElementById('auth-buttons-group');
             const logoutBtn = document.getElementById('logout-btn');
@@ -7199,19 +7207,16 @@ window.loadGameDataAndStart = async function(gameId) {
             const teamInput = document.getElementById('team-name-input');
             
             if (user) {
-                // HA BE VAN JELENTKEZVE
                 if (authButtonGroup) authButtonGroup.classList.add('hidden');
                 if (logoutBtn) logoutBtn.classList.remove('hidden');
                 if (authLabel) authLabel.textContent = "Bejelentkezve:";
                 if (authUserName) authUserName.textContent = user.displayName;
                 
-                // Név automatikus kitöltése az input mezőben
                 if (teamInput && !teamInput.value) {
                     teamInput.value = user.displayName;
                     localStorage.setItem('mystigo_pref_teamName', user.displayName);
                 }
             } else {
-                // HA KI VAN JELENTKEZVE
                 if (authButtonGroup) authButtonGroup.classList.remove('hidden');
                 if (logoutBtn) logoutBtn.classList.add('hidden');
                 if (authLabel) authLabel.textContent = "Belépés";
@@ -7219,7 +7224,7 @@ window.loadGameDataAndStart = async function(gameId) {
             }
         });
 
-        console.log("✅ Firebase Auth & DB Ready");
+        console.log("✅ Firebase Auth Ready");
 
     } catch (error) {
         console.error("❌ Firebase inicializálási hiba:", error);
