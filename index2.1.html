@@ -7234,34 +7234,58 @@ window.loadGameDataAndStart = async function(gameId) {
 
         // --- UI ÁLLAPOTFIGYELŐ ---
         onAuthStateChanged(auth, async (user) => {
-            const btnGroup = document.getElementById('auth-buttons-group');
-            const logoutBtn = document.getElementById('logout-btn');
-            const scoreDisplay = document.getElementById('total-score-display');
-            const scoreSpan = document.getElementById('user-total-score');
-            const authUserName = document.getElementById('auth-user-name');
-            const teamInput = document.getElementById('team-name-input');
-            
-            if (user) {
-                // Adatok betöltése
-                const snapshot = await get(ref(db, `users/${user.uid}/profile`));
-                const profile = snapshot.val() || {};
-
-                if (btnGroup) btnGroup.classList.add('hidden');
-                if (logoutBtn) logoutBtn.classList.remove('hidden');
-                if (scoreDisplay) scoreDisplay.classList.remove('hidden');
-                if (authUserName) authUserName.textContent = profile.teamName || user.displayName;
-                if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
-                
-                // Automatikus kitöltés
-                if (teamInput && !teamInput.value) {
-                    teamInput.value = profile.teamName || user.displayName;
-                }
-            } else {
-                if (btnGroup) btnGroup.classList.remove('hidden');
-                if (logoutBtn) logoutBtn.classList.add('hidden');
-                if (scoreDisplay) scoreDisplay.classList.add('hidden');
+    const btnGroup = document.getElementById('auth-buttons-group');
+    const logoutBtn = document.getElementById('logout-btn');
+    const scoreDisplay = document.getElementById('total-score-display');
+    const scoreSpan = document.getElementById('user-total-score');
+    const authUserName = document.getElementById('auth-user-name');
+    const teamInput = document.getElementById('team-name-input');
+    const avatarSelect = document.getElementById('team-avatar-select'); // Avatar választó lekérése
+    
+    if (user) {
+        let profile = {};
+        
+        try {
+            // Adatok betöltése a Firebase-ből
+            const snapshot = await get(ref(db, `users/${user.uid}/profile`));
+            if (snapshot.exists()) {
+                profile = snapshot.val();
             }
-        });
+        } catch (dbError) {
+            // Ha még nincs kész a Rule a konzolban, itt fogja elkapni a hibát, és nem omlik össze a script
+            console.warn("Profil adat nem elérhető:", dbError.message);
+        }
+
+        // 1. UI elemek láthatósága
+        if (btnGroup) btnGroup.classList.add('hidden');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        if (scoreDisplay) scoreDisplay.classList.remove('hidden');
+
+        // 2. Név és pontszám megjelenítése
+        const displayName = profile.teamName || user.displayName;
+        if (authUserName) authUserName.textContent = displayName;
+        if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
+        
+        // 3. Név automatikus kitöltése az inputban, ha még üres
+        if (teamInput && !teamInput.value) {
+            teamInput.value = displayName;
+        }
+
+        // 4. ✅ AVATAR BETÖLTÉSE: A legördülő menüt a mentett értékre állítjuk
+        if (avatarSelect && profile.avatar) {
+            avatarSelect.value = profile.avatar;
+            // Jelezzük a LocalStorage-nak is a változást
+            localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+        }
+
+    } else {
+        // KIJELENTKEZVE: Visszaállítjuk az alaphelyzetet
+        if (btnGroup) btnGroup.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (scoreDisplay) scoreDisplay.classList.add('hidden');
+        if (authUserName) authUserName.textContent = "";
+    }
+});
 
     } catch (error) { console.error("❌ Firebase inicializálási hiba:", error); }
 </script>
