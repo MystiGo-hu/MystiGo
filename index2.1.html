@@ -2731,6 +2731,15 @@ function loadGameById(gameId) {
 window.initializeGamesFromFirebase = async function() {
     showLoading(true);
     const statusText = document.getElementById('loading-status');
+
+    // ✅ ÚJ: Várakozás, ha a Firebase modul még nem töltött be (max 5 mp)
+    let retryCount = 0;
+    while ((!window.db || !window.child) && retryCount < 50) {
+        if(statusText) statusText.textContent = "Firebase motor indítása...";
+        await new Promise(r => setTimeout(r, 100));
+        retryCount++;
+    }
+
     if(statusText) statusText.textContent = "Csatlakozás a szerverhez...";
 
     const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
@@ -4749,9 +4758,13 @@ if (taskImageEl) {
 
 // --- ÚJ RÉSZ: Összpontszám növelése a profilban ---
     if (window.auth && window.auth.currentUser) {
-        window.addPointsToUser(appState.score)
-            .then(() => console.log("Pontok hozzáadva az összpontszámhoz!"))
-            .catch(e => console.error("Hiba a pontok frissítésekor:", e));
+        // Átadjuk az aktuális játékban gyűjtött pontokat
+        const finalScoreValue = parseInt(appState.score) || 0;
+        console.log("Próbálkozás pontszám mentéssel a profilba:", finalScoreValue);
+        
+        window.addPointsToUser(finalScoreValue)
+            .then(() => console.log("✅ Összpontszám sikeresen frissítve a felhőben!"))
+            .catch(e => console.error("❌ Hiba az összpontszám frissítésekor:", e));
     }
 
 
@@ -6953,24 +6966,45 @@ window.startInstantAdventure = async function() {
         // 3. Útvonal sorbarendezése (Nearest Neighbor algoritmus)
         let routePoints = [];
         let currentPos = { lat: startLat, lng: startLng };
+        const MIN_DIST = 150; // Minimum távolság méterben (100-200m között)
 
-        if (availablePOIs.length >= 5) {
-            // Kiválasztunk 5 pontot úgy, hogy mindig a legközelebbit keressük
-            for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 5; i++) {
+            let selectedPoint = null;
+
+            if (availablePOIs.length > 0) {
+                // Sorbarendezzük a maradék pontokat távolság szerint a jelenlegi helyzetünktől
                 availablePOIs.sort((a, b) => {
                     return haversineDistance(currentPos, a) - haversineDistance(currentPos, b);
                 });
-                let closest = availablePOIs.shift(); // Kiveszi a legközelebbit
-                routePoints.push(closest);
-                currentPos = closest; // A következő keresés innen indul
+
+                // Megkeressük az első olyan pontot, ami legalább MIN_DIST távolságra van
+                let foundIndex = -1;
+                for (let j = 0; j < availablePOIs.length; j++) {
+                    const dist = haversineDistance(currentPos, availablePOIs[j]);
+                    if (dist >= MIN_DIST) {
+                        foundIndex = j;
+                        break;
+                    }
+                }
+
+                if (foundIndex !== -1) {
+                    // Találtunk megfelelő távolságú valódi helyszínt
+                    selectedPoint = availablePOIs.splice(foundIndex, 1)[0];
+                } else {
+                    // Ha minden maradék POI túl közel van, kényszerítünk egy távolabbi pontot 
+                    // a legmesszebb lévő POI irányába vagy véletlenszerűen
+                    const backupPOI = availablePOIs.pop(); // A legmesszebbit vesszük ki
+                    selectedPoint = calculateNextPoint(currentPos.lat, currentPos.lng, MIN_DIST + 20, Math.random() * 360);
+                    selectedPoint.name = "Felfedező pont";
+                }
+            } else {
+                // FAILSAFE: Ha egyáltalán nincs térképi adat, matematikai generálás
+                selectedPoint = calculateNextPoint(currentPos.lat, currentPos.lng, MIN_DIST + 50, (Math.random() * 90) - 45);
+                selectedPoint.name = "Kaland pont";
             }
-        } else {
-            // FAILSAFE: Ha nincs elég térképi adat, matematikai generálás (régi módszer)
-            for (let i = 0; i < 5; i++) {
-                let p = calculateNextPoint(currentPos.lat, currentPos.lng, 200, (Math.random() * 90) - 45);
-                routePoints.push(p);
-                currentPos = p;
-            }
+
+            routePoints.push(selectedPoint);
+            currentPos = selectedPoint; // A következő keresés innen indul
         }
 
         // 4. Feladatok betöltése és párosítása a pontokkal
@@ -7227,10 +7261,22 @@ window.loadGameDataAndStart = async function(gameId) {
         window.addPointsToUser = async (points) => {
             const user = auth.currentUser;
             if (user) {
+                // Kényszerítjük, hogy a 'points' valódi SZÁM legyen (nem szöveg)
+                const pointsToAdd = parseInt(points) || 0;
+                if (pointsToAdd === 0) return;
+
                 const scoreRef = ref(db, `users/${user.uid}/profile/totalScore`);
-                await runTransaction(scoreRef, (currentScore) => {
-                    return (currentScore || 0) + points;
-                });
+                
+                try {
+                    await runTransaction(scoreRef, (currentScore) => {
+                        // Ha még nincs pontja, 0-ról indul
+                        const oldScore = parseInt(currentScore) || 0;
+                        return oldScore + pointsToAdd;
+                    });
+                    console.log(`✅ ${pointsToAdd} pont hozzáadva a profilhoz.`);
+                } catch (e) {
+                    console.error("❌ Hiba a tranzakció során:", e);
+                }
             }
         };
 
