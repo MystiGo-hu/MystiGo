@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.06
+       v1.2.07
 
    </span>
 
@@ -4811,8 +4811,10 @@ if (taskImageEl) {
             setTimeout(() => { downloadPDF(); }, 1000); 
             
             if(appState.currentGame) {
-                deleteSavedGame(appState.currentGame.id);
-            }
+    // A megerősítő ablakos függvény helyett közvetlenül a tárolóból töröljük
+    localStorage.removeItem(getStorageKey(appState.currentGame.id));
+    console.log("Mentés csendesen törölve a játék végén.");
+}
             appState.currentGame = null;
         }
       
@@ -6834,70 +6836,94 @@ window.startInstantAdventure = async function() {
     const originalContent = btn.innerHTML;
     
     try {
-        btn.innerHTML = '🎲 Generálás...';
+        btn.innerHTML = '🔍 Útvonal tervezése...';
         btn.disabled = true;
 
-        const selectedDifficulty = diffSelect ? diffSelect.value : 'all';
         if (!window.db || !window.ref || !window.get) {
              throw new Error("A rendszer még nem állt fel.");
         }
 
-        const dbRef = window.ref(window.db, 'generic_tasks'); 
-        const snapshot = await window.get(dbRef);
-        const data = snapshot.val();
-        if (!data) throw new Error("Nem található feladatbázis!");
-
-        let allTasks = Object.values(data);
-        const shuffled = allTasks.sort(() => 0.5 - Math.random());
-        const selectedTasks = shuffled.slice(0, 5); 
-
+        // 1. Aktuális helyzet lekérése
         let {lat: startLat, lng: startLng} = await new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
                 (p) => resolve({lat: p.coords.latitude, lng: p.coords.longitude}),
-                () => resolve({lat: 47.4979, lng: 19.0402})
+                () => resolve({lat: 47.4979, lng: 19.0402}) 
             );
         });
 
-        let currentLat = startLat;
-        let currentLng = startLng;
+        // 2. Valódi helyszínek (POI-k) lekérése az OpenStreetMap-ről
+        const radius = 1000; // 1 km-es körzetben keresünk nevezetességeket
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain)$"];out;`;
 
-        const tasksWithLocation = selectedTasks.map((task, index) => {
-            const nextPoint = calculateNextPoint(currentLat, currentLng, 250, Math.random() * 360);
-            currentLat = nextPoint.lat;
-            currentLng = nextPoint.lng;
+        let availablePOIs = [];
+        try {
+            const response = await fetch(overpassUrl);
+            const osmData = await response.json();
+            if (osmData.elements && osmData.elements.length > 0) {
+                availablePOIs = osmData.elements.map(el => ({ lat: el.lat, lng: el.lon, name: el.tags.name || "Érdekes pont" }));
+            }
+        } catch (e) {
+            console.warn("Overpass API hiba, véletlenszerű generálásra váltás.", e);
+        }
+
+        // 3. Útvonal sorbarendezése (Nearest Neighbor algoritmus)
+        let routePoints = [];
+        let currentPos = { lat: startLat, lng: startLng };
+
+        if (availablePOIs.length >= 5) {
+            // Kiválasztunk 5 pontot úgy, hogy mindig a legközelebbit keressük
+            for (let i = 0; i < 5; i++) {
+                availablePOIs.sort((a, b) => {
+                    return haversineDistance(currentPos, a) - haversineDistance(currentPos, b);
+                });
+                let closest = availablePOIs.shift(); // Kiveszi a legközelebbit
+                routePoints.push(closest);
+                currentPos = closest; // A következő keresés innen indul
+            }
+        } else {
+            // FAILSAFE: Ha nincs elég térképi adat, matematikai generálás (régi módszer)
+            for (let i = 0; i < 5; i++) {
+                let p = calculateNextPoint(currentPos.lat, currentPos.lng, 200, (Math.random() * 90) - 45);
+                routePoints.push(p);
+                currentPos = p;
+            }
+        }
+
+        // 4. Feladatok betöltése és párosítása a pontokkal
+        const snapshot = await window.get(window.ref(window.db, 'generic_tasks'));
+        const allTasks = Object.values(snapshot.val() || {});
+        const shuffledTasks = allTasks.sort(() => 0.5 - Math.random()).slice(0, 5);
+
+        const tasksWithLocation = shuffledTasks.map((task, index) => {
             return {
                 ...task,
                 index: index + 1,
-                location: nextPoint,
-                prompt: task.question || task.prompt || "Kérdés?",
-                geofenceRadius: 40
+                location: routePoints[index],
+                prompt: task.question || task.prompt || "Keresd meg a megoldást!",
+                geofenceRadius: 35 
             };
         });
 
+        // 5. Játék inicializálása
         const instantGameId = "instant_" + Date.now();
         const instantGame = {
             id: instantGameId,
-            title: `Generált Kaland (${selectedDifficulty})`,
+            title: `Városi Felfedezés 🎲`,
             type: "Instant",
             tasks: tasksWithLocation,
-            startLocation: { lat: startLat, lng: startLng }
+            startLocation: { lat: startLat, lng: startLng },
+            description: "Ez a kaland a közeledben lévő nevezetességek és emlékhelyek alapján állt össze egy logikus sétává.",
+            endStory: "Sikeresen teljesítetted a környéked felfedezését!"
         };
 
         window.games[instantGameId] = instantGame;
-        
-        // 1. Elmentjük a generált játék adatait
         localStorage.setItem(`MystiGo_GameData_${instantGameId}`, JSON.stringify(instantGame));
         
-        // 2. Elindítjuk a játékot
         handleGameSelect(instantGameId, instantGame.title, "Instant", "Ingyenes", false, true);
 
-        // 3. KÉNYSZERÍTETT MENTÉS ÉS UI FRISSÍTÉS:
-        // Rövid késleltetés kell, hogy a handleGameSelect beállítsa az appState-et
         setTimeout(() => {
-            if (typeof saveGameState === 'function') {
-                saveGameState(); // Létrehozza a MystiGoGameState_ kezdetű kulcsot
-            }
-            window.checkInstantProgress(); // Ezután már látni fogja a mentést és megjeleníti a gombokat
+            if (typeof saveGameState === 'function') saveGameState();
+            window.checkInstantProgress();
         }, 800);
 
     } catch (error) {
@@ -6905,8 +6931,6 @@ window.startInstantAdventure = async function() {
     } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
-        // Itt is meghívjuk a biztonság kedvéért
-        window.checkInstantProgress();
     }
 };
 
