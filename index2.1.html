@@ -629,25 +629,57 @@
                                 </div>
                                 </div> </details>
 
+
+
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-    
-<div class="mb-4">
-        <button id="google-login-btn" onclick="loginWithGoogle()" 
-                class="w-full flex items-center justify-center gap-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-all active:scale-95">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
-            Belépés Google-fiókkal
+    <div class="flex items-center gap-2 mb-4 bg-white/40 p-1.5 rounded-2xl border border-gray-100">
+        
+        <div id="auth-buttons-group" class="flex gap-2">
+            <button id="google-login-btn" onclick="loginWithGoogle()" 
+                    class="w-9 h-9 flex items-center justify-center bg-white border border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+                    title="Google">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
+            </button>
+
+            <button class="w-9 h-9 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-xl text-gray-400 cursor-not-allowed" title="Email (Hamarosan)">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </button>
+
+            <button class="w-9 h-9 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-xl text-gray-400 cursor-not-allowed" title="Facebook (Hamarosan)">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </button>
+        </div>
+
+        <button id="logout-btn" onclick="logout()" 
+                class="hidden w-9 h-9 flex items-center justify-center bg-white border border-red-100 text-red-500 rounded-xl shadow-sm hover:bg-red-50 transition-all active:scale-95">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
         </button>
-        <p class="text-[9px] text-gray-400 text-center mt-2 uppercase tracking-tighter">A belépés után a neved automatikusan kitöltődik</p>
+
+        <div class="flex flex-col overflow-hidden">
+            <p id="auth-status-label" class="text-[9px] font-bold text-gray-400 uppercase leading-none mb-1">Belépés</p>
+            <p id="auth-user-name" class="text-[11px] font-bold text-brand-blue truncate max-w-[120px]"></p>
+        </div>
     </div>
+
 
 <div class="flex justify-between items-center mb-3">
         <h2 class="text-xl font-bold text-text-heading">Játékos<span class="text-red-500">*</span></h2>
+
         
+
         <label class="flex items-center cursor-pointer gap-2 select-none bg-yellow-100 px-3 py-1 rounded-full border border-yellow-200 hover:bg-yellow-200 transition">
             <span class="text-xs font-bold text-yellow-800 uppercase tracking-wide">Kids Mód 🐈</span>
             <input type="checkbox" id="kids-mode-checkbox" class="w-4 h-4 text-brand-orange border-gray-300 rounded focus:ring-brand-orange accent-orange-500">
         </label>
     </div>
+
+
+
+
+
+
     
     <input type="text" id="team-name-input" maxlength="25" placeholder="Pl. Villám-Macskák 2024" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue outline-none">
     
@@ -7128,16 +7160,19 @@ window.loadGameDataAndStart = async function(gameId) {
         window.runTransaction = runTransaction;
 
         // --- Google Bejelentkezés Logika ---
-        window.loginWithGoogle = async () => {
-            const provider = new GoogleAuthProvider();
-            try {
-                const result = await signInWithPopup(auth, provider);
-                console.log("Sikeres belépés:", result.user.displayName);
-            } catch (error) {
-                console.error("Belépési hiba:", error);
-                alert("Hiba történt a Google bejelentkezés során.");
-            }
-        };
+        
+import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+wwindow.loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        // Pop-up helyett Redirect-et használunk
+        await signInWithRedirect(auth, provider);
+    } catch (error) {
+        console.error("Belépési hiba:", error);
+    }
+};
 
         // Állapotfigyelő: Automatikusan kezeli a UI-t, ha belépett a user
         onAuthStateChanged(auth, (user) => {
