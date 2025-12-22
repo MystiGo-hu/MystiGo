@@ -442,7 +442,8 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.01
+       v1.2.07
+
    </span>
 
    <div id="main-header-logo-row" class="flex justify-center items-center mb-2 px-4">
@@ -610,6 +611,7 @@
                                     <p><strong>Kids 🐈:</strong> Kimondottan 6-12 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve, sorban haladó feladatokkal.</p>
                                     <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén.</p>
                                     <p><strong>Explore 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
+				    <p><strong>Instant 🎲:</strong> Bárhol elindítható, *azonnali kaland* a pillanatnyi tartózkodási helyed köré generált egyedi kaland, választható nehézségi szinttel.</p>
                                 </div>
 
 
@@ -628,7 +630,17 @@
                                 </div> </details>
 
                         <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-    <div class="flex justify-between items-center mb-3">
+    
+<div class="mb-4">
+        <button id="google-login-btn" onclick="loginWithGoogle()" 
+                class="w-full flex items-center justify-center gap-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-all active:scale-95">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
+            Belépés Google-fiókkal
+        </button>
+        <p class="text-[9px] text-gray-400 text-center mt-2 uppercase tracking-tighter">A belépés után a neved automatikusan kitöltődik</p>
+    </div>
+
+<div class="flex justify-between items-center mb-3">
         <h2 class="text-xl font-bold text-text-heading">Játékos<span class="text-red-500">*</span></h2>
         
         <label class="flex items-center cursor-pointer gap-2 select-none bg-yellow-100 px-3 py-1 rounded-full border border-yellow-200 hover:bg-yellow-200 transition">
@@ -775,22 +787,41 @@
 </div>
 
 
-<div id="instant-adventure-container" class="bg-orange-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+<div id="instant-adventure-container" class="relative bg-orange-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+    
+    <button onclick="openLeaderboardModal('instant_kozos')" 
+            class="absolute top-2 right-2 bg-white text-orange-500 w-8 h-8 rounded-full shadow-md border border-orange-200 hover:bg-orange-100 transition flex items-center justify-center z-10" 
+            title="Azonnali Kaland Közös Ranglista">
+        🏆
+    </button>
+
     <div class="mb-2">
-        <label class="text-[10px] font-bold text-black-500 uppercase tracking-wide ml-1">Azonnali Kaland a közeledben:</label>
-        
+        <label class="text-[12px] font-bold text-black-500 uppercase tracking-wide ml-1">Azonnali Kaland a közeledben:</label>
     </div>
 
     <button id="instant-adventure-btn" onclick="startInstantAdventure()" class="w-full py-2 bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-sm">
         🎲 Azonnali Kaland Indítása
     </button>
 
-<select id="instant-difficulty-select" class="w-full px-4 py-1 border-2 border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-brand-blue outline-none cursor-pointer text-center">
-            <option value="all">🔀 Nehézség (Véletlenszerű)</option>
-            <option value="easy">🟢 Könnyű</option>
-            <option value="medium">🟡 Közepes</option>
-            <option value="hard">🔴 Nehéz</option>
-        </select>
+    <select id="instant-difficulty-select" class="w-full mt-2 px-4 py-1 border-2 border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-brand-blue outline-none cursor-pointer text-center">
+        <option value="all">🔀 Nehézség (Véletlenszerű)</option>
+        <option value="easy">🟢 Könnyű</option>
+        <option value="medium">🟡 Közepes</option>
+        <option value="hard">🔴 Nehéz</option>
+    </select>
+
+<div id="instant-resume-ui" class="hidden mt-3 pt-3 border-t border-orange-200 justify-between items-center">
+    <button onclick="resumeInstantAdventure()" class="text-[10px] font-bold text-green-700 bg-green-100 hover:bg-green-200 px-4 py-2 rounded-lg transition-all flex items-center gap-1 shadow-sm">
+        <span>▶</span> Folytatás
+    </button>
+
+    <button onclick="deleteInstantAdventure()" class="bg-red-100 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-full transition-all shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
+</div>
+
 
 </div>
 
@@ -1085,6 +1116,53 @@
     
     <p class="absolute bottom-4 left-0 right-0 text-center text-white/50 text-xs pointer-events-none">Kattints bárhova a bezáráshoz</p>
 </div>
+
+
+
+
+
+<div id="coupon-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center border-t-4 border-[#FFA500]">
+        <div class="text-3xl mb-2">🎫</div>
+        <h2 class="text-lg font-bold text-[#0D2B45] mb-1">Fizetős tartalom</h2>
+        
+        <div class="mb-3">
+            <p class="text-xs text-gray-500 mb-1">Ez a kaland kuponkóddal érhető el.</p>
+            
+            <div class="bg-gray-200 p-2 rounded-xl border border-gray-100">
+                <p class="text-[12px] font-bold text-[#0D2B45] mb-1">
+        Jegyvásárlás: <br> 
+        <span class="font-normal">(Fizess, amennyit gondolsz!)</span>
+    </p>
+    
+    <a href="https://revolut.me/krisztwaeo" target="_blank" 
+       class="text-[#FFA500] text-sm underline decoration-2 underline-offset-2 font-extrabold hover:text-[#e69500] transition-colors">
+       revolut.me/krisztwaeo
+    </a>
+    
+    <p class="text-[11px] text-gray-500 leading-tight mt-2 italic">
+        Megjegyzésbe csak írd be, hogy <span class="font-bold text-gray-700">"MystiGo"</span>, és válasz üzenetben rövid időn belül meg fogod kapni a kódot.
+    </p>
+            </div>
+            
+            <p class="text-xs text-gray-600 mt-2 font-semibold">Add meg a kódod:</p>
+        </div>
+        
+        <input type="text" id="coupon-input" placeholder="KUPONKÓD" 
+               style="text-transform: uppercase;"
+               class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none mb-3 focus:border-[#FFA500]">
+        
+        <div id="coupon-error" class="text-red-500 text-[10px] font-bold mb-3 hidden">⚠️ Érvénytelen kód!</div>
+
+        <div class="flex gap-2">
+            <button onclick="window.closeCouponModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-200 transition">Mégse</button>
+            <button id="verify-coupon-btn" class="flex-1 py-2.5 bg-[#FFA500] text-white text-xs font-bold rounded-xl shadow-lg hover:bg-[#e69500] active:scale-95 transition-all">
+                Ellenőrzés
+            </button>
+        </div>
+    </div>
+</div>
+
 
 
     <div id="gps-help-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 9999;">
@@ -1563,8 +1641,15 @@ window.getGameCurrentCount = async function(gameId) {
 
     // --- ELLENŐRZÉS: VAN INTERNET ÉS FIREBASE? ---
     if (navigator.onLine && window.db && window.push) {
+        
+        // ✅ MÓDOSÍTÁS: Azonnali kalandok közösítéséhez
+        let targetLeaderboardId = data.gameId;
+        if (String(targetLeaderboardId).startsWith('instant_')) {
+            targetLeaderboardId = 'instant_kozos'; // Ez lesz a közös lista neve
+        }
+
         // MÓDOSÍTVA: window.ref, window.push
-        const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
+        const leaderboardRef = window.ref(window.db, 'leaderboard/' + targetLeaderboardId);
         
         window.push(leaderboardRef, scoreData).then(() => {
             console.log("✅ Sikeres azonnali mentés a Firebase-be!");
@@ -1590,11 +1675,16 @@ window.getGameCurrentCount = async function(gameId) {
 
   // 1. MODAL MEGNYITÁSA ÉS UI ELŐKÉSZÍTÉSE (JAVÍTVA: Még szűkebb oszlopok és paddingok)
   window.openLeaderboardModal = async function(specificGameId = null) {
-      const gameId = specificGameId || window.currentGameId;
+      let gameId = specificGameId || window.currentGameId;
 
       if (!gameId) {
         alert("Nincs aktív játék azonosító. Előbb válassz egy játékot!");
         return;
+    }
+
+    // ✅ MÓDOSÍTÁS: Ha ez azonnali kaland, a közös ID-t használjuk lekérdezéshez
+    if (String(gameId).startsWith('instant_')) {
+        gameId = 'instant_kozos';
     }
 
       const modal = document.getElementById('leaderboard-modal');
@@ -2301,6 +2391,92 @@ window.addSmartTileLayer = function(mapInstance) {
 
 
 
+window.checkInstantProgress = function() {
+    const resumeUI = document.getElementById('instant-resume-ui');
+    if (!resumeUI) return;
+
+    // Megkeressük az instant mentést (GameState)
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+
+    if (saveKey) {
+        // HA VAN MENTÉS: Megjelenítjük (flex)
+        resumeUI.classList.remove('hidden');
+        resumeUI.classList.add('flex');
+    } else {
+        // HA NINCS: Teljesen elrejtjük (hidden) és levesszük a flex-et
+        resumeUI.classList.add('hidden');
+        resumeUI.classList.remove('flex');
+    }
+};
+
+/**
+ * Instant Kaland folytatása: Betölti az adatokat és az állást is
+ */
+window.resumeInstantAdventure = function() {
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+    if (!saveKey) return;
+
+    const gameId = saveKey.replace('MystiGoGameState_', '');
+    const dataKey = `MystiGo_GameData_${gameId}`;
+    const savedGameData = localStorage.getItem(dataKey);
+
+    if (savedGameData) {
+        // Fontos: Előbb a játék definíciót kell visszaállítani a window.games-be
+        window.games[gameId] = JSON.parse(savedGameData);
+        // Majd betölteni az állapotot
+        loadGameById(gameId);
+    } else {
+        alert("A kaland adatai elvesztek.");
+        window.deleteInstantAdventure(true);
+    }
+};
+
+/**
+ * Instant Kaland törlése: Takarít a memóriában és frissíti a UI-t
+ */
+window.deleteInstantAdventure = function(force = false) {
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+    
+    if (!saveKey) {
+        window.checkInstantProgress();
+        return;
+    }
+
+    // Segédfüggvény a tényleges törlési folyamathoz
+    const performDeletion = () => {
+        const gameId = saveKey.replace('MystiGoGameState_', '');
+        
+        // 1. Törlés a LocalStorage-ból
+        localStorage.removeItem(saveKey); // Állapot törlése
+        localStorage.removeItem(`MystiGo_GameData_${gameId}`); // Játékadatok törlése
+        
+        // 2. Törlés a futó memóriából
+        if (window.games && window.games[gameId]) {
+            delete window.games[gameId];
+        }
+
+        console.log("Instant játék teljesen törölve.");
+        
+        // 3. UI AZONNALI FRISSÍTÉSE
+        window.checkInstantProgress();
+    };
+
+    // Ha 'force' true (pl. rendszer hívja), azonnal törlünk megerősítés nélkül
+    if (force) {
+        performDeletion();
+    } else {
+        // MEGERŐSÍTŐ ABLAK MEGJELENÍTÉSE
+        showMessage(
+            'Azonnali kaland törlése', 
+            'Biztosan törölni szeretnéd a folyamatban lévő azonnali kalandot? Ezt a folyamatot nem lehet visszavonni.', 
+            performDeletion, // Ha az Igenre kattint, lefut a törlés
+            true // Ez kapcsolja be a Mégse gombot
+        );
+    }
+};
+
+
+
 
         function initializeState() {
             appState = { 
@@ -2470,24 +2646,31 @@ function loadGameById(gameId) {
         }
 
         function deleteSavedGame(gameId) {
+    // Saját modális ablak használata megerősítésre
+    showMessage(
+        'Mentés törlése', 
+        'Biztosan törölni szeretnéd a mentett állást? Ez a folyamat nem vonható vissza, a kalandot elölről kell majd kezdened és ha fizettél érte akkor új kupont kell hozzá vásárolnod.', 
+        () => {
+            // Ez a rész csak akkor fut le, ha az "Igen" gombra nyomnak
             localStorage.removeItem(getStorageKey(gameId));
             
-            // --- JAVÍTÁS: Ellenőrizzük, hogy van-e aktív URL szűrés ---
+            // UI frissítése (eredeti logikád megőrzése)
             const urlParams = new URLSearchParams(window.location.search);
             const pGameId = urlParams.get('game') || urlParams.get('id');
             const pLoc = urlParams.get('location') || urlParams.get('helyszin');
             const pType = urlParams.get('type') || urlParams.get('tipus');
 
-            // Ha bármilyen szűrő paraméter van az URL-ben, akkor az URL szűrőt futtatjuk újra
             if (pGameId || pLoc || pType) {
                 console.log("Mentés törölve, URL szűrés frissítése...");
                 handleInitialUrlFiltering();
             } else {
-                // Ha nincs URL paraméter, akkor a legördülő menük (dropdown) alapján frissítünk
                 console.log("Mentés törölve, Dropdown szűrés frissítése...");
                 applyFilters(); 
             }
-        }
+        }, 
+        true // Ez a paraméter kapcsolja be a "Mégse" gombot a modalban
+    );
+}
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
@@ -2515,9 +2698,9 @@ window.initializeGamesFromFirebase = async function() {
         
         let fetchPromise;
         if (pGameId) {
-            fetchPromise = window.get(window.child(dbRef, `public_games_list/${pGameId}`));
+            fetchPromise = window.get(window.child(dbRef, `games/public_games_list/${pGameId}`));
         } else {
-            fetchPromise = window.get(window.child(dbRef, "public_games_list"));
+            fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
         }
 
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
@@ -2894,7 +3077,8 @@ async function sharePdfViaEmail() {
                 
                 if (pageId === 'game-list-page') {
                     // Logó visszaállítása a főmenüben
-                    const mainHeaderLogo = document.getElementById('main-header-logo');
+                    window.checkInstantProgress();
+		    const mainHeaderLogo = document.getElementById('main-header-logo');
                     if (mainHeaderLogo) {
                         // Megnézzük, hogy be van-e kapcsolva a Kids mód
                         const isKidsMode = localStorage.getItem('mystigo_pref_kidsMode') === 'true';
@@ -2906,6 +3090,9 @@ async function sharePdfViaEmail() {
                     if (Object.keys(games).length > 0) applyFilters();
                     if (Object.keys(games).length > 0) document.getElementById('team-setup').classList.remove('hidden');
                     
+		    if (typeof window.checkInstantProgress === 'function') window.checkInstantProgress();
+
+
                     // Titkos kapcsoló visszaállítása a cím mellé (csak ha van cím elem és látható)
                     if (titleEl && !titleEl.classList.contains('hidden')) {
                         const secretTrigger = document.createElement('span');
@@ -3754,134 +3941,72 @@ window.autoSortGamesByDistance = function() {
       
         window.handleGameSelect = async function(gameId, title, type, price, hasSave, skipConfirmation = false) {
 
-            // --- 1. MENTÉS KEZELÉSE (Elsődleges prioritás) ---
             if (hasSave) {
                  loadGameById(gameId);
                  return; 
             }
 
-            // --- 2. ÚJ JÁTÉK INDÍTÁSI LOGIKA ---
             const gameConfig = games[gameId];
-            
-            // A. Játék korlát és tiltás ellenőrzése
             if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount === -1) {
                 showMessage('Nem elérhető 🔒', `Ez a kaland (${title}) jelenleg nem elérhető vagy fejlesztés alatt áll.`);
                 return;
             }
 
-            // Számláló lekérése
             let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + gameId) || 0);
-            const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + gameId);
-            if (playCount === 0 && oldBooleanSave === 'true') { playCount = 1; }
-
-            // B. Limit ellenőrzése
             if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount > 0 && playCount >= gameConfig.maxPlayCount) {
-                showMessage('Limit Elérve! 🏆', `Ezt a kalandot (${title}) összesen ${gameConfig.maxPlayCount} alkalommal lehet végigjátszani, és te már ${playCount}-szer teljesítetted.`);
+                showMessage('Limit Elérve! 🏆', `Ezt a kalandot (${title}) összesen ${gameConfig.maxPlayCount} alkalommal lehet végigjátszani.`);
                 return;
             }
             
-            // C. Adatok validálása
             const nameInput = document.getElementById('team-name-input');
             const avatarSelect = document.getElementById('team-avatar-select');
-            const lowerName = nameInput.value.toLowerCase(); 
-
-            // Üres név
             if (!nameInput.value.trim()) {
-                showMessage('Hiányzó Adat', 'Kérlek, adj meg egy <strong>Nevet</strong> a játék indításához!');
-                // Ha a térképről jövünk, be kell zárni a modalt, hogy lássa a mezőt
+                showMessage('Hiányzó Adat', 'Kérlek, adj meg egy Nevet!');
                 if(skipConfirmation) window.closeGameMap();
-                
-                nameInput.scrollIntoView({behavior: "smooth", block: "center"});
-                nameInput.focus();
                 return; 
             }
 
-            // Trágár szűrés
-            const containsBadWord = badWordsList.some(word => {
-                if (word.length <= 3) {
-                    const regex = new RegExp(`\\b${word}\\b`, 'i');
-                    return regex.test(lowerName);
-                }
-                return lowerName.includes(word);
-            });
-
-            if (containsBadWord) {
-                showMessage('Nem megfelelő név', 'A választott név nem engedélyezett kifejezést tartalmaz.<br>Kérlek, válassz másikat!');
-                if(skipConfirmation) window.closeGameMap();
-                
-                nameInput.scrollIntoView({behavior: "smooth", block: "center"});
-                nameInput.focus();
-                nameInput.classList.add('border-red-500', 'ring-2', 'ring-red-500');
-                setTimeout(() => nameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500'), 3000);
-                return; 
-            }
-
-            // Avatar
             if (!avatarSelect.value) {
-                showMessage('Hiányzó Adat', 'Kérlek, válassz egy <strong>Avatart</strong> a játék indításához!');
+                showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
                 if(skipConfirmation) window.closeGameMap();
-                
-                avatarSelect.scrollIntoView({behavior: "smooth", block: "center"});
-                avatarSelect.focus();
                 return; 
             }
             
-   // D. FIREBASE LIMIT ELLENŐRZÉS (CSAK OLVASÁS - ELŐSZŰRÉS)
             const limitFromExcel = gameConfig.globalLimit;
-            // Ha van limit megadva, azt használjuk, ha nincs, akkor 1 milliót
             const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
 
-            // MINDIG ellenőrizzük a Firebase-t, kivéve ha már mentésből töltünk vissza
             if (window.checkGameLimitOnly) {
                 try {
                     showLoading(true);
-                    document.getElementById('loading-status').textContent = "Szabad helyek ellenőrzése...";
-                    
-                    // ITT AZ ÚJ FÜGGVÉNYT HÍVJUK
                     const allowed = await window.checkGameLimitOnly(gameId, MAX_PLAYERS);
-                    
                     showLoading(false);
-                    document.getElementById('loading-status').textContent = "";
-
                     if (!allowed) {
-                        showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) <strong>${title}</strong> kaland jelenleg elérte a maximálisan játszható számot (${MAX_PLAYERS} játékos).`);
-                        return; // Itt megállítjuk a folyamatot, nem tölt be a térkép sem!
+                        showMessage('A játék betelt! 🎫', `Sajnáljuk, a(z) ${title} kaland betelt.`);
+                        return;
                     }
                 } catch (e) {
                     showLoading(false);
-                    console.error("Hiba az előszűrésnél:", e);
-                    showMessage('Hiba', 'Nem sikerült ellenőrizni a szabad helyeket. Internetkapcsolat szükséges!');
                     return; 
                 }
             }
 
-           // E. Végső megerősítés és Indítás
-
-            // Segédfüggvény: Előbb letöltés, utána indítás
             const proceedToStart = async () => {
-                // 1. Letöltjük és elmentjük offline a játék adatait
-                // (Ez a függvény a 1047. sor környékén van definiálva)
+                if (gameConfig.price > 0) {
+                    window.openCouponModal(gameId, title);
+                    return;
+                }
                 await window.loadGameDataAndStart(gameId);
-                
-                // 2. Ha megvan az adat, indulhat a GPS kérés és a játék
                 requestGpsAndStart(gameId);
             };
 
             if (skipConfirmation) {
-                // Ha a térképes nézetből jövünk (már nyomtunk Startot), azonnal indul
                 proceedToStart();
             } else {
-                // Ha a listából jövünk, megerősítést kérünk
-                // FONTOS: Az "Igen" gomb (callback) most már a proceedToStart-ot hívja!
-                showMessage(
-                    'Kaland Indítása', 
-                    `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?`, 
-                    () => proceedToStart(), 
-                    true
-                );
+                showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?`, () => proceedToStart(), true);
             }
+        };
 
- };
+
 
         
         function formatTime(seconds) {
@@ -4041,6 +4166,10 @@ window.autoSortGamesByDistance = function() {
             return array;
         }
 
+
+
+
+
         function startGame(gameId, modeOverride = null) {
     // --- GOOGLE ANALYTICS MÉRÉS ---
     if (typeof gtag === 'function') {
@@ -4137,20 +4266,23 @@ window.autoSortGamesByDistance = function() {
 
     // Start feladat sablon
     const startTaskTemplate = {
-        index: 0,
-        isStartTask: true,
-        location: appState.currentGame.startLocation,
-        geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
-        story: `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a <strong>Kaland Indítása</strong> gombot.`,
-        prompt: '',
-        hints: [],
-        solution: '',
-        acceptedAnswers: [],
-        hintsUsed: 0,
-        timeSpent: 0,
-        taskScore: 0,
-        isTaskTimerActive: false
-    };
+    index: 0,
+    isStartTask: true,
+    location: appState.currentGame.startLocation,
+    geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
+    // ITT CSERÉLD LE:
+    story: appState.currentGame.type === "Instant" 
+        ? `<strong>Üdvözlünk az Azonnali Kalandban!</strong> 🎲<br><br>Generáltunk számodra egy egyedi útvonalat, amelyet a jelenlegi pozíciódhoz igazítottunk. Kérjük, <strong>mindig ügyelj a biztonságodra!</strong> Amennyiben valamelyik állomás elzárt területre esne, vagy nem közelíthető meg biztonságosan, egyszerűen használd a <strong>'Feladat átugrása'</strong> lehetőséget, és haladj tovább a következő célponthoz.`
+        : `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a <strong>Kaland Indítása</strong> gombot.`,
+    prompt: '',
+    hints: [],
+    solution: '',
+    acceptedAnswers: [],
+    hintsUsed: 0,
+    timeSpent: 0,
+    taskScore: 0,
+    isTaskTimerActive: false
+};
 
     // --- 2. JAVÍTÁS: A VALÓDI FELADATOK KIVÁLOGATÁSA ---
     // Itt most már biztosan van indexük, így nem lesz üres a lista
@@ -4341,7 +4473,8 @@ window.autoSortGamesByDistance = function() {
             // --- 🛠️ MEGOLDÁS ADAT JAVÍTÁSA ---
             if (!task.solution || String(task.solution).trim() === "") {
                 if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
-                    task.solution = "A helyes válasz: " + task.acceptedAnswers[0];
+                    // ✅ ÚJ SOR: HTML <strong> tagek hozzáadása a vastagításhoz
+                    task.solution = "<strong>" + task.acceptedAnswers[0] + "</strong>";
                 }
             }
 
@@ -4688,8 +4821,10 @@ if (taskImageEl) {
             setTimeout(() => { downloadPDF(); }, 1000); 
             
             if(appState.currentGame) {
-                deleteSavedGame(appState.currentGame.id);
-            }
+    // A megerősítő ablakos függvény helyett közvetlenül a tárolóból töröljük
+    localStorage.removeItem(getStorageKey(appState.currentGame.id));
+    console.log("Mentés csendesen törölve a játék végén.");
+}
             appState.currentGame = null;
         }
       
@@ -4726,13 +4861,13 @@ if (taskImageEl) {
             }
         }
         
-  function initializeMap() {
+  function initializeMap(gameData = null) {
     const mapContainer = document.getElementById('map');
     
     // BIZTONSÁGI ELLENŐRZÉS
     if (!mapContainer || mapContainer.clientHeight === 0) {
         console.warn("⚠️ Térkép konténer még rejtett vagy 0 magas. Újrapróbálkozás 100ms múlva...");
-        setTimeout(initializeMap, 100);
+        setTimeout(() => initializeMap(gameData), 100); // Itt is továbbadjuk az adatot!
         return;
     }
 
@@ -4742,24 +4877,25 @@ if (taskImageEl) {
         appState.map = null;
     }
 
-    // --- JAVÍTÁS: MARKEREK TÖRLÉSE ---
-    // Ez a rész hiányzott! Ha új térképet csinálunk, a régi markereket el kell felejteni,
-    // különben a GPS a régi (láthatatlan) marker pozícióját frissíti, és nem hoz létre újat.
     appState.playerMarker = null;
     appState.geofenceCircle = null;
     appState.taskMarkers = {};
     if (typeof manualMarker !== 'undefined' && manualMarker) {
         manualMarker = null;
     }
-    // ---------------------------------
 
     // Start pozíció meghatározása
-    let startLat = 47.4979;
-    let startLng = 19.0402;
+    let startLat = 47.4979; // Budapest default
+    let startLng = 19.0402; // Budapest default
     
-    if (appState.currentGame && appState.currentGame.startLocation) {
-        startLat = appState.currentGame.startLocation.lat;
-        startLng = appState.currentGame.startLocation.lng;
+    // ✅ JAVÍTÁS: Prioritás kezelés
+    // 1. Ha kaptunk direkt adatot (betöltéskor), azt használjuk
+    // 2. Ha nincs, akkor a futó játékét (appState)
+    const source = gameData || appState.currentGame;
+
+    if (source && source.startLocation) {
+        startLat = source.startLocation.lat;
+        startLng = source.startLocation.lng;
     }
 
     console.log(`🗺️ Térkép létrehozása itt: ${startLat}, ${startLng}`);
@@ -5659,7 +5795,7 @@ window.startSpecificTestGame = async function() {
     // 1. Ellenőrizzük, hogy a játék benne van-e a nyilvános listában
     // (Ez az alapfeltétele annak, hogy tudjuk, létezik a játék)
     if (!window.games || !window.games[FIX_GAME_ID]) {
-        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött listában! Ellenőrizd, hogy a Firebase 'public_games_list' ágában szerepel-e.`);
+        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött listában! Ellenőrizd, hogy a Firebase 'games/public_games_list' ágában szerepel-e.`);
         return;
     }
 
@@ -5679,7 +5815,7 @@ window.startSpecificTestGame = async function() {
     try {
         console.log(`📥 Teszt játék adatainak letöltése: ${FIX_GAME_ID}...`);
         
-        // Ez a függvény letölti a 'secure_game_contents'-ből a feladatokat,
+        // Ez a függvény letölti a 'games/secure_game_contents'-ből a feladatokat,
         // és befrissíti a window.games[FIX_GAME_ID] objektumot.
         await window.loadGameDataAndStart(FIX_GAME_ID);
 
@@ -5998,6 +6134,95 @@ window.updateMapMarkers = function() {
 window.closeGameMap = function() {
     document.getElementById('game-map-modal').classList.add('hidden');
 };
+
+
+let currentCouponGameId = null;
+
+window.openCouponModal = function(gameId, title) {
+    currentCouponGameId = gameId;
+    const modal = document.getElementById('coupon-modal');
+    const btn = document.getElementById('verify-coupon-btn'); // Gomb lekérése
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // RESET: Alaphelyzetbe állítjuk a beviteli mezőt és a gombot
+    document.getElementById('coupon-input').value = '';
+    document.getElementById('coupon-error').classList.add('hidden');
+    
+    if (btn) {
+        btn.disabled = false;           // Újra kattintható legyen
+        btn.textContent = "Ellenőrzés"; // Eredeti szöveg visszaállítása
+    }
+    
+    document.getElementById('verify-coupon-btn').onclick = () => validateAndUseCoupon();
+};
+
+window.closeCouponModal = function() {
+    const modal = document.getElementById('coupon-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
+
+async function validateAndUseCoupon() {
+    // 1. Előkészítés
+    const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+    const errorEl = document.getElementById('coupon-error');
+    const btn = document.getElementById('verify-coupon-btn');
+
+    if (!code) return;
+
+    btn.disabled = true;
+    btn.textContent = "Ellenőrzés...";
+    errorEl.classList.add('hidden');
+
+    try {
+        // 2. Első lépés: Csak ellenőrizzük, hogy létezik-e a kód
+        const couponRef = window.ref(window.db, 'coupons/' + code);
+        const snapshot = await window.get(couponRef);
+
+        if (snapshot.exists()) {
+    console.log("🎫 Kupon érvényes, próbáljuk megnyitni a játékot...");
+
+    try {
+        await window.loadGameDataAndStart(currentCouponGameId);
+        await window.set(couponRef, null);
+        
+        // Visszaállítjuk a gombot a siker után is, mielőtt bezárjuk
+        btn.disabled = false; 
+        btn.textContent = "Ellenőrzés";
+
+        window.closeCouponModal();
+                
+                console.log("✅ Játék elindult, kupon sikeresen elégetve.");
+                
+                // Modal bezárása és GPS kérés (ez a szokásos folyamat vége)
+                
+                if (typeof requestGpsAndStart === 'function') {
+                    requestGpsAndStart(currentCouponGameId);
+                }
+
+            } catch (loadError) {
+                // Ha a játék betöltése nem sikerült (pl. elment a net)
+                console.error("Játék betöltési hiba:", loadError);
+                alert("Hiba: A játék adatait nem sikerült letölteni. A kuponod NEM veszett el, kérlek próbáld újra stabilabb internettel!");
+                btn.disabled = false;
+                btn.textContent = "Ellenőrzés";
+            }
+        } else {
+            // Nem létezik a kód
+            errorEl.classList.remove('hidden');
+            btn.disabled = false;
+            btn.textContent = "Ellenőrzés";
+        }
+    } catch (e) {
+        console.error("Kupon ellenőrzési hiba:", e);
+        alert("Hiba történt a szerverrel való kommunikáció során.");
+        btn.disabled = false;
+        btn.textContent = "Ellenőrzés";
+    }
+}
+
 
 
 
@@ -6412,71 +6637,73 @@ const isIos = () => {
 
 const solBtn = document.getElementById('solution-btn');
             
-            if (solBtn) {
-                // Eltávolítjuk a korábbi eseményfigyelőket (klónozással), hogy ne fusson le többször
-                const newSolBtn = solBtn.cloneNode(true);
-                solBtn.parentNode.replaceChild(newSolBtn, solBtn);
+if (solBtn) {
+    // Eltávolítjuk a korábbi eseményfigyelőket (hogy ne fusson le többször)
+    const newSolBtn = solBtn.cloneNode(true);
+    solBtn.parentNode.replaceChild(newSolBtn, solBtn);
 
-                newSolBtn.addEventListener('click', () => {
-                    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                    if (!task) return;
+    newSolBtn.addEventListener('click', () => {
+        const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+        if (!task) return;
 
-                    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
-                    if (task.isStartTask) return;
+        if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
+        if (task.isStartTask) return;
 
-                    // 1. Pontszám nullázása és mentés
-                    task.taskScore = 0;
-                    updateStatusDisplays();
-                    saveGameState();
+        // 1. Pontszám nullázása és mentés
+        task.taskScore = 0;
+        updateStatusDisplays();
+        saveGameState();
 
-                    // 2. MEGOLDÁS SZÖVEGÉNEK VISSZAFEJTÉSE (Javított)
-                    let solutionText = "";
+        // 2. MEGOLDÁS SZÖVEGÉNEK ELŐKÉSZÍTÉSE (JAVÍTOTT RÉSZ)
+        let solutionText = "";
+        let cleanAnswer = "";
 
-                    // Ha van titkosított megoldás, visszafejtjük
-                    if (task.solution) {
-                        solutionText = decryptHintText(task.solution);
-                    }
+        // A) Ha van titkosított megoldás (Adatbázisból jön)
+        if (task.solution) {
+            let decrypted = decryptHintText(task.solution);
+            
+            // 🧹 TAKARÍTÁS: Kiszedjük a "A helyes válasz:" részt és a HTML kódokat, ha benne maradtak
+            // Így csak a tiszta válasz marad (pl. "Mark Zuckerberg")
+            cleanAnswer = decrypted.replace(/^A helyes válasz:\s*/i, "").replace(/<[^>]*>/g, "").trim();
+        } 
+        
+        // B) Ha nincs titkosítva, de van elfogadott válasz (Régi játékok / Azonnali kaland)
+        if ((!cleanAnswer || cleanAnswer === "") && task.acceptedAnswers && task.acceptedAnswers.length > 0) {
+            cleanAnswer = task.acceptedAnswers[0];
+        }
 
-                    // Fallback logikák
-                    if (!solutionText || String(solutionText).trim() === "" || solutionText.startsWith("Hiba")) {
-                        if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
-                            solutionText = `A helyes válasz: <strong>${task.acceptedAnswers[0]}</strong>`;
-                        } else {
-                            // Ha tényleg semmi sincs, akkor valószínűleg sérült az adat
-                            console.error("HIBA: Nincs megoldás az adatbázisban ehhez a feladathoz:", task);
-                            solutionText = "Technikai hiba: A megoldás nem töltődött be rendesen.<br><br><strong>Tipp:</strong> Próbálj meg kilépni a főmenübe, majd újra elindítani a játékot (a mentés megmarad, de az adatok frissülnek).";
-                            
-                            // Opcionális: Kényszerítjük a cache törlést ehhez a játékhoz
-                            if(appState.currentGame && appState.currentGame.id) {
-                                localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
-                            }
-                        }
-                    }
+        // C) Végső formázás: Csak a válasz legyen vastag!
+        if (cleanAnswer && !cleanAnswer.includes("Technikai hiba")) {
+            solutionText = `<strong>${cleanAnswer}</strong>`;
+        } else {
+            // Hiba esetén
+            solutionText = cleanAnswer || "Technikai hiba: Nincs elérhető megoldás.";
+        }
 
-                    // 3. Üzenet megjelenítése
-                    showMessage('Megoldás', `A feladat megoldása (0 pont):<br><br>${solutionText}`, () => {
-                        
-                        // Válasz automatikus beírása (vizuális segítség)
-                        const answerInput = document.getElementById('answer-input');
-                        if (answerInput) {
-                            // Csak a tiszta szöveget írjuk be (HTML tagek nélkül)
-                            const cleanText = solutionText.replace(/<[^>]*>?/gm, '').replace("A helyes válasz: ", "");
-                            // Ha nem hibaüzenet, akkor beírjuk
-                            if(!cleanText.includes("Technikai hiba")) {
-                                answerInput.value = cleanText;
-                            }
-                        }
-
-                        // 4. TOVÁBBLÉPÉS
-                        // Kis késleltetéssel, hogy a felhasználó lássa a választ
-                        console.log("Megoldás elfogadva, továbbugrás...");
-                        setTimeout(() => {
-                            handleCorrectAnswer();
-                        }, 100); // 2 másodpercet vár, hogy el lehessen olvasni
-                    });
-                });
+        // 3. Üzenet megjelenítése (FONTOS: Kivettem a külső <strong> taget!)
+        showMessage('Megoldás', `A feladat megoldása (0 pont):<br><br>${solutionText}`, () => {
+            
+            // Válasz automatikus beírása a mezőbe (csak a tiszta szöveget)
+            const answerInput = document.getElementById('answer-input');
+            if (answerInput && cleanAnswer) {
+                // Ha nem hibaüzenet, akkor beírjuk
+                if(!cleanAnswer.includes("Technikai hiba")) {
+                    answerInput.value = cleanAnswer;
+                }
             }
+
+            // 4. TOVÁBBLÉPÉS
+            console.log("Megoldás elfogadva, továbbugrás...");
+            setTimeout(() => {
+                handleCorrectAnswer();
+            }, 100); // 2 másodpercet vár, hogy el lehessen olvasni
+        });
+    });
+}
      
+
+
+
             document.getElementById('start-game-btn').addEventListener('click', startTimersAndGPS);
             document.getElementById('exit-game-btn').addEventListener('click', showExitConfirmation);
             document.getElementById('report-error-btn').addEventListener('click', showReportModal); 
@@ -6613,135 +6840,105 @@ function calculateNextPoint(lat, lng, distanceMeters, bearingDegrees) {
  */
 window.startInstantAdventure = async function() {
     const btn = document.getElementById('instant-adventure-btn');
-    const diffSelect = document.getElementById('instant-difficulty-select'); // Választó elem
+    const diffSelect = document.getElementById('instant-difficulty-select'); 
     if (!btn) return;
 
     const originalContent = btn.innerHTML;
     
     try {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generálás...';
+        btn.innerHTML = '🔍 Útvonal tervezése...';
         btn.disabled = true;
 
-        // 1. Választott nehézség lekérése
-        const selectedDifficulty = diffSelect ? diffSelect.value : 'all';
-        console.log("Választott nehézség:", selectedDifficulty);
-
-        // 2. ADATOK LEKÉRÉSE
         if (!window.db || !window.ref || !window.get) {
-             throw new Error("A rendszer még nem állt fel. Várj egy picit!");
+             throw new Error("A rendszer még nem állt fel.");
         }
 
-        const dbRef = window.ref(window.db, 'generic_tasks'); 
-        const snapshot = await window.get(dbRef);
-        const data = snapshot.val();
-
-        if (!data) throw new Error("Nem található feladatbázis!");
-
-        // 3. ADATOK SZŰRÉSE ÉS ELŐKÉSZÍTÉSE
-        let allTasks = Object.values(data);
-        
-        // --- SZŰRÉS LOGIKA ---
-        if (selectedDifficulty !== 'all') {
-            const filteredTasks = allTasks.filter(t => 
-                t.category && t.category.toString().toLowerCase().trim() === selectedDifficulty
+        // 1. Aktuális helyzet lekérése
+        let {lat: startLat, lng: startLng} = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                (p) => resolve({lat: p.coords.latitude, lng: p.coords.longitude}),
+                () => resolve({lat: 47.4979, lng: 19.0402}) 
             );
+        });
 
-            if (filteredTasks.length >= 5) {
-                console.log(`Szűrés sikeres: ${filteredTasks.length} db '${selectedDifficulty}' feladat.`);
-                allTasks = filteredTasks;
-            } else {
-                alert(`Nincs elég "${selectedDifficulty}" nehézségű feladat (min. 5 db kell). Vegyes nehézséget generálunk helyette.`);
-            }
-        }
-        // ---------------------
+        // 2. Valódi helyszínek (POI-k) lekérése az OpenStreetMap-ről
+        const radius = 1000; // 1 km-es körzetben keresünk nevezetességeket
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain)$"];out;`;
 
-        const shuffled = allTasks.sort(() => 0.5 - Math.random());
-        const selectedTasks = shuffled.slice(0, 5); 
-
-        // 4. KOORDINÁTÁK GENERÁLÁSA
-        let startLat, startLng;
+        let availablePOIs = [];
         try {
-            const pos = await new Promise((resolve, reject) => 
-                navigator.geolocation.getCurrentPosition(resolve, reject)
-            );
-            startLat = pos.coords.latitude;
-            startLng = pos.coords.longitude;
+            const response = await fetch(overpassUrl);
+            const osmData = await response.json();
+            if (osmData.elements && osmData.elements.length > 0) {
+                availablePOIs = osmData.elements.map(el => ({ lat: el.lat, lng: el.lon, name: el.tags.name || "Érdekes pont" }));
+            }
         } catch (e) {
-            startLat = 47.4979; // Budapest fallback
-            startLng = 19.0402;
+            console.warn("Overpass API hiba, véletlenszerű generálásra váltás.", e);
         }
 
-        let currentLat = startLat;
-        let currentLng = startLng;
+        // 3. Útvonal sorbarendezése (Nearest Neighbor algoritmus)
+        let routePoints = [];
+        let currentPos = { lat: startLat, lng: startLng };
 
-        const tasksWithLocation = selectedTasks.map((task, index) => {
-            // Minimum 200m + 0-100 véletlen szám (kissé távolabb visszük)
-            const dist = 200 + Math.random() * 100; 
-            const bearing = Math.random() * 360;
-            const nextPoint = calculateNextPoint(currentLat, currentLng, dist, bearing);
-            
-            currentLat = nextPoint.lat;
-            currentLng = nextPoint.lng;
-
-            // Válaszok feldolgozása
-            let processedAnswers = [];
-            if (task.answers) {
-                if (Array.isArray(task.answers)) processedAnswers = task.answers;
-                else if (typeof task.answers === 'string') processedAnswers = task.answers.split(';').map(s => s.trim());
-            } else if (task.answer) {
-                 processedAnswers = task.answer.split(';').map(s => s.trim());
+        if (availablePOIs.length >= 5) {
+            // Kiválasztunk 5 pontot úgy, hogy mindig a legközelebbit keressük
+            for (let i = 0; i < 5; i++) {
+                availablePOIs.sort((a, b) => {
+                    return haversineDistance(currentPos, a) - haversineDistance(currentPos, b);
+                });
+                let closest = availablePOIs.shift(); // Kiveszi a legközelebbit
+                routePoints.push(closest);
+                currentPos = closest; // A következő keresés innen indul
             }
+        } else {
+            // FAILSAFE: Ha nincs elég térképi adat, matematikai generálás (régi módszer)
+            for (let i = 0; i < 5; i++) {
+                let p = calculateNextPoint(currentPos.lat, currentPos.lng, 200, (Math.random() * 90) - 45);
+                routePoints.push(p);
+                currentPos = p;
+            }
+        }
 
-            let processedHints = task.hints || [];
-            if (typeof processedHints === 'string') processedHints = processedHints.split(';').map(s => s.trim());
+        // 4. Feladatok betöltése és párosítása a pontokkal
+        const snapshot = await window.get(window.ref(window.db, 'generic_tasks'));
+        const allTasks = Object.values(snapshot.val() || {});
+        const shuffledTasks = allTasks.sort(() => 0.5 - Math.random()).slice(0, 5);
 
+        const tasksWithLocation = shuffledTasks.map((task, index) => {
             return {
-                ...task, 
-                id: `task_${index}`,
-                lat: nextPoint.lat,
-                lng: nextPoint.lng,
-                location: { lat: nextPoint.lat, lng: nextPoint.lng },
-                
-                geofenceRadius: 50, // Nagyobb sugár a biztonságért
-
-                prompt: task.question || task.prompt || "Nincs kérdés megadva",
-
-                answers: processedAnswers, 
-                acceptedAnswers: processedAnswers,
-                hints: processedHints      
+                ...task,
+                index: index + 1,
+                location: routePoints[index],
+                prompt: task.question || task.prompt || "Keresd meg a megoldást!",
+                geofenceRadius: 35 
             };
         });
 
-        // 5. JÁTÉK OBJEKTUM LÉTREHOZÁSA (Címben a nehézséggel)
-        const difficultyLabels = { easy: "Könnyű", medium: "Közepes", hard: "Nehéz", all: "Vegyes" };
-        const diffLabel = difficultyLabels[selectedDifficulty] || "Vegyes";
-        
+        // 5. Játék inicializálása
         const instantGameId = "instant_" + Date.now();
         const instantGame = {
             id: instantGameId,
-            title: `Generált Városi Kaland (${diffLabel})`,
-            description: "Véletlenszerűen generált feladatok a közeledben.",
+            title: `Városi Felfedezés 🎲`,
             type: "Instant",
             tasks: tasksWithLocation,
-            taskOrder: "fixed",
-            startLocation: tasksWithLocation[0].location
+            startLocation: { lat: startLat, lng: startLng },
+            description: "Ez a kaland a közeledben lévő nevezetességek és emlékhelyek alapján állt össze egy logikus sétává.",
+            endStory: "Sikeresen teljesítetted a környéked felfedezését!"
         };
 
-        // Mentés a memóriába
-        window.games = window.games || {};
         window.games[instantGameId] = instantGame;
+        localStorage.setItem(`MystiGo_GameData_${instantGameId}`, JSON.stringify(instantGame));
         
-        console.log("Generált játék indítása:", instantGameId);
-        
-        // Játék indítása
         handleGameSelect(instantGameId, instantGame.title, "Instant", "Ingyenes", false, true);
 
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
+        setTimeout(() => {
+            if (typeof saveGameState === 'function') saveGameState();
+            window.checkInstantProgress();
+        }, 800);
 
     } catch (error) {
-        console.error("Hiba:", error);
-        alert("Hiba a generálás közben: " + error.message);
+        alert("Hiba: " + error.message);
+    } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
     }
@@ -6813,8 +7010,8 @@ window.loadGameDataAndStart = async function(gameId) {
             try {
                 if(statusText) statusText.textContent = "Adatok letöltése...";
                 
-                // Útvonal: Általában 'secure_game_contents/' + ID
-                const dbPath = 'secure_game_contents/' + gameId;
+                // Útvonal: Általában 'games/secure_game_contents/' + ID
+                const dbPath = 'games/secure_game_contents/' + gameId;
                 const dbRef = window.ref(window.db, dbPath);
                 
                 // Adat lekérése
@@ -6899,11 +7096,13 @@ window.loadGameDataAndStart = async function(gameId) {
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    // ✅ JAVÍTÁS: Bővített import lista (push, set, query, runTransaction hozzáadva)
-    import { getDatabase, ref, get, child, push, update, set, query, orderByChild, limitToLast, runTransaction } 
+    import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    
+    // --- ÚJ: Google Auth importálása ---
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // A Te konfigurációd (MystiGo)
     const firebaseConfig = {
         apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw", 
         authDomain: "mystigo-7b149.firebaseapp.com",
@@ -6917,37 +7116,50 @@ window.loadGameDataAndStart = async function(gameId) {
     try {
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const auth = getAuth(app); // Auth inicializálása
 
-        // Globális változókba mentjük, hogy a többi script lássa őket
         window.db = db;
+        window.auth = auth; // Elérhetővé tesszük globálisan
         window.ref = ref;
         window.get = get;
-        window.child = child;
-        
-        // ✅ JAVÍTÁS: A hiányzó funkciók hozzárendelése a window objektumhoz
         window.push = push;
-        window.update = update;
         window.set = set;
         window.query = query;
         window.runTransaction = runTransaction;
-        
-        window.isFirebaseReady = true; 
 
-        console.log("✅ Firebase (Full Module) sikeresen betöltve.");
+        // --- Google Bejelentkezés Logika ---
+        window.loginWithGoogle = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                const result = await signInWithPopup(auth, provider);
+                console.log("Sikeres belépés:", result.user.displayName);
+            } catch (error) {
+                console.error("Belépési hiba:", error);
+                alert("Hiba történt a Google bejelentkezés során.");
+            }
+        };
 
-        // Ha van kapcsolat-ellenőrző, azonnal frissítjük
-        if (typeof window.checkOnlineStatus === 'function') {
-            window.checkOnlineStatus();
-        }
-        
-        // Ha voltak beragadt feltöltések, most megpróbáljuk beküldeni őket
-        if (typeof window.syncPendingUploads === 'function') {
-            setTimeout(() => window.syncPendingUploads(), 2000);
-        }
-        
+        // Állapotfigyelő: Automatikusan kezeli a UI-t, ha belépett a user
+        onAuthStateChanged(auth, (user) => {
+            const googleBtn = document.getElementById('google-login-btn');
+            const teamInput = document.getElementById('team-name-input');
+            
+            if (user) {
+                // Ha be van jelentkezve
+                if (googleBtn) googleBtn.innerHTML = `✅ Belépve: ${user.displayName.split(' ')[0]}`;
+                if (teamInput && !teamInput.value) {
+                    teamInput.value = user.displayName;
+                    localStorage.setItem('mystigo_pref_teamName', user.displayName);
+                }
+            } else {
+                // Ha nincs bejelentkezve
+                if (googleBtn) googleBtn.innerHTML = `🚀 Belépés Google-fiókkal`;
+            }
+        });
+
+        console.log("✅ Firebase Auth & DB Ready");
     } catch (error) {
         console.error("❌ Firebase hiba:", error);
-        window.isFirebaseError = true;
     }
 </script>
 
