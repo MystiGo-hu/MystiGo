@@ -7126,12 +7126,16 @@ window.loadGameDataAndStart = async function(gameId) {
 
 </script>
 
+
+
+
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     
-    // ✅ JAVÍTÁS: getRedirectResult hozzáadva az importokhoz
+    // Fontos: getRedirectResult hozzáadva az importokhoz
     import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -7150,55 +7154,52 @@ window.loadGameDataAndStart = async function(gameId) {
         const db = getDatabase(app);
         const auth = getAuth(app);
 
+        // Globális elérés biztosítása
         window.db = db;
         window.auth = auth;
         window.ref = ref;
         window.get = get;
-        window.child = child;
         window.push = push;
-        window.update = update;
         window.set = set;
         window.query = query;
         window.runTransaction = runTransaction;
 
-        // --- AUTH FUNKCIÓK ---
-
-        // ✅ JAVÍTÁS: A Redirect eredményének kezelése betöltéskor
+        // --- 1. EZ A BIZTOS MEGOLDÁS KULCSA ---
+        // Betöltéskor azonnal ellenőrizzük, hogy most érkeztünk-e vissza a Google-től
         getRedirectResult(auth)
             .then((result) => {
                 if (result?.user) {
                     console.log("✅ Sikeres belépés redirect után:", result.user.displayName);
+                    // Itt már nem kell semmit tenned, az onAuthStateChanged észlelni fogja
                 }
             }).catch((error) => {
-                console.error("❌ Redirect hiba:", error.code, error.message);
-                if (error.code === 'auth/account-exists-with-different-credential') {
-                    alert("Ez az e-mail cím már társítva van egy másik belépési módhoz.");
-                }
+                console.error("❌ Redirect hiba:", error.message);
             });
 
+        // --- 2. BEJELENTKEZÉS INDÍTÁSA ---
         window.loginWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
-            // Kényszerítjük a fiókválasztót, hogy ne ragadjon be
+            // Kényszerítjük a fiókválasztót, hogy ne ragadjon be a régi munkamenet
             provider.setCustomParameters({ prompt: 'select_account' });
             try {
                 await signInWithRedirect(auth, provider);
             } catch (error) {
                 console.error("Belépési hiba:", error);
-                alert("Hiba a bejelentkezés indításakor.");
             }
         };
 
+        // --- 3. KIJELENTKEZÉS ---
         window.logout = async () => {
             if(confirm("Biztosan ki szeretnél jelentkezni?")) {
                 try {
                     await signOut(auth);
-                    console.log("Sikeres kijelentkezés");
                 } catch (error) {
-                    console.error("Kijelentkezési hiba:", error);
+                    console.error("Hiba a kijelentkezéskor:", error);
                 }
             }
         };
 
+        // --- 4. UI AUTOMATIKUS FRISSÍTÉSE ---
         onAuthStateChanged(auth, (user) => {
             const authButtonGroup = document.getElementById('auth-buttons-group');
             const logoutBtn = document.getElementById('logout-btn');
@@ -7227,7 +7228,7 @@ window.loadGameDataAndStart = async function(gameId) {
         console.log("✅ Firebase Auth Ready");
 
     } catch (error) {
-        console.error("❌ Firebase inicializálási hiba:", error);
+        console.error("❌ Hiba:", error);
     }
 </script>
 
