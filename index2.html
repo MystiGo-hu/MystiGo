@@ -1117,17 +1117,22 @@
         <h2 class="text-lg font-bold text-[#0D2B45] mb-1">Fizetős tartalom</h2>
         
         <div class="mb-3">
-            <p class="text-xs text-gray-600 mb-1">Ez a kaland kuponkóddal érhető el.</p>
+            <p class="text-xs text-gray-500 mb-1">Ez a kaland kuponkóddal érhető el.</p>
             
-            <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
-                <p class="text-[11px] font-bold text-[#0D2B45] mb-1">Jegyvásárlás (1.000 Ft):</p>
-                <a href="https://revolut.me/krisztwaeo" target="_blank" 
-                   class="text-[#FFA500] text-sm underline decoration-2 underline-offset-2 font-extrabold hover:text-[#e69500] transition-colors">
-                   revolut.me/krisztwaeo
-                </a>
-                <p class="text-[11px] text-gray-500 leading-tight mt-2 italic">
-                    Megjegyzésbe csak írd be, hogy <span class="font-bold text-gray-700">"MystiGo"</span>, és válasz üzenetben meg fogod kapni a kódot.
-                </p>
+            <div class="bg-gray-200 p-2 rounded-xl border border-gray-100">
+                <p class="text-[12px] font-bold text-[#0D2B45] mb-1">
+        Jegyvásárlás: <br> 
+        <span class="font-normal">(Fizess, amennyit gondolsz!)</span>
+    </p>
+    
+    <a href="https://revolut.me/krisztwaeo" target="_blank" 
+       class="text-[#FFA500] text-sm underline decoration-2 underline-offset-2 font-extrabold hover:text-[#e69500] transition-colors">
+       revolut.me/krisztwaeo
+    </a>
+    
+    <p class="text-[11px] text-gray-500 leading-tight mt-2 italic">
+        Megjegyzésbe csak írd be, hogy <span class="font-bold text-gray-700">"MystiGo"</span>, és válasz üzenetben rövid időn belül meg fogod kapni a kódot.
+    </p>
             </div>
             
             <p class="text-xs text-gray-600 mt-2 font-semibold">Add meg a kódod:</p>
@@ -2427,7 +2432,8 @@ window.deleteInstantAdventure = function(force = false) {
         return;
     }
 
-    if (force || confirm("Biztosan törlöd a folyamatban lévő azonnali kalandot?")) {
+    // Segédfüggvény a tényleges törlési folyamathoz
+    const performDeletion = () => {
         const gameId = saveKey.replace('MystiGoGameState_', '');
         
         // 1. Törlés a LocalStorage-ból
@@ -2443,9 +2449,21 @@ window.deleteInstantAdventure = function(force = false) {
         
         // 3. UI AZONNALI FRISSÍTÉSE
         window.checkInstantProgress();
+    };
+
+    // Ha 'force' true (pl. rendszer hívja), azonnal törlünk megerősítés nélkül
+    if (force) {
+        performDeletion();
+    } else {
+        // MEGERŐSÍTŐ ABLAK MEGJELENÍTÉSE
+        showMessage(
+            'Azonnali kaland törlése', 
+            'Biztosan törölni szeretnéd a folyamatban lévő azonnali kalandot? Ezt a folyamatot nem lehet visszavonni.', 
+            performDeletion, // Ha az Igenre kattint, lefut a törlés
+            true // Ez kapcsolja be a Mégse gombot
+        );
     }
 };
-
 
 
 
@@ -4238,20 +4256,23 @@ window.autoSortGamesByDistance = function() {
 
     // Start feladat sablon
     const startTaskTemplate = {
-        index: 0,
-        isStartTask: true,
-        location: appState.currentGame.startLocation,
-        geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
-        story: `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a <strong>Kaland Indítása</strong> gombot.`,
-        prompt: '',
-        hints: [],
-        solution: '',
-        acceptedAnswers: [],
-        hintsUsed: 0,
-        timeSpent: 0,
-        taskScore: 0,
-        isTaskTimerActive: false
-    };
+    index: 0,
+    isStartTask: true,
+    location: appState.currentGame.startLocation,
+    geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
+    // ITT CSERÉLD LE:
+    story: appState.currentGame.type === "Instant" 
+        ? `<strong>Üdvözlünk az Azonnali Kalandban!</strong> 🎲<br><br>Generáltunk számodra egy egyedi útvonalat, amelyet a jelenlegi pozíciódhoz igazítottunk. Kérjük, <strong>mindig ügyelj a biztonságodra!</strong> Amennyiben valamelyik állomás elzárt területre esne, vagy nem közelíthető meg biztonságosan, egyszerűen használd a <strong>'Feladat átugrása'</strong> lehetőséget, és haladj tovább a következő célponthoz.`
+        : `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre. Amikor eléred a zónát, nyomd meg a <strong>Kaland Indítása</strong> gombot.`,
+    prompt: '',
+    hints: [],
+    solution: '',
+    acceptedAnswers: [],
+    hintsUsed: 0,
+    timeSpent: 0,
+    taskScore: 0,
+    isTaskTimerActive: false
+};
 
     // --- 2. JAVÍTÁS: A VALÓDI FELADATOK KIVÁLOGATÁSA ---
     // Itt most már biztosan van indexük, így nem lesz üres a lista
