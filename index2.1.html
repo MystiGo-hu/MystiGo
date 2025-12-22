@@ -7135,7 +7135,7 @@ window.loadGameDataAndStart = async function(gameId) {
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     
-    // Fontos: getRedirectResult hozzáadva az importokhoz
+    // getRedirectResult elengedhetetlen a redirect alapú belépés befejezéséhez
     import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -7154,7 +7154,6 @@ window.loadGameDataAndStart = async function(gameId) {
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // Globális elérés biztosítása
         window.db = db;
         window.auth = auth;
         window.ref = ref;
@@ -7164,27 +7163,26 @@ window.loadGameDataAndStart = async function(gameId) {
         window.query = query;
         window.runTransaction = runTransaction;
 
-        // --- 1. EZ A BIZTOS MEGOLDÁS KULCSA ---
-        // Betöltéskor azonnal ellenőrizzük, hogy most érkeztünk-e vissza a Google-től
+        // --- 1. REDIRECT EREDMÉNY KEZELÉSE ---
+        // Ez a rész dolgozza fel a Google-től érkező választ az oldal újratöltésekor
         getRedirectResult(auth)
             .then((result) => {
                 if (result?.user) {
-                    console.log("✅ Sikeres belépés redirect után:", result.user.displayName);
-                    // Itt már nem kell semmit tenned, az onAuthStateChanged észlelni fogja
+                    console.log("✅ Sikeres belépés:", result.user.displayName);
                 }
             }).catch((error) => {
-                console.error("❌ Redirect hiba:", error.message);
+                console.error("❌ Belépési hiba a visszatéréskor:", error.message);
             });
 
         // --- 2. BEJELENTKEZÉS INDÍTÁSA ---
         window.loginWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
-            // Kényszerítjük a fiókválasztót, hogy ne ragadjon be a régi munkamenet
+            // Mindig kényszerítjük a fiókválasztót a biztonság kedvéért
             provider.setCustomParameters({ prompt: 'select_account' });
             try {
                 await signInWithRedirect(auth, provider);
             } catch (error) {
-                console.error("Belépési hiba:", error);
+                console.error("❌ Hiba az indításkor:", error);
             }
         };
 
@@ -7194,7 +7192,7 @@ window.loadGameDataAndStart = async function(gameId) {
                 try {
                     await signOut(auth);
                 } catch (error) {
-                    console.error("Hiba a kijelentkezéskor:", error);
+                    console.error("❌ Hiba kijelentkezéskor:", error);
                 }
             }
         };
@@ -7208,16 +7206,19 @@ window.loadGameDataAndStart = async function(gameId) {
             const teamInput = document.getElementById('team-name-input');
             
             if (user) {
+                // Bejelentkezve
                 if (authButtonGroup) authButtonGroup.classList.add('hidden');
                 if (logoutBtn) logoutBtn.classList.remove('hidden');
                 if (authLabel) authLabel.textContent = "Bejelentkezve:";
                 if (authUserName) authUserName.textContent = user.displayName;
                 
+                // Automatikus névkitöltés
                 if (teamInput && !teamInput.value) {
                     teamInput.value = user.displayName;
                     localStorage.setItem('mystigo_pref_teamName', user.displayName);
                 }
             } else {
+                // Kijelentkezve
                 if (authButtonGroup) authButtonGroup.classList.remove('hidden');
                 if (logoutBtn) logoutBtn.classList.add('hidden');
                 if (authLabel) authLabel.textContent = "Belépés";
@@ -7228,7 +7229,7 @@ window.loadGameDataAndStart = async function(gameId) {
         console.log("✅ Firebase Auth Ready");
 
     } catch (error) {
-        console.error("❌ Hiba:", error);
+        console.error("❌ Inicializálási hiba:", error);
     }
 </script>
 
