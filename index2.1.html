@@ -4116,16 +4116,16 @@ window.autoSortGamesByDistance = function() {
 
    // ASYNC lett a függvény, mert várni kell a Firebase-re
       window.startTimersAndGPS = async function() {
-    // --- ÚJ RÉSZ: Profil mentése bejelentkezett felhasználónál ---
+    // ✅ ÚJ: Profil mentése indításkor
     if (window.auth && window.auth.currentUser) {
         try {
-            // Elmentjük a nevet és az avatart a Firebase-be
-            await window.saveUserProfile(appState.teamName, appState.teamAvatar);
-            console.log("Sikeres profil mentés indításkor.");
-        } catch (e) {
-            console.error("Hiba a profil mentésekor:", e);
-        }
+            const teamName = document.getElementById('team-name-input').value;
+            const avatar = document.getElementById('team-avatar-select').value;
+            await window.saveUserProfile(teamName, avatar);
+        } catch (e) { console.error(e); }
     }
+    
+    if (appState.isTimerRunning) return;
    
  // 1. Hang feloldása (iOS fix)
     if (window.AudioContext || window.webkitAudioContext) {
@@ -7167,14 +7167,23 @@ window.loadGameDataAndStart = async function(gameId) {
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const firebaseConfig = { /* ... a te konfigurációd marad ... */ };
+    // ✅ FONTOS: Ide a SAJÁT konfigurációdat másold be!
+    const firebaseConfig = {
+        apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw", 
+        authDomain: "mystigo-7b149.firebaseapp.com",
+        databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "mystigo-7b149",
+        storageBucket: "mystigo-7b149.appspot.com",
+        messagingSenderId: "367383637666",
+        appId: "1:367383637666:web:156184517316377e641775"
+    };
 
     try {
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // Globális elérés biztosítása
+        // Globális elérés biztosítása a többi scriptnek
         window.db = db;
         window.auth = auth;
         window.ref = ref; window.get = get; window.set = set; window.update = update; window.runTransaction = runTransaction;
@@ -7189,7 +7198,7 @@ window.loadGameDataAndStart = async function(gameId) {
                     avatar: avatarIndex,
                     lastLogin: Date.now()
                 });
-                console.log("Profil mentve a felhőbe.");
+                console.log("✅ Profil mentve a felhőbe.");
             }
         };
 
@@ -7204,63 +7213,57 @@ window.loadGameDataAndStart = async function(gameId) {
             }
         };
 
+        // --- GOOGLE BEJELENTKEZÉS (Globálissá tétel a window-val) ---
+        window.loginWithGoogle = async () => {
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            try {
+                const result = await signInWithPopup(auth, provider);
+                if (result.user) console.log("✅ Sikeres belépés:", result.user.displayName);
+            } catch (error) {
+                console.error("❌ Bejelentkezési hiba:", error);
+            }
+        };
+
+        // --- KIJELENTKEZÉS ---
+        window.logout = async () => {
+            if(confirm("Biztosan ki szeretnél jelentkezni?")) {
+                try { await signOut(auth); } catch (e) { console.error(e); }
+            }
+        };
+
         // --- UI ÁLLAPOTFIGYELŐ ---
         onAuthStateChanged(auth, async (user) => {
-            const authBar = document.getElementById('auth-status-bar'); // Új tároló a lenti HTML-ben
+            const btnGroup = document.getElementById('auth-buttons-group');
+            const logoutBtn = document.getElementById('logout-btn');
+            const scoreDisplay = document.getElementById('total-score-display');
+            const scoreSpan = document.getElementById('user-total-score');
+            const authUserName = document.getElementById('auth-user-name');
             const teamInput = document.getElementById('team-name-input');
             
             if (user) {
-                // Adatok betöltése a Firebase-ből
+                // Adatok betöltése
                 const snapshot = await get(ref(db, `users/${user.uid}/profile`));
                 const profile = snapshot.val() || {};
 
-                // UI frissítése a mentett adatokkal
-                if (profile.teamName) {
-                    teamInput.value = profile.teamName;
-                } else {
-                    teamInput.value = user.displayName; // Fallback a Google névre
-                }
+                if (btnGroup) btnGroup.classList.add('hidden');
+                if (logoutBtn) logoutBtn.classList.remove('hidden');
+                if (scoreDisplay) scoreDisplay.classList.remove('hidden');
+                if (authUserName) authUserName.textContent = profile.teamName || user.displayName;
+                if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
                 
-                if (profile.avatar !== undefined) {
-                    // Ha van mentett avatar, kiválasztjuk (feltételezve, hogy a selectAvatar függvényed elérhető)
-                    if (window.selectAvatar) window.selectAvatar(profile.avatar);
+                // Automatikus kitöltés
+                if (teamInput && !teamInput.value) {
+                    teamInput.value = profile.teamName || user.displayName;
                 }
-
-                // Header/Auth sáv frissítése (Kijelentkezés balra, Pontok jobbra)
-                renderAuthUI(true, profile.totalScore || 0);
             } else {
-                renderAuthUI(false, 0);
+                if (btnGroup) btnGroup.classList.remove('hidden');
+                if (logoutBtn) logoutBtn.classList.add('hidden');
+                if (scoreDisplay) scoreDisplay.classList.add('hidden');
             }
         });
 
-        function renderAuthUI(loggedIn, score) {
-    const authButtonGroup = document.getElementById('auth-buttons-group');
-    const logoutBtn = document.getElementById('logout-btn');
-    const scoreDisplay = document.getElementById('total-score-display');
-    const scoreSpan = document.getElementById('user-total-score'); // Új hivatkozás
-
-    if (loggedIn) {
-        if (authButtonGroup) authButtonGroup.classList.add('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
-        if (scoreDisplay) scoreDisplay.classList.remove('hidden');
-        if (scoreSpan) scoreSpan.textContent = score; // Csak a számot írjuk ide
-    } else {
-        if (authButtonGroup) authButtonGroup.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
-        if (scoreDisplay) scoreDisplay.classList.add('hidden');
-    }
-}
-
-        window.loginWithGoogle = async () => {
-            const provider = new GoogleAuthProvider();
-            try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
-        };
-
-        window.logout = async () => {
-            if(confirm("Kijelentkezel?")) await signOut(auth);
-        };
-
-    } catch (error) { console.error(error); }
+    } catch (error) { console.error("❌ Firebase inicializálási hiba:", error); }
 </script>
 
 
