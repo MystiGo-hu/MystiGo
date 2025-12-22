@@ -7131,11 +7131,10 @@ window.loadGameDataAndStart = async function(gameId) {
 
 
 <script type="module">
+    // 1. IMPORTOK - Szigorúan legfelül
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    
-    // getRedirectResult elengedhetetlen a redirect alapú belépés befejezéséhez
     import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -7154,82 +7153,85 @@ window.loadGameDataAndStart = async function(gameId) {
         const db = getDatabase(app);
         const auth = getAuth(app);
 
+        // Globális elérhetőség
         window.db = db;
         window.auth = auth;
         window.ref = ref;
         window.get = get;
+        window.child = child;
         window.push = push;
+        window.update = update;
         window.set = set;
         window.query = query;
         window.runTransaction = runTransaction;
+        
+        // ✅ FONTOS: Azonnal jelezzük, hogy a Firebase alapmodul kész,
+        // így a "Csatlakozás a szerverhez" felirat eltűnik.
+        window.isFirebaseReady = true; 
 
-        // --- 1. REDIRECT EREDMÉNY KEZELÉSE ---
-        // Ez a rész dolgozza fel a Google-től érkező választ az oldal újratöltésekor
+        // 2. REDIRECT EREDMÉNY KEZELÉSE (Async módon, hogy ne blokkoljon)
         getRedirectResult(auth)
             .then((result) => {
                 if (result?.user) {
-                    console.log("✅ Sikeres belépés:", result.user.displayName);
+                    console.log("✅ Sikeres visszatérés a Google-től:", result.user.displayName);
                 }
-            }).catch((error) => {
-                console.error("❌ Belépési hiba a visszatéréskor:", error.message);
+            })
+            .catch((error) => {
+                console.warn("Redirect info:", error.message);
             });
 
-        // --- 2. BEJELENTKEZÉS INDÍTÁSA ---
-        window.loginWithGoogle = async () => {
+        // 3. AUTH FUNKCIÓK EXPORTÁLÁSA
+        window.loginWithGoogle = () => {
             const provider = new GoogleAuthProvider();
-            // Mindig kényszerítjük a fiókválasztót a biztonság kedvéért
             provider.setCustomParameters({ prompt: 'select_account' });
-            try {
-                await signInWithRedirect(auth, provider);
-            } catch (error) {
-                console.error("❌ Hiba az indításkor:", error);
-            }
+            signInWithRedirect(auth, provider);
         };
 
-        // --- 3. KIJELENTKEZÉS ---
         window.logout = async () => {
             if(confirm("Biztosan ki szeretnél jelentkezni?")) {
                 try {
                     await signOut(auth);
-                } catch (error) {
-                    console.error("❌ Hiba kijelentkezéskor:", error);
+                } catch (e) {
+                    console.error("Logout hiba:", e);
                 }
             }
         };
 
-        // --- 4. UI AUTOMATIKUS FRISSÍTÉSE ---
+        // 4. UI ÁLLAPOTFIGYELŐ
         onAuthStateChanged(auth, (user) => {
-            const authButtonGroup = document.getElementById('auth-buttons-group');
+            const btnGroup = document.getElementById('auth-buttons-group');
             const logoutBtn = document.getElementById('logout-btn');
-            const authLabel = document.getElementById('auth-status-label');
+            const authStatusLabel = document.getElementById('auth-status-label');
             const authUserName = document.getElementById('auth-user-name');
             const teamInput = document.getElementById('team-name-input');
             
             if (user) {
                 // Bejelentkezve
-                if (authButtonGroup) authButtonGroup.classList.add('hidden');
+                if (btnGroup) btnGroup.classList.add('hidden');
                 if (logoutBtn) logoutBtn.classList.remove('hidden');
-                if (authLabel) authLabel.textContent = "Bejelentkezve:";
+                if (authStatusLabel) authStatusLabel.textContent = "Bejelentkezve:";
                 if (authUserName) authUserName.textContent = user.displayName;
                 
-                // Automatikus névkitöltés
-                if (teamInput && !teamInput.value) {
+                // Csak akkor töltsük ki az inputot, ha még üres
+                if (teamInput && (!teamInput.value || teamInput.value.trim() === "")) {
                     teamInput.value = user.displayName;
                     localStorage.setItem('mystigo_pref_teamName', user.displayName);
                 }
             } else {
                 // Kijelentkezve
-                if (authButtonGroup) authButtonGroup.classList.remove('hidden');
+                if (btnGroup) btnGroup.classList.remove('hidden');
                 if (logoutBtn) logoutBtn.classList.add('hidden');
-                if (authLabel) authLabel.textContent = "Belépés";
+                if (authStatusLabel) authStatusLabel.textContent = "Belépés";
                 if (authUserName) authUserName.textContent = "";
             }
         });
 
-        console.log("✅ Firebase Auth Ready");
+        console.log("✅ Firebase modulok teljesen betöltve.");
 
     } catch (error) {
-        console.error("❌ Inicializálási hiba:", error);
+        console.error("❌ Kritikus hiba az inicializáláskor:", error);
+        // Biztonsági mentés: ha minden elromlik, akkor is engedjük be a júzert
+        window.isFirebaseReady = true; 
     }
 </script>
 
