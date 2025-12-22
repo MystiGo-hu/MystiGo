@@ -7170,14 +7170,20 @@ window.loadGameDataAndStart = async function(gameId) {
         window.isFirebaseReady = true; 
 
         // 2. REDIRECT EREDMÉNY KEZELÉSE (Async módon, hogy ne blokkoljon)
+        console.log("Auth állapot ellenőrzése...");
         getRedirectResult(auth)
             .then((result) => {
                 if (result?.user) {
-                    console.log("✅ Sikeres visszatérés a Google-től:", result.user.displayName);
+                    console.log("✅ Sikeres Google visszatérés:", result.user.displayName);
+                    alert("Sikeres belépés: " + result.user.displayName);
+                } else {
+                    console.log("ℹ️ Nincs redirect eredmény (friss indítás vagy hiba)");
                 }
             })
             .catch((error) => {
-                console.warn("Redirect info:", error.message);
+                console.error("❌ Belépési hiba kódja:", error.code);
+                console.error("❌ Hibaüzenet:", error.message);
+                alert("Hiba történt: " + error.message);
             });
 
         // 3. AUTH FUNKCIÓK EXPORTÁLÁSA
