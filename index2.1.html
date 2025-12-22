@@ -7243,52 +7243,55 @@ onAuthStateChanged(auth, (user) => {
     const authUserName = document.getElementById('auth-user-name');
     const teamInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
+    
+    // ✅ ÚJ: A státusz felirat lekérése
+    const authStatusLabel = document.getElementById('auth-status-label');
 
-    // Ha volt korábbi figyelő, leállítjuk
     if (profileListener) {
         profileListener();
         profileListener = null;
     }
 
     if (user) {
-        // ✅ VALÓS IDEJŰ FIGYELŐ INDÍTÁSA
         const profileRef = ref(db, `users/${user.uid}/profile`);
         
         profileListener = onValue(profileRef, (snapshot) => {
-    const profile = snapshot.val() || {};
-    console.log("🔄 Profil adatok frissültek:", profile);
+            const profile = snapshot.val() || {};
 
-    // UI elemek láthatósága és fejléc frissítése
-    if (btnGroup) btnGroup.classList.add('hidden');
-    if (logoutBtn) logoutBtn.classList.remove('hidden');
-    if (scoreDisplay) scoreDisplay.classList.remove('hidden');
+            // UI elemek láthatósága
+            if (btnGroup) btnGroup.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+            if (scoreDisplay) scoreDisplay.classList.remove('hidden');
 
-    const displayName = profile.teamName || user.displayName;
-    if (authUserName) authUserName.textContent = displayName;
-    if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
-    
-    // ✅ JAVÍTÁS: Mindig írjuk felül az inputot, ha van mentett név az adatbázisban
-    if (teamInput && profile.teamName) {
-        teamInput.value = profile.teamName;
-        // Frissítjük a localStorage-t is, hogy a játék motorja (appState) is ezt lássa
-        localStorage.setItem('mystigo_pref_teamName', profile.teamName);
-    }
+            // ✅ JAVÍTÁS: A felirat módosítása bejelentkezett állapotban
+            if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
 
-    // Avatar frissítése (ez nálad már jól működött)
-    if (avatarSelect && profile.avatar) {
-        avatarSelect.value = profile.avatar;
-        localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-    }
-}, (error) => {
-    console.warn("Hiba a valós idejű figyelésnél:", error);
-});
+            // Név és pontszám frissítése
+            const displayName = profile.teamName || user.displayName;
+            if (authUserName) authUserName.textContent = displayName;
+            if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
+            
+            // ✅ JAVÍTÁS: Mindig felülírjuk a mezőt, ha van mentett név
+            if (teamInput && profile.teamName) {
+                teamInput.value = profile.teamName;
+                localStorage.setItem('mystigo_pref_teamName', profile.teamName);
+            }
+            
+            if (avatarSelect && profile.avatar) {
+                avatarSelect.value = profile.avatar;
+                localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+            }
+        });
 
     } else {
-        // Kijelentkezve
+        // Kijelentkezve visszaállítjuk az eredeti állapotot
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
         if (authUserName) authUserName.textContent = "";
+        
+        // ✅ JAVÍTÁS: A felirat visszaállítása "Belépés"-re
+        if (authStatusLabel) authStatusLabel.textContent = "Belépés";
     }
 });
 
