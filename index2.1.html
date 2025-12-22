@@ -7176,26 +7176,43 @@ wwindow.loginWithGoogle = async () => {
 
         // Állapotfigyelő: Automatikusan kezeli a UI-t, ha belépett a user
         onAuthStateChanged(auth, (user) => {
-            const googleBtn = document.getElementById('google-login-btn');
-            const teamInput = document.getElementById('team-name-input');
-            
-            if (user) {
-                // Ha be van jelentkezve
-                if (googleBtn) googleBtn.innerHTML = `✅ Belépve: ${user.displayName.split(' ')[0]}`;
-                if (teamInput && !teamInput.value) {
-                    teamInput.value = user.displayName;
-                    localStorage.setItem('mystigo_pref_teamName', user.displayName);
-                }
-            } else {
-                // Ha nincs bejelentkezve
-                if (googleBtn) googleBtn.innerHTML = `🚀 Belépés Google-fiókkal`;
-            }
-        });
-
-        console.log("✅ Firebase Auth & DB Ready");
-    } catch (error) {
-        console.error("❌ Firebase hiba:", error);
+    const authButtonGroup = document.getElementById('auth-buttons-group');
+    const logoutBtn = document.getElementById('logout-btn');
+    const authLabel = document.getElementById('auth-status-label');
+    const authUserName = document.getElementById('auth-user-name');
+    const teamInput = document.getElementById('team-name-input');
+    
+    if (user) {
+        // HA BE VAN JELENTKEZVE
+        if (authButtonGroup) authButtonGroup.classList.add('hidden');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        if (authLabel) authLabel.textContent = "Bejelentkezve:";
+        if (authUserName) authUserName.textContent = user.displayName;
+        
+        // Név automatikus kitöltése, ha üres
+        if (teamInput && !teamInput.value) {
+            teamInput.value = user.displayName;
+            localStorage.setItem('mystigo_pref_teamName', user.displayName);
+        }
+    } else {
+        // HA KI VAN JELENTKEZVE
+        if (authButtonGroup) authButtonGroup.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (authLabel) authLabel.textContent = "Belépés";
+        if (authUserName) authUserName.textContent = "";
     }
+});
+
+// Kijelentkezés függvény (biztosítva a globális elérhetőséget)
+window.logout = async () => {
+    if(confirm("Biztosan ki szeretnél jelentkezni?")) {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Hiba a kijelentkezéskor:", error);
+        }
+    }
+};
 </script>
 
 
