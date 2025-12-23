@@ -91,12 +91,38 @@
     justify-content: center;
     z-index: 10;
 }
+/* Egységes avatar konténer a méret és pipa rögzítéséhez */
+.avatar-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;  /* Fix szélesség */
+    height: 32px; /* Fix magasság */
+    font-size: 1.5rem; /* Az emoji mérete (fejléc szabvány) */
+}
+
+/* A kék pipa pontos elhelyezkedése */
+.verified-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    background-color: #3b82f6; /* Kék szín */
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
 .verified-badge svg {
     width: 8px;
     height: 8px;
     color: white;
 }
-
 
 	 .main-button {
             background-color: var(--brand-orange);
@@ -732,7 +758,11 @@
     
     
     
-    <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
+    <div class="flex items-center gap-4 mt-3 p-3 bg-white/50 rounded-2xl border border-gray-100 shadow-inner">
+    
+    <div class="relative flex-1">
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1">Avatar választása</label>
+        <select id="team-avatar-select" class="w-full pl-3 pr-8 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-cyan outline-none appearance-none cursor-pointer transition-all shadow-sm">
         <option value="">Válassz Avatart</option>
         <option value="cat">Mysti 🐱</option>
         <option value="dog">Kutya 🐶</option>
@@ -770,6 +800,30 @@
         <option value="laptop">Laptop 💻</option>
         <option value="floppy">Floppy 💾</option>
     </select>
+        <div class="absolute right-3 top-[32px] pointer-events-none text-gray-400">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" /></svg>
+        </div>
+    </div>
+
+    <div class="flex flex-col items-center gap-1 shrink-0">
+        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Preview</label>
+        <div class="relative">
+            <div id="avatar-preview-container" 
+                 class="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-50 to-white border-4 border-white shadow-xl flex items-center justify-center text-4xl overflow-hidden transition-all duration-300 transform scale-100 ring-2 ring-brand-cyan/10">
+                ❓
+            </div>
+            
+            <div id="preview-verified-badge" class="hidden absolute -top-1 -right-1 w-6 h-6 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center shadow-md z-10">
+                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 
 <div class="flex justify-between items-start mt-1 mb-3">
         <p class="text-[10px] text-gray-500 italic">
@@ -2042,64 +2096,55 @@ window.getGameCurrentCount = async function(gameId) {
     let html = "";
     
     results.slice(0, 100).forEach((r) => {
-        const icon = avatars[r.teamAvatar] || '👤';
-        const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
-        const rank = r.actualRank;
+        const iconEmoji = avatars[r.teamAvatar] || '👤';
+const isRegistered = !!r.isRegistered; //
+const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
 
-        let rankDisplay = `${rank}.`;
-        let rowBg = ""; 
-        
-        if (rank === 1) { rankDisplay = "🥇"; }
-        else if (rank === 2) { rankDisplay = "🥈"; }
-        else if (rank === 3) { rankDisplay = "🥉"; }
-        
-        if (isMyTeam) {
-            rowBg = "bg-blue-200 border-l-4 border-l-red-400";
-        }
+// 2. Az egységesített avatar konténer létrehozása (ugyanaz, mint a fejlécben)
+const avatarHtml = `
+    <div class="avatar-container">
+        ${iconEmoji}
+        ${isRegistered ? `
+            <div class="verified-badge">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>` : ''}
+    </div>
+`;
 
-        const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
+let rowBg = isMyTeam ? "bg-blue-200 border-l-4 border-l-red-400" : "";
+const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
 
-        // JAVÍTOTT RÉSZ: A badgeHtml-t a stringen KÍVÜL definiáljuk
-        const badgeHtml = r.isRegistered ? `
-    <div class="verified-badge">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-    </div>` : '';
-
-        html += `
-            <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
-                <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${rankDisplay}</td>
-                <td class="px-1 py-3 align-middle">
-                    <div class="font-bold text-brand-blue flex items-center gap-1.5">
-                        <div class="relative shrink-0">
-                            <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px]">
-                                ${icon}
-                            </span>
-                            ${badgeHtml}
-                        </div>
-                        <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
-                            ${r.teamName}
-                        </span>
-                    </div>
-                    <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1 mt-1">
-                        ⏱️ ${fmtDate(r.timestamp)}
-                    </div>
-                </td>
-                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-10 align-middle">
-                    ${r.score}
-                </td>
-                <td class="pl-1 pr-1 py-3 text-right text-xs text-gray-600 leading-tight w-24 align-middle">
-                    <div class="flex flex-col items-end gap-1">
-                        <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
-                            🧩 ${fmt(r.geofenceTime || 0)}
-                        </div>
-                        <div title="Teljes idő" class="font-semibold text-brand-blue bg-blue-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
-                            ⏱️ ${fmt(r.totalTime || 0)}
-                        </div>
-                    </div>
-                </td>
-            </tr>`;
+// 3. A táblázat sorának összeállítása az új avatarHtml használatával
+html += `
+    <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
+        <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${r.actualRank}.</td>
+        <td class="px-1 py-3 align-middle">
+            <div class="font-bold text-brand-blue flex items-center gap-1.5">
+                ${avatarHtml}
+                <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
+                    ${r.teamName}
+                </span>
+            </div>
+            <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1 mt-1">
+                ⏱️ ${fmtDate(r.timestamp)}
+            </div>
+        </td>
+        <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-10 align-middle">
+            ${r.score}
+        </td>
+        <td class="pl-1 pr-1 py-3 text-right text-xs text-gray-600 leading-tight w-24 align-middle">
+            <div class="flex flex-col items-end gap-1">
+                <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
+                    🧩 ${fmt(r.geofenceTime || 0)}
+                </div>
+                <div title="Teljes idő" class="font-semibold text-brand-blue bg-blue-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
+                    ⏱️ ${fmt(r.totalTime || 0)}
+                </div>
+            </div>
+        </td>
+    </tr>`;
     });
     listBody.innerHTML = html;
 };
@@ -3139,13 +3184,13 @@ async function sharePdfViaEmail() {
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
                 if (appState.teamName) {
-    const avatarIcon = AVATAR_ICONS[appState.teamAvatar] || '';
-    const isRegistered = !!(window.auth && window.auth.currentUser); // Be van-e jelentkezve?
-    
-    // Az ikont egy relatív konténerbe tesszük, hogy rá tudjuk tenni a pipát
-    teamAvatarIcon.style.position = 'relative';
+    const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
+    const isRegistered = !!(window.auth && window.auth.currentUser);
+
+    // Alkalmazzuk az egységes struktúrát
+    teamAvatarIcon.className = "avatar-container"; 
     teamAvatarIcon.innerHTML = `
-        ${avatarIcon}
+        ${avatarEmoji}
         ${isRegistered ? `
             <div class="verified-badge">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
@@ -3153,8 +3198,7 @@ async function sharePdfViaEmail() {
                 </svg>
             </div>` : ''}
     `;
-    
-    teamNameDisplay.textContent = appState.teamName; 
+    teamNameDisplay.textContent = appState.teamName;
     teamNameContainer.classList.remove('hidden');
 } else {
                     teamNameContainer.classList.add('hidden');
@@ -4853,15 +4897,15 @@ if (taskImageEl) {
             document.getElementById('final-score').textContent = appState.score;
             document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
 
-const finalAvatarIcon = document.getElementById('final-team-avatar-icon');
+const finalAvatarEl = document.getElementById('final-team-avatar-icon');
 const isRegistered = !!(window.auth && window.auth.currentUser);
 const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
 
-finalAvatarIcon.style.position = 'relative';
-finalAvatarIcon.innerHTML = `
+finalAvatarEl.className = "avatar-container"; // Ugyanaz a méret, mint a fejlécben
+finalAvatarEl.innerHTML = `
     ${avatarEmoji}
     ${isRegistered ? `
-        <div class="verified-badge" style="width: 18px; height: 18px;">
+        <div class="verified-badge">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
             </svg>
@@ -6533,10 +6577,39 @@ const isIos = () => {
 
 
             if (avatarSelectEl) {
-                avatarSelectEl.addEventListener('change', (e) => {
-                    localStorage.setItem('mystigo_pref_teamAvatar', e.target.value);
-                });
-            }
+    const updatePreview = () => {
+        const previewContainer = document.getElementById('avatar-preview-container');
+        const selectedValue = avatarSelectEl.value;
+        
+        if (previewContainer) {
+            // Animáció indítása: picit lekicsinyítjük
+            previewContainer.classList.add('scale-75', 'opacity-50');
+            
+            setTimeout(() => {
+                // Emoji frissítése
+                previewContainer.textContent = AVATAR_ICONS[selectedValue] || '❓';
+                
+                // Animáció befejezése: visszaugrik eredeti méretre
+                previewContainer.classList.remove('scale-75', 'opacity-50');
+                previewContainer.classList.add('scale-110'); // Kicsit túllő a határon
+                
+                setTimeout(() => {
+                    previewContainer.classList.remove('scale-110');
+                }, 150);
+            }, 100);
+        }
+    };
+
+    avatarSelectEl.addEventListener('change', (e) => {
+        localStorage.setItem('mystigo_pref_teamAvatar', e.target.value);
+        updatePreview();
+    });
+
+    // Kezdeti betöltés
+    setTimeout(updatePreview, 200);
+}
+
+
             // --- ÚJ RÉSZ VÉGE ---
 
 	    initializeState();
