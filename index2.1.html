@@ -79,31 +79,28 @@
 /* Ellenőrzött pipa stílusa az avatar sarkában */
 .verified-badge {
     position: absolute;
-    bottom: -2px;
+    top: -2px;
     right: -2px;
-    width: 20px;
-    height: 20px;
     background-color: #3b82f6;
-    border: 2px solid white;
+    border: 1.5px solid white;
     border-radius: 50%;
-    z-index: 10;
     display: none; /* Alapból rejtve */
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
 }
 
-/* Aktív állapot bejelentkezéskor */
+/* Aktív állapot */
 .verified-badge.active {
     display: flex !important;
 }
 
+.verified-badge-sm { width: 12px; height: 12px; }
+.verified-badge-sm svg { width: 7px; height: 7px; color: white; }
 
-.verified-badge svg {
-    width: 10px;
-    height: 10px;
-    color: white;
-}
+.verified-badge-lg { width: 20px; height: 20px; }
+.verified-badge-lg svg { width: 10px; height: 10px; color: white; }
+
 /* Egységes avatar konténer a mérethez */
 .avatar-container {
     position: relative;
@@ -751,18 +748,17 @@
     
     <div class="flex flex-col items-center gap-2 mt-4">
       
-    <div class="relative cursor-pointer group" onclick="openAvatarSelector()">
-        <div id="avatar-preview-container" 
-             class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center text-5xl transition-all duration-300 transform active:scale-90 ring-4 ring-brand-cyan/20">
-            ❓
-        </div>
-        
-        <div id="preview-verified-badge" class="verified-badge">
-            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-        </div>
+    <div class="relative cursor-pointer" onclick="openAvatarSelector()">
+    <div id="avatar-preview-container" class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center text-5xl transition-all duration-300 transform active:scale-90 ring-4 ring-brand-cyan/10">
+        ❓
     </div>
+    
+    <div id="preview-verified-badge" class="verified-badge">
+        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+</div>
     <p class="text-[9px] text-gray-400 font-medium mt-1">Avatar választása</p>
 </div>
 
@@ -2063,12 +2059,11 @@ const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == wind
 const avatarHtml = `
     <div class="avatar-container">
         ${iconEmoji}
-        ${isRegistered ? `
-            <div class="verified-badge">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>` : ''}
+        <div class="verified-badge ${isRegistered ? 'active' : ''}">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
     </div>
 `;
 
@@ -3143,21 +3138,20 @@ async function sharePdfViaEmail() {
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
                 if (appState.teamName) {
-    const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
-    const isRegistered = !!(window.auth && window.auth.currentUser);
+        const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
+        const isRegistered = !!(window.auth && window.auth.currentUser);
 
-    // Alkalmazzuk az egységes struktúrát
-    teamAvatarIcon.className = "avatar-container"; 
-    teamAvatarIcon.innerHTML = `
-        ${avatarEmoji}
-        ${isRegistered ? `
-            <div class="verified-badge">
+        // Alkalmazzuk az egységes struktúrát
+        teamAvatarIcon.className = "avatar-container"; 
+        teamAvatarIcon.innerHTML = `
+            ${avatarEmoji}
+            <div class="verified-badge ${isRegistered ? 'active' : ''}">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-            </div>` : ''}
-    `;
-    teamNameDisplay.textContent = appState.teamName;
+            </div>
+        `;
+        teamNameDisplay.textContent = appState.teamName;
     teamNameContainer.classList.remove('hidden');
 } else {
                     teamNameContainer.classList.add('hidden');
@@ -4872,12 +4866,11 @@ const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
 finalAvatarEl.className = "avatar-container"; // Ugyanaz a méret, mint a fejlécben
 finalAvatarEl.innerHTML = `
     ${avatarEmoji}
-    ${isRegistered ? `
-        <div class="verified-badge">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-        </div>` : ''}
+    <div class="verified-badge ${isRegistered ? 'active' : ''}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
 `;
             document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
             
@@ -6547,32 +6540,19 @@ const isIos = () => {
             if (avatarSelectEl) {
                 // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
                 window.updateAvatarPreview = () => {
-                    const previewContainer = document.getElementById('avatar-preview-container');
-                    const selectedValue = avatarSelectEl.value;
-                    
-                    // Mentés a helyi tárolóba
-                    if (selectedValue) {
-                        localStorage.setItem('mystigo_pref_teamAvatar', selectedValue);
-                    }
-
-                    if (previewContainer) {
-                        // Animáció indítása
-                        previewContainer.classList.add('scale-75', 'opacity-50');
-                        
-                        setTimeout(() => {
-                            // Emoji frissítése (AVATAR_ICONS használatával)
-                            previewContainer.textContent = AVATAR_ICONS[selectedValue] || '❓';
-                            
-                            // Animáció befejezése
-                            previewContainer.classList.remove('scale-75', 'opacity-50');
-                            previewContainer.classList.add('scale-110');
-                            
-                            setTimeout(() => {
-                                previewContainer.classList.remove('scale-110');
-                            }, 150);
-                        }, 100);
-                    }
-                };
+    const previewContainer = document.getElementById('avatar-preview-container');
+    // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
+    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    
+    if (previewContainer && savedAvatar) {
+        // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
+        previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+        
+        // Kis vizuális visszajelzés
+        previewContainer.classList.add('scale-110');
+        setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
+    }
+};
 
                 // Eseményfigyelő hozzáadása
                 avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
@@ -7422,55 +7402,69 @@ onAuthStateChanged(auth, (user) => {
     const teamInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
     const authStatusLabel = document.getElementById('auth-status-label');
-    const previewVerifiedBadge = document.getElementById('preview-verified-badge'); //
+    const previewVerifiedBadge = document.getElementById('preview-verified-badge');
+    const previewContainer = document.getElementById('avatar-preview-container');
 
+    // Korábbi figyelő leállítása, ha volt
     if (profileListener) {
         profileListener();
         profileListener = null;
     }
-if (user) {
-    // Bejelentkezve: Azonnal megjelenítjük a pipát a jobb oldalon
-    if (previewVerifiedBadge) {
-        previewVerifiedBadge.classList.add('active');
-    }
 
-        const profileRef = ref(db, `users/${user.uid}/profile`); //
+    if (user) {
+        // Bejelentkezve megjelenítjük a pipát (active osztály hozzáadása)
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
+
+        const profileRef = ref(db, `users/${user.uid}/profile`);
         profileListener = onValue(profileRef, (snapshot) => {
             const profile = snapshot.val() || {};
 
-            if (btnGroup) btnGroup.classList.add('hidden'); //
-            if (logoutBtn) logoutBtn.classList.remove('hidden'); //
-            if (scoreDisplay) scoreDisplay.classList.remove('hidden'); //
-            if (authStatusLabel) authStatusLabel.textContent = "Belépve:"; //
+            // Felület alapvető beállítása
+            if (btnGroup) btnGroup.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+            if (scoreDisplay) scoreDisplay.classList.remove('hidden');
+            if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
 
-            const displayName = profile.teamName || user.displayName; //
-            if (authUserName) authUserName.textContent = displayName; //
-            if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0; //
+            // Név és pontszám kiírása
+            const displayName = profile.teamName || user.displayName;
+            if (authUserName) authUserName.textContent = displayName;
+            if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
             
+            // Csapatnév mező és LocalStorage frissítése
             if (teamInput && profile.teamName) {
-                teamInput.value = profile.teamName; //
-                localStorage.setItem('mystigo_pref_teamName', profile.teamName); //
+                teamInput.value = profile.teamName;
+                localStorage.setItem('mystigo_pref_teamName', profile.teamName);
             }
             
-            if (avatarSelect && profile.avatar) {
-                avatarSelect.value = profile.avatar; //
-                localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar); //
+            // AVATAR FRISSÍTÉSE KÖZVETLENÜL FIREBASE-BŐL
+            if (profile.avatar) {
+                // 1. Elmentjük a memóriába (LocalStorage)
+                localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
                 
-                if (typeof window.updateAvatarPreview === 'function') {
-                    window.updateAvatarPreview(); //
+                // 2. Beállítjuk a nagy kört az emojira (AVATAR_ICONS mapping használatával)
+                if (previewContainer) {
+                    previewContainer.textContent = AVATAR_ICONS[profile.avatar] || '❓';
+                }
+                
+                // 3. A rejtett select szinkronban tartása (a játék indításához szükséges)
+                if (avatarSelect) {
+                    avatarSelect.innerHTML = `<option value="${profile.avatar}" selected>${profile.avatar}</option>`;
                 }
             }
         });
 
     } else {
-        // --- JAVÍTÁS: Kijelentkezéskor az 'active' osztály eltávolítása ---
-        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active'); //
+        // KIJELENTKEZÉS KEZELÉSE
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
         
-        if (btnGroup) btnGroup.classList.remove('hidden'); //
-        if (logoutBtn) logoutBtn.classList.add('hidden'); //
-        if (scoreDisplay) scoreDisplay.classList.add('hidden'); //
-        if (authUserName) authUserName.textContent = ""; //
-        if (authStatusLabel) authStatusLabel.textContent = "Belépés"; //
+        if (btnGroup) btnGroup.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (scoreDisplay) scoreDisplay.classList.add('hidden');
+        if (authUserName) authUserName.textContent = "";
+        if (authStatusLabel) authStatusLabel.textContent = "Belépés";
+        
+        // Visszaállítjuk az alapértelmezett kérdőjelet
+        if (previewContainer) previewContainer.textContent = '❓';
     }
 });
 
