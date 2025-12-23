@@ -76,6 +76,48 @@
         }
 
 
+/* Avatar kártya alapstílus */
+.avatar-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover effektus (ha az egér felette van) */
+.avatar-card:hover:not(.selected) {
+    transform: translateY(-2px);
+    background-color: #f0fdfa; /* Halvány türkiz */
+    border-color: var(--brand-cyan);
+}
+
+/* Kijelölt állapot animációja */
+.avatar-card.selected {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #ffffff 0%, #e0f7fa 100%);
+    border-color: var(--brand-cyan);
+    box-shadow: 0 10px 15px -3px rgba(0, 206, 209, 0.2);
+}
+
+/* Kis pipa a kijelölt kártya sarkában */
+.avatar-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--brand-cyan);
+    color: white;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+
+
 /* Ellenőrzött pipa stílusa az avatar sarkában */
 .verified-badge {
     position: absolute;
@@ -7478,14 +7520,18 @@ window.openAvatarSelector = function() {
     const currentKey = localStorage.getItem('mystigo_pref_teamAvatar');
     grid.innerHTML = ''; 
 
-    // Az AVATAR_ICONS listát használjuk, ami már benne van a kódodban
+    // Eredeti elrendezés: 4 oszlop, alapértelmezett térközök
+    grid.className = "p-6 overflow-y-auto grid grid-cols-4 gap-4 bg-white";
+
     Object.keys(AVATAR_ICONS).forEach(key => {
         const char = AVATAR_ICONS[key];
         const isSelected = key === currentKey;
         
         const btn = document.createElement('button');
+        // Visszaállítva az eredeti gomb stílusra
         btn.className = `text-4xl p-2 rounded-2xl transition-all transform active:scale-90 border-2 ${isSelected ? 'border-brand-cyan bg-cyan-50' : 'border-transparent bg-gray-50'}`;
         btn.innerHTML = char;
+        
         btn.onclick = () => {
             selectAvatar(key);
         };
@@ -7495,6 +7541,9 @@ window.openAvatarSelector = function() {
     document.getElementById('avatar-selector-modal').classList.remove('hidden');
     document.getElementById('avatar-selector-modal').classList.add('flex');
 };
+
+
+
 
 window.closeAvatarSelector = function() {
     document.getElementById('avatar-selector-modal').classList.add('hidden');
