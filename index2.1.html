@@ -14,6 +14,43 @@
 <link rel="icon" type="image/png" href="logo/icon-192_v3.png">
     <title>MystiGo - Városi Kalandjáték Platform</title>
     
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+    /* Lebegő pontszám animáció */
+    .score-float {
+        position: fixed;
+        pointer-events: none;
+        font-weight: 800;
+        font-size: 2rem;
+        color: #FFA500;
+        text-shadow: 0 0 10px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: floatUp 1.5s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(0.5); opacity: 0; }
+        20% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+        100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    }
+
+    /* Rázkódó animáció hibás válasz esetén az input mezőre */
+    .shake {
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+</style>
+
+
+
     
     <link rel="preload" href="logo/MystiGo_logo.png" as="image">
 
@@ -76,6 +113,42 @@
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
         }
+
+
+/* Siker kártya animációja */
+.success-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: white;
+    padding: 15px 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 11000;
+    border: 2px solid #00CED1;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 280px;
+}
+
+.success-toast.active {
+    transform: translateX(-50%) translateY(0);
+}
+
+.success-toast .icon {
+    font-size: 24px;
+    background: #e0f7fa;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
 
 
 /* Avatar kártya alapstílus */
@@ -529,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.11
+       v1.2.13
 
    </span>
 
@@ -3338,6 +3411,9 @@ async function sharePdfViaEmail() {
 
 
 
+
+
+
         // --- CORE APP & PAGE LOGIC ---
         function showPage(pageId) {
             // --- GA4 Virtual Pageview ---
@@ -4398,6 +4474,76 @@ const limitFromExcel = gameConfig.globalLimit;
                 showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?`, () => proceedToStart(), true);
             }
         };
+
+
+
+// --- INTERAKTÍV FEEDBACK RENDSZER DEFINÍCIÓ ---
+const MystiSounds = {
+    success: () => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.3);
+    },
+    error: () => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(50, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.2);
+    }
+};
+
+window.triggerVictoryUI = function(points) {
+    if (typeof confetti === 'function') {
+        confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#00CED1', '#FFA500', '#0D2B45']
+        });
+    }
+    MystiSounds.success();
+    const float = document.createElement('div');
+    float.className = 'score-float';
+    float.innerHTML = `+${points} ⭐`;
+    float.style.left = '50%';
+    float.style.top = '50%';
+    float.style.marginLeft = '-50px';
+    document.body.appendChild(float);
+    setTimeout(() => float.remove(), 1500);
+
+    // Automatikus kártya és továbblépés
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    toast.innerHTML = `<div class="icon">✨</div><div><div style="font-weight: 800; color: #0D2B45;">HELYES VÁLASZ!</div><div style="font-weight: 600; color: #00CED1;">+${points} pont</div></div>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('active'), 100);
+    setTimeout(() => {
+        toast.classList.remove('active');
+        setTimeout(() => { toast.remove(); handleCorrectAnswer(); }, 500);
+    }, 2500);
+};
+
+window.triggerErrorUI = function() {
+    MystiSounds.error();
+    const inputContainer = document.getElementById('answer-input-container');
+    if (inputContainer) {
+        inputContainer.classList.add('shake');
+        setTimeout(() => inputContainer.classList.remove('shake'), 500);
+    }
+};
 
 
 
@@ -6735,7 +6881,9 @@ const isIos = () => {
                 nameInputEl.value = savedName;
             }
             if (savedAvatar) {
-                avatarSelectEl.value = savedAvatar;
+                // Nem csak az értéket állítjuk be, hanem létrehozzuk az opciót is,
+                // így a select elemnek lesz érvényes választott értéke.
+                avatarSelectEl.innerHTML = `<option value="${savedAvatar}" selected>${savedAvatar}</option>`;
             }
 
             // 2. Mentés: Figyeljük a változást és azonnal mentünk
@@ -6956,21 +7104,27 @@ const isIos = () => {
                 }
                 
                 if (isCorrect) {
-                    // Helyes válasz esetén
+                // Ellenőrizzük, hogy létezik-e a függvény, mielőtt meghívjuk
+                if (typeof window.triggerVictoryUI === 'function') {
+                    window.triggerVictoryUI(task.taskScore);
+                } else {
+                    // Ha nincs látványelem, csak simán lépjünk tovább a hagyományos módon
                     showMessage(t('correct_title'), `Ügyes vagy! (+${task.taskScore} pont)`, handleCorrectAnswer);
                 }
-                else {
-                    // JAVÍTÁS: Rossz válasz esetén pontlevonás
-                    // Biztosítjuk, hogy számként kezeljük
-                    let currentScore = parseInt(task.taskScore || 0);
-                    
-                    if (currentScore > 0) {
-                        currentScore = Math.max(0, currentScore - WRONG_ANSWER_PENALTY);
-                        task.taskScore = currentScore; // Visszamentjük az objektumba
-                    }
-
-                    showMessage(t('wrong_title'), t('wrong_body') + `<br><br><strong>Még szerezhető: ${task.taskScore} pont</strong>`);
+            } else {
+                // Hiba esetén is ellenőrizzük a függvény létezését
+                if (typeof window.triggerErrorUI === 'function') {
+                    window.triggerErrorUI();
                 }
+                
+                // Pontlevonás és üzenet marad a régiben
+                let currentScore = parseInt(task.taskScore || 0);
+                if (currentScore > 0) {
+                    currentScore = Math.max(0, currentScore - WRONG_ANSWER_PENALTY);
+                    task.taskScore = currentScore;
+                }
+                showMessage(t('wrong_title'), t('wrong_body') + `<br><br><strong>Még szerezhető: ${task.taskScore} pont</strong>`);
+            }
                 updateStatusDisplays();
             });
 
@@ -7763,7 +7917,7 @@ onAuthStateChanged(auth, (user) => {
         });
 
     } else {
-        // KIJELENTKEZÉS KEZELÉSE
+        // KIJELENTKEZÉS KEZELÉSE (Csak a gombokat és a pipát állítjuk vissza)
         if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
         
         if (btnGroup) btnGroup.classList.remove('hidden');
@@ -7772,12 +7926,13 @@ onAuthStateChanged(auth, (user) => {
         if (authUserName) authUserName.textContent = "";
         if (authStatusLabel) authStatusLabel.textContent = "Belépés";
 
-        // --- ÚJ: Név mező ürítése és mentett név törlése ---
-        if (teamInput) teamInput.value = "";
-        localStorage.removeItem('mystigo_pref_teamName');
-        
-        // Visszaállítjuk az alapértelmezett kérdőjelet
-        if (previewContainer) previewContainer.textContent = '❓';
+        // NEM töröljük a teamInput-ot és a LocalStorage-ot, 
+        // hogy a vendég adatok megmaradjanak!
+
+        // Csak az avatart állítjuk vissza kérdőjellé, HA nincs mentett vendég avatar
+        if (!localStorage.getItem('mystigo_pref_teamAvatar')) {
+            if (previewContainer) previewContainer.textContent = '❓';
+        }
     }
 });
 
