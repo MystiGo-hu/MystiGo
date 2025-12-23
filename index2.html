@@ -525,7 +525,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.10
+       v1.2.11
 
    </span>
 
@@ -762,11 +762,18 @@
             </div>
         </div>
 
-        <div id="total-score-display" class="hidden text-right pr-1">
-            <p class="text-[9px] font-bold text-gray-400 uppercase leading-none mb-0.5">Össz pont</p>
-            <p class="text-sm font-black text-brand-blue tracking-tight leading-none">
-                <span id="user-total-score">0</span> ⭐
-            </p>
+        <div id="total-score-display" class="hidden flex items-center gap-2 pr-1">
+            <div class="text-right">
+                <p class="text-[9px] font-bold text-gray-400 uppercase leading-none mb-0.5">Össz pont</p>
+                <p class="text-sm font-black text-brand-blue tracking-tight leading-none">
+                    <span id="user-total-score">0</span> ⭐
+                </p>
+            </div>
+            <button onclick="openHallOfFame()" 
+                    class="w-9 h-9 flex items-center justify-center bg-white border border-cyan-100 text-brand-cyan rounded-xl shadow-sm hover:bg-cyan-50 transition-all active:scale-95" 
+                    title="Dicsőségfal megtekintése">
+                <span class="text-base">✨</span>
+            </button>
         </div>
     </div>
 
@@ -1340,9 +1347,9 @@
 
 
 <div id="global-leaderboard-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9999;">
-    <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col h-[85vh]">
+    <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col h-[85vh] overflow-hidden">
         
-        <div class="bg-purple-700 p-4 rounded-t-2xl flex justify-between items-center shrink-0">
+        <div class="bg-purple-700 p-4 flex justify-between items-center shrink-0">
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
                 🌎 Globális Admin Ranglista
             </h3>
@@ -1350,6 +1357,40 @@
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
+
+        <div class="bg-gray-100 p-4 border-b-2 border-gray-200 flex flex-wrap gap-4 items-center shrink-0">
+            <input type="text" id="global-search-input" onkeyup="filterGlobalLeaderboard()" placeholder="🔍 Keresés (Név, Játék)..." class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
+            
+            <select id="global-game-filter" onchange="filterGlobalLeaderboard()" class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm cursor-pointer">
+                <option value="all">📂 Összes Játék</option>
+            </select>
+        </div>
+
+        <div class="overflow-y-auto flex-grow bg-white p-0">
+            <table class="min-w-full text-xs text-left">
+                <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 shadow-sm">
+                    <tr>
+                        <th class="p-3 border-b">Dátum</th>
+                        <th class="p-3 border-b">Játék Neve (ID)</th>
+                        <th class="p-3 border-b">Név</th>
+                        <th class="p-3 border-b text-right">Pont</th>
+                        <th class="p-3 border-b text-right">Idő</th>
+                    </tr>
+                </thead>
+                <tbody id="global-leaderboard-body" class="divide-y divide-gray-100">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="p-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
+            <span id="global-count-display" class="text-xs text-gray-500 font-bold">0 eredmény</span>
+            <button onclick="document.getElementById('global-leaderboard-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition">
+                Bezárás
+            </button>
+        </div>
+    </div>
+</div>
+
 
         <div class="bg-gray-100 p-4 border-b-2 border-gray-200 flex flex-wrap gap-4 items-center shrink-0">
             <input type="text" id="global-search-input" onkeyup="filterGlobalLeaderboard()" placeholder="🔍 Keresés (Név, Játék)..." class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
@@ -1383,6 +1424,40 @@
         </div>
     </div>
 </div>
+
+
+
+<div id="hall-of-fame-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[80vh] overflow-hidden">
+        <div class="bg-brand-cyan p-4 flex justify-between items-center shrink-0 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                ✨ MystiGo Dicsőségfal
+            </h3>
+            <button onclick="document.getElementById('hall-of-fame-modal').classList.add('hidden');" class="text-white/70 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="overflow-y-auto p-0 flex-grow bg-gray-50">
+            <table class="min-w-full text-xs text-left">
+                <thead class="bg-gray-100 border-b sticky top-0 z-10">
+                    <tr>
+                        <th class="px-3 py-2 text-center text-gray-500 w-8">#</th>
+                        <th class="px-3 py-2 text-gray-500">Játékos</th>
+                        <th class="px-3 py-2 text-right text-gray-500">Összpont</th>
+                    </tr>
+                </thead>
+                <tbody id="hall-of-fame-body" class="divide-y divide-gray-100 bg-white">
+                    </tbody>
+            </table>
+        </div>
+        <div class="p-4 border-t border-gray-100 bg-white rounded-b-2xl">
+            <button onclick="document.getElementById('hall-of-fame-modal').classList.add('hidden');" class="main-button w-full !text-sm !py-2 !bg-gray-500 hover:!bg-gray-600">
+                Bezárás
+            </button>
+        </div>
+    </div>
+</div>
+
 
 
 
@@ -2077,11 +2152,7 @@ window.getGameCurrentCount = async function(gameId) {
         return;
     }
 
-    const avatars = {
-        cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-        ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟', ballerina: '🩰', police: '🚓', firefighter: '🚒', ambulance: '🚑', star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
-    };
-    
+       
     const fmt = (s) => {
         const m = Math.floor(s / 60).toString().padStart(2,'0');
         const sec = (s % 60).toString().padStart(2,'0');
@@ -2097,7 +2168,7 @@ window.getGameCurrentCount = async function(gameId) {
     let html = "";
     
     results.slice(0, 100).forEach((r) => {
-        const iconEmoji = avatars[r.teamAvatar] || '👤';
+        const iconEmoji = AVATAR_ICONS[r.teamAvatar] || '👤';
 const isRegistered = !!r.isRegistered; //
 const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
 
@@ -2181,79 +2252,209 @@ html += `
   
   window.globalLeaderboardData = []; // Cache az adatoknak
 
-  window.openGlobalLeaderboard = async function() {
-      const modal = document.getElementById('global-leaderboard-modal');
-      const tbody = document.getElementById('global-leaderboard-body');
-      const gameSelect = document.getElementById('global-game-filter');
-      
-      modal.classList.remove('hidden');
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10"><div class="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-2"></div>Adatok betöltése a Firebase-ről...</td></tr>';
+window.openGlobalLeaderboard = async function() {
+    const modal = document.getElementById('global-leaderboard-modal');
+    const tbody = document.getElementById('global-leaderboard-body');
+    const gameSelect = document.getElementById('global-game-filter');
+    
+    modal.classList.remove('hidden');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10"><div class="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-2"></div>Adatok betöltése a Firebase-ről...</td></tr>';
 
-      // JAVÍTÁS: Ellenőrzés
-      if (!window.db || !window.get) {
-           tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-600">Nincs Firebase kapcsolat.</td></tr>';
-           return;
-      }
+    if (!window.db || !window.get) {
+         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-600">Nincs Firebase kapcsolat.</td></tr>';
+         return;
+    }
 
-      try {
-          // MÓDOSÍTVA: window.ref, window.get
-          const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
-          
-          if (!snapshot.exists()) {
-              tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">Még nincs egyetlen eredmény sem az adatbázisban.</td></tr>';
-              return;
-          }
-          // ... (A függvény többi része változatlan, mert ott már nincs Firebase hívás) ...
-          
-          const rawData = snapshot.val();
-          // ... (kód folytatása) ...
-          
-          // Ezt a részt másold vissza az eredetiből, vagy hagyd, ha csak a try elejét cserélted.
-          // A lényeg a window.get(window.ref(...)) hívás volt.
-          
-          let flatData = [];
-          const gameIdsSet = new Set();
-          
-           Object.keys(rawData).forEach(gameId => {
-              const gameScores = rawData[gameId];
-              const gameObj = window.games ? window.games[gameId] : null;
-              const gameTitle = gameObj ? gameObj.title : gameId;
-              
-              gameIdsSet.add(JSON.stringify({id: gameId, title: gameTitle})); 
+    try {
+        const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
+        
+        if (!snapshot.exists()) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">Még nincs egyetlen eredmény sem az adatbázisban.</td></tr>';
+            return;
+        }
+        
+        const rawData = snapshot.val();
+        let flatData = [];
+        const gameIdsSet = new Set();
+        
+        Object.keys(rawData).forEach(gameId => {
+            const gameScores = rawData[gameId];
+            const gameObj = window.games ? window.games[gameId] : null;
+            const gameTitle = gameObj ? gameObj.title : gameId;
+            
+            gameIdsSet.add(JSON.stringify({id: gameId, title: gameTitle})); 
 
-              Object.keys(gameScores).forEach(scoreId => {
-                  const entry = gameScores[scoreId];
-                  flatData.push({
-                      gameId: gameId,
-                      gameTitle: gameTitle,
-                      teamName: entry.teamName || "Névtelen",
-                      teamAvatar: entry.teamAvatar || "cat",
-                      score: entry.score || 0,
-                      totalTime: entry.totalTime || 0,
-                      timestamp: entry.timestamp || 0,
-                      dateString: entry.dateString || "-"
-                  });
-              });
-          });
+            Object.keys(gameScores).forEach(scoreId => {
+                const entry = gameScores[scoreId];
+                flatData.push({
+                    gameId: gameId,
+                    gameTitle: gameTitle,
+                    teamName: entry.teamName || "Névtelen",
+                    teamAvatar: entry.teamAvatar || "cat",
+                    score: entry.score || 0,
+                    totalTime: entry.totalTime || 0,
+                    timestamp: entry.timestamp || 0,
+                    dateString: entry.dateString || "-"
+                });
+            });
+        });
 
-          flatData.sort((a, b) => b.timestamp - a.timestamp);
-          window.globalLeaderboardData = flatData;
-          
-          gameSelect.innerHTML = '<option value="all">Összes Játék</option>';
-          Array.from(gameIdsSet).map(s => JSON.parse(s)).sort((a, b) => a.title.localeCompare(b.title)).forEach(g => {
-              const opt = document.createElement('option');
-              opt.value = g.id;
-              opt.textContent = g.title;
-              gameSelect.appendChild(opt);
-          });
-          filterGlobalLeaderboard();
+        flatData.sort((a, b) => b.timestamp - a.timestamp);
+        window.globalLeaderboardData = flatData;
+        
+        // Szűrő legördülő feltöltése
+        gameSelect.innerHTML = '<option value="all">📂 Összes Játék</option>';
+        Array.from(gameIdsSet).map(s => JSON.parse(s)).sort((a, b) => a.title.localeCompare(b.title)).forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.title;
+            gameSelect.appendChild(opt);
+        });
 
-      } catch (error) {
-          console.error("Global Leaderboard Error:", error);
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-600">Hiba történt: ${error.message}</td></tr>`;
-      }
-  };
+        window.filterGlobalLeaderboard();
 
+    } catch (error) {
+        console.error("Global Leaderboard Error:", error);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-600">Hiba történt: ${error.message}</td></tr>`;
+    }
+};
+
+window.filterGlobalLeaderboard = function() {
+    const searchTerm = document.getElementById('global-search-input').value.toLowerCase();
+    const selectedGameId = document.getElementById('global-game-filter').value;
+    const tbody = document.getElementById('global-leaderboard-body');
+    const countDisplay = document.getElementById('global-count-display');
+
+    if (!window.globalLeaderboardData) return;
+
+    const filtered = window.globalLeaderboardData.filter(item => {
+        if (selectedGameId !== 'all' && item.gameId !== selectedGameId) return false;
+        if (searchTerm) {
+            const textToSearch = `${item.teamName} ${item.gameTitle} ${item.gameId}`.toLowerCase();
+            if (!textToSearch.includes(searchTerm)) return false;
+        }
+        return true;
+    });
+
+    if (countDisplay) countDisplay.textContent = `${filtered.length} eredmény`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Nincs találat.</td></tr>';
+        return;
+    }
+
+    const renderLimit = 500;
+    let html = "";
+
+    const fmtTime = (s) => {
+       const m = Math.floor(s / 60).toString().padStart(2,'0');
+       const sec = (s % 60).toString().padStart(2,'0');
+       return `${m}:${sec}`;
+    };
+
+    filtered.slice(0, renderLimit).forEach(r => {
+        // ITT HASZNÁLJUK A KÖZPONTI LISTÁT:
+        const icon = AVATAR_ICONS[r.teamAvatar] || '👤';
+        
+        const dateObj = new Date(r.timestamp);
+        const niceDate = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+
+        html += `
+          <tr class="hover:bg-purple-50 transition">
+              <td class="p-3 border-b text-gray-500 whitespace-nowrap font-mono text-[11px]">${niceDate}</td>
+              <td class="p-3 border-b">
+                  <div class="font-bold text-gray-800">${r.gameTitle}</div>
+                  <div class="text-[10px] text-gray-400 font-mono">${r.gameId}</div>
+              </td>
+              <td class="p-3 border-b">
+                  <div class="flex items-center gap-2">
+                      <span class="text-xl">${icon}</span>
+                      <span class="font-semibold text-purple-900">${r.teamName}</span>
+                  </div>
+              </td>
+              <td class="p-3 border-b text-right font-bold text-orange-600 text-lg">${r.score}</td>
+              <td class="p-3 border-b text-right text-gray-600 font-mono">${fmtTime(r.totalTime)}</td>
+          </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+};
+
+
+
+window.openHallOfFame = async function() {
+    const modal = document.getElementById('hall-of-fame-modal');
+    const tbody = document.getElementById('hall-of-fame-body');
+    
+    modal.classList.remove('hidden');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10">Lekérés...</td></tr>';
+
+    if (!window.db || !window.get) return;
+
+    try {
+        // Regisztrált felhasználók lekérése a 'users' ágból
+        const snapshot = await window.get(window.ref(window.db, 'users'));
+        if (!snapshot.exists()) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10">Nincsenek még tagok.</td></tr>';
+            return;
+        }
+
+        let users = [];
+        snapshot.forEach(child => {
+            const data = child.val().profile;
+            if (data && data.teamName) {
+                users.push({
+                    name: data.teamName,
+                    avatar: data.avatar || 'cat',
+                    totalScore: parseInt(data.totalScore || 0),
+                    lastLogin: data.lastLogin || 0
+                });
+            }
+        });
+
+        // Rendezés összpontszám szerint
+        users.sort((a, b) => b.totalScore - a.totalScore);
+
+        const fmtDate = (ms) => {
+            if (!ms) return "Régen";
+            const d = new Date(ms);
+            return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}.`;
+        };
+
+        let html = "";
+        users.forEach((u, i) => {
+            const emoji = AVATAR_ICONS[u.avatar] || '👤';
+            html += `
+                <tr class="hover:bg-cyan-50 transition">
+                    <td class="px-3 py-3 text-center font-bold text-gray-400">${i + 1}.</td>
+                    <td class="px-3 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="avatar-container v-sm !w-8 !h-8 !text-base">
+                                ${emoji}
+                                <div class="verified-badge verified-badge-sm active">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7" /></svg>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-brand-blue leading-tight">${u.name}</div>
+                                <div class="text-[9px] text-gray-400 mt-0.5">Utoljára: ${fmtDate(u.lastLogin)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 text-right font-black text-brand-cyan-500 text-sm">
+                        ${u.totalScore.toLocaleString()} ⭐
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt.</td></tr>';
+    }
+};
 
 
 
@@ -2286,7 +2487,7 @@ html += `
       const renderLimit = 500;
       
       let html = "";
-      const avatarMap = { cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖', ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟', ballerina: '🩰', police: '🚓', firefighter: '🚒', ambulance: '🚑', star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵' };
+      
 
       const fmtTime = (s) => {
          const m = Math.floor(s / 60).toString().padStart(2,'0');
@@ -2295,7 +2496,7 @@ html += `
       };
 
       filtered.slice(0, renderLimit).forEach(r => {
-          const icon = avatarMap[r.teamAvatar] || '👤';
+          const icon = AVATAR_ICONS[r.teamAvatar] || '👤';
           
           // --- DÁTUM FORMÁTUM MÓDOSÍTÁSA ITT TÖRTÉNT ---
           const dateObj = new Date(r.timestamp);
@@ -2434,7 +2635,28 @@ window.isFirebaseModuleLoaded = true;
             "wrapping men", "wrinkled starfish", "xx", "xxx", "yaoi",
             "yellow showers", "yiffy", "zoophilia"
         ];
-	window.showHiddenGames = false;        
+	
+
+window.validateTeamName = function(name) {
+    // Kötelező kitöltés ellenőrzése
+    if (!name || name.trim() === "") {
+        return { valid: false, error: "A név mező kitöltése kötelező a játék indításához!" };
+    }
+    
+    const normalizedText = name.toLowerCase().trim();
+    // Tiltott szavak ellenőrzése
+    const hasBadWord = badWordsList.some(word => normalizedText.includes(word.toLowerCase()));
+    
+    if (hasBadWord) {
+        return { valid: false, error: "A választott név nem megengedett kifejezést tartalmaz!" };
+    }
+    
+    return { valid: true };
+};
+
+
+
+window.showHiddenGames = false;        
 	// *** KONSTANSOK ***
         const GEOFENCE_DEFAULT_RADIUS = 20; 
         const DEFAULT_SCORE_PER_TASK = 50; 
@@ -2448,8 +2670,7 @@ window.isFirebaseModuleLoaded = true;
         const DEFAULT_GAME_FILE = 'games/games.xlsx'; 
 
         const AVATAR_ICONS = {
-            cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾'
+cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖', ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', dragon: '🐲', alien: '👽', rocket: '🚀', ninja: '🥷', unicorn: '🦄', cactus: '🌵', guitar: '🎸', soccer: '⚽', coffee: '☕', butterfly: '🦋', lion: '🦁', tiger: '🐯', owl: '🦉', superhero: '🦸', pirate: '🏴‍☠️', gamepad: '🎮', camera: '📷', rainbow: '🌈', diamond: '💎', ufo: '🛸', sloth: '🦥', poop: '💩', chicken: '🐔', dino: '🦖', avocado: '🥑', ice_cream: '🍦', frog: '🐸', penguin: '🐧'
         };
 
         window.appState = {};
@@ -4114,20 +4335,29 @@ window.autoSortGamesByDistance = function() {
             }
             
             const nameInput = document.getElementById('team-name-input');
-            const avatarSelect = document.getElementById('team-avatar-select');
-            if (!nameInput.value.trim()) {
-                showMessage('Hiányzó Adat', 'Kérlek, adj meg egy Nevet!');
-                if(skipConfirmation) window.closeGameMap();
-                return; 
-            }
+const avatarSelect = document.getElementById('team-avatar-select');
 
-            if (!avatarSelect.value) {
-                showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
-                if(skipConfirmation) window.closeGameMap();
-                return; 
-            }
-            
-            const limitFromExcel = gameConfig.globalLimit;
+// ÚJ SZIGORÚ VALIDÁCIÓS LOGIKA (Kezeli az üres mezőt és a tiltott szavakat is)
+const validation = window.validateTeamName(nameInput.value);
+if (!validation.valid) {
+    showMessage('Figyelem', validation.error, () => {
+        nameInput.value = ""; // Hibás vagy üres név esetén a mező kiürítése
+        localStorage.removeItem('mystigo_pref_teamName'); // A mentett hibás adat törlése
+        nameInput.focus(); // A kurzor visszaugrik a mezőbe az újraíráshoz
+    });
+    if(skipConfirmation) window.closeGameMap();
+    return; 
+}
+
+// Avatar ellenőrzése
+if (!avatarSelect.value) {
+    showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
+    if(skipConfirmation) window.closeGameMap();
+    return; 
+}
+
+// Ha a validáció sikeres, folytatódik a játék indítása
+const limitFromExcel = gameConfig.globalLimit;
             const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
 
             if (window.checkGameLimitOnly) {
@@ -5992,47 +6222,37 @@ function finishGpsTest(forceError = false, errorMsg = "") {
 window.startSpecificTestGame = async function() {
     const FIX_GAME_ID = "teszt-game"; 
 
-    // 1. Ellenőrizzük, hogy a játék benne van-e a nyilvános listában
-    // (Ez az alapfeltétele annak, hogy tudjuk, létezik a játék)
     if (!window.games || !window.games[FIX_GAME_ID]) {
-        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található a betöltött listában! Ellenőrizd, hogy a Firebase 'games/public_games_list' ágában szerepel-e.`);
+        alert(`HIBA: A '${FIX_GAME_ID}' azonosítójú játék nem található...`);
         return;
     }
 
-    // 2. Automatikus név/avatar kitöltés (hogy ne kérdezze folyton)
     const nameInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
 
-    if (nameInput && !nameInput.value) nameInput.value = "Fejlesztő";
-    if (avatarSelect && !avatarSelect.value) avatarSelect.value = "robot";
+    // JAVÍTÁS: Automatikus kitöltés törölve, helyette validáció
+    const validation = window.validateTeamName(nameInput.value);
+    if (!validation.valid) {
+        showMessage('Figyelem', validation.error, () => {
+            nameInput.value = "";
+            localStorage.removeItem('mystigo_pref_teamName');
+            nameInput.focus();
+        });
+        return; 
+    }
 
-    // Mentjük a localStorage-ba, mert a startGame onnan olvassa ki
-    if (nameInput) localStorage.setItem('mystigo_pref_teamName', nameInput.value);
-    if (avatarSelect) localStorage.setItem('mystigo_pref_teamAvatar', avatarSelect.value);
+    if (!avatarSelect.value) {
+        showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
+        return; 
+    }
 
-    // 3. ADATOK LETÖLTÉSE (Ez a kulcsfontosságú hiányzó lépés!)
-    // Ugyanazt a függvényt hívjuk meg, amit a kártyára kattintáskor használunk.
+    // Ha idáig eljut, az adatok rendben vannak
     try {
-        console.log(`📥 Teszt játék adatainak letöltése: ${FIX_GAME_ID}...`);
-        
-        // Ez a függvény letölti a 'games/secure_game_contents'-ből a feladatokat,
-        // és befrissíti a window.games[FIX_GAME_ID] objektumot.
+        console.log(`📥 Teszt játék adatainak letöltése...`);
         await window.loadGameDataAndStart(FIX_GAME_ID);
-
-        // 4. Ellenőrzés: Tényleg megjöttek a feladatok?
-        const gameData = window.games[FIX_GAME_ID];
-        if (!gameData.tasks || gameData.tasks.length === 0) {
-             alert("Hiba: A játék részletes adatai letöltődtek, de a rendszer nem talált benne feladatokat (tasks array üres).");
-             return;
-        }
-
-        // 5. Játék indítása 'mock' (manuális GPS) módban
-        console.log(`✅ Adatok rendben. Indítás...`);
         startGame(FIX_GAME_ID, 'mock');
-
     } catch (error) {
         console.error("Teszt játék indítási hiba:", error);
-        alert("Hiba történt a teszt játék adatainak letöltésekor.\n\n" + error.message);
     }
 };
 
@@ -6432,6 +6652,20 @@ async function validateAndUseCoupon() {
 
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
+
+nameInputEl.addEventListener('blur', () => {
+    // JAVÍTÁS: Mindig ellenőrizzük, mert a kitöltés kötelező!
+    const result = window.validateTeamName(nameInputEl.value);
+    if (!result.valid) {
+        showMessage('Hiba a névben', result.error, () => {
+            nameInputEl.value = ""; 
+            localStorage.removeItem('mystigo_pref_teamName');
+            nameInputEl.focus(); 
+        });
+    }
+});
+
+
             const avatarSelectEl = document.getElementById('team-avatar-select');
 
 
@@ -7377,19 +7611,33 @@ window.loadGameDataAndStart = async function(gameId) {
         
         window.isFirebaseReady = true;
 
-        // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE ---
-        window.saveUserProfile = async (teamName, avatarIndex) => {
-            const user = auth.currentUser;
-            if (user) {
-                await update(ref(db, `users/${user.uid}/profile`), {
-                    teamName: teamName,
-                    avatar: avatarIndex,
-		    email: user.email,
-                    lastLogin: Date.now()
-                });
-                console.log("✅ Profil mentve a felhőbe.");
-            }
-        };
+        // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE (BIZTONSÁGOS VERZIÓ) ---
+window.saveUserProfile = async (teamName, avatarIndex) => {
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            // 1. Publikus profil frissítése (Ez megy a Dicsőségfalra)
+            // Az email: null törli a régi, esetleg ott maradt email címet a nyilvános ágról.
+            await update(ref(db, `users/${user.uid}/profile`), {
+                teamName: teamName,
+                avatar: avatarIndex,
+                lastLogin: Date.now(),
+                email: null 
+            });
+
+            // 2. Privát adatok mentése EGY KÜLÖN FŐÁGBA
+            // Ez az ág a szabályok szerint láthatatlan mindenki más számára.
+            await update(ref(db, `private_user_data/${user.uid}`), {
+                email: user.email,
+                updatedAt: Date.now()
+            });
+
+            console.log("✅ Profil mentve. Az email cím biztonságos, külön ágba került.");
+        } catch (error) {
+            console.error("❌ Hiba a biztonságos mentés során:", error);
+        }
+    }
+};
 
         // --- PONTSZÁM NÖVELÉSE ---
         window.addPointsToUser = async (points) => {
