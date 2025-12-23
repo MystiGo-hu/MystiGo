@@ -1429,39 +1429,9 @@
     </div>
 </div>
 
+    
 
-        <div class="bg-gray-100 p-4 border-b-2 border-gray-200 flex flex-wrap gap-4 items-center shrink-0">
-            <input type="text" id="global-search-input" onkeyup="filterGlobalLeaderboard()" placeholder="🔍 Keresés (Név, Játék)..." class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
-            
-            <select id="global-game-filter" onchange="filterGlobalLeaderboard()" class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm cursor-pointer">
-                <option value="all">📂 Összes Játék</option>
-            </select>
-        </div>
-
-        <div class="overflow-y-auto flex-grow bg-white p-0">
-            <table class="min-w-full text-xs text-left">
-                <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 shadow-sm">
-                    <tr>
-                        <th class="p-3 border-b">Dátum</th>
-                        <th class="p-3 border-b">Játék Neve (ID)</th>
-                        <th class="p-3 border-b">Név</th>
-                        <th class="p-3 border-b text-right">Pont</th>
-                        <th class="p-3 border-b text-right">Idő</th>
-                    </tr>
-                </thead>
-                <tbody id="global-leaderboard-body" class="divide-y divide-gray-100">
-                    </tbody>
-            </table>
-        </div>
-
-        <div class="p-3 border-t border-gray-200 bg-gray-50 rounded-b-2xl shrink-0 flex justify-between items-center">
-            <span id="global-count-display" class="text-xs text-gray-500 font-bold">0 eredmény</span>
-            <button onclick="document.getElementById('global-leaderboard-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition">
-                Bezárás
-            </button>
-        </div>
-    </div>
-</div>
+        
 
 
 
@@ -7213,15 +7183,17 @@ if (solBtn) {
     }
 });
 
-            document.getElementById('answer-input').addEventListener('focus', (e) => {
-                const inputElement = e.target;
-                inputElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                setTimeout(() => {
-                    const wrapper = document.getElementById('content-page-wrapper');
-                    const inputTop = inputElement.offsetTop;
-                    wrapper.scrollTo({ top: inputTop - 30, behavior: 'smooth' });
-                }, 150); 
-            });
+          document.getElementById('answer-input').addEventListener('focus', (e) => {
+    const inputElement = e.target;
+    
+    // Csak egy rövid késleltetést használunk, hogy a billentyűzetnek legyen ideje felugrani
+    setTimeout(() => {
+        const wrapper = document.getElementById('content-page-wrapper');
+        // Kiszámoljuk a pozíciót a wrapperen belül
+        const offset = 100; // Ennyi pixelt hagyunk a tetejétől
+        inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+});
         }); 
 
 
