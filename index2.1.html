@@ -75,6 +75,29 @@
             -webkit-overflow-scrolling: touch;
         }
 
+
+/* Ellenőrzött pipa stílusa az avatar sarkában */
+.verified-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    background-color: #3b82f6; /* kék */
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.verified-badge svg {
+    width: 8px;
+    height: 8px;
+    color: white;
+}
+
+
 	 .main-button {
             background-color: var(--brand-orange);
             color: white;
@@ -579,13 +602,18 @@
                                 <div class="space-y-2 text-sm text-gray-700">
                                    <p>📱 Telefon + GPS + internet szükséges</p>
                                    <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
-				   <div class="my-3 p-2.5 bg-blue-50 rounded-lg border border-blue-100 flex items-start gap-2">
-       <span class="text-lg">👤</span>
-       <div>
-           <p class="font-bold text-brand-blue leading-tight">Miért érdemes belépni?</p>
-           <p class="text-[11px] leading-snug mt-0.5">Belépéssel a rendszer <strong>megjegyzi a neved és az avatarod</strong>, gyűjtheted az <strong>összesített XP pontjaidat</strong>, és a ranglistán is <strong>hitelesített jelzést (blue check)</strong> kapsz!</p>
-       </div>
-   </div>
+				   <div class="my-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
+    <div class="shrink-0">
+        <img src="logo/verified.png" alt="Verified" class="h-10 w-auto object-contain">
+    </div>
+    
+    <div>
+        <p class="font-bold text-brand-blue leading-tight text-[15px]">Miért érdemes belépni?</p>
+        <p class="text-[12px] leading-snug mt-1 text-gray-700">
+            Belépéssel a rendszer <strong>megjegyzi a neved és az avatarod</strong>, gyűjtheted az <strong>összesített XP pontjaidat</strong>, és a ranglistán is <strong>hitelesített jelzést (blue check)</strong> kapsz!
+        </p>
+    </div>
+</div>
 
                                    <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                                    <p>🗺️ Kövesd a térképen a célpontokat</p>
@@ -2033,11 +2061,11 @@ window.getGameCurrentCount = async function(gameId) {
 
         // JAVÍTOTT RÉSZ: A badgeHtml-t a stringen KÍVÜL definiáljuk
         const badgeHtml = r.isRegistered ? `
-            <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border border-white flex items-center justify-center shadow-sm z-10">
-                <svg class="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>` : '';
+    <div class="verified-badge">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>` : '';
 
         html += `
             <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
@@ -3111,11 +3139,24 @@ async function sharePdfViaEmail() {
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
                 if (appState.teamName) {
-                    const avatarIcon = AVATAR_ICONS[appState.teamAvatar] || '';
-                    teamAvatarIcon.textContent = avatarIcon; 
-                    teamNameDisplay.textContent = appState.teamName; 
-                    teamNameContainer.classList.remove('hidden');
-                } else {
+    const avatarIcon = AVATAR_ICONS[appState.teamAvatar] || '';
+    const isRegistered = !!(window.auth && window.auth.currentUser); // Be van-e jelentkezve?
+    
+    // Az ikont egy relatív konténerbe tesszük, hogy rá tudjuk tenni a pipát
+    teamAvatarIcon.style.position = 'relative';
+    teamAvatarIcon.innerHTML = `
+        ${avatarIcon}
+        ${isRegistered ? `
+            <div class="verified-badge">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>` : ''}
+    `;
+    
+    teamNameDisplay.textContent = appState.teamName; 
+    teamNameContainer.classList.remove('hidden');
+} else {
                     teamNameContainer.classList.add('hidden');
                 }
                 if(mainHeaderLogoRow) mainHeaderLogoRow.classList.add('hidden');
@@ -4811,7 +4852,21 @@ if (taskImageEl) {
             document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
             document.getElementById('final-score').textContent = appState.score;
             document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
-            document.getElementById('final-team-avatar-icon').textContent = AVATAR_ICONS[appState.teamAvatar] || '';
+
+const finalAvatarIcon = document.getElementById('final-team-avatar-icon');
+const isRegistered = !!(window.auth && window.auth.currentUser);
+const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
+
+finalAvatarIcon.style.position = 'relative';
+finalAvatarIcon.innerHTML = `
+    ${avatarEmoji}
+    ${isRegistered ? `
+        <div class="verified-badge" style="width: 18px; height: 18px;">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>` : ''}
+`;
             document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
             
             // --- JAVÍTOTT IDŐKIÍRÁS ---
