@@ -17,6 +17,8 @@
     
     <link rel="preload" href="logo/MystiGo_logo.png" as="image">
 
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -527,7 +529,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.11
+       v1.2.12
 
    </span>
 
@@ -1042,10 +1044,44 @@
 
 				<img id="task-image" onclick="openImageModal(this.src)" src="" alt="Feladat kép" class="hidden w-full max-h-64 object-contain rounded-xl shadow-sm mb-4 border border-gray-100 cursor-zoom-in hover:opacity-95 transition-opacity">
 
+
+
                                  <div id="answer-input-container" class="flex items-center gap-2">
-                                   <input type="text" id="answer-input" placeholder="Írd be a megoldást..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
-                                   <button id="submit-answer-btn" class="p-3 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 transition flex-shrink-0"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></button>
-                                </div>
+    <div class="relative flex-grow">
+        <input type="text" id="answer-input" placeholder="Írd be vagy olvasd be..." class="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
+        <button id="qr-scan-btn" onclick="openQrScanner()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-brand-cyan-500 transition-colors">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+    </div>
+    <button id="submit-answer-btn" class="p-3 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 transition flex-shrink-0">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </button>
+</div>
+
+<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/90 hidden items-center justify-center z-[9999] p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
+            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-4">
+            <div id="qr-reader" class="overflow-hidden rounded-2xl border-2 border-dashed border-gray-200"></div>
+            <p class="text-xs text-gray-500 text-center mt-4">Irányítsd a kamerát a kihelyezett QR kódra!</p>
+        </div>
+        <div class="p-4 bg-gray-50">
+            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl">Mégse</button>
+        </div>
+    </div>
+</div>
+
+
                                  
 	     <div id="hint-buttons-container" class="flex justify-between gap-2 mt-4 text-[10px] font-semibold">
     <button id="hint1-btn" class="flex-1 flex flex-col items-center justify-center bg-gray-200 text-gray-700 py-2 rounded-xl disabled:opacity-50">
@@ -1393,39 +1429,9 @@
     </div>
 </div>
 
+    
 
-        <div class="bg-gray-100 p-4 border-b-2 border-gray-200 flex flex-wrap gap-4 items-center shrink-0">
-            <input type="text" id="global-search-input" onkeyup="filterGlobalLeaderboard()" placeholder="🔍 Keresés (Név, Játék)..." class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
-            
-            <select id="global-game-filter" onchange="filterGlobalLeaderboard()" class="px-4 py-2 border border-gray-300 rounded-lg text-xs w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm cursor-pointer">
-                <option value="all">📂 Összes Játék</option>
-            </select>
-        </div>
-
-        <div class="overflow-y-auto flex-grow bg-white p-0">
-            <table class="min-w-full text-xs text-left">
-                <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 shadow-sm">
-                    <tr>
-                        <th class="p-3 border-b">Dátum</th>
-                        <th class="p-3 border-b">Játék Neve (ID)</th>
-                        <th class="p-3 border-b">Név</th>
-                        <th class="p-3 border-b text-right">Pont</th>
-                        <th class="p-3 border-b text-right">Idő</th>
-                    </tr>
-                </thead>
-                <tbody id="global-leaderboard-body" class="divide-y divide-gray-100">
-                    </tbody>
-            </table>
-        </div>
-
-        <div class="p-3 border-t border-gray-200 bg-gray-50 rounded-b-2xl shrink-0 flex justify-between items-center">
-            <span id="global-count-display" class="text-xs text-gray-500 font-bold">0 eredmény</span>
-            <button onclick="document.getElementById('global-leaderboard-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition">
-                Bezárás
-            </button>
-        </div>
-    </div>
-</div>
+        
 
 
 
@@ -7177,15 +7183,17 @@ if (solBtn) {
     }
 });
 
-            document.getElementById('answer-input').addEventListener('focus', (e) => {
-                const inputElement = e.target;
-                inputElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                setTimeout(() => {
-                    const wrapper = document.getElementById('content-page-wrapper');
-                    const inputTop = inputElement.offsetTop;
-                    wrapper.scrollTo({ top: inputTop - 30, behavior: 'smooth' });
-                }, 150); 
-            });
+          document.getElementById('answer-input').addEventListener('focus', (e) => {
+    const inputElement = e.target;
+    
+    // Csak egy rövid késleltetést használunk, hogy a billentyűzetnek legyen ideje felugrani
+    setTimeout(() => {
+        const wrapper = document.getElementById('content-page-wrapper');
+        // Kiszámoljuk a pozíciót a wrapperen belül
+        const offset = 100; // Ennyi pixelt hagyunk a tetejétől
+        inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+});
         }); 
 
 
@@ -7755,7 +7763,7 @@ onAuthStateChanged(auth, (user) => {
         });
 
     } else {
-        // KIJELENTKEZÉS KEZELÉSE
+        // KIJELENTKEZÉS KEZELÉSE (Csak a gombokat és a pipát állítjuk vissza)
         if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
         
         if (btnGroup) btnGroup.classList.remove('hidden');
@@ -7764,12 +7772,13 @@ onAuthStateChanged(auth, (user) => {
         if (authUserName) authUserName.textContent = "";
         if (authStatusLabel) authStatusLabel.textContent = "Belépés";
 
-        // --- ÚJ: Név mező ürítése és mentett név törlése ---
-        if (teamInput) teamInput.value = "";
-        localStorage.removeItem('mystigo_pref_teamName');
-        
-        // Visszaállítjuk az alapértelmezett kérdőjelet
-        if (previewContainer) previewContainer.textContent = '❓';
+        // NEM töröljük a teamInput-ot és a LocalStorage-ot, 
+        // hogy a vendég adatok megmaradjanak!
+
+        // Csak az avatart állítjuk vissza kérdőjellé, HA nincs mentett vendég avatar
+        if (!localStorage.getItem('mystigo_pref_teamAvatar')) {
+            if (previewContainer) previewContainer.textContent = '❓';
+        }
     }
 });
 
@@ -7834,7 +7843,63 @@ window.updateAvatarPreview = function() {
 };
 
 
+let html5QrCode = null;
 
+window.openQrScanner = function() {
+    // Ellenőrizzük, hogy a feladat aktív-e (zónában van-e a játékos)
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task || (!task.isTaskTimerActive && !appState.isTestModeEnabled)) {
+        return showMessage('Még messze vagy', 'A QR olvasó csak akkor használható, ha már a célterületen vagy!');
+    }
+
+    const modal = document.getElementById('qr-scanner-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Inicializáljuk az olvasót
+    html5QrCode = new Html5Qrcode("qr-reader");
+    
+    const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    // Kamera indítása (hátsó kamera preferálása)
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        qrConfig, 
+        (decodedText) => {
+            // SIKERES OLVASÁS
+            document.getElementById('answer-input').value = decodedText;
+            playArrivalNotification(); // Hangjelzés
+            closeQrScanner();
+            
+            // Opcionális: Azonnali beküldés beolvasás után
+            // setTimeout(() => { document.getElementById('submit-answer-btn').click(); }, 500);
+        },
+        (errorMessage) => {
+            // Itt nem dobunk hibát, mert az olvasó folyamatosan próbálkozik
+        }
+    ).catch((err) => {
+        console.error("Kamera indítási hiba:", err);
+        showMessage("Hiba", "Nem sikerült elérni a kamerát. Ellenőrizd az engedélyeket!");
+        closeQrScanner();
+    });
+};
+
+window.closeQrScanner = function() {
+    const modal = document.getElementById('qr-scanner-modal');
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }).catch(err => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+    } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
 
 
 
