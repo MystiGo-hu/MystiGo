@@ -75,6 +75,89 @@
             -webkit-overflow-scrolling: touch;
         }
 
+
+/* Avatar kártya alapstílus */
+.avatar-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover effektus (ha az egér felette van) */
+.avatar-card:hover:not(.selected) {
+    transform: translateY(-2px);
+    background-color: #f0fdfa; /* Halvány türkiz */
+    border-color: var(--brand-cyan);
+}
+
+/* Kijelölt állapot animációja */
+.avatar-card.selected {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #ffffff 0%, #e0f7fa 100%);
+    border-color: var(--brand-cyan);
+    box-shadow: 0 10px 15px -3px rgba(0, 206, 209, 0.2);
+}
+
+/* Kis pipa a kijelölt kártya sarkában */
+.avatar-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--brand-cyan);
+    color: white;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+
+
+/* Ellenőrzött pipa stílusa az avatar sarkában */
+.verified-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background-color: #3b82f6;
+    border: 1.5px solid white;
+    border-radius: 50%;
+    display: none; /* Alapból rejtve */
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    width: 20px;   /* Itt növelheted (pl. 14px-ről 16px-re) */
+    height: 20px;  /* Legyen ugyanakkora, mint a width */
+    top: -3px;     /* Eltolás fentről (kicsit kijjebb lógjon) */
+    right: -3px;
+}
+
+/* Aktív állapot */
+.verified-badge.active {
+    display: flex !important;
+}
+
+.verified-badge-sm { width: 12px; height: 12px; }
+.verified-badge-sm svg { width: 7px; height: 7px; color: white; }
+
+.verified-badge-lg { width: 20px; height: 20px; }
+.verified-badge-lg svg { width: 15px; height: 15px; color: white; }
+
+/* Egységes avatar konténer a mérethez */
+.avatar-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;  
+    height: 32px; 
+    font-size: 1.5rem; 
+}
+
 	 .main-button {
             background-color: var(--brand-orange);
             color: white;
@@ -442,7 +525,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.08
+       v1.2.10
 
    </span>
 
@@ -579,6 +662,19 @@
                                 <div class="space-y-2 text-sm text-gray-700">
                                    <p>📱 Telefon + GPS + internet szükséges</p>
                                    <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
+				   <div class="my-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
+    <div class="shrink-0">
+        <img src="logo/verified.png" alt="Verified" class="h-10 w-auto object-contain">
+    </div>
+    
+    <div>
+        <p class="font-bold text-brand-blue leading-tight text-[15px]">Miért érdemes belépni?</p>
+        <p class="text-[12px] leading-snug mt-1 text-gray-700">
+            Belépéssel a rendszer <strong>megjegyzi a neved és az avatarod</strong>, gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, és a ranglistán is <strong>hitelesített jelzést (blue check)</strong> kapsz!
+        </p>
+    </div>
+</div>
+
                                    <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                                    <p>🗺️ Kövesd a térképen a célpontokat</p>
                                    <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
@@ -696,44 +792,39 @@
     
     
     
-    <select id="team-avatar-select" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-sm">
-        <option value="">Válassz Avatart</option>
-        <option value="cat">Mysti 🐱</option>
-        <option value="dog">Kutya 🐶</option>
-        <option value="panda">Panda 🐼</option>
-        <option value="shark">Cápa 🦈</option>
-        <option value="parrot">Papagáj 🦜</option>
-        <option value="bear">Maci 🐻</option>
-        <option value="cow">Boci 🐮</option>
-        <option value="elephant">Elefánt 🐘</option>
-        <option value="detective">Nyomozó 🕵️</option>
-        <option value="explorer">Felfedező 🧭</option>
-        <option value="wizard">Varázsló 🧙</option>
-        <option value="robot">Robot 🤖</option>
-        <option value="ghost">Szellem 👻</option>
-        <option value="skull">Koponya ☠️</option>
-        <option value="lock">Lakat 🔒</option>
-        <option value="magician">Bűvész 🎩</option>
-        <option value="mask">Álarc 🎭</option>
-        <option value="fire">Tűz 🔥</option>
-        <option value="knight">Lovag ⚔️</option>
-        <option value="hamburger">Hamburger 🍔</option>
-        <option value="pizza">Pizza 🍕</option>
-        <option value="doughnut">Fánk 🍩</option>
-        <option value="cupcake">Muffin 🧁</option>
-        <option value="lollipop">Nyalóka 🍭</option>
-        <option value="smile">Smile 😎</option>
-        <option value="zombie">Zombi 🧟</option>
-        <option value="ballerina">Balerina 🩰</option>
-        <option value="police">Rendőr 🚓</option>
-        <option value="firefighter">Tűzoltó 🚒</option>
-        <option value="ambulance">Mentő 🚑</option>
-        <option value="star">Csillag ⭐️</option>
-        <option value="heart">Szív ❤️</option>
-        <option value="crown">Korona 👑</option>
-        <option value="laptop">Laptop 💻</option>
-        <option value="floppy">Floppy 💾</option>
-    </select>
+    <div class="flex flex-col items-center gap-2 mt-4">
+      
+    <div class="relative cursor-pointer" onclick="openAvatarSelector()">
+    <div id="avatar-preview-container" class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center text-5xl transition-all duration-300 transform active:scale-90 ring-4 ring-brand-cyan/10">
+        ❓
+    </div>
+    
+    <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
+    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+</div>
+</div>
+    <p class="text-[9px] text-gray-400 font-medium mt-1">Avatar választása</p>
+</div>
+
+<select id="team-avatar-select" class="hidden"></select>
+
+<div id="avatar-selector-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-[9999]">
+    <div class="bg-white rounded-3xl w-full max-w-sm max-h-[75vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-brand-blue">Válassz karaktert</h3>
+            <button onclick="closeAvatarSelector()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="avatar-grid" class="p-6 overflow-y-auto grid grid-cols-4 gap-4 bg-white">
+            </div>
+    </div>
+</div>
+
+
+
 
 <div class="flex justify-between items-start mt-1 mb-3">
         <p class="text-[10px] text-gray-500 italic">
@@ -1687,6 +1778,7 @@ window.getGameCurrentCount = async function(gameId) {
         gameId: data.gameId,
         teamName: safeTeamName,
         teamAvatar: data.teamAvatar || "no avatar",
+	isRegistered: !!(window.auth && window.auth.currentUser),
         score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
@@ -1978,100 +2070,87 @@ window.getGameCurrentCount = async function(gameId) {
 
 // 3. TÁBLÁZAT MEGJELENÍTÉSE (JAVÍTVA: Név mező 100px, Paddingok minimalizálva)
  window.renderLeaderboardTable = function(results) {
-      const listBody = document.getElementById('leaderboard-modal-body');
-      
-      // --- ÚJ BIZTONSÁGI KÓD KEZDTE ---
-      const escapeHtml = (unsafe) => {
-        if (!unsafe) return "";
-        return String(unsafe)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-      };
-      
-      if (results.length === 0) {
-          listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400 italic">Nincs a szűrésnek megfelelő találat.</td></tr>';
-          return;
-      }
+    const listBody = document.getElementById('leaderboard-modal-body');
+    
+    if (results.length === 0) {
+        listBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400 italic">Nincs a szűrésnek megfelelő találat.</td></tr>';
+        return;
+    }
 
-      const avatars = {
-             cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
-             ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
-      };
-      
-      const fmt = (s) => {
-         const m = Math.floor(s / 60).toString().padStart(2,'0');
-         const sec = (s % 60).toString().padStart(2,'0');
-         return `${m}:${sec}`;
-      };
-      
-      const fmtDate = (ms) => { 
-          const d = new Date(ms);
-          const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-          return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}. ${timeStr}`; 
-      };
+    const avatars = {
+        cat: '🐱', dog: '🐶', panda: '🐼', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖',
+        ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟', ballerina: '🩰', police: '🚓', firefighter: '🚒', ambulance: '🚑', star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', monkey: '🐵'
+    };
+    
+    const fmt = (s) => {
+        const m = Math.floor(s / 60).toString().padStart(2,'0');
+        const sec = (s % 60).toString().padStart(2,'0');
+        return `${m}:${sec}`;
+    };
+    
+    const fmtDate = (ms) => { 
+        const d = new Date(ms);
+        const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}. ${timeStr}`; 
+    };
 
-      let html = "";
-      
-      results.slice(0, 100).forEach((r) => {
-          const icon = avatars[r.teamAvatar] || '👤';
-          const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
-          const rank = r.actualRank;
+    let html = "";
+    
+    results.slice(0, 100).forEach((r) => {
+        const iconEmoji = avatars[r.teamAvatar] || '👤';
+const isRegistered = !!r.isRegistered; //
+const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == window.currentScoreForHighlight);
 
-          let rankDisplay = `${rank}.`;
-          let rowBg = ""; // Alapból fehér (üres)
-          
-          if (rank === 1) { rankDisplay = "🥇"; }
-          else if (rank === 2) { rankDisplay = "🥈"; }
-          else if (rank === 3) { rankDisplay = "🥉"; }
-          
-          // 2. SAJÁT CSAPAT KIEMELÉSE (Ez felülír mindent)
-          if (isMyTeam) {
-              rowBg = "bg-blue-200 border-l-4 border-l-red-400";
-          }
+// 2. Az egységesített avatar konténer létrehozása (ugyanaz, mint a fejlécben)
+const avatarHtml = `
+    <div class="avatar-container">
+        ${iconEmoji}
+        ${isRegistered ? `
+            <div class="verified-badge verified-badge-sm active">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>` : ''}
+    </div>
+`;
 
-          // ÚJ: ID hozzáadása, ha ez a saját sorom, hogy később odatudjunk görgetni
-          const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
 
-          html += `
-            <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
-                
-                <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${rankDisplay}</td>
-                
-                <td class="px-1 py-3 align-middle">
-                    <div class="font-bold text-brand-blue flex items-center gap-1.5">
-                        <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px] shrink-0">${icon}</span> 
-                        
-                        <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
-                            ${r.teamName}
-                        </span>
-                    </div>
-                    <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1 mt-1">
-                        ⏱️ ${fmtDate(r.timestamp)}
-                    </div>
-                </td>
-                
-                <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-10 align-middle">
-                    ${r.score}
-                </td>
-                
-                <td class="pl-1 pr-1 py-3 text-right text-xs text-gray-600 leading-tight w-24 align-middle">
-                    <div class="flex flex-col items-end gap-1">
-                        <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
-                            🧩 ${fmt(r.geofenceTime || 0)}
-                        </div>
-                        <div title="Teljes idő" class="font-semibold text-brand-blue bg-blue-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
-                            ⏱️ ${fmt(r.totalTime || 0)}
-                        </div>
-                    </div>
-                </td>
-            </tr>
-          `;
-      });
-      listBody.innerHTML = html;
-  };
+
+let rowBg = isMyTeam ? "bg-blue-200 border-l-4 border-l-red-400" : "";
+const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
+
+// 3. A táblázat sorának összeállítása az új avatarHtml használatával
+html += `
+    <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
+        <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${r.actualRank}.</td>
+        <td class="px-1 py-3 align-middle">
+            <div class="font-bold text-brand-blue flex items-center gap-1.5">
+                ${avatarHtml}
+                <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
+                    ${r.teamName}
+                </span>
+            </div>
+            <div class="text-[10px] text-gray-400 ml-10 flex items-center gap-1 mt-1">
+                ⏱️ ${fmtDate(r.timestamp)}
+            </div>
+        </td>
+        <td class="pl-1 pr-0 py-3 text-right font-extrabold text-brand-orange-500 text-base w-10 align-middle">
+            ${r.score}
+        </td>
+        <td class="pl-1 pr-1 py-3 text-right text-xs text-gray-600 leading-tight w-24 align-middle">
+            <div class="flex flex-col items-end gap-1">
+                <div title="Feladat idő" class="font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
+                    🧩 ${fmt(r.geofenceTime || 0)}
+                </div>
+                <div title="Teljes idő" class="font-semibold text-brand-blue bg-blue-50 px-1.5 py-0.5 rounded w-fit whitespace-nowrap">
+                    ⏱️ ${fmt(r.totalTime || 0)}
+                </div>
+            </div>
+        </td>
+    </tr>`;
+    });
+    listBody.innerHTML = html;
+};
 
 
 
@@ -3108,11 +3187,23 @@ async function sharePdfViaEmail() {
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
                 if (appState.teamName) {
-                    const avatarIcon = AVATAR_ICONS[appState.teamAvatar] || '';
-                    teamAvatarIcon.textContent = avatarIcon; 
-                    teamNameDisplay.textContent = appState.teamName; 
-                    teamNameContainer.classList.remove('hidden');
-                } else {
+        const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
+        const isRegistered = !!(window.auth && window.auth.currentUser);
+
+        // Alkalmazzuk az egységes struktúrát
+        teamAvatarIcon.className = "avatar-container"; 
+        teamAvatarIcon.innerHTML = `
+    ${avatarEmoji}
+    ${isRegistered ? `
+        <div class="verified-badge verified-badge-sm active">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>` : ''}
+`;
+        teamNameDisplay.textContent = appState.teamName;
+    teamNameContainer.classList.remove('hidden');
+} else {
                     teamNameContainer.classList.add('hidden');
                 }
                 if(mainHeaderLogoRow) mainHeaderLogoRow.classList.add('hidden');
@@ -4744,7 +4835,8 @@ if (taskImageEl) {
             const finalTaskTime = appState.geofenceTime; 
 
             // --- Mentés a Firebase Ranglistára ---
-            if (appState.currentGame && window.saveScoreToFirebase) {
+           if (!appState.isTestModeEnabled) { 
+	   if (appState.currentGame && window.saveScoreToFirebase) {
                 window.saveScoreToFirebase({
                     gameId: appState.currentGame.id,
                     teamName: appState.teamName,
@@ -4754,23 +4846,31 @@ if (taskImageEl) {
                     geofenceTime: finalTaskTime
                 });
                 
+if (window.incrementGameCompletion) {
+            window.incrementGameCompletion(appState.currentGame.id);
+        }
+    }
+
 
 // --- ÚJ RÉSZ: Összpontszám növelése a profilban ---
     if (window.auth && window.auth.currentUser) {
-        // Átadjuk az aktuális játékban gyűjtött pontokat
         const finalScoreValue = parseInt(appState.score) || 0;
-        console.log("Próbálkozás pontszám mentéssel a profilba:", finalScoreValue);
+        console.log("Pontszám mentése a profilba (Éles játék):", finalScoreValue);
         
         window.addPointsToUser(finalScoreValue)
             .then(() => console.log("✅ Összpontszám sikeresen frissítve a felhőben!"))
             .catch(e => console.error("❌ Hiba az összpontszám frissítésekor:", e));
     }
-
-
-                if (window.incrementGameCompletion) {
-                    window.incrementGameCompletion(appState.currentGame.id);
-                }
-            }
+} else {
+    // Visszajelzés a konzolon teszt mód esetén
+    console.log("🛠️ Teszt mód aktív: Pontszámok és statisztikák nem kerültek mentésre.");
+    
+    // Opcionális: Jelezzük a felhasználónak az eredmény oldalon is
+    const timestampEl = document.getElementById('end-timestamp');
+    if (timestampEl) {
+        timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Pontszám nem került elmentésre.</span>`;
+    }
+}
 
 // UI Visszajelzés a változóba
             const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
@@ -4808,7 +4908,21 @@ if (taskImageEl) {
             document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
             document.getElementById('final-score').textContent = appState.score;
             document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
-            document.getElementById('final-team-avatar-icon').textContent = AVATAR_ICONS[appState.teamAvatar] || '';
+
+const finalAvatarEl = document.getElementById('final-team-avatar-icon');
+const isRegistered = !!(window.auth && window.auth.currentUser);
+const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
+
+finalAvatarEl.className = "avatar-container"; // Ugyanaz a méret, mint a fejlécben
+finalAvatarEl.innerHTML = `
+    ${avatarEmoji}
+    ${isRegistered ? `
+        <div class="verified-badge verified-badge-lg active">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>` : ''}
+`;
             document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
             
             // --- JAVÍTOTT IDŐKIÍRÁS ---
@@ -6475,10 +6589,30 @@ const isIos = () => {
 
 
             if (avatarSelectEl) {
-                avatarSelectEl.addEventListener('change', (e) => {
-                    localStorage.setItem('mystigo_pref_teamAvatar', e.target.value);
-                });
+                // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
+                window.updateAvatarPreview = () => {
+    const previewContainer = document.getElementById('avatar-preview-container');
+    // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
+    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    
+    if (previewContainer && savedAvatar) {
+        // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
+        previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+        
+        // Kis vizuális visszajelzés
+        previewContainer.classList.add('scale-110');
+        setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
+    }
+};
+
+                // Eseményfigyelő hozzáadása
+                avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
+
+                // Kezdeti betöltés (mentett adatok alapján)
+                setTimeout(window.updateAvatarPreview, 200);
             }
+
+
             // --- ÚJ RÉSZ VÉGE ---
 
 	    initializeState();
@@ -7250,6 +7384,7 @@ window.loadGameDataAndStart = async function(gameId) {
                 await update(ref(db, `users/${user.uid}/profile`), {
                     teamName: teamName,
                     avatar: avatarIndex,
+		    email: user.email,
                     lastLogin: Date.now()
                 });
                 console.log("✅ Profil mentve a felhőbe.");
@@ -7317,59 +7452,142 @@ onAuthStateChanged(auth, (user) => {
     const authUserName = document.getElementById('auth-user-name');
     const teamInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
-    
-    // ✅ ÚJ: A státusz felirat lekérése
     const authStatusLabel = document.getElementById('auth-status-label');
+    const previewVerifiedBadge = document.getElementById('preview-verified-badge');
+    const previewContainer = document.getElementById('avatar-preview-container');
 
+    // Korábbi figyelő leállítása, ha volt
     if (profileListener) {
         profileListener();
         profileListener = null;
     }
 
     if (user) {
+        // Bejelentkezve megjelenítjük a pipát (active osztály hozzáadása)
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
+
         const profileRef = ref(db, `users/${user.uid}/profile`);
-        
         profileListener = onValue(profileRef, (snapshot) => {
             const profile = snapshot.val() || {};
 
-            // UI elemek láthatósága
+            // Felület alapvető beállítása
             if (btnGroup) btnGroup.classList.add('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
             if (scoreDisplay) scoreDisplay.classList.remove('hidden');
-
-            // ✅ JAVÍTÁS: A felirat módosítása bejelentkezett állapotban
             if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
 
-            // Név és pontszám frissítése
+            // Név és pontszám kiírása
             const displayName = profile.teamName || user.displayName;
             if (authUserName) authUserName.textContent = displayName;
             if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
             
-            // ✅ JAVÍTÁS: Mindig felülírjuk a mezőt, ha van mentett név
+            // Csapatnév mező és LocalStorage frissítése
             if (teamInput && profile.teamName) {
                 teamInput.value = profile.teamName;
                 localStorage.setItem('mystigo_pref_teamName', profile.teamName);
             }
             
-            if (avatarSelect && profile.avatar) {
-                avatarSelect.value = profile.avatar;
+            // AVATAR FRISSÍTÉSE KÖZVETLENÜL FIREBASE-BŐL
+            if (profile.avatar) {
+                // 1. Elmentjük a memóriába (LocalStorage)
                 localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+                
+                // 2. Beállítjuk a nagy kört az emojira (AVATAR_ICONS mapping használatával)
+                if (previewContainer) {
+                    previewContainer.textContent = AVATAR_ICONS[profile.avatar] || '❓';
+                }
+                
+                // 3. A rejtett select szinkronban tartása (a játék indításához szükséges)
+                if (avatarSelect) {
+                    avatarSelect.innerHTML = `<option value="${profile.avatar}" selected>${profile.avatar}</option>`;
+                }
             }
         });
 
     } else {
-        // Kijelentkezve visszaállítjuk az eredeti állapotot
+        // KIJELENTKEZÉS KEZELÉSE
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
+        
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
         if (authUserName) authUserName.textContent = "";
-        
-        // ✅ JAVÍTÁS: A felirat visszaállítása "Belépés"-re
         if (authStatusLabel) authStatusLabel.textContent = "Belépés";
+
+        // --- ÚJ: Név mező ürítése és mentett név törlése ---
+        if (teamInput) teamInput.value = "";
+        localStorage.removeItem('mystigo_pref_teamName');
+        
+        // Visszaállítjuk az alapértelmezett kérdőjelet
+        if (previewContainer) previewContainer.textContent = '❓';
     }
 });
 
     } catch (error) { console.error("❌ Firebase inicializálási hiba:", error); }
+
+
+
+
+window.openAvatarSelector = function() {
+    const grid = document.getElementById('avatar-grid');
+    const currentKey = localStorage.getItem('mystigo_pref_teamAvatar');
+    grid.innerHTML = ''; 
+
+    // Eredeti elrendezés: 4 oszlop, alapértelmezett térközök
+    grid.className = "p-6 overflow-y-auto grid grid-cols-4 gap-4 bg-white";
+
+    Object.keys(AVATAR_ICONS).forEach(key => {
+        const char = AVATAR_ICONS[key];
+        const isSelected = key === currentKey;
+        
+        const btn = document.createElement('button');
+        // Visszaállítva az eredeti gomb stílusra
+        btn.className = `text-4xl p-2 rounded-2xl transition-all transform active:scale-90 border-2 ${isSelected ? 'border-brand-cyan bg-cyan-50' : 'border-transparent bg-gray-50'}`;
+        btn.innerHTML = char;
+        
+        btn.onclick = () => {
+            selectAvatar(key);
+        };
+        grid.appendChild(btn);
+    });
+
+    document.getElementById('avatar-selector-modal').classList.remove('hidden');
+    document.getElementById('avatar-selector-modal').classList.add('flex');
+};
+
+
+
+
+window.closeAvatarSelector = function() {
+    document.getElementById('avatar-selector-modal').classList.add('hidden');
+    document.getElementById('avatar-selector-modal').classList.remove('flex');
+};
+
+window.selectAvatar = function(key) {
+    const selectEl = document.getElementById('team-avatar-select');
+    if (selectEl) {
+        selectEl.innerHTML = `<option value="${key}" selected>${key}</option>`;
+    }
+    localStorage.setItem('mystigo_pref_teamAvatar', key);
+    window.updateAvatarPreview(); 
+    closeAvatarSelector();
+};
+
+// Az eredeti updateAvatarPreview módosítása
+window.updateAvatarPreview = function() {
+    const previewContainer = document.getElementById('avatar-preview-container');
+    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    
+    if (previewContainer && savedAvatar) {
+        previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+    }
+};
+
+
+
+
+
+
 </script>
 
 
