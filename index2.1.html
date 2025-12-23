@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.07
+       v1.2.09
 
    </span>
 
@@ -579,6 +579,13 @@
                                 <div class="space-y-2 text-sm text-gray-700">
                                    <p>📱 Telefon + GPS + internet szükséges</p>
                                    <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
+				   <div class="my-3 p-2.5 bg-blue-50 rounded-lg border border-blue-100 flex items-start gap-2">
+       <span class="text-lg">👤</span>
+       <div>
+           <p class="font-bold text-brand-blue leading-tight">Miért érdemes belépni?</p>
+           <p class="text-[11px] leading-snug mt-0.5">Belépéssel a rendszer <strong>megjegyzi a neved és az avatarod</strong>, gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, és a ranglistán is <strong>hitelesített jelzést (blue check)</strong> kapsz!</p>
+       </div>
+   </div>
                                    <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                                    <p>🗺️ Kövesd a térképen a célpontokat</p>
                                    <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
@@ -1687,7 +1694,8 @@ window.getGameCurrentCount = async function(gameId) {
         gameId: data.gameId,
         teamName: safeTeamName,
         teamAvatar: data.teamAvatar || "no avatar",
-        score: safeScore,
+        isRegistered: !!(window.auth && window.auth.currentUser),
+	score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
         timestamp: Date.now(),
@@ -2042,7 +2050,30 @@ window.getGameCurrentCount = async function(gameId) {
                 
                 <td class="px-1 py-3 align-middle">
                     <div class="font-bold text-brand-blue flex items-center gap-1.5">
-                        <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px] shrink-0">${icon}</span> 
+                        const badgeHtml = r.isRegistered ? `
+    <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border border-white flex items-center justify-center shadow-sm z-10 animate-in zoom-in duration-300">
+        <svg class="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+` : '';
+
+html += `
+    <tr ${rowId} class="transition border-b border-gray-100 last:border-0 ${rowBg}">
+        <td class="px-1 py-3 font-bold text-gray-500 text-center text-sm w-6 align-middle">${rankDisplay}</td>
+        <td class="px-1 py-3 align-middle">
+            <div class="font-bold text-brand-blue flex items-center gap-1.5">
+                <div class="relative shrink-0">
+                    <span class="text-xl bg-white border border-gray-100 shadow-sm rounded-full w-8 h-8 flex items-center justify-center min-w-[32px]">
+                        ${icon}
+                    </span>
+                    ${badgeHtml}
+                </div>
+                
+                <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
+                    ${r.teamName}
+                </span>
+            </div> 
                         
                         <span class="text-sm leading-tight break-words whitespace-normal min-w-0 w-[100px]" title="${r.teamName}">
                             ${r.teamName}
@@ -4138,13 +4169,13 @@ window.autoSortGamesByDistance = function() {
    // ASYNC lett a függvény, mert várni kell a Firebase-re
       window.startTimersAndGPS = async function() {
     // ✅ ÚJ: Profil mentése indításkor
-    if (window.auth && window.auth.currentUser) {
-        console.log("Küldés a profilba. Pontszám:", appState.score); // Debug log
-        window.addPointsToUser(appState.score)
-            .then(() => console.log("✅ Profil frissítési kérelem elküldve."))
-            .catch(e => console.error("❌ Hiba a híváskor:", e));
-    }
-    
+if (window.auth && window.auth.currentUser) {
+    console.log("Profil adatok mentése a felhőbe...");
+    // A pontszám helyett a választott nevet és avatart mentjük el
+    window.saveUserProfile(appState.teamName, appState.teamAvatar)
+        .then(() => console.log("✅ Profil szinkronizálva."))
+        .catch(e => console.error("❌ Mentési hiba:", e));
+}    
     if (appState.isTimerRunning) return;
    
  // 1. Hang feloldása (iOS fix)
@@ -7250,6 +7281,7 @@ window.loadGameDataAndStart = async function(gameId) {
                 await update(ref(db, `users/${user.uid}/profile`), {
                     teamName: teamName,
                     avatar: avatarIndex,
+		    email: user.email,
                     lastLogin: Date.now()
                 });
                 console.log("✅ Profil mentve a felhőbe.");
