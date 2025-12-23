@@ -799,11 +799,11 @@
         ❓
     </div>
     
-    <div id="preview-verified-badge" class="verified-badge">
-        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-    </div>
+    <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
+    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+</div>
 </div>
     <p class="text-[9px] text-gray-400 font-medium mt-1">Avatar választása</p>
 </div>
@@ -2105,13 +2105,16 @@ const isMyTeam = (Math.abs(r.timestamp - Date.now()) < 120000 && r.score == wind
 const avatarHtml = `
     <div class="avatar-container">
         ${iconEmoji}
-        <div class="verified-badge ${isRegistered ? 'active' : ''}">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-        </div>
+        ${isRegistered ? `
+            <div class="verified-badge verified-badge-sm active">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>` : ''}
     </div>
 `;
+
+
 
 let rowBg = isMyTeam ? "bg-blue-200 border-l-4 border-l-red-400" : "";
 const rowId = isMyTeam ? 'id="my-leaderboard-row"' : '';
@@ -3190,13 +3193,14 @@ async function sharePdfViaEmail() {
         // Alkalmazzuk az egységes struktúrát
         teamAvatarIcon.className = "avatar-container"; 
         teamAvatarIcon.innerHTML = `
-            ${avatarEmoji}
-            <div class="verified-badge ${isRegistered ? 'active' : ''}">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
-        `;
+    ${avatarEmoji}
+    ${isRegistered ? `
+        <div class="verified-badge verified-badge-sm active">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>` : ''}
+`;
         teamNameDisplay.textContent = appState.teamName;
     teamNameContainer.classList.remove('hidden');
 } else {
@@ -4912,11 +4916,12 @@ const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
 finalAvatarEl.className = "avatar-container"; // Ugyanaz a méret, mint a fejlécben
 finalAvatarEl.innerHTML = `
     ${avatarEmoji}
-    <div class="verified-badge ${isRegistered ? 'active' : ''}">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-    </div>
+    ${isRegistered ? `
+        <div class="verified-badge verified-badge-lg active">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>` : ''}
 `;
             document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
             
