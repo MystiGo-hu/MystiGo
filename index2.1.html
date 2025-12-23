@@ -2560,7 +2560,28 @@ window.isFirebaseModuleLoaded = true;
             "wrapping men", "wrinkled starfish", "xx", "xxx", "yaoi",
             "yellow showers", "yiffy", "zoophilia"
         ];
-	window.showHiddenGames = false;        
+	
+
+window.validateTeamName = function(name) {
+    // Kötelező kitöltés ellenőrzése
+    if (!name || name.trim() === "") {
+        return { valid: false, error: "A név mező kitöltése kötelező a játék indításához!" };
+    }
+    
+    const normalizedText = name.toLowerCase().trim();
+    // Tiltott szavak ellenőrzése
+    const hasBadWord = badWordsList.some(word => normalizedText.includes(word.toLowerCase()));
+    
+    if (hasBadWord) {
+        return { valid: false, error: "A választott név nem megengedett kifejezést tartalmaz!" };
+    }
+    
+    return { valid: true };
+};
+
+
+
+window.showHiddenGames = false;        
 	// *** KONSTANSOK ***
         const GEOFENCE_DEFAULT_RADIUS = 20; 
         const DEFAULT_SCORE_PER_TASK = 50; 
@@ -4240,20 +4261,29 @@ window.autoSortGamesByDistance = function() {
             }
             
             const nameInput = document.getElementById('team-name-input');
-            const avatarSelect = document.getElementById('team-avatar-select');
-            if (!nameInput.value.trim()) {
-                showMessage('Hiányzó Adat', 'Kérlek, adj meg egy Nevet!');
-                if(skipConfirmation) window.closeGameMap();
-                return; 
-            }
+const avatarSelect = document.getElementById('team-avatar-select');
 
-            if (!avatarSelect.value) {
-                showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
-                if(skipConfirmation) window.closeGameMap();
-                return; 
-            }
-            
-            const limitFromExcel = gameConfig.globalLimit;
+// ÚJ SZIGORÚ VALIDÁCIÓS LOGIKA (Kezeli az üres mezőt és a tiltott szavakat is)
+const validation = window.validateTeamName(nameInput.value);
+if (!validation.valid) {
+    showMessage('Figyelem', validation.error, () => {
+        nameInput.value = ""; // Hibás vagy üres név esetén a mező kiürítése
+        localStorage.removeItem('mystigo_pref_teamName'); // A mentett hibás adat törlése
+        nameInput.focus(); // A kurzor visszaugrik a mezőbe az újraíráshoz
+    });
+    if(skipConfirmation) window.closeGameMap();
+    return; 
+}
+
+// Avatar ellenőrzése
+if (!avatarSelect.value) {
+    showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
+    if(skipConfirmation) window.closeGameMap();
+    return; 
+}
+
+// Ha a validáció sikeres, folytatódik a játék indítása
+const limitFromExcel = gameConfig.globalLimit;
             const MAX_PLAYERS = (limitFromExcel && limitFromExcel > 0) ? parseInt(limitFromExcel) : 1000000;
 
             if (window.checkGameLimitOnly) {
@@ -6558,6 +6588,22 @@ async function validateAndUseCoupon() {
 
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
+
+nameInputEl.addEventListener('blur', () => {
+    // Csak akkor ellenőrizzük, ha nem üres (hogy ne zavarjuk a felhasználót navigálás közben)
+    if (nameInputEl.value.trim() !== "") {
+        const result = window.validateTeamName(nameInputEl.value);
+        if (!result.valid) {
+            showMessage('Hiba', result.error, () => {
+                nameInputEl.value = ""; // Mező kiürítése hiba után
+                localStorage.removeItem('mystigo_pref_teamName'); // Mentett hibás adat törlése
+                nameInputEl.focus(); // Fókusz visszaállítása a mezőre
+            });
+        }
+    }
+});
+
+
             const avatarSelectEl = document.getElementById('team-avatar-select');
 
 
