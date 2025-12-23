@@ -442,7 +442,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.09
+       v1.2.08
 
    </span>
 
@@ -579,13 +579,6 @@
                                 <div class="space-y-2 text-sm text-gray-700">
                                    <p>📱 Telefon + GPS + internet szükséges</p>
                                    <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
-				   <div class="my-3 p-2.5 bg-blue-50 rounded-lg border border-blue-100 flex items-start gap-2">
-       <span class="text-lg">👤</span>
-       <div>
-           <p class="font-bold text-brand-blue leading-tight">Miért érdemes belépni?</p>
-           <p class="text-[11px] leading-snug mt-0.5">Belépéssel a rendszer <strong>megjegyzi a neved és az avatarod</strong>, gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, és a ranglistán is <strong>hitelesített jelzést (blue check)</strong> kapsz!</p>
-       </div>
-   </div>
                                    <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                                    <p>🗺️ Kövesd a térképen a célpontokat</p>
                                    <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
@@ -1694,8 +1687,8 @@ window.getGameCurrentCount = async function(gameId) {
         gameId: data.gameId,
         teamName: safeTeamName,
         teamAvatar: data.teamAvatar || "no avatar",
-        isRegistered: !!(window.auth && window.auth.currentUser),
-	score: safeScore,
+	isRegistered: !!(window.auth && window.auth.currentUser),
+        score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
         timestamp: Date.now(),
