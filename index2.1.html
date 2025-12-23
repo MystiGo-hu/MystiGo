@@ -6577,37 +6577,41 @@ const isIos = () => {
 
 
             if (avatarSelectEl) {
-    const updatePreview = () => {
-        const previewContainer = document.getElementById('avatar-preview-container');
-        const selectedValue = avatarSelectEl.value;
-        
-        if (previewContainer) {
-            // Animáció indítása: picit lekicsinyítjük
-            previewContainer.classList.add('scale-75', 'opacity-50');
-            
-            setTimeout(() => {
-                // Emoji frissítése
-                previewContainer.textContent = AVATAR_ICONS[selectedValue] || '❓';
-                
-                // Animáció befejezése: visszaugrik eredeti méretre
-                previewContainer.classList.remove('scale-75', 'opacity-50');
-                previewContainer.classList.add('scale-110'); // Kicsit túllő a határon
-                
-                setTimeout(() => {
-                    previewContainer.classList.remove('scale-110');
-                }, 150);
-            }, 100);
-        }
-    };
+                // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
+                window.updateAvatarPreview = () => {
+                    const previewContainer = document.getElementById('avatar-preview-container');
+                    const selectedValue = avatarSelectEl.value;
+                    
+                    // Mentés a helyi tárolóba
+                    if (selectedValue) {
+                        localStorage.setItem('mystigo_pref_teamAvatar', selectedValue);
+                    }
 
-    avatarSelectEl.addEventListener('change', (e) => {
-        localStorage.setItem('mystigo_pref_teamAvatar', e.target.value);
-        updatePreview();
-    });
+                    if (previewContainer) {
+                        // Animáció indítása
+                        previewContainer.classList.add('scale-75', 'opacity-50');
+                        
+                        setTimeout(() => {
+                            // Emoji frissítése (AVATAR_ICONS használatával)
+                            previewContainer.textContent = AVATAR_ICONS[selectedValue] || '❓';
+                            
+                            // Animáció befejezése
+                            previewContainer.classList.remove('scale-75', 'opacity-50');
+                            previewContainer.classList.add('scale-110');
+                            
+                            setTimeout(() => {
+                                previewContainer.classList.remove('scale-110');
+                            }, 150);
+                        }, 100);
+                    }
+                };
 
-    // Kezdeti betöltés
-    setTimeout(updatePreview, 200);
-}
+                // Eseményfigyelő hozzáadása
+                avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
+
+                // Kezdeti betöltés (mentett adatok alapján)
+                setTimeout(window.updateAvatarPreview, 200);
+            }
 
 
             // --- ÚJ RÉSZ VÉGE ---
@@ -7449,10 +7453,8 @@ onAuthStateChanged(auth, (user) => {
     const authUserName = document.getElementById('auth-user-name');
     const teamInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
-    
-    // --- ÚJ: A preview pipa lekérése ---
-    const previewVerifiedBadge = document.getElementById('preview-verified-badge');
     const authStatusLabel = document.getElementById('auth-status-label');
+    const previewVerifiedBadge = document.getElementById('preview-verified-badge');
 
     if (profileListener) {
         profileListener();
@@ -7460,11 +7462,10 @@ onAuthStateChanged(auth, (user) => {
     }
 
     if (user) {
-        // HA BE VAN LÉPVE:
-        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('hidden'); // Pipa megjelenítése
+        // Bejelentkezve megjelenítjük a pipát a preview-n
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('hidden');
 
         const profileRef = ref(db, `users/${user.uid}/profile`);
-        
         profileListener = onValue(profileRef, (snapshot) => {
             const profile = snapshot.val() || {};
 
@@ -7485,15 +7486,17 @@ onAuthStateChanged(auth, (user) => {
             if (avatarSelect && profile.avatar) {
                 avatarSelect.value = profile.avatar;
                 localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-                // Preview frissítése, hogy az emoji is változzon a mentett profil alapján
-                if (typeof updatePreview === 'function') updatePreview(); 
+                
+                // Frissítjük a vizuális preview-t is
+                if (typeof window.updateAvatarPreview === 'function') {
+                    window.updateAvatarPreview();
+                }
             }
         });
 
     } else {
-        // HA NINCS BELÉPVE:
-        if (previewVerifiedBadge) previewVerifiedBadge.classList.add('hidden'); // Pipa elrejtése
-
+        // Kijelentkezve elrejtjük a pipát
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.add('hidden');
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
