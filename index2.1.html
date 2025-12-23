@@ -7450,7 +7450,8 @@ onAuthStateChanged(auth, (user) => {
     const teamInput = document.getElementById('team-name-input');
     const avatarSelect = document.getElementById('team-avatar-select');
     
-    // ✅ ÚJ: A státusz felirat lekérése
+    // --- ÚJ: A preview pipa lekérése ---
+    const previewVerifiedBadge = document.getElementById('preview-verified-badge');
     const authStatusLabel = document.getElementById('auth-status-label');
 
     if (profileListener) {
@@ -7459,25 +7460,23 @@ onAuthStateChanged(auth, (user) => {
     }
 
     if (user) {
+        // HA BE VAN LÉPVE:
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('hidden'); // Pipa megjelenítése
+
         const profileRef = ref(db, `users/${user.uid}/profile`);
         
         profileListener = onValue(profileRef, (snapshot) => {
             const profile = snapshot.val() || {};
 
-            // UI elemek láthatósága
             if (btnGroup) btnGroup.classList.add('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
             if (scoreDisplay) scoreDisplay.classList.remove('hidden');
-
-            // ✅ JAVÍTÁS: A felirat módosítása bejelentkezett állapotban
             if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
 
-            // Név és pontszám frissítése
             const displayName = profile.teamName || user.displayName;
             if (authUserName) authUserName.textContent = displayName;
             if (scoreSpan) scoreSpan.textContent = profile.totalScore || 0;
             
-            // ✅ JAVÍTÁS: Mindig felülírjuk a mezőt, ha van mentett név
             if (teamInput && profile.teamName) {
                 teamInput.value = profile.teamName;
                 localStorage.setItem('mystigo_pref_teamName', profile.teamName);
@@ -7486,17 +7485,19 @@ onAuthStateChanged(auth, (user) => {
             if (avatarSelect && profile.avatar) {
                 avatarSelect.value = profile.avatar;
                 localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+                // Preview frissítése, hogy az emoji is változzon a mentett profil alapján
+                if (typeof updatePreview === 'function') updatePreview(); 
             }
         });
 
     } else {
-        // Kijelentkezve visszaállítjuk az eredeti állapotot
+        // HA NINCS BELÉPVE:
+        if (previewVerifiedBadge) previewVerifiedBadge.classList.add('hidden'); // Pipa elrejtése
+
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
         if (authUserName) authUserName.textContent = "";
-        
-        // ✅ JAVÍTÁS: A felirat visszaállítása "Belépés"-re
         if (authStatusLabel) authStatusLabel.textContent = "Belépés";
     }
 });
