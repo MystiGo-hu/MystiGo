@@ -5135,53 +5135,69 @@ if (taskImageEl) {
 
 
         function handleCorrectAnswer() {
-// --- GOOGLE ANALYTICS MÉRÉS BEILLESZTÉSE ---
+    // --- GOOGLE ANALYTICS MÉRÉS BEILLESZTÉSE ---
     if (typeof gtag === 'function') {
         gtag('event', 'level_up', {
             'level': appState.currentTaskIndex,
             'character': appState.teamAvatar || 'none',
             'score': appState.score
         });
-    }            
-	    if (speechSynth.speaking) speechSynth.cancel();
-            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
-            if (!currentTask) return;
-            currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
-            currentTask.isTaskTimerActive = false;
-            if (currentTask.taskScore > 0 && !currentTask.isStartTask) {
-                // Biztonságos összeadás: parseInt-tel kényszerítjük, hogy számok legyenek
-                appState.score = parseInt(appState.score || 0) + parseInt(currentTask.taskScore);
-            } 
-            
-            if (appState.currentGame.taskOrder === 'explore') {
-        if (currentTask && !currentTask.isStartTask) {
+    }
+
+    if (speechSynth.speaking) speechSynth.cancel();
+
+    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+
+    // --- BIZTONSÁGI ELLENŐRZÉS: Ha nincs feladat, vagy már teljesítve van, azonnal kilépünk ---
+    if (!currentTask || currentTask.completed) return;
+
+    // Azonnal megjelöljük teljesítettként, hogy a következő ezredmásodpercben érkező kattintást már megfogja a fenti 'if'
+    currentTask.completed = true;
+
+    // Időmérés rögzítése és leállítása az adott feladathoz
+    currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
+    currentTask.isTaskTimerActive = false;
+
+    // Pontszám hozzáadása a globális score-hoz (kivéve start task)
+    if (currentTask.taskScore > 0 && !currentTask.isStartTask) {
+        appState.score = parseInt(appState.score || 0) + parseInt(currentTask.taskScore);
+    }
+
+    // --- JÁTÉKMENET LOGIKA ---
+    if (appState.currentGame.taskOrder === 'explore') {
+        // EXPLORE MÓD: Feladatok eltávolítása az elérhető listából
+        if (!currentTask.isStartTask) {
             const indexToRemove = appState.availableTasks.indexOf(appState.currentTaskIndex);
             if (indexToRemove > -1) appState.availableTasks.splice(indexToRemove, 1);
-            if (appState.completedTasks.indexOf(currentTask.index) === -1) appState.completedTasks.push(currentTask.index);
+            if (appState.completedTasks.indexOf(currentTask.index) === -1) {
+                appState.completedTasks.push(currentTask.index);
+            }
         }
-        if (appState.availableTasks.length === 0) endGame();
-        else {
-             appState.currentTaskIndex = 0; 
-             
-             // --- IDE SZÚRD BE AZ ÚJ SORT: ---
-             appState.lastAutoZoomTime = 0; // Kényszerített zoomolás feladat megoldása után
-             // --------------------------------
-             
-             showTaskSelectionMap();
+
+        if (appState.availableTasks.length === 0) {
+            endGame();
+        } else {
+            appState.currentTaskIndex = 0; // Visszaállás választó állapotba
+            appState.lastAutoZoomTime = 0; // Kényszerített zoomolás a térképen
+            showTaskSelectionMap();
         }
     } else {
-                const currentIndexInArray = appState.currentGame.tasks.findIndex(t => t.index === appState.currentTaskIndex);
-                const nextIndexInArray = currentIndexInArray + 1;
-                if (nextIndexInArray < appState.currentGame.tasks.length) {
-                    const nextTaskIndex = appState.currentGame.tasks[nextIndexInArray].index;
-                    loadTask(nextTaskIndex); 
-                } else {
-                    endGame();
-                }
-            }
-            updateStatusDisplays();
-	    saveGameState(); 
+        // SORRENDI (Sequential / Random) MÓD: Következő feladat keresése
+        const currentIndexInArray = appState.currentGame.tasks.findIndex(t => t.index === appState.currentTaskIndex);
+        const nextIndexInArray = currentIndexInArray + 1;
+
+        if (nextIndexInArray < appState.currentGame.tasks.length) {
+            const nextTaskIndex = appState.currentGame.tasks[nextIndexInArray].index;
+            loadTask(nextTaskIndex); // Következő feladat betöltése
+        } else {
+            endGame(); // Ha nincs több, vége a játéknak
         }
+    }
+
+    // Állapot frissítése és mentése
+    updateStatusDisplays();
+    saveGameState();
+}
         
 // --- JAVÍTOTT ENDGAME FÜGGVÉNY ---
         function endGame() {
@@ -7067,8 +7083,8 @@ const isIos = () => {
             }
 
             document.getElementById('submit-answer-btn').addEventListener('click', () => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task || task.isCorrectlySolved) return;
                 if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
                 if (task.isStartTask) return;
 
@@ -7109,16 +7125,18 @@ const isIos = () => {
                 }
                 
                 if (isCorrect) {
-		document.getElementById('submit-answer-btn').disabled = true;
-	        document.getElementById('answer-input').disabled = true;
-                // Ellenőrizzük, hogy létezik-e a függvény, mielőtt meghívjuk
-                if (typeof window.triggerVictoryUI === 'function') {
-                    window.triggerVictoryUI(task.taskScore);
-                } else {
-                    // Ha nincs látványelem, csak simán lépjünk tovább a hagyományos módon
-                    showMessage(t('correct_title'), `Ügyes vagy! (+${task.taskScore} pont)`, handleCorrectAnswer);
-                }
-            } else {
+        task.isCorrectlySolved = true; // <-- Logikai jelölés: Ez a feladat kész
+        
+        // Azonnali UI tiltás
+        document.getElementById('submit-answer-btn').disabled = true;
+        document.getElementById('answer-input').disabled = true;
+
+        if (typeof window.triggerVictoryUI === 'function') {
+            window.triggerVictoryUI(task.taskScore);
+        } else {
+            handleCorrectAnswer();
+        }
+    } else {
                 // Hiba esetén is ellenőrizzük a függvény létezését
                 if (typeof window.triggerErrorUI === 'function') {
                     window.triggerErrorUI();
