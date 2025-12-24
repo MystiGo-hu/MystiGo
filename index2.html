@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.14
+       v1.2.15
 
    </span>
 
@@ -7109,6 +7109,8 @@ const isIos = () => {
                 }
                 
                 if (isCorrect) {
+		document.getElementById('submit-answer-btn').disabled = true;
+	        document.getElementById('answer-input').disabled = true;
                 // Ellenőrizzük, hogy létezik-e a függvény, mielőtt meghívjuk
                 if (typeof window.triggerVictoryUI === 'function') {
                     window.triggerVictoryUI(task.taskScore);
