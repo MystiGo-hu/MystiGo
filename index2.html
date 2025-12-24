@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.13
+       v1.2.14
 
    </span>
 
@@ -5221,43 +5221,45 @@ if (taskImageEl) {
             const finalTotalTime = appState.totalTime; 
             const finalTaskTime = appState.geofenceTime; 
 
-            // --- Mentés a Firebase Ranglistára ---
-           if (!appState.isTestModeEnabled) { 
-	   if (appState.currentGame && window.saveScoreToFirebase) {
-                window.saveScoreToFirebase({
-                    gameId: appState.currentGame.id,
-                    teamName: appState.teamName,
-                    teamAvatar: appState.teamAvatar,
-                    score: appState.score,
-                    totalTime: finalTotalTime,
-                    geofenceTime: finalTaskTime
-                });
-                
-if (window.incrementGameCompletion) {
-            window.incrementGameCompletion(appState.currentGame.id);
-        }
-    }
 
 
-// --- ÚJ RÉSZ: Összpontszám növelése a profilban ---
-    if (window.auth && window.auth.currentUser) {
-        const finalScoreValue = parseInt(appState.score) || 0;
-        console.log("Pontszám mentése a profilba (Éles játék):", finalScoreValue);
-        
-        window.addPointsToUser(finalScoreValue)
-            .then(() => console.log("✅ Összpontszám sikeresen frissítve a felhőben!"))
-            .catch(e => console.error("❌ Hiba az összpontszám frissítésekor:", e));
-    }
-} else {
-    // Visszajelzés a konzolon teszt mód esetén
-    console.log("🛠️ Teszt mód aktív: Pontszámok és statisztikák nem kerültek mentésre.");
-    
-    // Opcionális: Jelezzük a felhasználónak az eredmény oldalon is
-    const timestampEl = document.getElementById('end-timestamp');
-    if (timestampEl) {
-        timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Pontszám nem került elmentésre.</span>`;
-    }
-}
+// --- 1. RANGLISTA MENTÉS (ÉLES VAGY TESZT-GAME) ---
+            if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
+                if (appState.currentGame && window.saveScoreToFirebase) {
+                    window.saveScoreToFirebase({
+                        gameId: appState.currentGame.id,
+                        teamName: appState.teamName,
+                        teamAvatar: appState.teamAvatar,
+                        score: appState.score,
+                        totalTime: finalTotalTime,
+                        geofenceTime: finalTaskTime
+                    });
+                    
+                    if (window.incrementGameCompletion) {
+                        window.incrementGameCompletion(appState.currentGame.id);
+                    }
+                }
+            }
+
+            // --- 2. ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES GPS JÁTÉKNÁL) ---
+            if (!appState.isTestModeEnabled) {
+                if (window.auth && window.auth.currentUser) {s
+                    const finalScoreValue = parseInt(appState.score) || 0;
+                    window.addPointsToUser(finalScoreValue)
+                        .then(() => console.log("✅ Összpontszám frissítve a felhőben."))
+                        .catch(e => console.error("❌ Hiba:", e));
+                }
+            } else {
+                console.log("🛠️ Teszt mód: Profil pontszám nem változik.");
+                const timestampEl = document.getElementById('end-timestamp');
+                if (timestampEl && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
+                    timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Nem került mentésre.</span>`;
+                }
+            }
+
+
+
+
 
 // UI Visszajelzés a változóba
             const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
