@@ -27,7 +27,7 @@
         color: #FFA500;
         text-shadow: 0 0 10px rgba(0,0,0,0.2);
         z-index: 10000;
-        animation: floatUp 1.5s ease-out forwards;
+        animation: floatUp 3s ease-out forwards;
     }
 
     @keyframes floatUp {
@@ -4511,7 +4511,10 @@ window.triggerVictoryUI = function(points) {
             particleCount: 150,
             spread: 80,
             origin: { y: 0.6 },
-            colors: ['#00CED1', '#FFA500', '#0D2B45']
+            colors: ['#00CED1', '#FFA500', '#0D2B45'],
+     gravity: 0.8,    // Alapértelmezett: 1. Minél kisebb, annál lassabban hullik.
+     ticks: 300,      // Alapértelmezett: 200. Minél nagyobb, annál tovább marad a képernyőn.
+     startVelocity: 25 // Kezdő sebesség csökkentése (kevesebb "robbanás" hatás).
         });
     }
     MystiSounds.success();
@@ -4522,7 +4525,7 @@ window.triggerVictoryUI = function(points) {
     float.style.top = '50%';
     float.style.marginLeft = '-50px';
     document.body.appendChild(float);
-    setTimeout(() => float.remove(), 1500);
+    setTimeout(() => float.remove(), 3000);
 
     // Automatikus kártya és továbblépés
     const toast = document.createElement('div');
@@ -4533,7 +4536,7 @@ window.triggerVictoryUI = function(points) {
     setTimeout(() => {
         toast.classList.remove('active');
         setTimeout(() => { toast.remove(); handleCorrectAnswer(); }, 500);
-    }, 2500);
+    }, 3000);
 };
 
 window.triggerErrorUI = function() {
@@ -5218,43 +5221,45 @@ if (taskImageEl) {
             const finalTotalTime = appState.totalTime; 
             const finalTaskTime = appState.geofenceTime; 
 
-            // --- Mentés a Firebase Ranglistára ---
-           if (!appState.isTestModeEnabled) { 
-	   if (appState.currentGame && window.saveScoreToFirebase) {
-                window.saveScoreToFirebase({
-                    gameId: appState.currentGame.id,
-                    teamName: appState.teamName,
-                    teamAvatar: appState.teamAvatar,
-                    score: appState.score,
-                    totalTime: finalTotalTime,
-                    geofenceTime: finalTaskTime
-                });
-                
-if (window.incrementGameCompletion) {
-            window.incrementGameCompletion(appState.currentGame.id);
-        }
-    }
 
 
-// --- ÚJ RÉSZ: Összpontszám növelése a profilban ---
-    if (window.auth && window.auth.currentUser) {
-        const finalScoreValue = parseInt(appState.score) || 0;
-        console.log("Pontszám mentése a profilba (Éles játék):", finalScoreValue);
-        
-        window.addPointsToUser(finalScoreValue)
-            .then(() => console.log("✅ Összpontszám sikeresen frissítve a felhőben!"))
-            .catch(e => console.error("❌ Hiba az összpontszám frissítésekor:", e));
-    }
-} else {
-    // Visszajelzés a konzolon teszt mód esetén
-    console.log("🛠️ Teszt mód aktív: Pontszámok és statisztikák nem kerültek mentésre.");
-    
-    // Opcionális: Jelezzük a felhasználónak az eredmény oldalon is
-    const timestampEl = document.getElementById('end-timestamp');
-    if (timestampEl) {
-        timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Pontszám nem került elmentésre.</span>`;
-    }
-}
+// --- 1. RANGLISTA MENTÉS (ÉLES VAGY TESZT-GAME) ---
+            if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
+                if (appState.currentGame && window.saveScoreToFirebase) {
+                    window.saveScoreToFirebase({
+                        gameId: appState.currentGame.id,
+                        teamName: appState.teamName,
+                        teamAvatar: appState.teamAvatar,
+                        score: appState.score,
+                        totalTime: finalTotalTime,
+                        geofenceTime: finalTaskTime
+                    });
+                    
+                    if (window.incrementGameCompletion) {
+                        window.incrementGameCompletion(appState.currentGame.id);
+                    }
+                }
+            }
+
+            // --- 2. ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES GPS JÁTÉKNÁL) ---
+            if (!appState.isTestModeEnabled) {
+                if (window.auth && window.auth.currentUser) {s
+                    const finalScoreValue = parseInt(appState.score) || 0;
+                    window.addPointsToUser(finalScoreValue)
+                        .then(() => console.log("✅ Összpontszám frissítve a felhőben."))
+                        .catch(e => console.error("❌ Hiba:", e));
+                }
+            } else {
+                console.log("🛠️ Teszt mód: Profil pontszám nem változik.");
+                const timestampEl = document.getElementById('end-timestamp');
+                if (timestampEl && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
+                    timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Nem került mentésre.</span>`;
+                }
+            }
+
+
+
+
 
 // UI Visszajelzés a változóba
             const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
