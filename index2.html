@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.17
+       v1.2.18
 
    </span>
 
@@ -4539,13 +4539,49 @@ window.triggerVictoryUI = function(points) {
     }, 3000);
 };
 
-window.triggerErrorUI = function() {
+window.triggerErrorUI = function(pointsRemaining) {
+    // 1. Hangjelzés és rázkódás elindítása
     MystiSounds.error();
     const inputContainer = document.getElementById('answer-input-container');
     if (inputContainer) {
         inputContainer.classList.add('shake');
         setTimeout(() => inputContainer.classList.remove('shake'), 500);
     }
+
+    // 2. Lebegő "-1 ⭐" animáció a képernyő közepén
+    const float = document.createElement('div');
+    float.className = 'score-float';
+    float.style.color = '#ef4444'; // Piros szín
+    float.innerHTML = `-1 ⭐`;
+    float.style.left = '50%';
+    float.style.top = '50%';
+    float.style.transform = 'translate(-50%, -50%)';
+    float.style.marginLeft = '-20px'; 
+    document.body.appendChild(float);
+    setTimeout(() => float.remove(), 3000);
+
+    // 3. Piros szegélyű beúszó kártya (Toast) létrehozása
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    // Felülírjuk az alap türkiz színt pirosra
+    toast.style.borderColor = '#ef4444'; 
+    toast.innerHTML = `
+        <div class="icon" style="background: #fee2e2;">❌</div>
+        <div>
+            <div style="font-weight: 800; color: #b91c1c;">SAJNOS NEM JÓ</div>
+            <div style="font-weight: 600; color: #ef4444;">Még maradt: ${pointsRemaining} pont</div>
+        </div>`;
+    
+    document.body.appendChild(toast);
+    
+    // Aktiválás (beúszás)
+    setTimeout(() => toast.classList.add('active'), 100);
+    
+    // Automatikus eltüntetés 3 másodperc után
+    setTimeout(() => {
+        toast.classList.remove('active');
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
 };
 
 
@@ -4890,6 +4926,15 @@ if (window.auth && window.auth.currentUser) {
             const hint2Btn = document.getElementById('hint2-btn');
             const solutionBtn = document.getElementById('solution-btn');
 
+
+if (task.isStartTask || task.completed || task.isCorrectlySolved) { 
+        if(hint1Btn) hint1Btn.disabled = true; 
+        if(hint2Btn) hint2Btn.disabled = true; 
+        if(solutionBtn) solutionBtn.disabled = true; 
+        return; 
+    }
+
+
             // --- ADATOK ELLENŐRZÉSE ---
             const hints = task.hints || [];
             // Akkor tekintjük létezőnek a segítséget, ha van benne szöveg
@@ -5224,26 +5269,39 @@ function endGame() {
 
     // --- MENTÉS ÉS PONTADÁS (JAVÍTVA) ---
     if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
-        if (appState.currentGame && window.saveScoreToFirebase) {
-            window.saveScoreToFirebase({
-                gameId: appState.currentGame.id,
-                teamName: appState.teamName,
-                teamAvatar: appState.teamAvatar,
-                score: appState.score,
-                totalTime: finalTotalTime,
-                geofenceTime: finalTaskTime
-            });
-            if (window.incrementGameCompletion) window.incrementGameCompletion(appState.currentGame.id);
-        }
-
-        // PROFIL PONTSZÁM FRISSÍTÉSE (Fixálva)
-        if (window.auth && window.auth.currentUser) {
-            const finalScoreValue = parseInt(appState.score) || 0;
-            window.addPointsToUser(finalScoreValue)
-                .then(() => console.log("✅ Összpontszám frissítve."))
-                .catch(e => console.error("❌ Profil hiba:", e));
+    if (appState.currentGame && window.saveScoreToFirebase) {
+        window.saveScoreToFirebase({
+            gameId: appState.currentGame.id,
+            teamName: appState.teamName,
+            teamAvatar: appState.teamAvatar,
+            score: appState.score,
+            totalTime: finalTotalTime,
+            geofenceTime: finalTaskTime
+        });
+        
+        if (window.incrementGameCompletion) {
+            window.incrementGameCompletion(appState.currentGame.id);
         }
     }
+}
+
+// --- 2. ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES JÁTÉKNÁL) ---
+// Szigorú ellenőrzés: ha Teszt mód vagy Manuális GPS van, ide nem lép be
+if (!appState.isTestModeEnabled) {
+    if (window.auth && window.auth.currentUser) { 
+        const finalScoreValue = parseInt(appState.score) || 0;
+        window.addPointsToUser(finalScoreValue)
+            .then(() => console.log("✅ Összpontszám frissítve a profilban."))
+            .catch(e => console.error("❌ Profil hiba:", e));
+    }
+} else {
+    // Visszajelzés a tesztelőknek
+    console.log("🛠️ Teszt mód: Profil pontszám nem változik.");
+    const timestampEl = document.getElementById('end-timestamp');
+    if (timestampEl && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
+        timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Profil pontszám nem módosult.</span>`;
+    }
+}
 
     // --- UI KITÖLTÉSE ÉS LOGÓK ---
     const endTime = new Date();
@@ -7027,7 +7085,8 @@ const isIos = () => {
                 }
                 
                 if (isCorrect) {
-        task.isCorrectlySolved = true; // <-- Logikai jelölés: Ez a feladat kész
+        task.isCorrectlySolved = true;
+    updateHintButtons(task);
         
         // Azonnali UI tiltás
         document.getElementById('submit-answer-btn').disabled = true;
@@ -7039,18 +7098,15 @@ const isIos = () => {
             handleCorrectAnswer();
         }
     } else {
-                // Hiba esetén is ellenőrizzük a függvény létezését
-                if (typeof window.triggerErrorUI === 'function') {
-                    window.triggerErrorUI();
-                }
-                
-                // Pontlevonás és üzenet marad a régiben
+                // --- EZT A RÉSZT CSERÉLD LE (2515. sor környéke) ---
                 let currentScore = parseInt(task.taskScore || 0);
                 if (currentScore > 0) {
                     currentScore = Math.max(0, currentScore - WRONG_ANSWER_PENALTY);
                     task.taskScore = currentScore;
                 }
-                showMessage(t('wrong_title'), t('wrong_body') + `<br><br><strong>Még szerezhető: ${task.taskScore} pont</strong>`);
+                
+                // Az új, piros keretes beúszó ablak hívása a régi showMessage helyett
+                window.triggerErrorUI(task.taskScore);
             }
                 updateStatusDisplays();
             });
