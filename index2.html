@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.15
+       v1.2.16
 
    </span>
 
@@ -5135,37 +5135,23 @@ if (taskImageEl) {
 
 
         function handleCorrectAnswer() {
-    // --- GOOGLE ANALYTICS MÉRÉS BEILLESZTÉSE ---
-    if (typeof gtag === 'function') {
-        gtag('event', 'level_up', {
-            'level': appState.currentTaskIndex,
-            'character': appState.teamAvatar || 'none',
-            'score': appState.score
-        });
-    }
-
     if (speechSynth.speaking) speechSynth.cancel();
 
-    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
 
-    // --- BIZTONSÁGI ELLENŐRZÉS: Ha nincs feladat, vagy már teljesítve van, azonnal kilépünk ---
     if (!currentTask || currentTask.completed) return;
 
-    // Azonnal megjelöljük teljesítettként, hogy a következő ezredmásodpercben érkező kattintást már megfogja a fenti 'if'
     currentTask.completed = true;
 
-    // Időmérés rögzítése és leállítása az adott feladathoz
+    // Pontszám és idő rögzítése
     currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
     currentTask.isTaskTimerActive = false;
 
-    // Pontszám hozzáadása a globális score-hoz (kivéve start task)
     if (currentTask.taskScore > 0 && !currentTask.isStartTask) {
         appState.score = parseInt(appState.score || 0) + parseInt(currentTask.taskScore);
     }
 
-    // --- JÁTÉKMENET LOGIKA ---
     if (appState.currentGame.taskOrder === 'explore') {
-        // EXPLORE MÓD: Feladatok eltávolítása az elérhető listából
         if (!currentTask.isStartTask) {
             const indexToRemove = appState.availableTasks.indexOf(appState.currentTaskIndex);
             if (indexToRemove > -1) appState.availableTasks.splice(indexToRemove, 1);
@@ -5177,31 +5163,30 @@ if (taskImageEl) {
         if (appState.availableTasks.length === 0) {
             endGame();
         } else {
-            appState.currentTaskIndex = 0; // Visszaállás választó állapotba
-            appState.lastAutoZoomTime = 0; // Kényszerített zoomolás a térképen
+            appState.currentTaskIndex = 0;
             showTaskSelectionMap();
         }
     } else {
-        // SORRENDI (Sequential / Random) MÓD: Következő feladat keresése
-        const currentIndexInArray = appState.currentGame.tasks.findIndex(t => t.index === appState.currentTaskIndex);
+        // SZEKVENCIÁLIS MÓD JAVÍTÁSA
+        const currentIndexInArray = appState.currentGame.tasks.findIndex(t => Number(t.index) === Number(appState.currentTaskIndex));
         const nextIndexInArray = currentIndexInArray + 1;
 
         if (nextIndexInArray < appState.currentGame.tasks.length) {
             const nextTaskIndex = appState.currentGame.tasks[nextIndexInArray].index;
-            loadTask(nextTaskIndex); // Következő feladat betöltése
+            loadTask(nextTaskIndex);
         } else {
-            endGame(); // Ha nincs több, vége a játéknak
+            // Ez az ág fut le az utolsó feladatnál
+            endGame();
         }
     }
 
-    // Állapot frissítése és mentése
     updateStatusDisplays();
     saveGameState();
 }
         
 // --- JAVÍTOTT ENDGAME FÜGGVÉNY ---
         function endGame() {
-
+showContentPage('end-page');
 	    if (appState.currentGame && appState.currentGame.id) {
         localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
         console.log("🧹 Játékadatok törölve.");
@@ -5334,7 +5319,7 @@ finalAvatarEl.innerHTML = `
             document.getElementById('final-time').textContent = formatTime(finalTotalTime); 
             document.getElementById('final-geofence-time').textContent = formatTime(finalTaskTime);
             
-            showContentPage('end-page');
+            
             
             // Review gomb kezelése
             const reviewBtn = document.getElementById('game-review-btn');
