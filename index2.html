@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.16
+       v1.2.17
 
    </span>
 
@@ -5184,240 +5184,157 @@ if (taskImageEl) {
     saveGameState();
 }
         
-// --- JAVÍTOTT ENDGAME FÜGGVÉNY ---
-        function endGame() {
-showContentPage('end-page');
-	    if (appState.currentGame && appState.currentGame.id) {
-        localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
-        console.log("🧹 Játékadatok törölve.");
+function endGame() {
+    // 1. AZONNALI OLDALVÁLTÁS ÉS IDŐZÍTŐK LEÁLLÍTÁSA
+    showContentPage('end-page');
+    
+    if (speechSynth.speaking) speechSynth.cancel();
+    clearInterval(appState.timerInterval);
+    if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
+    
+    // Fő térkép takarítása a memóriából
+    if (appState.map) { appState.map.remove(); appState.map = null; }
+    if (window.manualMarker) { window.manualMarker.remove(); window.manualMarker = null; }
+
+    const finalTotalTime = appState.totalTime; 
+    const finalTaskTime = appState.geofenceTime; 
+    window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
+    window.currentScoreForHighlight = appState.score;
+
+    // --- GOOGLE ANALYTICS ---
+    if (typeof gtag === 'function') {
+        gtag('event', 'game_complete', {
+            'game_id': appState.currentGame ? appState.currentGame.id : 'unknown',
+            'score': appState.score,
+            'total_time': finalTotalTime,
+            'team_name': appState.teamName
+        });
     }
-            // --- GOOGLE ANALYTICS MÉRÉS ---
-            if (typeof gtag === 'function') {
-                gtag('event', 'game_complete', {
-                    'game_id': appState.currentGame ? appState.currentGame.id : 'unknown',
-                    'score': appState.score,
-                    'total_time': appState.totalTime,
-                    'team_name': appState.teamName
-                });
-            }
-            
-            window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
-            window.currentScoreForHighlight = appState.score;
 
-            // --- ÚJ RÉSZ: Tartós teljesítés számláló növelése ---
-            if (appState.currentGame) {
-                const countKey = 'MystiGo_Perm_Count_' + appState.currentGame.id;
-                let currentCount = parseInt(localStorage.getItem(countKey) || 0);
-                if (currentCount === 0 && localStorage.getItem('MystiGo_Perm_Completed_' + appState.currentGame.id) === 'true') {
-                    currentCount = 1;
-                }
-                localStorage.setItem(countKey, currentCount + 1);
-                localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
-            }
-
-            if (speechSynth.speaking) speechSynth.cancel();
-
-            // --- JAVÍTÁS: A GLOBÁLIS SZÁMLÁLÓKAT HASZNÁLJUK (NEM SZÁMOLJUK ÚJRA) ---
-            // Így pont ugyanazt látja a végén, mint játék közben a kijelzőn
-            const finalTotalTime = appState.totalTime; 
-            const finalTaskTime = appState.geofenceTime; 
-
-
-
-// --- 1. RANGLISTA MENTÉS (ÉLES VAGY TESZT-GAME) ---
-            if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
-                if (appState.currentGame && window.saveScoreToFirebase) {
-                    window.saveScoreToFirebase({
-                        gameId: appState.currentGame.id,
-                        teamName: appState.teamName,
-                        teamAvatar: appState.teamAvatar,
-                        score: appState.score,
-                        totalTime: finalTotalTime,
-                        geofenceTime: finalTaskTime
-                    });
-                    
-                    if (window.incrementGameCompletion) {
-                        window.incrementGameCompletion(appState.currentGame.id);
-                    }
-                }
-            }
-
-            // --- 2. ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES GPS JÁTÉKNÁL) ---
-            if (!appState.isTestModeEnabled) {
-                if (window.auth && window.auth.currentUser) {s
-                    const finalScoreValue = parseInt(appState.score) || 0;
-                    window.addPointsToUser(finalScoreValue)
-                        .then(() => console.log("✅ Összpontszám frissítve a felhőben."))
-                        .catch(e => console.error("❌ Hiba:", e));
-                }
-            } else {
-                console.log("🛠️ Teszt mód: Profil pontszám nem változik.");
-                const timestampEl = document.getElementById('end-timestamp');
-                if (timestampEl && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
-                    timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Nem került mentésre.</span>`;
-                }
-            }
-
-
-
-
-
-// UI Visszajelzés a változóba
-            const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
-            
-            // Konzolba kiírjuk
-            console.log(saveStatusText);
-
-            // JAVASLAT: Írjuk ki a képernyőre is, hogy a játékos lássa!
-            // Megkeressük az időbélyeg mezőt az Eredmény oldalon, és hozzáadjuk ezt az infót:
-            const timestampEl = document.getElementById('end-timestamp');
-            if (timestampEl) {
-                // Hozzáadjuk az eredeti dátumhoz egy új sorban, piros vagy zöld színnel
-                const colorClass = navigator.onLine ? 'text-green-600' : 'text-red-500';
-                timestampEl.innerHTML += `<br><span class="${colorClass} font-bold">${saveStatusText}</span>`;
-            }
-
-            // Jelenlegi idő
-            const endTime = new Date();
-            const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
-            
-            // Leállítás
-            clearInterval(appState.timerInterval);
-            if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
-            
-            if (appState.map) { appState.map.remove(); appState.map = null; }
-            if (manualMarker) { manualMarker.remove(); manualMarker = null; }
-
-            // Logó csere
-            const endPageLogo = document.getElementById('end-page-logo');
-            if (endPageLogo) endPageLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
-            const mainHeaderLogo = document.getElementById('main-header-logo');
-            if (mainHeaderLogo) mainHeaderLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
-
-            // HTML elemek kitöltése
-            document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
-            document.getElementById('final-score').textContent = appState.score;
-            document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
-
-const finalAvatarEl = document.getElementById('final-team-avatar-icon');
-const isRegistered = !!(window.auth && window.auth.currentUser);
-const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
-
-finalAvatarEl.className = "avatar-container"; // Ugyanaz a méret, mint a fejlécben
-finalAvatarEl.innerHTML = `
-    ${avatarEmoji}
-    ${isRegistered ? `
-        <div class="verified-badge verified-badge-lg active">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-        </div>` : ''}
-`;
-            document.getElementById('end-timestamp').textContent = `Befejezés: ${formattedEndTime}`;
-            
-            // --- JAVÍTOTT IDŐKIÍRÁS ---
-            document.getElementById('final-time').textContent = formatTime(finalTotalTime); 
-            document.getElementById('final-geofence-time').textContent = formatTime(finalTaskTime);
-            
-            
-            
-            // Review gomb kezelése
-            const reviewBtn = document.getElementById('game-review-btn');
-            if (reviewBtn) {
-                if (appState.currentGame && appState.currentGame.reviewUrl) {
-                    reviewBtn.href = appState.currentGame.reviewUrl; 
-                    reviewBtn.classList.remove('hidden'); 
-                    reviewBtn.classList.add('block');     
-                } else {
-                    reviewBtn.classList.add('hidden');
-                    reviewBtn.classList.remove('block');
-                }
-            }
-
-            // Kézi letöltés gomb láthatóvá tétele
-            const manualPdfBtn = document.querySelector('button[onclick="downloadPDF()"]');
-            if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
-            
-            // Térkép rajzolása
-            const oldMapDiv = document.getElementById('route-map');
-            if (oldMapDiv) {
-                const parent = oldMapDiv.parentNode;
-                const newMapDiv = document.createElement('div');
-                newMapDiv.id = 'route-map';
-                newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 400px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
-                parent.replaceChild(newMapDiv, oldMapDiv);
-            }
-
-            try {
-                if (appState.routeCoordinates.length > 0) {
-                    const originalAny3d = L.Browser.any3d; const originalIelt9 = L.Browser.ielt9;
-                    L.Browser.any3d = false; L.Browser.ielt9 = true; 
-                    
-                    const endMap = L.map('route-map', { 
-                zoomControl: false, 
-                dragging: false, 
-                touchZoom: false, 
-                scrollWheelZoom: false, 
-                doubleClickZoom: false, 
-                boxZoom: false, 
-                keyboard: false, 
-                tap: false,
-                // A vesszők és a zárójelek most már jó helyen vannak:
-                zoomAnimation: false,       
-                markerZoomAnimation: false, 
-                fadeAnimation: false,       
-                preferCanvas: true
-            });
-
-                    endMap.attributionControl.setPrefix(false);
-                    L.Browser.any3d = originalAny3d; L.Browser.ielt9 = originalIelt9;
-
-                    addSmartTileLayer(endMap);
-                    
-                    const polyline = L.polyline(appState.routeCoordinates, { 
-    color: 'var(--brand-orange)', 
-    weight: 5, 
-    opacity: 0.8,
-    renderer: L.canvas() // Kényszerített Canvas renderelés az útvonalhoz is
-}).addTo(endMap);
-                   endMap.fitBounds(polyline.getBounds().pad(0.2), { animate: false }); 
-                    
-	setTimeout(() => { 
-    try { 
-        endMap.invalidateSize(); 
-        // Itt is kapcsoljuk ki az animációt
-        endMap.fitBounds(polyline.getBounds(), { padding: [20, 20], maxZoom: 19, animate: false }); 
-    } catch(e) {}
-}, 800);
-
-                    const startLoc = appState.currentGame.tasks.find(t => t.index === 0).location; 
-                    L.marker([startLoc.lat, startLoc.lng], { title: 'Start' }).addTo(endMap);
-
-                    appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
-                        if (task.location) {
-                            const isCompleted = appState.currentGame.taskOrder === 'explore' ? appState.completedTasks.includes(task.index) : true;
-                            const isSkipped = (task.skipped === true || task.taskScore === 0);
-                            let iconContent = isCompleted ? '✅' : task.index.toString();
-                            let bgClass = isCompleted ? '!bg-green-500' : ''; 
-                            if (isSkipped) { iconContent = '❌'; bgClass = '!bg-red-500 !border-white'; }
-
-                            const taskMarkerIcon = L.divIcon({ className: `task-selector-marker ${bgClass}`, html: iconContent, iconSize: [30, 30], iconAnchor: [15, 30] });
-                            L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon }).addTo(endMap);
-                        }
-                    });
-                }
-            } catch (err) { console.error("Térkép hiba:", err); }
-            
-            setTimeout(() => { downloadPDF(); }, 1000); 
-            
-            if(appState.currentGame) {
-    // A megerősítő ablakos függvény helyett közvetlenül a tárolóból töröljük
-    localStorage.removeItem(getStorageKey(appState.currentGame.id));
-    console.log("Mentés csendesen törölve a játék végén.");
-}
-            appState.currentGame = null;
+    // --- TARTÓS SZÁMLÁLÓK FRISSÍTÉSE ---
+    if (appState.currentGame) {
+        const countKey = 'MystiGo_Perm_Count_' + appState.currentGame.id;
+        let currentCount = parseInt(localStorage.getItem(countKey) || 0);
+        if (currentCount === 0 && localStorage.getItem('MystiGo_Perm_Completed_' + appState.currentGame.id) === 'true') {
+            currentCount = 1;
         }
-      
+        localStorage.setItem(countKey, currentCount + 1);
+        localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
+    }
+
+    // --- MENTÉS ÉS PONTADÁS (JAVÍTVA) ---
+    if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
+        if (appState.currentGame && window.saveScoreToFirebase) {
+            window.saveScoreToFirebase({
+                gameId: appState.currentGame.id,
+                teamName: appState.teamName,
+                teamAvatar: appState.teamAvatar,
+                score: appState.score,
+                totalTime: finalTotalTime,
+                geofenceTime: finalTaskTime
+            });
+            if (window.incrementGameCompletion) window.incrementGameCompletion(appState.currentGame.id);
+        }
+
+        // PROFIL PONTSZÁM FRISSÍTÉSE (Fixálva)
+        if (window.auth && window.auth.currentUser) {
+            const finalScoreValue = parseInt(appState.score) || 0;
+            window.addPointsToUser(finalScoreValue)
+                .then(() => console.log("✅ Összpontszám frissítve."))
+                .catch(e => console.error("❌ Profil hiba:", e));
+        }
+    }
+
+    // --- UI KITÖLTÉSE ÉS LOGÓK ---
+    const endTime = new Date();
+    const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
+    
+    if (appState.currentGame) {
+        document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
+        const logoPath = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+        if(document.getElementById('end-page-logo')) document.getElementById('end-page-logo').src = logoPath;
+        if(document.getElementById('main-header-logo')) document.getElementById('main-header-logo').src = logoPath;
+    }
+
+    document.getElementById('final-score').textContent = appState.score;
+    document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
+    document.getElementById('final-time').textContent = formatTime(finalTotalTime); 
+    document.getElementById('final-geofence-time').textContent = formatTime(finalTaskTime);
+
+    // Offline / Online státusz visszajelzés
+    const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
+    const colorClass = navigator.onLine ? 'text-green-600' : 'text-red-500';
+    document.getElementById('end-timestamp').innerHTML = `Befejezés: ${formattedEndTime}<br><span class="${colorClass} font-bold">${saveStatusText}</span>`;
+
+    // Avatar és Verified badge
+    const finalAvatarEl = document.getElementById('final-team-avatar-icon');
+    if (finalAvatarEl) {
+        const isRegistered = !!(window.auth && window.auth.currentUser);
+        finalAvatarEl.className = "avatar-container"; 
+        finalAvatarEl.innerHTML = `${AVATAR_ICONS[appState.teamAvatar] || ''}${isRegistered ? '<div class="verified-badge verified-badge-lg active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>' : ''}`;
+    }
+
+    // Értékelés és PDF gombok
+    const reviewBtn = document.getElementById('game-review-btn');
+    if (reviewBtn && appState.currentGame?.reviewUrl) {
+        reviewBtn.href = appState.currentGame.reviewUrl; 
+        reviewBtn.classList.replace('hidden', 'block'); 
+    }
+    const manualPdfBtn = document.querySelector('button[onclick="downloadPDF()"]');
+    if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
+
+    // --- TÉRKÉP RAJZOLÁSA ---
+    const oldMapDiv = document.getElementById('route-map');
+    if (oldMapDiv) {
+        const newMapDiv = document.createElement('div');
+        newMapDiv.id = 'route-map';
+        newMapDiv.style.cssText = "height: 300px; width: 85%; max-width: 400px; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px auto; display: block;";
+        oldMapDiv.parentNode.replaceChild(newMapDiv, oldMapDiv);
+    }
+
+    try {
+        if (appState.routeCoordinates.length > 0) {
+            const endMap = L.map('route-map', { 
+                zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, 
+                doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false,
+                zoomAnimation: false, markerZoomAnimation: false, fadeAnimation: false, preferCanvas: true
+            });
+            endMap.attributionControl.setPrefix(false);
+            addSmartTileLayer(endMap);
+            
+            const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
+            endMap.fitBounds(polyline.getBounds().pad(0.2), { animate: false }); 
+
+            // Markerek
+            const startLoc = appState.currentGame.tasks.find(t => t.index === 0)?.location; 
+            if(startLoc) L.marker([startLoc.lat, startLoc.lng]).addTo(endMap);
+
+            appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
+                if (task.location) {
+                    const isCompleted = appState.currentGame.taskOrder === 'explore' ? appState.completedTasks.includes(task.index) : true;
+                    const isSkipped = (task.skipped === true || task.taskScore === 0);
+                    let iconContent = isCompleted ? '✅' : task.index.toString();
+                    let bgClass = isCompleted ? '!bg-green-500' : (isSkipped ? '!bg-red-500 !border-white' : ''); 
+                    if (isSkipped) iconContent = '❌';
+
+                    const taskMarkerIcon = L.divIcon({ className: `task-selector-marker ${bgClass}`, html: iconContent, iconSize: [30, 30], iconAnchor: [15, 30] });
+                    L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon }).addTo(endMap);
+                }
+            });
+            setTimeout(() => { if(endMap) endMap.invalidateSize(); }, 800);
+        }
+    } catch (err) { console.error("Térkép hiba:", err); }
+
+    // --- LEZÁRÁS ---
+    setTimeout(() => { 
+        if(typeof downloadPDF === 'function') downloadPDF(); 
+        if (appState.currentGame) {
+            localStorage.removeItem(getStorageKey(appState.currentGame.id));
+            localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
+        }
+        appState.currentGame = null; 
+    }, 1500);
+}      
 
 
   
