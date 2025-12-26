@@ -806,64 +806,81 @@
 
 
 
-                        <div id="team-setup" class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-4">
+                        <div id="team-setup" class="p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 shadow-inner mb-6">
     
-    <div class="flex justify-between items-center">
-        <h2 class="text-xl font-bold text-text-heading">Játékos<span class="text-red-500">*</span></h2>
-
-        <label class="flex items-center cursor-pointer gap-2 select-none bg-yellow-100 px-3 py-1 rounded-full border border-yellow-200 hover:bg-yellow-200 transition">
-            <span class="text-xs font-bold text-yellow-800 uppercase tracking-wide">Kids Mód 🐈</span>
-            <input type="checkbox" id="kids-mode-checkbox" class="w-4 h-4 text-brand-orange border-gray-300 rounded focus:ring-brand-orange accent-orange-500">
+    <div class="flex justify-between items-center mb-4 px-1">
+        <h2 class="text-sm font-bold text-brand-blue uppercase tracking-wider">Játékos<span class="text-red-500">*</span></h2>
+        <label class="flex items-center cursor-pointer gap-2 select-none bg-yellow-100 px-2.5 py-1 rounded-full border border-yellow-200 hover:bg-yellow-200 transition">
+            <span class="text-[10px] font-extrabold text-yellow-800 uppercase">Kids 🐈</span>
+            <input type="checkbox" id="kids-mode-checkbox" class="w-3.5 h-3.5 text-brand-orange border-gray-300 rounded accent-orange-500">
         </label>
     </div>
 
-    <div class="bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-white shadow-sm flex items-center justify-between min-h-[64px]">
-        <div class="flex items-center gap-3 overflow-hidden">
-            <div id="auth-buttons-group" class="flex gap-2 shrink-0">
+    <div class="flex items-center justify-between mb-5 bg-white/80 p-3 rounded-xl border border-white shadow-sm">
+        <div class="flex items-center gap-3">
+            <div id="auth-buttons-group" class="flex gap-2">
                 <button id="google-login-btn" onclick="loginWithGoogle()" 
-                        class="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 active:scale-95 transition-all">
-                    <img src="logo/google_logo.svg" class="w-7 h-7">
+                        class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+                        title="Google">
+                    <img src="logo/google_logo.svg" class="w-6 h-6">
                 </button>
+
                 <button id="email-auth-btn" onclick="openEmailAuthModal()" 
-                        class="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 active:scale-95 transition-all">
-                    <svg class="w-7 h-7 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95" 
+                        title="Email bejelentkezés">
+                    <svg class="w-6 h-6 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
                 </button>
             </div>
 
+            <div id="email-auth-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 10000;">
+                <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+                    <h2 id="email-modal-title" class="text-xl font-bold text-brand-blue mb-4 text-center">Bejelentkezés</h2>
+                    <div class="space-y-3">
+                        <input type="email" id="auth-email" placeholder="Email cím" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
+                        <input type="password" id="auth-password" placeholder="Jelszó" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
+                        <div id="email-auth-error" class="text-red-500 text-xs hidden font-bold"></div>
+                    </div>
+                    <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
+                    <div class="mt-4 text-center">
+                        <button id="email-toggle-mode" onclick="toggleEmailAuthMode()" class="text-xs text-brand-cyan-500 font-semibold hover:underline">Nincs még fiókod? Regisztráció</button>
+                    </div>
+                    <button onclick="closeEmailAuthModal()" class="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1">Mégse</button>
+                </div>
+            </div>
+
             <button id="logout-btn" onclick="logout()" 
-                    class="hidden w-10 h-10 flex items-center justify-center bg-red-50 border border-red-100 text-red-500 rounded-lg shrink-0">
+                    class="hidden w-9 h-9 flex items-center justify-center bg-white border border-red-100 text-red-500 rounded-xl shadow-sm hover:bg-red-50 transition-all active:scale-95">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
                 </svg>
             </button>
 
-            <div id="user-info-display" class="flex flex-col justify-center min-w-0">
-                <p id="auth-status-label" class="text-[8px] font-bold text-gray-400 uppercase leading-none mb-0.5">Belépés</p>
-                <p id="auth-user-name" class="text-[11px] font-bold text-brand-blue truncate leading-tight"></p>
+            <div id="user-info-display" class="flex flex-col overflow-hidden">
+                <p id="auth-status-label" class="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Státusz</p>
+                <p id="auth-user-name" class="text-xs font-bold text-brand-blue truncate max-w-[120px] leading-tight"></p>
             </div>
         </div>
 
-        <div id="total-score-display" class="hidden flex items-center gap-1.5 shrink-0 pl-2 border-l border-gray-100">
+        <div id="total-score-display" class="hidden flex items-center gap-2">
             <div class="text-right">
-                <p class="text-[8px] font-bold text-gray-400 uppercase leading-none mb-0.5">Össz pont</p>
-                <p class="text-sm font-black text-brand-blue tracking-tighter leading-none">
-                    <span id="user-total-score" class="tabular-nums">0</span> ⭐
-                </p>
+                <p class="text-[9px] font-bold text-gray-400 uppercase leading-none">Összpont</p>
+                <p class="text-sm font-black text-brand-blue tracking-tight leading-none"><span id="user-total-score">0</span> ⭐</p>
             </div>
-            <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-cyan-50 text-brand-cyan rounded-lg shadow-sm border border-cyan-100">
+            <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-cyan-100 text-brand-cyan rounded-lg shadow-sm">
                 <span class="text-sm">✨</span>
             </button>
         </div>
     </div>
 
     <input type="text" id="team-name-input" maxlength="25" placeholder="Pl. Villám-Macskák 2024" 
-           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue outline-none shadow-sm bg-white">
+           class="w-full px-4 py-3 border-2 border-blue-100 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue outline-none shadow-sm mb-4">
 
-    <div class="flex flex-col items-center gap-2 pt-2">
-        <div class="relative cursor-pointer" onclick="openAvatarSelector()">
-            <div id="avatar-preview-container" class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center text-5xl transition-all duration-300 transform active:scale-90 ring-4 ring-brand-cyan/10">
+    <div class="flex flex-col items-center gap-2 mb-6">
+        <div class="relative cursor-pointer group" onclick="openAvatarSelector()">
+            <div id="avatar-preview-container" 
+                 class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center text-5xl transition-all duration-300 group-hover:scale-105 ring-4 ring-brand-cyan/10">
                 ❓
             </div>
             <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
@@ -872,36 +889,46 @@
                 </svg>
             </div>
         </div>
-        <p class="text-[9px] text-gray-400 font-medium uppercase tracking-wider">Avatar választása</p>
-    </div>
-
-    <div class="space-y-2">
-        <div class="flex justify-between items-start px-1">
-            <p class="text-[10px] text-gray-500 italic max-w-[100%]">
-                💡 Tipp: Válassz egyedi nevet és avatart, hogy könnyen megtaláld magad a ranglistán!
-            </p>
-        </div>
-
-        <button id="gps-test-btn" onclick="testGpsConnection()" class="w-full py-2.5 bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm">
-            🛰️ GPS Működésének Tesztelése
-        </button>
-
-        <div id="gps-test-container" class="hidden bg-white p-2 rounded-xl border border-gray-200 shadow-inner relative">
-            <button onclick="closeGpsTest()" class="absolute top-1 right-1 p-1 text-gray-400 hover:text-red-500 transition rounded-full hover:bg-gray-100">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <p id="gps-test-status" class="text-xs font-bold text-center text-brand-blue mb-2 pt-2">📡 Jel keresése...</p>
-            <div id="gps-test-map" class="w-full h-40 rounded-lg border border-gray-300"></div>
-            <div id="gps-result-message" class="hidden mt-2 p-2 rounded text-xs font-bold text-center"></div>
-            <div class="mt-2 text-[10px] text-gray-400 text-center">Pontosság: <span id="gps-accuracy-value">-</span> méter</div>
-        </div>
-
-        <button onclick="startSpecificTestGame()" class="w-full py-2.5 bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-brand-blue font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm">
-            🎮 Teszt Játék Indítása (GPS nélkül)
-        </button>
+        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Avatar választása</p>
     </div>
 
     <select id="team-avatar-select" class="hidden"></select>
+
+    <div id="avatar-selector-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-[9999]">
+        <div class="bg-white rounded-3xl w-full max-w-sm max-h-[75vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-brand-blue">Válassz karaktert</h3>
+                <button onclick="closeAvatarSelector()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="avatar-grid" class="p-6 overflow-y-auto grid grid-cols-4 gap-4 bg-white"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-blue-100">
+        <button id="gps-test-btn" onclick="testGpsConnection()" 
+                class="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
+            <span class="text-lg mb-1">🛰️</span>
+            <span class="text-[10px] font-bold uppercase">GPS Teszt</span>
+        </button>
+
+        <button onclick="startSpecificTestGame()" 
+                class="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
+            <span class="text-lg mb-1">🎮</span>
+            <span class="text-[10px] font-bold uppercase">Próba Játék</span>
+        </button>
+    </div>
+
+    <div id="gps-test-container" class="hidden mt-4 bg-white/60 p-3 rounded-xl border border-blue-100 relative">
+        <button onclick="closeGpsTest()" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <p id="gps-test-status" class="text-[11px] font-bold text-center text-brand-blue mb-2">📡 Jel keresése...</p>
+        <div id="gps-test-map" class="w-full h-32 rounded-lg border border-blue-100 mb-2"></div>
+        <div id="gps-result-message" class="hidden p-2 rounded-lg text-[11px] font-bold text-center"></div>
+        <div class="text-[9px] text-gray-400 text-center">Pontosság: <span id="gps-accuracy-value">-</span> m</div>
+    </div>
 </div>
           
 
