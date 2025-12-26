@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.18
+       v1.2.19
 
    </span>
 
@@ -1121,7 +1121,7 @@
 
                                  <div id="answer-input-container" class="flex items-center gap-2">
     <div class="relative flex-grow">
-        <input type="text" id="answer-input" placeholder="Írd be vagy olvasd be..." class="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
+        <input type="text" id="answer-input" placeholder="Írd be vagy olvasd be..." class="w-full pl-4 pr-12 py-3 text-sm border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
         <button id="qr-scan-btn" onclick="openQrScanner()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-brand-cyan-500 transition-colors">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -2733,6 +2733,14 @@ window.validateTeamName = function(name) {
     }
     
     return { valid: true };
+};
+
+
+window.normalizeForComparison = function(text) {
+    if (!text) return "";
+    return text.toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Ékezetek eltávolítása
+        .replace(/\s+/g, ''); // Szóközök eltávolítása
 };
 
 
@@ -4459,14 +4467,32 @@ const limitFromExcel = gameConfig.globalLimit;
                 }
             }
 
-            const proceedToStart = async () => {
-                if (gameConfig.price > 0) {
-                    window.openCouponModal(gameId, title);
-                    return;
-                }
-                await window.loadGameDataAndStart(gameId);
-                requestGpsAndStart(gameId);
-            };
+        const proceedToStart = async () => {
+    // 1. Kupon ellenőrzés (ha fizetős a játék)
+    if (gameConfig.price > 0) {
+        window.openCouponModal(gameId, title);
+        return;
+    }
+
+    // 2. ÚJ: Regisztrált felhasználó esetén név egyediségének ellenőrzése
+    if (window.auth && window.auth.currentUser) {
+        try {
+            showLoading(true); // Töltés jelzése, amíg a hálózat válaszol
+            // Ez a hívás ellenőrzi a Firebase-ben, hogy foglalt-e a név
+            await window.saveUserProfile(nameInput.value, avatarSelect.value);
+        } catch (e) {
+            showLoading(false);
+            // Ha a saveUserProfile hibát dob (pl. "Ez a név már foglalt"), itt elkapjuk
+            showMessage('Hoppá!', e.message); 
+            return; // Megállítjuk a folyamatot, nem indul el a játék
+        }
+    }
+
+    // 3. Játék adatok betöltése és indítás (csak ha a név rendben volt)
+    await window.loadGameDataAndStart(gameId);
+    requestGpsAndStart(gameId);
+};
+
 
             if (skipConfirmation) {
                 proceedToStart();
@@ -4584,7 +4610,57 @@ window.triggerErrorUI = function(pointsRemaining) {
     }, 3000);
 };
 
+window.triggerHintUI = function(hintText, penalty, isFirstView, onOk) {
+    if (isFirstView) {
+        const float = document.createElement('div');
+        float.className = 'score-float';
+        float.style.color = '#ef4444';
+        float.innerHTML = `-${penalty} ⭐`;
+        float.style.left = '50%';
+        float.style.top = '50%';
+        float.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(float);
+        setTimeout(() => float.remove(), 3000);
+    }
 
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    toast.style.borderColor = '#FFA500'; 
+    toast.style.flexDirection = 'column';
+    toast.style.alignItems = 'flex-start';
+    toast.style.gap = '15px';
+    toast.style.height = 'auto';
+    toast.style.minWidth = '280px';
+    toast.style.padding = '20px';
+
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+            <div class="icon" style="background: #fff7ed; min-width: 40px;">💡</div>
+            <div style="flex-grow: 1;">
+                <div style="font-weight: 800; color: #0D2B45; font-size: 16px;">SEGÍTSÉG</div>
+                ${isFirstView ? `<div style="font-size: 11px; font-weight: 700; color: #ef4444;">-${penalty} pont levonva</div>` : ''}
+            </div>
+        </div>
+        <div style="font-size: 14px; color: #4b5563; line-height: 1.5; width: 100%; word-break: break-word; font-weight: 500;">
+            ${hintText}
+        </div>
+        <button id="hint-ok-btn" class="main-button" style="width: 100%; padding: 12px; font-size: 14px; background-color: #FFA500 !important; margin-top: 5px; box-shadow: 0 4px 6px rgba(255,165,0,0.2);">
+            RENDBEN, ÉRTEM
+        </button>
+    `;
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('active'), 100);
+
+    const okBtn = toast.querySelector('#hint-ok-btn');
+    okBtn.onclick = () => {
+        toast.classList.remove('active');
+        setTimeout(() => {
+            toast.remove();
+            if (onOk) onOk();
+        }, 500);
+    };
+};
 
         
         function formatTime(seconds) {
@@ -7112,121 +7188,51 @@ const isIos = () => {
             });
 
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
-    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-    if (!task) return;
-    
-    // Ellenőrzés: Zónában van-e
-    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-    if (task.isStartTask) return; 
-    
-    if (speechSynth.speaking) speechSynth.cancel();
+                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                if (!task) return;
+                if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
+                if (task.isStartTask) return; 
+                if (speechSynth.speaking) speechSynth.cancel();
 
-    // --- TITKOSÍTÁS FELOLDÁSA ---
-    const hints = task.hints || [];
-    // Megpróbáljuk visszafejteni. Ha nincs adat, vagy hiba van, alapértelmezett szöveget adunk.
-    const hintText = hints[0] ? decryptHintText(hints[0]) : "Sajnos ehhez a feladathoz nincs megadva segítség.";
-    // ----------------------------
+                const hints = task.hints || [];
+                const hintText = hints[0] ? decryptHintText(hints[0]) : "Sajnos ehhez a feladathoz nincs megadva segítség.";
 
-    // ELLENŐRIZZÜK, HOGY LÁTTA-E MÁR
-    if (task.hintsUsed < 1) { 
-        // MÉG NEM LÁTTA -> PONTLEVONÁS ÉS STÁTUSZ ÁLLÍTÁS
-        
-        let currentScore = parseInt(task.taskScore || 0);
-        task.taskScore = Math.max(0, currentScore - HINT1_PENALTY); 
-        
-        // FONTOS: Ez a sor engedélyezi majd a 2. gombot!
-        task.hintsUsed = 1; 
-
-        // Statisztika mentése (Google Analytics)
-        if (typeof gtag === 'function') {
-            gtag('event', 'hint_used', {
-                'game_id': appState.currentGame.id,
-                'level_index': appState.currentTaskIndex,
-                'hint_type': 'hint_1',
-                'team_name': appState.teamName || 'unknown'
+                if (task.hintsUsed < 1) { 
+                    let currentScore = parseInt(task.taskScore || 0);
+                    task.taskScore = Math.max(0, currentScore - HINT1_PENALTY); 
+                    task.hintsUsed = 1; 
+                    updateStatusDisplays(); 
+                    saveGameState(); 
+                    window.triggerHintUI(hintText, HINT1_PENALTY, true, () => { updateHintButtons(task); });
+                } else {
+                    window.triggerHintUI(hintText, HINT1_PENALTY, false, () => { updateHintButtons(task); });
+                }
             });
-        }
-        
-        // Képernyő frissítése és mentés
-        updateStatusDisplays(); 
-        saveGameState(); 
-
-        // Üzenet megjelenítése (a callback-ben frissülnek a gombok, amikor bezárod az ablakot)
-        showMessage(
-            '1. Segítség', 
-            `<br> ${hintText} <br><br><strong>(Maradt ${task.taskScore} pont)</strong>`, 
-            () => { updateHintButtons(task); }
-        );
-    } else {
-        // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
-        showMessage(
-            '1. Segítség (Újra)', 
-            `${hintText}`, 
-            () => { updateHintButtons(task); }
-        );
-    }
-});
 
 
 
 
             document.getElementById('hint2-btn').addEventListener('click', (e) => {
-    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-    if (!task) return;
-    
-    // Ellenőrzés: Zónában van-e
-    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-    if (task.isStartTask) return; 
-    
-    if (speechSynth.speaking) speechSynth.cancel();
+                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                if (!task) return;
+                if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
+                if (task.isStartTask) return; 
+                if (speechSynth.speaking) speechSynth.cancel();
 
-    // --- TITKOSÍTÁS FELOLDÁSA ---
-    const hints = task.hints || [];
-    // Megpróbáljuk visszafejteni a 2. elemet (index 1)
-    const hintText = hints[1] ? decryptHintText(hints[1]) : "Sajnos ehhez a feladathoz nincs megadva második segítség.";
-    // ----------------------------
+                const hints = task.hints || [];
+                const hintText = hints[1] ? decryptHintText(hints[1]) : "Sajnos ehhez a feladathoz nincs megadva második segítség.";
 
-    // ELLENŐRIZZÜK, HOGY LÁTTA-E MÁR
-    if (task.hintsUsed < 2) { 
-        // MÉG NEM LÁTTA -> PONTLEVONÁS, STÁTUSZ FRISSÍTÉS
-        
-        let currentScore = parseInt(task.taskScore || 0);
-        task.taskScore = Math.max(0, currentScore - HINT2_PENALTY); 
-        
-        // --- EZ A KULCSFONTOSSÁGÚ SOR HIÁNYZOTT: ---
-        task.hintsUsed = 2; // Beállítjuk, hogy a 2-est is ellőtte
-        // -------------------------------------------
-
-        // Statisztika (opcionális)
-        if (typeof gtag === 'function') {
-            gtag('event', 'hint_used', {
-                'game_id': appState.currentGame.id,
-                'level_index': appState.currentTaskIndex,
-                'hint_type': 'hint_2',
-                'team_name': appState.teamName || 'unknown'
+                if (task.hintsUsed < 2) { 
+                    let currentScore = parseInt(task.taskScore || 0);
+                    task.taskScore = Math.max(0, currentScore - HINT2_PENALTY); 
+                    task.hintsUsed = 2; 
+                    updateStatusDisplays(); 
+                    saveGameState(); 
+                    window.triggerHintUI(hintText, HINT2_PENALTY, true, () => { updateHintButtons(task); });
+                } else {
+                    window.triggerHintUI(hintText, HINT2_PENALTY, false, () => { updateHintButtons(task); });
+                }
             });
-        }                
-        
-        // MENTÉS ÉS FRISSÍTÉS
-        updateStatusDisplays(); 
-        saveGameState(); 
-        
-        // Üzenet megjelenítése
-        // A callback-ben lévő updateHintButtons fogja zöldre színezni és feloldani a megoldást!
-        showMessage(
-            '2. Segítség', 
-            `<br> ${hintText} <br><br><strong>(Maradt ${task.taskScore} pont)</strong>`, 
-            () => { updateHintButtons(task); }
-        );
-    } else {
-        // MÁR LÁTTA -> CSAK MEGJELENÍTÉS (INGYEN)
-        showMessage(
-            '2. Segítség (Újra)', 
-            `${hintText}`, 
-            () => { updateHintButtons(task); }
-        );
-    }
-});
          
 
 
@@ -7761,30 +7767,51 @@ window.loadGameDataAndStart = async function(gameId) {
         // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE (BIZTONSÁGOS VERZIÓ) ---
 window.saveUserProfile = async (teamName, avatarIndex) => {
     const user = auth.currentUser;
-    if (user) {
-        try {
-            // 1. Publikus profil frissítése (Ez megy a Dicsőségfalra)
-            // Az email: null törli a régi, esetleg ott maradt email címet a nyilvános ágról.
-            await update(ref(db, `users/${user.uid}/profile`), {
-                teamName: teamName,
-                avatar: avatarIndex,
-                lastLogin: Date.now(),
-                email: null 
-            });
+    if (!user) return;
 
-            // 2. Privát adatok mentése EGY KÜLÖN FŐÁGBA
-            // Ez az ág a szabályok szerint láthatatlan mindenki más számára.
-            await update(ref(db, `private_user_data/${user.uid}`), {
-                email: user.email,
-                updatedAt: Date.now()
-            });
-
-            console.log("✅ Profil mentve. Az email cím biztonságos, külön ágba került.");
-        } catch (error) {
-            console.error("❌ Hiba a biztonságos mentés során:", error);
+    const normalizedName = window.normalizeForComparison(teamName);
+    const nameIndexRef = ref(db, `taken_team_names/${normalizedName}`);
+    
+    try {
+        // 1. Ellenőrizzük, hogy a név foglalt-e már
+        const snapshot = await get(nameIndexRef);
+        
+        if (snapshot.exists() && snapshot.val() !== user.uid) {
+            // A név foglalt és NEM a jelenlegi felhasználóé
+            throw new Error("Ez a név már foglalt! Kérjük, válassz másikat.");
         }
+
+        // 2. Régi név felszabadítása (ha a felhasználó nevet vált)
+        const userProfileRef = ref(db, `users/${user.uid}/profile`);
+        const oldProfileSnap = await get(userProfileRef);
+        if (oldProfileSnap.exists()) {
+            const oldName = oldProfileSnap.val().teamName;
+            if (oldName && window.normalizeForComparison(oldName) !== normalizedName) {
+                await set(ref(db, `taken_team_names/${window.normalizeForComparison(oldName)}`), null);
+            }
+        }
+
+        // 3. Név lefoglalása és profil mentése
+        const updates = {};
+        updates[`taken_team_names/${normalizedName}`] = user.uid;
+        updates[`users/${user.uid}/profile/teamName`] = teamName;
+        updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
+        updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
+        
+        // Privát adat mentése külön ágba
+        updates[`private_user_data/${user.uid}/email`] = user.email;
+
+        await update(ref(db), updates);
+        console.log("✅ Egyedi név lefoglalva és profil mentve.");
+        return { success: true };
+
+    } catch (error) {
+        console.error("Hiba:", error.message);
+        throw error; // Továbbdobjuk a UI-nak
     }
 };
+
+
 
         // --- PONTSZÁM NÖVELÉSE ---
         window.addPointsToUser = async (points) => {
