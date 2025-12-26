@@ -816,7 +816,7 @@
         </label>
     </div>
 
-    <div class="flex items-center justify-between mb-1 bg-white/80 p-3 rounded-xl border border-white shadow-sm">
+    <div class="flex items-center justify-between mb-1 bg-white/80 p-1 rounded-xl border border-white shadow-sm">
         <div class="flex items-center gap-2">
             <div id="auth-buttons-group" class="flex gap-2">
                 <button id="google-login-btn" onclick="loginWithGoogle()" 
@@ -7812,20 +7812,25 @@ window.handleEmailAuth = async function() {
         showLoading(true);
         
         if (isRegistrationMode) {
-            // REGISZTRÁCIÓ
+            // --- REGISZTRÁCIÓ ---
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // ÚJ: E-mail mentése a private_user_data alá
+            await set(ref(db, 'private_user_data/' + user.uid), {
+                email: email,
+                authMethod: 'email',
+                registeredAt: Date.now()
+            });
             
-            // EMAIL MEGERŐSÍTÉS KIKÜLDÉSE
-            await sendEmailVerification(userCredential.user);
+            await sendEmailVerification(user);
             
             showLoading(false);
             closeEmailAuthModal();
-            
-            // Tájékoztatás a felhasználónak
-            showMessage("Sikeres regisztráció!", "Kiküldtünk egy megerősítő e-mailt a(z) " + email + " címre. Kérjük, kattints a benne lévő linkre a fiókod aktiválásához!");
+            showMessage("Sikeres regisztráció!", "Kiküldtünk egy megerősítő e-mailt a(z) " + email + " címre. Kérjük, aktiváld a fiókod!");
             
         } else {
-            // BEJELENTKEZÉS
+            // --- BEJELENTKEZÉS ---
             await signInWithEmailAndPassword(auth, email, password);
             closeEmailAuthModal();
             showLoading(false);
@@ -7939,15 +7944,24 @@ window.saveUserProfile = async (teamName, avatarIndex) => {
 
         // --- GOOGLE BEJELENTKEZÉS (Globálissá tétel a window-val) ---
         window.loginWithGoogle = async () => {
-            const provider = new GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            try {
-                const result = await signInWithPopup(auth, provider);
-                if (result.user) console.log("✅ Sikeres belépés:", result.user.displayName);
-            } catch (error) {
-                console.error("❌ Bejelentkezési hiba:", error);
-            }
-        };
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Google e-mail mentése/frissítése a privát ágba
+        await update(ref(db, 'private_user_data/' + user.uid), {
+            email: user.email,
+            authMethod: 'google',
+            lastLogin: Date.now()
+        });
+
+        if (user) console.log("✅ Sikeres Google belépés:", user.displayName);
+    } catch (error) {
+        console.error("❌ Bejelentkezési hiba:", error);
+    }
+};
 
         // --- KIJELENTKEZÉS ---
         window.logout = async () => {
