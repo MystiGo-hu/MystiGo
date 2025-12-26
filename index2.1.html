@@ -7838,6 +7838,7 @@ window.handleEmailAuth = async function() {
         
     } catch (error) {
         showLoading(false);
+	console.error("Firebase Auth/Database hiba:", error.code, error.message);
         errorEl.classList.remove('hidden');
         
         switch (error.code) {
