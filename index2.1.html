@@ -808,7 +808,7 @@
 
                         <div id="team-setup" class="p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 shadow-inner mb-6">
     
-    <div class="flex justify-between items-center mb-4 px-1">
+    <div class="flex justify-between items-center mb-3 px-1">
         <h2 class="text-sm font-bold text-brand-blue uppercase tracking-wider">Játékos<span class="text-red-500">*</span></h2>
         <label class="flex items-center cursor-pointer gap-2 select-none bg-yellow-100 px-2.5 py-1 rounded-full border border-yellow-200 hover:bg-yellow-200 transition">
             <span class="text-[10px] font-extrabold text-yellow-800 uppercase">Kids 🐈</span>
@@ -816,8 +816,8 @@
         </label>
     </div>
 
-    <div class="flex items-center justify-between mb-5 bg-white/80 p-3 rounded-xl border border-white shadow-sm">
-        <div class="flex items-center gap-3">
+    <div class="flex items-center justify-between mb-1 bg-white/80 p-3 rounded-xl border border-white shadow-sm">
+        <div class="flex items-center gap-2">
             <div id="auth-buttons-group" class="flex gap-2">
                 <button id="google-login-btn" onclick="loginWithGoogle()" 
                         class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95"
@@ -874,10 +874,10 @@
         </div>
     </div>
 
-    <input type="text" id="team-name-input" maxlength="25" placeholder="Pl. Villám-Macskák 2024" 
+    <input type="text" id="team-name-input" maxlength="25" placeholder="Pl.: Villám-Macskák 2024" 
            class="w-full px-4 py-3 border-2 border-blue-100 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue outline-none shadow-sm mb-4">
 
-    <div class="flex flex-col items-center gap-2 mb-6">
+    <div class="flex flex-col items-center gap-2 mt-2 mb-6">
         <div class="relative cursor-pointer group" onclick="openAvatarSelector()">
             <div id="avatar-preview-container" 
                  class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center text-5xl transition-all duration-300 group-hover:scale-105 ring-4 ring-brand-cyan/10">
@@ -906,19 +906,17 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-blue-100">
-        <button id="gps-test-btn" onclick="testGpsConnection()" 
-                class="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
-            <span class="text-lg mb-1">🛰️</span>
-            <span class="text-[10px] font-bold uppercase">GPS Teszt</span>
-        </button>
+   <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-blue-100">
+    <button id="gps-test-btn" onclick="testGpsConnection()" 
+            class="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
+        <span class="text-base mb-0.5">🛰️</span> <span class="text-[10px] font-bold uppercase">GPS Teszt</span>
+    </button>
 
-        <button onclick="startSpecificTestGame()" 
-                class="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
-            <span class="text-lg mb-1">🎮</span>
-            <span class="text-[10px] font-bold uppercase">Próba Játék</span>
-        </button>
-    </div>
+    <button onclick="startSpecificTestGame()" 
+            class="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
+        <span class="text-base mb-0.5">🎮</span> <span class="text-[10px] font-bold uppercase">Próba Játék (GPS nélkül)</span>
+    </button>
+</div>
 
     <div id="gps-test-container" class="hidden mt-4 bg-white/60 p-3 rounded-xl border border-blue-100 relative">
         <button onclick="closeGpsTest()" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition">
