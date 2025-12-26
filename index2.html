@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.19
+       v1.2.20
 
    </span>
 
@@ -4468,27 +4468,23 @@ const limitFromExcel = gameConfig.globalLimit;
             }
 
         const proceedToStart = async () => {
-    // 1. Kupon ellenőrzés (ha fizetős a játék)
     if (gameConfig.price > 0) {
         window.openCouponModal(gameId, title);
         return;
     }
 
-    // 2. ÚJ: Regisztrált felhasználó esetén név egyediségének ellenőrzése
     if (window.auth && window.auth.currentUser) {
         try {
-            showLoading(true); // Töltés jelzése, amíg a hálózat válaszol
-            // Ez a hívás ellenőrzi a Firebase-ben, hogy foglalt-e a név
+            showLoading(true);
+            // Bevárjuk a mentést (ami tartalmazza az ellenőrzést)
             await window.saveUserProfile(nameInput.value, avatarSelect.value);
         } catch (e) {
             showLoading(false);
-            // Ha a saveUserProfile hibát dob (pl. "Ez a név már foglalt"), itt elkapjuk
-            showMessage('Hoppá!', e.message); 
-            return; // Megállítjuk a folyamatot, nem indul el a játék
+            showMessage('Hiba', e.message);
+            return; // Megállítjuk az indítást
         }
     }
 
-    // 3. Játék adatok betöltése és indítás (csak ha a név rendben volt)
     await window.loadGameDataAndStart(gameId);
     requestGpsAndStart(gameId);
 };
@@ -6864,17 +6860,34 @@ async function validateAndUseCoupon() {
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
 
-nameInputEl.addEventListener('blur', () => {
-    // JAVÍTÁS: Mindig ellenőrizzük, mert a kitöltés kötelező!
-    const result = window.validateTeamName(nameInputEl.value);
+
+
+nameInputEl.addEventListener('blur', async () => {
+    const val = nameInputEl.value;
+    
+    // 1. Alap ellenőrzés: üres-e vagy tartalmaz-e tiltott szót
+    const result = window.validateTeamName(val);
     if (!result.valid) {
         showMessage('Hiba a névben', result.error, () => {
             nameInputEl.value = ""; 
-            localStorage.removeItem('mystigo_pref_teamName');
             nameInputEl.focus(); 
         });
+        return; // Ha alaphiba van, itt megállunk
+    }
+
+    // 2. Egyediség ellenőrzése az adatbázisban (csak ha be van jelentkezve)
+    if (window.auth && window.auth.currentUser) {
+        // Meghívjuk az új checkNameUniqueness függvényt
+        const isUnique = await window.checkNameUniqueness(val);
+        if (!isUnique) {
+            showMessage('Foglalt név', 'Ez a név már foglalt! Kérjük, válassz másikat.', () => {
+                nameInputEl.value = ""; // Töröljük a foglalt nevet
+                nameInputEl.focus();   // Visszavisszük a fókuszt a javításhoz
+            });
+        }
     }
 });
+
 
 
             const avatarSelectEl = document.getElementById('team-avatar-select');
@@ -7764,53 +7777,63 @@ window.loadGameDataAndStart = async function(gameId) {
         
         window.isFirebaseReady = true;
 
+
+
+// 1. Név tisztítása az összehasonlításhoz
+window.normalizeForComparison = function(text) {
+    if (!text) return "";
+    return text.toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Ékezetek eltávolítása
+        .replace(/\s+/g, ''); // Szóközök eltávolítása
+};
+
+// 2. Egyediség ellenőrzése a Firebase-ben
+window.checkNameUniqueness = async function(teamName) {
+    const user = window.auth.currentUser;
+    if (!user || !teamName) return true;
+
+    const normalizedName = window.normalizeForComparison(teamName);
+    const nameIndexRef = window.ref(window.db, `taken_team_names/${normalizedName}`);
+    
+    const snapshot = await window.get(nameIndexRef);
+    if (snapshot.exists() && snapshot.val() !== user.uid) {
+        return false; // A név már más által foglalt
+    }
+    return true; // A név szabad vagy a sajátunk
+};
+
+
+
+
+
         // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE (BIZTONSÁGOS VERZIÓ) ---
 window.saveUserProfile = async (teamName, avatarIndex) => {
     const user = auth.currentUser;
     if (!user) return;
 
     const normalizedName = window.normalizeForComparison(teamName);
-    const nameIndexRef = ref(db, `taken_team_names/${normalizedName}`);
+    const updates = {};
     
+    // Előbb ellenőrizzük a nevet
+    const isUnique = await window.checkNameUniqueness(teamName);
+    if (!isUnique) throw new Error("A választott név már foglalt.");
+
+    // Profil adatok frissítése
+    updates[`users/${user.uid}/profile/teamName`] = teamName;
+    updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
+    updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
+    
+    // Név lefoglalása az indexben
+    updates[`taken_team_names/${normalizedName}`] = user.uid;
+
     try {
-        // 1. Ellenőrizzük, hogy a név foglalt-e már
-        const snapshot = await get(nameIndexRef);
-        
-        if (snapshot.exists() && snapshot.val() !== user.uid) {
-            // A név foglalt és NEM a jelenlegi felhasználóé
-            throw new Error("Ez a név már foglalt! Kérjük, válassz másikat.");
-        }
-
-        // 2. Régi név felszabadítása (ha a felhasználó nevet vált)
-        const userProfileRef = ref(db, `users/${user.uid}/profile`);
-        const oldProfileSnap = await get(userProfileRef);
-        if (oldProfileSnap.exists()) {
-            const oldName = oldProfileSnap.val().teamName;
-            if (oldName && window.normalizeForComparison(oldName) !== normalizedName) {
-                await set(ref(db, `taken_team_names/${window.normalizeForComparison(oldName)}`), null);
-            }
-        }
-
-        // 3. Név lefoglalása és profil mentése
-        const updates = {};
-        updates[`taken_team_names/${normalizedName}`] = user.uid;
-        updates[`users/${user.uid}/profile/teamName`] = teamName;
-        updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
-        updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
-        
-        // Privát adat mentése külön ágba
-        updates[`private_user_data/${user.uid}/email`] = user.email;
-
         await update(ref(db), updates);
-        console.log("✅ Egyedi név lefoglalva és profil mentve.");
-        return { success: true };
-
+        console.log("✅ Profil és névfoglalás sikeres.");
     } catch (error) {
-        console.error("Hiba:", error.message);
-        throw error; // Továbbdobjuk a UI-nak
+        console.error("❌ Mentési hiba:", error);
+        throw error;
     }
 };
-
 
 
         // --- PONTSZÁM NÖVELÉSE ---
