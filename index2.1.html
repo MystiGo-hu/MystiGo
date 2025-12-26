@@ -7866,16 +7866,16 @@ window.normalizeForComparison = function(text) {
 // 2. Egyediség ellenőrzése a Firebase-ben
 window.checkNameUniqueness = async function(teamName) {
     const user = window.auth.currentUser;
-    if (!user || !teamName) return true;
+    if (!user) return true; // Ha nincs bejelentkezve, engedjük tovább a folyamatot
 
     const normalizedName = window.normalizeForComparison(teamName);
     const nameIndexRef = window.ref(window.db, `taken_team_names/${normalizedName}`);
     
     const snapshot = await window.get(nameIndexRef);
     if (snapshot.exists() && snapshot.val() !== user.uid) {
-        return false; // A név már más által foglalt
+        return false; // Csak akkor foglalt, ha NEM a mi UID-nk van ott
     }
-    return true; // A név szabad vagy a sajátunk
+    return true; 
 };
 
 
