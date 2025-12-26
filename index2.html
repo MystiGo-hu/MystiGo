@@ -1121,7 +1121,7 @@
 
                                  <div id="answer-input-container" class="flex items-center gap-2">
     <div class="relative flex-grow">
-        <input type="text" id="answer-input" placeholder="Írd be vagy olvasd be..." class="w-full pl-4 pr-12 py-3 text-sm border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
+        <input type="text" id="answer-input" placeholder="Írd be vagy olvasd be..." class="w-full pl-4 pr-12 py-3 text-xs border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100">
         <button id="qr-scan-btn" onclick="openQrScanner()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-brand-cyan-500 transition-colors">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -7530,7 +7530,7 @@ window.startInstantAdventure = async function() {
     const originalContent = btn.innerHTML;
     
     try {
-        btn.innerHTML = '🔍 Útvonal tervezése...';
+        btn.innerHTML = '🔍 Útvonal tervezése folyamatban...';
         btn.disabled = true;
 
         if (!window.db || !window.ref || !window.get) {
