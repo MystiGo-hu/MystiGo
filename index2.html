@@ -7542,7 +7542,7 @@ window.startInstantAdventure = async function() {
 
         // 2. Valódi helyszínek (POI-k) lekérése az OpenStreetMap-ről
         const radius = 1000; // 1 km-es körzetben keresünk nevezetességeket
-        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain)$"];out;`;
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain|place_of_worship|wayside_cross|wayside_shrine|museum|playground|tree)$"];out;`;
 
         let availablePOIs = [];
         try {
