@@ -4606,22 +4606,15 @@ window.triggerErrorUI = function(pointsRemaining) {
     }, 3000);
 };
 
-window.triggerHintUI = function(hintText, penalty, isFirstView, onOk) {
-    if (isFirstView) {
-        const float = document.createElement('div');
-        float.className = 'score-float';
-        float.style.color = '#ef4444';
-        float.innerHTML = `-${penalty} ⭐`;
-        float.style.left = '50%';
-        float.style.top = '50%';
-        float.style.transform = 'translate(-50%, -50%)';
-        document.body.appendChild(float);
-        setTimeout(() => float.remove(), 3000);
-    }
+
+
+window.triggerHintUI = function(hintText, cost, onOk) {
+    if (window.isPopupActive) return; 
+    window.isPopupActive = true;
 
     const toast = document.createElement('div');
     toast.className = 'success-toast';
-    toast.style.borderColor = '#FFA500'; 
+    toast.style.borderColor = '#FFA500';
     toast.style.flexDirection = 'column';
     toast.style.alignItems = 'flex-start';
     toast.style.gap = '15px';
@@ -4634,14 +4627,13 @@ window.triggerHintUI = function(hintText, penalty, isFirstView, onOk) {
             <div class="icon" style="background: #fff7ed; min-width: 40px;">💡</div>
             <div style="flex-grow: 1;">
                 <div style="font-weight: 800; color: #0D2B45; font-size: 16px;">SEGÍTSÉG</div>
-                ${isFirstView ? `<div style="font-size: 11px; font-weight: 700; color: #ef4444;">-${penalty} pont levonva</div>` : ''}
             </div>
         </div>
         <div style="font-size: 14px; color: #4b5563; line-height: 1.5; width: 100%; word-break: break-word; font-weight: 500;">
             ${hintText}
         </div>
-        <button id="hint-ok-btn" class="main-button" style="width: 100%; padding: 12px; font-size: 14px; background-color: #FFA500 !important; margin-top: 5px; box-shadow: 0 4px 6px rgba(255,165,0,0.2);">
-            RENDBEN, ÉRTEM
+        <button id="hint-ok-btn" class="main-button" style="width: 100%; padding: 12px; font-size: 14px; background-color: #FFA500 !important; margin-top: 5px;">
+            RENDBEN
         </button>
     `;
 
@@ -4653,10 +4645,57 @@ window.triggerHintUI = function(hintText, penalty, isFirstView, onOk) {
         toast.classList.remove('active');
         setTimeout(() => {
             toast.remove();
+            window.isPopupActive = false;
             if (onOk) onOk();
         }, 500);
     };
 };
+
+
+window.triggerSolutionUI = function(solutionText, onOk) {
+    if (window.isPopupActive) return;
+    window.isPopupActive = true;
+
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    toast.style.borderColor = '#FFA500';
+    toast.style.flexDirection = 'column';
+    toast.style.alignItems = 'flex-start';
+    toast.style.gap = '15px';
+    toast.style.height = 'auto';
+    toast.style.minWidth = '280px';
+    toast.style.padding = '20px';
+
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+            <div class="icon" style="background: #fff7ed; min-width: 40px;">🔑</div>
+            <div style="flex-grow: 1;">
+                <div style="font-weight: 800; color: #0D2B45; font-size: 16px;">MEGOLDÁS</div>
+                <div style="font-size: 11px; font-weight: 700; color: #ef4444;">A feladat 0 pontot ér.</div>
+            </div>
+        </div>
+        <div style="font-size: 14px; color: #4b5563; line-height: 1.5; width: 100%; word-break: break-word; font-weight: 500;">
+            A helyes válasz: <br> ${solutionText}
+        </div>
+        <button id="sol-ok-btn" class="main-button" style="width: 100%; padding: 12px; font-size: 14px; background-color: #FFA500 !important; margin-top: 5px;">
+            RENDBEN, TOVÁBB
+        </button>
+    `;
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('active'), 100);
+
+    const okBtn = toast.querySelector('#sol-ok-btn');
+    okBtn.onclick = () => {
+        toast.classList.remove('active');
+        setTimeout(() => {
+            toast.remove();
+            window.isPopupActive = false;
+            if (onOk) onOk();
+        }, 500);
+    };
+};
+
 
         
         function formatTime(seconds) {
@@ -7201,51 +7240,71 @@ const isIos = () => {
             });
 
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
-                if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-                if (task.isStartTask) return; 
-                if (speechSynth.speaking) speechSynth.cancel();
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task) return;
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
+    if (task.isStartTask) return; 
 
-                const hints = task.hints || [];
-                const hintText = hints[0] ? decryptHintText(hints[0]) : "Sajnos ehhez a feladathoz nincs megadva segítség.";
+    const hints = task.hints || [];
+    const hintText = hints[0] ? decryptHintText(hints[0]) : "Nincs segítség.";
 
-                if (task.hintsUsed < 1) { 
-                    let currentScore = parseInt(task.taskScore || 0);
-                    task.taskScore = Math.max(0, currentScore - HINT1_PENALTY); 
-                    task.hintsUsed = 1; 
-                    updateStatusDisplays(); 
-                    saveGameState(); 
-                    window.triggerHintUI(hintText, HINT1_PENALTY, true, () => { updateHintButtons(task); });
-                } else {
-                    window.triggerHintUI(hintText, HINT1_PENALTY, false, () => { updateHintButtons(task); });
-                }
-            });
+    if (task.hintsUsed < 1) { 
+        // LEBEGŐ CSILAG ANIMÁCIÓ
+        const float = document.createElement('div');
+        float.className = 'score-float';
+        float.style.color = '#ef4444';
+        float.innerHTML = `-${HINT1_PENALTY} ⭐`;
+        float.style.left = '50%';
+        float.style.top = '50%';
+        float.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(float);
+        setTimeout(() => float.remove(), 3000);
+        MystiSounds.error(); // Hangeffekt a levonáshoz
+
+        task.taskScore = Math.max(0, parseInt(task.taskScore || 0) - HINT1_PENALTY); 
+        task.hintsUsed = 1; 
+        updateStatusDisplays(); 
+        saveGameState(); 
+        window.triggerHintUI(hintText, HINT1_PENALTY, () => { updateHintButtons(task); });
+    } else {
+        window.triggerHintUI(hintText, 0, () => { updateHintButtons(task); });
+    }
+});
 
 
 
 
-            document.getElementById('hint2-btn').addEventListener('click', (e) => {
-                const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (!task) return;
-                if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-                if (task.isStartTask) return; 
-                if (speechSynth.speaking) speechSynth.cancel();
+           document.getElementById('hint2-btn').addEventListener('click', (e) => {
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task) return;
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
+    if (task.isStartTask) return; 
 
-                const hints = task.hints || [];
-                const hintText = hints[1] ? decryptHintText(hints[1]) : "Sajnos ehhez a feladathoz nincs megadva második segítség.";
+    const hints = task.hints || [];
+    const hintText = hints[1] ? decryptHintText(hints[1]) : "Nincs segítség.";
 
-                if (task.hintsUsed < 2) { 
-                    let currentScore = parseInt(task.taskScore || 0);
-                    task.taskScore = Math.max(0, currentScore - HINT2_PENALTY); 
-                    task.hintsUsed = 2; 
-                    updateStatusDisplays(); 
-                    saveGameState(); 
-                    window.triggerHintUI(hintText, HINT2_PENALTY, true, () => { updateHintButtons(task); });
-                } else {
-                    window.triggerHintUI(hintText, HINT2_PENALTY, false, () => { updateHintButtons(task); });
-                }
-            });
+    if (task.hintsUsed < 2) { 
+        // LEBEGŐ CSILAG ANIMÁCIÓ
+        const float = document.createElement('div');
+        float.className = 'score-float';
+        float.style.color = '#ef4444';
+        float.innerHTML = `-${HINT2_PENALTY} ⭐`;
+        float.style.left = '50%';
+        float.style.top = '50%';
+        float.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(float);
+        setTimeout(() => float.remove(), 3000);
+        MystiSounds.error();
+
+        task.taskScore = Math.max(0, parseInt(task.taskScore || 0) - HINT2_PENALTY); 
+        task.hintsUsed = 2; 
+        updateStatusDisplays(); 
+        saveGameState(); 
+        window.triggerHintUI(hintText, HINT2_PENALTY, () => { updateHintButtons(task); });
+    } else {
+        window.triggerHintUI(hintText, 0, () => { updateHintButtons(task); });
+    }
+});
          
 
 
@@ -7299,7 +7358,7 @@ if (solBtn) {
         }
 
         // 3. Üzenet megjelenítése (FONTOS: Kivettem a külső <strong> taget!)
-        showMessage('Megoldás', `A feladat megoldása (0 pont):<br><br>${solutionText}`, () => {
+        window.triggerSolutionUI(solutionText, () => {
             
             // Válasz automatikus beírása a mezőbe (csak a tiszta szöveget)
             const answerInput = document.getElementById('answer-input');
@@ -7314,7 +7373,7 @@ if (solBtn) {
             console.log("Megoldás elfogadva, továbbugrás...");
             setTimeout(() => {
                 handleCorrectAnswer();
-            }, 100); // 2 másodpercet vár, hogy el lehessen olvasni
+            }, 100); 
         });
     });
 }
@@ -7740,6 +7799,7 @@ window.loadGameDataAndStart = async function(gameId) {
 
 
 <script type="module">
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -7765,6 +7825,7 @@ window.loadGameDataAndStart = async function(gameId) {
         // Globális elérés biztosítása a többi scriptnek
         window.db = db;
         window.auth = auth;
+	window.isPopupActive = false;
         window.ref = ref; 
         window.get = get; 
         window.child = child; // Ez hiányzott!
