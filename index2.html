@@ -4608,7 +4608,7 @@ window.triggerErrorUI = function(pointsRemaining) {
 
 
 
-window.triggerHintUI = function(hintText, cost, onOk) {
+window.triggerHintUI = function(hintText, cost, pointsRemaining, onOk) {
     if (window.isPopupActive) return; 
     window.isPopupActive = true;
 
@@ -4627,6 +4627,7 @@ window.triggerHintUI = function(hintText, cost, onOk) {
             <div class="icon" style="background: #fff7ed; min-width: 40px;">💡</div>
             <div style="flex-grow: 1;">
                 <div style="font-weight: 800; color: #0D2B45; font-size: 16px;">SEGÍTSÉG</div>
+                <div style="font-weight: 600; color: #ef4444; font-size: 13px;">Még maradt: ${pointsRemaining} pont</div>
             </div>
         </div>
         <div style="font-size: 14px; color: #4b5563; line-height: 1.5; width: 100%; word-break: break-word; font-weight: 500;">
@@ -7265,9 +7266,11 @@ const isIos = () => {
         task.hintsUsed = 1; 
         updateStatusDisplays(); 
         saveGameState(); 
-        window.triggerHintUI(hintText, HINT1_PENALTY, () => { updateHintButtons(task); });
+        // Első lekérésnél itt már helyesen 4 paraméter van:
+        window.triggerHintUI(hintText, HINT1_PENALTY, task.taskScore, () => { updateHintButtons(task); });
     } else {
-        window.triggerHintUI(hintText, 0, () => { updateHintButtons(task); });
+        // JAVÍTÁS: Itt is meg kell adni a task.taskScore-t (3. paraméter), hogy ne tolódjanak el az adatok
+        window.triggerHintUI(hintText, 0, task.taskScore, () => { updateHintButtons(task); });
     }
 });
 
@@ -7277,14 +7280,14 @@ const isIos = () => {
            document.getElementById('hint2-btn').addEventListener('click', (e) => {
     const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
     if (!task) return;
-    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-    if (task.isStartTask) return; 
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
+    if (task.isStartTask) return;
 
     const hints = task.hints || [];
     const hintText = hints[1] ? decryptHintText(hints[1]) : "Nincs segítség.";
 
     if (task.hintsUsed < 2) { 
-        // LEBEGŐ CSILAG ANIMÁCIÓ
+        // LEBEGŐ CSILLAG ANIMÁCIÓ
         const float = document.createElement('div');
         float.className = 'score-float';
         float.style.color = '#ef4444';
@@ -7296,13 +7299,15 @@ const isIos = () => {
         setTimeout(() => float.remove(), 3000);
         MystiSounds.error();
 
-        task.taskScore = Math.max(0, parseInt(task.taskScore || 0) - HINT2_PENALTY); 
-        task.hintsUsed = 2; 
-        updateStatusDisplays(); 
-        saveGameState(); 
-        window.triggerHintUI(hintText, HINT2_PENALTY, () => { updateHintButtons(task); });
+        task.taskScore = Math.max(0, parseInt(task.taskScore || 0) - HINT2_PENALTY);
+        task.hintsUsed = 2;
+        updateStatusDisplays();
+        saveGameState();
+        // Itt már eredetileg is 4 paraméter volt
+        window.triggerHintUI(hintText, HINT2_PENALTY, task.taskScore, () => { updateHintButtons(task); });
     } else {
-        window.triggerHintUI(hintText, 0, () => { updateHintButtons(task); });
+        // JAVÍTÁS: Beillesztettük a task.taskScore változót harmadik paraméterként
+        window.triggerHintUI(hintText, 0, task.taskScore, () => { updateHintButtons(task); });
     }
 });
          
