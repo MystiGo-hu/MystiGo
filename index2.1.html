@@ -7811,17 +7811,26 @@ window.handleEmailAuth = async function() {
         errorEl.classList.add('hidden');
         showLoading(true);
         
+        let user; // Deklaráljuk a változót kívül, hogy minden ág elérje
         if (isRegistrationMode) {
             // --- REGISZTRÁCIÓ ---
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
+            user = userCredential.user; // JAVÍTÁS: a kinti 'user' változót használjuk, nem hozunk létre újat const-al
 
-            // ÚJ: E-mail mentése a private_user_data alá
-            await set(ref(db, 'private_user_data/' + user.uid), {
-                email: email,
-                authMethod: 'email',
-                registeredAt: Date.now()
-            });
+            // KRITIKUS JAVÍTÁS: Rövid várakozás (setTimeout), hogy a Firebase Auth token 
+            // érvényessé váljon az adatbázis számára is.
+            setTimeout(async () => {
+                try {
+                    await set(ref(db, 'private_user_data/' + user.uid), {
+                        email: email,
+                        authMethod: 'email',
+                        registeredAt: Date.now()
+                    });
+                    console.log("✅ Private data mentése sikeres.");
+                } catch (dbErr) {
+                    console.error("❌ Adatbázis mentési hiba (Permission Denied lehet):", dbErr);
+                }
+            }, 500); // 500ms késleltetés
             
             await sendEmailVerification(user);
             
@@ -7831,14 +7840,29 @@ window.handleEmailAuth = async function() {
             
         } else {
             // --- BEJELENTKEZÉS ---
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            user = userCredential.user;
+
+            // JAVÍTÁS: Bejelentkezéskor is érdemes frissíteni/menteni, ha korábban elmaradt volna
+            setTimeout(async () => {
+                try {
+                    await update(ref(db, 'private_user_data/' + user.uid), {
+                        email: email,
+                        authMethod: 'email',
+                        lastLogin: Date.now()
+                    });
+                } catch (e) {
+                    console.error("Adat frissítési hiba bejelentkezéskor:", e);
+                }
+            }, 500);
+
             closeEmailAuthModal();
             showLoading(false);
         }
         
     } catch (error) {
         showLoading(false);
-	console.error("Firebase Auth/Database hiba:", error.code, error.message);
+        console.error("Firebase Auth/Database hiba:", error.code, error.message);
         errorEl.classList.remove('hidden');
         
         switch (error.code) {
@@ -7852,7 +7876,6 @@ window.handleEmailAuth = async function() {
         }
     }
 };
-
 
 
 // 1. Név tisztítása az összehasonlításhoz
