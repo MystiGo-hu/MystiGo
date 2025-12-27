@@ -7883,30 +7883,43 @@ window.checkNameUniqueness = async function(teamName) {
 
 
         // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE (BIZTONSÁGOS VERZIÓ) ---
-window.saveUserProfile = async (teamName, avatarIndex) => {
+window.saveUserProfile = async (newName, avatarIndex) => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const normalizedName = window.normalizeForComparison(teamName);
+    const newNormalized = window.normalizeForComparison(newName);
+    
+    // 1. Lekérjük a JELENLEGI nevet az adatbázisból, hogy tudjuk, mit kell törölni
+    const snapshot = await window.get(window.ref(window.db, `users/${user.uid}/profile/teamName`));
+    const oldName = snapshot.val();
+    const oldNormalized = oldName ? window.normalizeForComparison(oldName) : null;
+
+    // 2. Unikális ellenőrzés: Csak akkor nézzük, ha tényleg változik a név
+    if (newNormalized !== oldNormalized) {
+        const isUnique = await window.checkNameUniqueness(newName);
+        if (!isUnique) throw new Error("A választott név már foglalt.");
+    }
+
+    // 3. Az összes módosítást egy objektumba gyűjtjük (Atomic Update)
     const updates = {};
     
-    // Előbb ellenőrizzük a nevet
-    const isUnique = await window.checkNameUniqueness(teamName);
-    if (!isUnique) throw new Error("A választott név már foglalt.");
-
-    // Profil adatok frissítése
-    updates[`users/${user.uid}/profile/teamName`] = teamName;
+    // Ha volt régi neve és az más, mint az új, akkor a régit töröljük (null értékkel)
+    if (oldNormalized && oldNormalized !== newNormalized) {
+        updates[`taken_team_names/${oldNormalized}`] = null;
+    }
+    
+    // Az új név lefoglalása és a profil frissítése
+    updates[`taken_team_names/${newNormalized}`] = user.uid;
+    updates[`users/${user.uid}/profile/teamName`] = newName;
     updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
     updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
-    
-    // Név lefoglalása az indexben
-    updates[`taken_team_names/${normalizedName}`] = user.uid;
 
     try {
-        await update(ref(db), updates);
-        console.log("✅ Profil és névfoglalás sikeres.");
+        // Egyszerre hajtjuk végre az összes írást/törlést
+        await window.update(window.ref(window.db), updates);
+        console.log("✅ Névváltás sikeres, régi név felszabadítva.");
     } catch (error) {
-        console.error("❌ Mentési hiba:", error);
+        console.error("❌ Hiba a profil mentésekor:", error);
         throw error;
     }
 };
