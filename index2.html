@@ -602,7 +602,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.21
+       v1.2.22
 
    </span>
 
@@ -2643,8 +2643,9 @@ window.validateTeamName = function(name) {
 window.normalizeForComparison = function(text) {
     if (!text) return "";
     return text.toLowerCase().trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Ékezetek eltávolítása
-        .replace(/\s+/g, ''); // Szóközök eltávolítása
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+        .replace(/\s+/g, '')
+        .replace(/[.#$\[\]/]/g, ""); // ÚJ: Minden tiltott Firebase karaktert töröl
 };
 
 
@@ -4377,18 +4378,19 @@ const limitFromExcel = gameConfig.globalLimit;
         return;
     }
 
-    if (window.auth && window.auth.currentUser) {
+    // JAVÍTÁS: Csak akkor mentsen profilt, ha be van lépve ÉS NEM anonim
+    if (window.auth && window.auth.currentUser && !window.auth.currentUser.isAnonymous) {
         try {
             showLoading(true);
-            // Bevárjuk a mentést (ami tartalmazza az ellenőrzést)
             await window.saveUserProfile(nameInput.value, avatarSelect.value);
         } catch (e) {
-            showLoading(false);
+            showLoading(false); // JAVÍTÁS: Itt false kell, hogy ne ragadjon be a töltő
             showMessage('Hiba', e.message);
-            return; // Megállítjuk az indítást
+            return; 
         }
     }
 
+    // Így a vendégek és a regisztráltak is eljutnak ide:
     await window.loadGameDataAndStart(gameId);
     requestGpsAndStart(gameId);
 };
@@ -6804,31 +6806,30 @@ async function validateAndUseCoupon() {
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
 
-
-
 nameInputEl.addEventListener('blur', async () => {
-    const val = nameInputEl.value;
-    
-    // 1. Alap ellenőrzés: üres-e vagy tartalmaz-e tiltott szót
-    const result = window.validateTeamName(val);
-    if (!result.valid) {
-        showMessage('Hiba a névben', result.error, () => {
-            nameInputEl.value = ""; 
-            nameInputEl.focus(); 
+    const val = nameInputEl.value.trim();
+    if (val.length < 2) return; 
+
+    // 1. Alap validáció (káromkodás szűrő)
+    const validation = window.validateTeamName(val);
+    if (!validation.valid) {
+        showMessage('Figyelem', validation.error, () => {
+            nameInputEl.value = "";
+            nameInputEl.focus();
         });
-        return; // Ha alaphiba van, itt megállunk
+        return;
     }
 
-    // 2. Egyediség ellenőrzése az adatbázisban (csak ha be van jelentkezve)
-    if (window.auth && window.auth.currentUser) {
-        // Meghívjuk az új checkNameUniqueness függvényt
-        const isUnique = await window.checkNameUniqueness(val);
-        if (!isUnique) {
-            showMessage('Foglalt név', 'Ez a név már foglalt! Kérjük, válassz másikat.', () => {
-                nameInputEl.value = ""; // Töröljük a foglalt nevet
-                nameInputEl.focus();   // Visszavisszük a fókuszt a javításhoz
-            });
-        }
+    // 2. ADATBÁZIS ELLENŐRZÉS (Taken team names)
+    showLoading(true);
+    const isUnique = await window.checkNameUniqueness(val);
+    showLoading(false);
+
+    if (!isUnique) {
+        showMessage('Foglalt név', 'Sajnos ez a név már foglalt! Kérlek, válassz egy másikat.', () => {
+            nameInputEl.value = ""; 
+            nameInputEl.focus();
+        });
     }
 });
 
@@ -7569,6 +7570,22 @@ window.startInstantAdventure = async function() {
 window.loadGameDataAndStart = async function(gameId) {
     console.log("🚀 Játék indítása folyamatban:", gameId);
     
+    const currentName = document.getElementById('team-name-input').value.trim();
+    const normalized = window.normalizeForComparison(currentName);
+    const user = window.auth.currentUser;
+
+    // Ha van user és van értelmezhető név
+    if (user && normalized) {
+        try {
+            // Lefoglaljuk a nevet az aktuális UID-hoz
+            await window.set(window.ref(window.db, `taken_team_names/${normalized}`), user.uid);
+            console.log("✅ Felhasználónév rögzítve a taken_team_names-ben.");
+        } catch (e) {
+            console.error("❌ Hiba a név rögzítésekor (ellenőrizd a Firebase szabályokat!):", e);
+        }
+    }
+
+
     const storageKey = `MystiGo_GameData_${gameId}`;
     let gameData = null;
 
@@ -7721,7 +7738,7 @@ window.loadGameDataAndStart = async function(gameId) {
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification} 
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification} 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     // ✅ FONTOS: Ide a SAJÁT konfigurációdat másold be!
@@ -7888,8 +7905,9 @@ window.normalizeForComparison = function(text) {
 
 // 2. Egyediség ellenőrzése a Firebase-ben
 window.checkNameUniqueness = async function(teamName) {
+    // Mindig van user az anonim auth miatt
     const user = window.auth.currentUser;
-    if (!teamName) return false;
+    if (!teamName || !user) return true;
 
     const normalizedName = window.normalizeForComparison(teamName);
     const nameIndexRef = window.ref(window.db, `taken_team_names/${normalizedName}`);
@@ -7897,14 +7915,11 @@ window.checkNameUniqueness = async function(teamName) {
     try {
         const snapshot = await window.get(nameIndexRef);
         if (snapshot.exists()) {
-            // Ha a név létezik, megnézzük, kié. 
-            // Ha a mentett UID megegyezik a miénkkel, akkor szabad (mert a miénk).
-            return snapshot.val() === (user ? user.uid : null);
+            // Ha a név létezik, csak akkor szabad, ha az aktuális UID-hoz tartozik
+            return snapshot.val() === user.uid;
         }
-        // Ha nem létezik, akkor bárkié lehet.
-        return true; 
+        return true; // Ha nem létezik, szabad
     } catch (e) {
-        console.error("Hiba a névellenőrzés során:", e);
         return false;
     }
 };
@@ -8018,7 +8033,11 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         let profileListener = null; // Változó a figyelő leállításához
 
 onAuthStateChanged(auth, (user) => {
-    const btnGroup = document.getElementById('auth-buttons-group');
+if (!user) {
+        signInAnonymously(auth).catch(err => console.error("Anonim belépési hiba:", err));
+    }    
+
+const btnGroup = document.getElementById('auth-buttons-group');
     const logoutBtn = document.getElementById('logout-btn');
     const scoreDisplay = document.getElementById('total-score-display');
     const scoreSpan = document.getElementById('user-total-score');
