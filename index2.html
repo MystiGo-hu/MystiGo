@@ -7568,20 +7568,17 @@ window.startInstantAdventure = async function() {
 
    // ✅ ÚJ loadGameDataAndStart FÜGGVÉNY (Split adatbázishoz igazítva)
 window.loadGameDataAndStart = async function(gameId) {
-    console.log("🚀 Játék indítása folyamatban:", gameId);
-    
     const currentName = document.getElementById('team-name-input').value.trim();
     const normalized = window.normalizeForComparison(currentName);
     const user = window.auth.currentUser;
 
-    // Ha van user és van értelmezhető név
-    if (user && normalized) {
+    // MÓDOSÍTÁS: Csak regisztrált (nem anonim) felhasználó foglalhat nevet
+    if (user && !user.isAnonymous && normalized) {
         try {
-            // Lefoglaljuk a nevet az aktuális UID-hoz
             await window.set(window.ref(window.db, `taken_team_names/${normalized}`), user.uid);
-            console.log("✅ Felhasználónév rögzítve a taken_team_names-ben.");
+            console.log("✅ Regisztrált felhasználónév rögzítve.");
         } catch (e) {
-            console.error("❌ Hiba a név rögzítésekor (ellenőrizd a Firebase szabályokat!):", e);
+            console.error("❌ Hiba a név rögzítésekor:", e);
         }
     }
 
@@ -7930,7 +7927,13 @@ window.checkNameUniqueness = async function(teamName) {
         // --- PROFIL MENTÉSE ÉS FRISSÍTÉSE (BIZTONSÁGOS VERZIÓ) ---
 window.saveUserProfile = async (newName, avatarIndex) => {
     const user = auth.currentUser;
-    if (!user) return;
+
+    // MÓDOSÍTÁS: Ha nincs felhasználó, VAGY anonim (vendég), azonnal lépjen ki.
+    // Így nem próbál meg nevet foglalni és nem kapnak UID-t a vendégek.
+    if (!user || user.isAnonymous) {
+        console.log("ℹ️ Vendég mód: Profil mentése kihagyva.");
+        return;
+    }
 
     const newNormalized = window.normalizeForComparison(newName);
     
@@ -7948,21 +7951,20 @@ window.saveUserProfile = async (newName, avatarIndex) => {
     // 3. Az összes módosítást egy objektumba gyűjtjük (Atomic Update)
     const updates = {};
     
-    // Ha volt régi neve és az más, mint az új, akkor a régit töröljük (null értékkel)
+    // Ha volt régi neve és az más, mint az új, akkor a régit töröljük
     if (oldNormalized && oldNormalized !== newNormalized) {
         updates[`taken_team_names/${oldNormalized}`] = null;
     }
     
-    // Az új név lefoglalása és a profil frissítése
+    // Név foglalása és profil frissítése (Csak bejelentkezett tagoknak)
     updates[`taken_team_names/${newNormalized}`] = user.uid;
     updates[`users/${user.uid}/profile/teamName`] = newName;
     updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
     updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
 
     try {
-        // Egyszerre hajtjuk végre az összes írást/törlést
         await window.update(window.ref(window.db), updates);
-        console.log("✅ Névváltás sikeres, régi név felszabadítva.");
+        console.log("✅ Profil frissítve.");
     } catch (error) {
         console.error("❌ Hiba a profil mentésekor:", error);
         throw error;
@@ -8033,9 +8035,7 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         let profileListener = null; // Változó a figyelő leállításához
 
 onAuthStateChanged(auth, (user) => {
-if (!user) {
-        signInAnonymously(auth).catch(err => console.error("Anonim belépési hiba:", err));
-    }    
+ 
 
 const btnGroup = document.getElementById('auth-buttons-group');
     const logoutBtn = document.getElementById('logout-btn');
