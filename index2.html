@@ -31,10 +31,19 @@
     }
 
     @keyframes floatUp {
-        0% { transform: translateY(0) scale(0.5); opacity: 0; }
-        20% { opacity: 1; transform: translateY(-20px) scale(1.2); }
-        100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    0% { 
+        transform: translate(-50%, -50%) translateY(0) scale(0.5); 
+        opacity: 0; 
     }
+    20% { 
+        opacity: 1; 
+        transform: translate(-50%, -50%) translateY(-20px) scale(1.2); 
+    }
+    100% { 
+        transform: translate(-50%, -50%) translateY(-100px) scale(1); 
+        opacity: 0; 
+    }
+}
 
     /* Rázkódó animáció hibás válasz esetén az input mezőre */
     .shake {
@@ -602,7 +611,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.25
+       v1.2.26
 
    </span>
 
@@ -1026,7 +1035,19 @@
     </button>
     
     <div id="instant-resume-ui" class="hidden mt-3 pt-3 border-t border-orange-200 justify-between items-center">
-        </div>
+    <div class="flex flex-col">
+        <span class="text-[10px] font-bold text-orange-600 uppercase">Félbehagyott kaland:</span>
+        <span class="text-[11px] font-medium text-gray-600">Van egy mentett állásod.</span>
+    </div>
+    <div class="flex gap-2">
+        <button onclick="resumeInstantAdventure()" class="px-3 py-2 bg-green-500 text-white text-[10px] font-bold rounded-lg shadow-sm active:scale-95 transition uppercase">
+            Folytatás
+        </button>
+        <button onclick="deleteInstantAdventure()" class="px-3 py-2 bg-white border border-red-200 text-red-500 text-[10px] font-bold rounded-lg active:scale-95 transition uppercase">
+            Törlés
+        </button>
+    </div>
+</div>
 </div>
 
 
@@ -2856,22 +2877,22 @@ window.deleteInstantAdventure = function(force = false) {
 
     // Segédfüggvény a tényleges törlési folyamathoz
     const performDeletion = () => {
-        const gameId = saveKey.replace('MystiGoGameState_', '');
-        
-        // 1. Törlés a LocalStorage-ból
-        localStorage.removeItem(saveKey); // Állapot törlése
-        localStorage.removeItem(`MystiGo_GameData_${gameId}`); // Játékadatok törlése
-        
-        // 2. Törlés a futó memóriából
-        if (window.games && window.games[gameId]) {
-            delete window.games[gameId];
-        }
+    const gameId = saveKey.replace('MystiGoGameState_', '');
+    
+    // 1. Törlés a memóriából
+    localStorage.removeItem(saveKey); 
+    localStorage.removeItem(`MystiGo_GameData_${gameId}`); 
+    
+    // 2. Törlés a futó objektumokból
+    if (window.games && window.games[gameId]) {
+        delete window.games[gameId];
+    }
 
-        console.log("Instant játék teljesen törölve.");
-        
-        // 3. UI AZONNALI FRISSÍTÉSE
-        window.checkInstantProgress();
-    };
+    // 3. FRISSÍTÉS: Ez tünteti el a narancssárga dobozt azonnal
+    window.checkInstantProgress();
+    
+    console.log("Instant játék törölve, felület frissítve.");
+};
 
     // Ha 'force' true (pl. rendszer hívja), azonnal törlünk megerősítés nélkül
     if (force) {
@@ -4514,7 +4535,6 @@ window.triggerVictoryUI = function(points) {
     float.innerHTML = `+${points} ⭐`;
     float.style.left = '50%';
     float.style.top = '50%';
-    float.style.marginLeft = '-50px';
     document.body.appendChild(float);
     setTimeout(() => float.remove(), 3000);
 
@@ -7473,6 +7493,30 @@ window.loadMoreGames = function() {
 <script>
 
 
+function calculateBearing(lat1, lng1, lat2, lng2) {
+    const toRad = (deg) => deg * Math.PI / 180;
+    const toDeg = (rad) => rad * 180 / Math.PI;
+
+    const dLon = toRad(lng2 - lng1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+              Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+/**
+ * Ellenőrzi, hogy a célirány beleesik-e az engedélyezett tartományba
+ */
+function isWithinAngle(currentBearing, targetBearing, maxDeviation = 90) {
+    if (currentBearing === null) return true; // Az első pontnál bármilyen irány jó
+    let diff = Math.abs(currentBearing - targetBearing);
+    if (diff > 180) diff = 360 - diff;
+    return diff <= maxDeviation;
+}
+
+
+
+
 function calculateNextPoint(lat, lng, distanceMeters, bearingDegrees) {
     const R = 6371e3; // Föld sugara méterben
     const toRad = (deg) => deg * Math.PI / 180;
@@ -7496,6 +7540,35 @@ function calculateNextPoint(lat, lng, distanceMeters, bearingDegrees) {
 
 
 
+
+function getPointPriority(poi) {
+    let priority = 1; // Alapértelmezett prioritás
+    const name = (poi.name || "").toLowerCase();
+
+    const high = ['múzeum', 'szobor', 'emlékmű', 'kastély', 'vár', 'templom', 'kilátó', 'torony'];
+    const low = ['pad', 'fa', 'óra', 'bench', 'tree'];
+
+    // Alap prioritás meghatározása típus alapján
+    if (high.some(h => name.includes(h))) {
+        priority = 100;
+    } else if (low.some(l => name.includes(l))) {
+        priority = 5;
+    } else if (poi.name && poi.name !== "Érdekes pont") {
+        priority = 50;
+    }
+
+    // --- ITT AZ ÚJ RÉSZ ---
+    // Ha van egyedi neve (és nem csak az alapértelmezett "Érdekes pont"), kap +10 bónuszt
+    if (poi.name && poi.name !== "Érdekes pont") {
+        priority += 10; 
+    }
+
+    return priority;
+}
+
+
+
+
 /**
  * AZONNALI KALAND GENERÁTOR (JSON struktúrához igazítva)
  */
@@ -7506,115 +7579,132 @@ window.startInstantAdventure = async function() {
     
     if (!btn) return;
 
-    // A választott értékek kinyerése (pl. "easy", "science_nature")
+    // --- ÚJ: Ellenőrzés, hogy van-e már folyamatban lévő kaland ---
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+    
+    if (saveKey) {
+        // Ha van mentés, feldobjuk a megerősítő ablakot
+        showMessage(
+            'Új kaland generálása', 
+            'Van egy már folyamatban lévő azonnali kalandod. Ha újat generálsz, a jelenlegi állásod elveszik. Biztosan új kalandot szeretnél kezdeni?', 
+            () => {
+                // Ha az Igen-re nyom: töröljük a régit (kényszerítve, kérdés nélkül) 
+                // és újra meghívjuk ezt a függvényt, de most már mentés nélkül
+                window.deleteInstantAdventure(true); 
+                setTimeout(() => window.startInstantAdventure(), 100);
+            }, 
+            true // Megjeleníti a Mégse gombot
+        );
+        return; // Megállítjuk a futást, amíg a user nem dönt
+    }
+    // --- ELLENŐRZÉS VÉGE ---
+
     const selectedDiff = diffSelect ? diffSelect.value : 'all';
     const selectedCat = catSelect ? catSelect.value : 'all';
-
     const originalContent = btn.innerHTML;
     
     try {
         btn.innerHTML = '🔍 Útvonal és feladatok tervezése...';
         btn.disabled = true;
 
-        if (!window.db || !window.ref || !window.get) {
-             throw new Error("A rendszer még nem állt fel.");
-        }
+        if (!window.db) throw new Error("A rendszer még nem állt fel.");
 
         // 1. Aktuális helyzet lekérése
         let {lat: startLat, lng: startLng} = await new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
                 (p) => resolve({lat: p.coords.latitude, lng: p.coords.longitude}),
-                () => resolve({lat: 47.4979, lng: 19.0402}) 
+                () => resolve({lat: 47.4979, lng: 19.0402}),
+                { enableHighAccuracy: true }
             );
         });
 
-        // 2. POI lekérés (OSM) - Meglévő funkció megtartva
-        const radius = 1000;
-        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${radius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain|place_of_worship|wayside_cross|wayside_shrine|museum|playground|tree)$"];out;`;
+        // 2. POI-k lekérése egy nagyobb (2.5km) körzetben, hogy legyen miből válogatni a lánchoz
+        const fetchRadius = 2500;
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];
+node(around:${fetchRadius},${startLat},${startLng})
+[~"^(tourism|historic|amenity|leisure|man_made|information)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain|place_of_worship|wayside_cross|wayside_shrine|museum|playground|tree|board|map|castle|ruins|city_gate|boundary_stone|tower|water_tower|fitness_station|public_bookcase|clock|binoculars)$"];
+out;`;
 
-        let availablePOIs = [];
+        let pool = [];
         try {
             const response = await fetch(overpassUrl);
             const osmData = await response.json();
-            if (osmData.elements && osmData.elements.length > 0) {
-                availablePOIs = osmData.elements.map(el => ({ 
-                    lat: el.lat, 
-                    lng: el.lon, 
-                    name: el.tags.name || "Érdekes pont" 
-                }));
-            }
-        } catch (e) {
-            console.warn("Overpass API hiba, véletlenszerű generálásra váltás.", e);
-        }
+            pool = osmData.elements.map(el => ({ lat: el.lat, lng: el.lon, name: el.tags.name || "Érdekes pont" }));
+        } catch (e) { console.warn("Overpass hiba."); }
 
-        // 3. Útvonal generálás (Nearest Neighbor) - Meglévő funkció megtartva
+        // 3. Láncolt útvonal generálása
         let routePoints = [];
         let currentPos = { lat: startLat, lng: startLng };
-        const MIN_DIST = 150; 
+        let lastBearing = null;
+        
+        const MIN_STEP = 100; // Minimum távolság az új pontig
+        const MAX_STEP = 400; // Maximum távolság az új pontig
+        const MAX_DEVIATION = 85; // Max eltérés az előző iránytól (80 fok = nem fordul vissza)
 
-        for (let i = 0; i < 5; i++) {
-            let selectedPoint = null;
-            if (availablePOIs.length > 0) {
-                availablePOIs.sort((a, b) => haversineDistance(currentPos, a) - haversineDistance(currentPos, b));
-                let foundIndex = -1;
-                for (let j = 0; j < availablePOIs.length; j++) {
-                    if (haversineDistance(currentPos, availablePOIs[j]) >= MIN_DIST) {
-                        foundIndex = j;
-                        break;
-                    }
-                }
-                if (foundIndex !== -1) selectedPoint = availablePOIs.splice(foundIndex, 1)[0];
-                else selectedPoint = calculateNextPoint(currentPos.lat, currentPos.lng, MIN_DIST + 20, Math.random() * 360);
+       for (let i = 0; i < 5; i++) {
+            let candidates = pool.filter(poi => {
+                const dist = haversineDistance(currentPos, poi);
+                const bearingToPoi = calculateBearing(currentPos.lat, currentPos.lng, poi.lat, poi.lng);
+                
+                const isCorrectDist = dist >= MIN_STEP && dist <= MAX_STEP;
+                const isNew = !routePoints.some(p => p.lat === poi.lat && p.lng === poi.lng);
+                const isForward = isWithinAngle(lastBearing, bearingToPoi, MAX_DEVIATION);
+                
+                return isCorrectDist && isNew && isForward;
+            });
+
+            let nextPoint;
+            if (candidates.length > 0) {
+                // --- ÚJ PRIORITÁS ALAPÚ RENDEZÉS ---
+                candidates.sort((a, b) => {
+                    const pA = getPointPriority(a);
+                    const pB = getPointPriority(b);
+                    if (pA !== pB) return pB - pA; // Magasabb prioritás előre
+                    return haversineDistance(currentPos, a) - haversineDistance(currentPos, b); // Ha egyenlő, a közelebbi nyer
+                });
+                
+                // A lista elején most már a legjobb (legmagasabb prioritású) pont van
+                nextPoint = candidates[0]; 
             } else {
-                selectedPoint = calculateNextPoint(currentPos.lat, currentPos.lng, MIN_DIST + 50, (Math.random() * 90) - 45);
+                // FALLBACK: Ha nincs POI az adott kúpban, generálunk egy virtuális pontot "előre"
+                console.log(`Step ${i+1}: Nincs POI, virtuális pont generálása...`);
+                const randomAngleOffset = (Math.random() * (MAX_DEVIATION * 2)) - MAX_DEVIATION;
+                const targetAngle = (lastBearing === null) ? Math.random() * 360 : (lastBearing + randomAngleOffset);
+                const randomDist = MIN_STEP + (Math.random() * (MAX_STEP - MIN_STEP));
+                nextPoint = calculateNextPoint(currentPos.lat, currentPos.lng, randomDist, targetAngle);
+                nextPoint.name = "Felfedező pont";
             }
-            routePoints.push(selectedPoint);
-            currentPos = selectedPoint;
+
+            lastBearing = calculateBearing(currentPos.lat, currentPos.lng, nextPoint.lat, nextPoint.lng);
+            routePoints.push(nextPoint);
+            currentPos = nextPoint;
         }
 
-        // 4. Feladatok betöltése és SZŰRÉSE
+        // 4. Feladatok szűrése (a kódod többi része változatlan marad...)
         const snapshot = await window.get(window.ref(window.db, 'generic_tasks'));
         const allTasks = Object.values(snapshot.val() || {});
-
-        // SZŰRÉS LOGIKA: A JSON-ben 'category' a nehézség és 'type' a téma
         let filteredTasks = allTasks.filter(task => {
-            // Nehézség ellenőrzése (selectedDiff vs JSON category)
             const matchesDiff = (selectedDiff === 'all' || (task.category || task.difficulty) === selectedDiff);
-            
-            // Téma ellenőrzése (selectedCat vs JSON Type/type)
-            const taskType = task.Type || task.type; // Kezeli mindkét írásmódot
+            const taskType = task.Type || task.type;
             const matchesType = (selectedCat === 'all' || taskType === selectedCat);
-            
             return matchesDiff && matchesType;
         });
 
-        // Failsafe: Ha nincs elég találat (min 5), feltöltjük a maradék helyeket
         if (filteredTasks.length < 5) {
-            console.warn("Kevés találat a szűrőre, vegyes feladatok hozzáadása.");
-            const remainingTasks = allTasks.filter(t => !filteredTasks.includes(t))
-                                           .sort(() => 0.5 - Math.random());
-            filteredTasks = filteredTasks.concat(remainingTasks);
+            filteredTasks = allTasks.sort(() => 0.5 - Math.random());
         }
 
-        // Véletlenszerű 5 kiválasztása
         const shuffledTasks = filteredTasks.sort(() => 0.5 - Math.random()).slice(0, 5);
+        const tasksWithLocation = shuffledTasks.map((task, index) => ({
+            ...task,
+            index: index + 1,
+            location: routePoints[index],
+            prompt: task.prompt || task.question || "Keresd meg a választ!",
+            geofenceRadius: 40 
+        }));
 
-        const tasksWithLocation = shuffledTasks.map((task, index) => {
-            return {
-                ...task,
-                index: index + 1,
-                location: routePoints[index],
-                // Biztosítjuk, hogy legyen szöveg (prompt vagy question)
-                prompt: task.prompt || task.question || "Keresd meg a megoldást!",
-                geofenceRadius: 35 
-            };
-        });
-
-        // 5. Játék inicializálása dinamikus címkével
-        // A themeLabel kinyeri az emoji utáni szót a választóból (pl. "🎬 Filmes" -> "Filmes")
         const themeLabel = (selectedCat !== 'all' && catSelect) ? 
-                           catSelect.options[catSelect.selectedIndex].text.split(' ')[1] : 
-                           "Városi";
+                           catSelect.options[catSelect.selectedIndex].text.split(' ')[1] : "Városi";
 
         const instantGameId = "instant_" + Date.now();
         const instantGame = {
@@ -7623,29 +7713,28 @@ window.startInstantAdventure = async function() {
             type: "Instant",
             tasks: tasksWithLocation,
             startLocation: { lat: startLat, lng: startLng },
-            description: `Egyedi, ${themeLabel} tematikájú kaland, a közeledben lévő nevezetességek érintésével.`,
-            endStory: "Gratulálunk! Sikeresen teljesítetted a generált küldetést!"
+            description: `Irányított ${themeLabel} kaland.`,
+            endStory: "Gratulálunk! Sikeresen teljesítetted a generált útvonalat!"
         };
 
-        // Mentés és indítás (Változatlan meglévő funkciók)
         window.games[instantGameId] = instantGame;
         localStorage.setItem(`MystiGo_GameData_${instantGameId}`, JSON.stringify(instantGame));
         
+        // --- Javasolt kiegészítés: ---
+        appState.currentGame = instantGame;
+        saveGameState(); 
+        window.checkInstantProgress();
+        // ----------------------------
+
         handleGameSelect(instantGameId, instantGame.title, "Instant", "Ingyenes", false, true);
 
-        setTimeout(() => {
-            if (typeof saveGameState === 'function') saveGameState();
-            window.checkInstantProgress();
-        }, 800);
-
     } catch (error) {
-        alert("Hiba a kaland indításakor: " + error.message);
+        alert("Hiba: " + error.message);
     } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
     }
 };
-
 
      
 
