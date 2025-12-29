@@ -41,7 +41,7 @@
 /* Rating badge a thumbnailen */
 .rating-badge {
     position: absolute;
-    bottom: 8px;
+    bottom: 35px;
     left: 8px;
     background: rgba(255, 255, 255, 0.9);
     padding: 2px 8px;
@@ -1395,22 +1395,37 @@
     </div>
 
 
-<div id="rating-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 10000;">
-    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
-        <div class="text-4xl mb-2">⭐</div>
-        <h2 class="text-xl font-bold text-brand-blue mb-2">Hogy tetszett a kaland?</h2>
-        <p class="text-sm text-gray-500 mb-6">Értékeld a játékot, hogy mások is lássák!</p>
+<div id="rating-modal" class="modal-overlay fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4" style="z-index: 10000;">
+    <div class="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-center relative overflow-hidden border border-white/20">
         
-        <div class="star-rating mb-8">
-            <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
-            <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
-            <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
-            <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
-            <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
-        </div>
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-orange-100 rounded-full opacity-50"></div>
+        
+        <div class="relative">
+            <div class="bg-orange-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <span class="text-5xl">⭐</span>
+            </div>
+            
+            <h2 class="text-2xl font-black text-brand-blue mb-3 tracking-tight">Hogy tetszett?</h2>
+            <p class="text-gray-500 mb-8 leading-relaxed px-4">Értékeld a kalandot, hogy mások is kedvet kapjanak hozzá!</p>
+            
+            <div class="star-rating mb-10 flex flex-row-reverse justify-center gap-2">
+                <input type="radio" id="star5" name="rating" value="5" checked class="hidden"><label for="star5" class="text-4xl cursor-pointer hover:scale-110 transition-transform">★</label>
+                <input type="radio" id="star4" name="rating" value="4" class="hidden"><label for="star4" class="text-4xl cursor-pointer hover:scale-110 transition-transform">★</label>
+                <input type="radio" id="star3" name="rating" value="3" class="hidden"><label for="star3" class="text-4xl cursor-pointer hover:scale-110 transition-transform">★</label>
+                <input type="radio" id="star2" name="rating" value="2" class="hidden"><label for="star2" class="text-4xl cursor-pointer hover:scale-110 transition-transform">★</label>
+                <input type="radio" id="star1" name="rating" value="1" class="hidden"><label for="star1" class="text-4xl cursor-pointer hover:scale-110 transition-transform">★</label>
+            </div>
 
-        <button onclick="submitGameRating()" class="main-button w-full !bg-brand-orange">Értékelés beküldése</button>
-        <button onclick="closeRatingModal()" class="mt-4 text-gray-400 text-xs hover:underline">Most nem értékelem</button>
+            <div class="space-y-3">
+                <button onclick="submitGameRating()" class="main-button w-full !bg-gradient-to-r from-orange-400 to-orange-500 !py-4 rounded-2xl shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all active:scale-95 font-bold text-lg">
+                    Értékelés beküldése
+                </button>
+                
+                <button onclick="closeRatingModal()" class="w-full py-2 text-gray-400 text-sm font-semibold hover:text-gray-600 transition-colors uppercase tracking-widest">
+                    Most nem értékelem
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -4064,19 +4079,27 @@ window.closeImageModal = function() {
             // ----------------------------------------------------------------
             visibleGames.forEach(game => {
                 
-if (window.db && window.get) {
-            window.get(window.ref(window.db, `game_stats/${game.id}/rating/average`)).then(snap => {
-                if (snap.exists()) {
-                    const avg = snap.val();
-                    const badge = document.getElementById(`rating-badge-${game.id}`);
-                    if (badge) {
-                        badge.classList.remove('hidden');
-                        // Formázzuk egy tizedesjegyre (pl. 4.8)
-                        badge.querySelector('.rating-val').textContent = parseFloat(avg).toFixed(1);
-                    }
+                // --- EZT A RÉSZT MÓDOSÍTJUK ---
+                if (window.db && window.get) {
+                    window.get(window.ref(window.db, `game_stats/${game.id}/rating/average`)).then(snap => {
+                        if (snap.exists()) {
+                            const avg = parseFloat(snap.val()); // Számmá alakítjuk
+                            const badge = document.getElementById(`rating-badge-${game.id}`);
+                            
+                            if (badge) {
+                                // Csak akkor mutatjuk, ha eléri a 4.0-át
+                                if (avg >= 4.0) {
+                                    badge.classList.remove('hidden');
+                                    const valSpan = badge.querySelector('.rating-val');
+                                    if (valSpan) valSpan.textContent = avg.toFixed(1);
+                                } else {
+                                    // Ha 4.0 alatt van vagy nincs adat, elrejtjük
+                                    badge.classList.add('hidden');
+                                }
+                            }
+                        }
+                    });
                 }
-            });
-        }
 
 		// Csak akkor kérdezzük le, ha van limit, különben felesleges terhelés
                 if (game.globalLimit && game.globalLimit > 0) {
