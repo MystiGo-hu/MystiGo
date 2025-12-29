@@ -18,6 +18,46 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
+
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 10px;
+}
+.star-rating input { display: none; }
+.star-rating label {
+    font-size: 2.5rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #FFA500;
+}
+
+/* Rating badge a thumbnailen */
+.rating-badge {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #0D2B45;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 25;
+}
+
+
+
     /* Lebegő pontszám animáció */
     .score-float {
         position: fixed;
@@ -611,7 +651,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.26
+       v1.2.27
 
    </span>
 
@@ -1354,6 +1394,28 @@
         </div>
     </div>
 
+
+<div id="rating-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 10000;">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
+        <div class="text-4xl mb-2">⭐</div>
+        <h2 class="text-xl font-bold text-brand-blue mb-2">Hogy tetszett a kaland?</h2>
+        <p class="text-sm text-gray-500 mb-6">Értékeld a játékot, hogy mások is lássák!</p>
+        
+        <div class="star-rating mb-8">
+            <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+            <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+            <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+            <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+            <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
+        </div>
+
+        <button onclick="submitGameRating()" class="main-button w-full !bg-brand-orange">Értékelés beküldése</button>
+        <button onclick="closeRatingModal()" class="mt-4 text-gray-400 text-xs hover:underline">Most nem értékelem</button>
+    </div>
+</div>
+
+
+
     <div id="report-error-modal" class="modal-overlay fixed inset-0 hidden items-center justify-center p-4">
         <div id="report-error-modal-content" class="content-card p-5 bg-red-50 border-red-200 border">
             <h2 class="text-xl font-bold text-red-600 mb-2">Feladat átugrása</h2>
@@ -1974,6 +2036,54 @@ window.getGameCurrentCount = async function(gameId) {
         saveToPendingUploads(scoreData);
     }
   };
+
+
+
+// --- ÚJ ÉRTÉKELÉSI FUNKCIÓK ---
+window.closeRatingModal = function() {
+    document.getElementById('rating-modal').classList.add('hidden');
+    document.getElementById('rating-modal').classList.remove('flex');
+};
+
+window.submitGameRating = async function() {
+    const selectedStar = document.querySelector('input[name="rating"]:checked');
+    if (!selectedStar) {
+        alert("Kérlek, válassz egy csillagot!");
+        return;
+    }
+
+    const ratingValue = parseInt(selectedStar.value);
+    const gameId = window.currentGameId;
+
+    if (!gameId || !window.db || !window.runTransaction) return;
+
+    showLoading(true);
+    // A Firebase-ben a game_stats/JÁTÉK_ID/rating alá mentünk
+    const statsRef = window.ref(window.db, `game_stats/${gameId}/rating`);
+
+    try {
+        await window.runTransaction(statsRef, (currentData) => {
+            if (currentData === null) {
+                return { sum: ratingValue, count: 1, average: ratingValue };
+            } else {
+                const newCount = (currentData.count || 0) + 1;
+                const newSum = (currentData.sum || 0) + ratingValue;
+                return {
+                    sum: newSum,
+                    count: newCount,
+                    average: Math.round((newSum / newCount) * 10) / 10
+                };
+            }
+        });
+        
+        closeRatingModal();
+        showMessage("Köszönjük!", "Az értékelésedet rögzítettük.");
+    } catch (e) {
+        console.error("Értékelési hiba:", e);
+    } finally {
+        showLoading(false);
+    }
+};
 
 
 
@@ -3887,6 +3997,12 @@ window.closeImageModal = function() {
                 }
                 // -----------------------------------------------------
 
+// Távolság jelvény után, limit jelvény mellé:
+    let ratingBadgeHtml = `<div id="rating-badge-${game.id}" class="rating-badge hidden">
+        <span class="text-orange-500">★</span> <span class="rating-val">0.0</span>
+    </div>`;
+
+
                 let deleteButtonHtml = "";
                 if (hasSave) {
                     deleteButtonHtml = `
@@ -3915,7 +4031,8 @@ window.closeImageModal = function() {
                         <div class="relative">
                             <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
                             ${distanceBadge}
-                            ${limitBadgeHtml}  </div>
+                            ${ratingBadgeHtml}
+			    ${limitBadgeHtml}  </div>
 
                         <div class="p-5 ${contentOpacityClass}">
                             <div class="flex justify-between items-start">
@@ -3946,7 +4063,22 @@ window.closeImageModal = function() {
             // --- ÚJ KÓD: Adatok betöltése a generálás után (ASZINKRON) ---
             // ----------------------------------------------------------------
             visibleGames.forEach(game => {
-                // Csak akkor kérdezzük le, ha van limit, különben felesleges terhelés
+                
+if (window.db && window.get) {
+            window.get(window.ref(window.db, `game_stats/${game.id}/rating/average`)).then(snap => {
+                if (snap.exists()) {
+                    const avg = snap.val();
+                    const badge = document.getElementById(`rating-badge-${game.id}`);
+                    if (badge) {
+                        badge.classList.remove('hidden');
+                        // Formázzuk egy tizedesjegyre (pl. 4.8)
+                        badge.querySelector('.rating-val').textContent = parseFloat(avg).toFixed(1);
+                    }
+                }
+            });
+        }
+
+		// Csak akkor kérdezzük le, ha van limit, különben felesleges terhelés
                 if (game.globalLimit && game.globalLimit > 0) {
                     if (window.getGameCurrentCount) {
                         window.getGameCurrentCount(game.id).then(count => {
@@ -5487,6 +5619,16 @@ if (!appState.isTestModeEnabled) {
     // --- LEZÁRÁS ---
     setTimeout(() => { 
         if(typeof downloadPDF === 'function') downloadPDF(); 
+        
+        // --- ÚJ: Értékelő ablak megnyitása 3 másodperccel a vége után ---
+        setTimeout(() => {
+            const rModal = document.getElementById('rating-modal');
+            if(rModal) {
+                rModal.classList.remove('hidden');
+                rModal.classList.add('flex');
+            }
+        }, 1500);
+
         if (appState.currentGame) {
             localStorage.removeItem(getStorageKey(appState.currentGame.id));
             localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
