@@ -317,12 +317,16 @@
 .player-marker {
     width: 20px !important;
     height: 20px !important;
-    background-color: #007AFF; /* iPhone kék */
+    background-color: #007AFF;
     border: 3px solid white;
     border-radius: 50%;
     box-shadow: 0 0 15px rgba(0, 122, 255, 0.6);
     position: relative;
     
+    /* JAVÍTÁS: Nem transform-ot, hanem rotate-et használunk */
+    rotate: var(--rotation, 0deg);
+    transition: rotate 0.1s linear;
+    z-index: 1000 !important;
 }
 
 /* Az irányt jelző kis "háromszög" az ikon tetején */
@@ -3052,6 +3056,19 @@ window.deleteInstantAdventure = function(force = false) {
 
 
 
+window.applyRotation = function(deg) {
+    // Megnézzük melyik marker létezik (normál vagy mock)
+    const activeMarker = appState.playerMarker || manualMarker;
+    
+    if (!activeMarker) return;
+    
+    const el = activeMarker.getElement();
+    if (el) {
+        // A CSS változót állítjuk be
+        el.style.setProperty('--rotation', `${deg}deg`);
+    }
+};
+
 
         function initializeState() {
             appState = { 
@@ -5697,7 +5714,7 @@ if (!appState.isTestModeEnabled) {
                 if (!appState.map.clickHandler) {
                      appState.map.clickHandler = (e) => {
                         const latLng = e.latlng;
-                        const mockIcon = L.divIcon({ className: 'player-marker', iconSize: [20, 20], html: '📍', style: 'background-color: blue; border-color: white;' });
+                        const mockIcon = L.divIcon({ className: 'player-marker', iconSize: [20, 20], iconAnchor: [10, 10], html: '', style: 'background-color: blue; border-color: white;' });
                         if (manualMarker) manualMarker.setLatLng(latLng); else manualMarker = L.marker(latLng, { icon: mockIcon }).addTo(appState.map);
                         appState.userPosition = { lat: latLng.lat, lng: latLng.lng };
                         if (appState.isTimerRunning) { appState.routeCoordinates.push([latLng.lat, latLng.lng]); saveGameState(); }
@@ -5832,18 +5849,7 @@ if (!appState.isTestModeEnabled) {
             }).addTo(appState.map);
         }
 
-        // --- ÚJ RÉSZ: AZ IKON ELFORGATÁSA ---
-        if (heading !== null && heading !== undefined && appState.playerMarker) {
-            const markerEl = appState.playerMarker.getElement();
-            if (markerEl) {
-                markerEl.style.transformOrigin = "center center";
-                // Megőrizzük a Leaflet eredeti eltolásait (translate), csak a rotációt adjuk hozzá/cseréljük
-                const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
-                markerEl.style.transform = `${currentTransform} rotate(${heading}deg)`;
-            }
-        }
-        // --- ÚJ RÉSZ VÉGE ---
-
+        
         
         // 3. Térkép igazítása (Zoom logika) - SPECIÁLIS JAVÍTÁS
         const now = Date.now();
@@ -6070,8 +6076,7 @@ smoothedHeading = (smoothedHeading + 360) % 360;
         if (markerEl) {
             markerEl.style.transformOrigin = "center center";
             // Leaflet pozíció megőrzése a rotáció mellett
-            const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
-            markerEl.style.transform = `${currentTransform} rotate(${smoothedHeading.toFixed(1)}deg)`;
+            window.applyRotation(smoothedHeading);
         }
     }
 }
