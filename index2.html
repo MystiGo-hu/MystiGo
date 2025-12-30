@@ -668,7 +668,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.28
+       v1.2.29
 
    </span>
 
@@ -5031,6 +5031,12 @@ if (window.auth && window.auth.currentUser) {
 
 
         function startGame(gameId, modeOverride = null) {
+    // --- ÚJ: iOS IRÁNYTŰ ENGEDÉLY KÉRÉSE ---
+    // Ez váltja ki iPhone-on a felugró ablakot
+    if (typeof window.requestCompassPermission === 'function') {
+        window.requestCompassPermission();
+    }
+
     // --- GOOGLE ANALYTICS MÉRÉS ---
     if (typeof gtag === 'function') {
         gtag('event', 'game_start', {
@@ -6042,6 +6048,31 @@ function handleOrientation(event) {
         }
     }
 }
+
+
+
+
+window.requestCompassPermission = async function() {
+    // Csak iOS 13+ esetén van szükség erre a specifikus engedélykérésre
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+            const permissionState = await DeviceOrientationEvent.requestPermission();
+            if (permissionState === 'granted') {
+                console.log("✅ iOS Iránytű engedélyezve");
+                // Az engedély megadása után újraindítjuk a figyelést, hogy a szenzor adatok megérkezzenek
+                if (typeof watchPosition === 'function') watchPosition();
+            } else {
+                console.warn("❌ iOS Iránytű engedély elutasítva");
+            }
+        } catch (error) {
+            console.error("Iránytű hiba:", error);
+        }
+    } else {
+        // Android vagy régebbi/asztali böngésző esetén nincs szükség külön gombnyomásos engedélyre
+        console.log("Ezen az eszközön nem szükséges külön iránytű engedély.");
+    }
+};
+
 
         
         function haversineDistance(c1, c2) {
