@@ -6042,21 +6042,14 @@ function handleOrientation(event) {
     if (currentHeading !== null && appState.playerMarker) {
         // Ha van GPS irányunk és épp haladunk, az iránytű "rásegít"
         let targetHeading = currentHeading;
+        if (movementHeading !== null) {
+            let geoDiff = movementHeading - currentHeading;
+            if (geoDiff > 180) geoDiff -= 360;
+            if (geoDiff < -180) geoDiff += 360;
+            // Az iránytűt finoman (20%-ban) a GPS haladási irány felé húzzuk
+            targetHeading = currentHeading + (geoDiff * 0.2); 
+        }
 
-// HIBRID KORREKCIÓ: Ha van GPS alapú mozgási irányunk, 
-// akkor az iránytűt picit "húzzuk" a haladási irány felé (50-50% arányban),
-// mert mozgás közben a GPS sokkal stabilabb, mint a mágneses szenzor.
-if (movementHeading !== null) {
-    let geoDiff = movementHeading - currentHeading;
-    if (geoDiff > 180) geoDiff -= 360;
-    if (geoDiff < -180) geoDiff += 360;
-    
-    // Csak 20%-ban vesszük figyelembe a GPS irányt, hogy ne legyen darabos, 
-    // de mégis stabilizálja az iránytűt
-    targetHeading = currentHeading + (geoDiff * 0.2); 
-}
-
-        // Első inicializálás
         if (smoothedHeading === null) smoothedHeading = targetHeading;
 
         // Átfordulás védelem: kiszámoljuk a legrövidebb utat (359° -> 1°)
