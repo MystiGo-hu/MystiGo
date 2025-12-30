@@ -322,7 +322,7 @@
     border-radius: 50%;
     box-shadow: 0 0 15px rgba(0, 122, 255, 0.6);
     position: relative;
-    transition: transform 0.2s ease-out; /* Simább elfordulás */
+    transition: transform 0.4s ease-out !important; /* Simább elfordulás */
 }
 
 /* Az irányt jelző kis "háromszög" az ikon tetején */
@@ -6006,34 +6006,42 @@ function stopAllGpsActivity() {
 }
 
 // --- ÚJ KÍSÉRŐ FÜGGVÉNY AZ IRÁNYTŰHÖZ ---
+let lastCompassHeading = 0; 
+
 function handleOrientation(event) {
-    let heading = null;
+    let currentHeading = null;
 
     // iOS eszközök (Safari)
     if (event.webkitCompassHeading) {
-        heading = event.webkitCompassHeading;
+        currentHeading = event.webkitCompassHeading;
     } 
     // Android és modern böngészők
     else if (event.absolute && event.alpha !== null) {
-        heading = 360 - event.alpha;
+        currentHeading = 360 - event.alpha;
     }
 
-    // Ha van irány adatunk és létezik a marker, elforgatjuk
-    if (heading !== null && appState.playerMarker) {
-        const markerEl = appState.playerMarker.getElement();
-        if (markerEl) {
-            // Fontos: Itt csak a belső div-et (az ikont) forgatjuk, 
-            // hogy ne zavarjuk a Leaflet pozicionálását
-            markerEl.style.transformOrigin = "center center";
-            
-            // Megkeressük az aktuális transform értéket (ami a pozíciót adja)
-            // és hozzáadjuk a rotációt
-            const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
-            markerEl.style.transform = `${currentTransform} rotate(${heading}deg)`;
+    // Ha van irány adatunk és létezik a marker
+    if (currentHeading !== null && appState.playerMarker) {
+        
+        // --- KÜSZÖBÉRTÉK (3 fokos holtzóna) ---
+        // Csak akkor frissítjük a kijelzőt, ha legalább 3 fokot fordultunk,
+        // vagy ha az előzőhöz képest hatalmasat ugrott (pl. átfordult 0-n)
+        const diff = Math.abs(currentHeading - lastCompassHeading);
+        
+        if (diff > 3) {
+            lastCompassHeading = currentHeading; // Elmentjük az új irányt
+
+            const markerEl = appState.playerMarker.getElement();
+            if (markerEl) {
+                markerEl.style.transformOrigin = "center center";
+                
+                // Megkeressük az aktuális pozíciót (translate) és csak a rotációt cseréljük
+                const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
+                markerEl.style.transform = `${currentTransform} rotate(${currentHeading}deg)`;
+            }
         }
     }
 }
-
 
         
         function haversineDistance(c1, c2) {
