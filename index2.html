@@ -317,20 +317,32 @@
 .player-marker {
     width: 20px !important;
     height: 20px !important;
+    background: none !important;   /* TÖRLÉS: ne legyen kék háttér */
+    border: none !important;       /* TÖRLÉS: ne legyen fehér keret */
+    box-shadow: none !important;   /* TÖRLÉS: ne legyen árnyék */
+    position: relative;
+    z-index: 1000 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.marker-visual {
+    width: 20px;
+    height: 20px;
     background-color: #007AFF;
     border: 3px solid white;
     border-radius: 50%;
     box-shadow: 0 0 15px rgba(0, 122, 255, 0.6);
     position: relative;
-    
-    /* JAVÍTÁS: Nem transform-ot, hanem rotate-et használunk */
-    rotate: var(--rotation, 0deg);
-    transition: rotate 0.1s linear;
-    z-index: 1000 !important;
+    /* Ez a rész forgatja a belsőt */
+    transform: rotate(var(--rotation, 0deg));
+    transition: transform 0.2s ease-out;
 }
 
-/* Az irányt jelző kis "háromszög" az ikon tetején */
-.player-marker::after {
+/* A nyíl a belső elemre kerül */
+.marker-visual::after {
     content: '';
     position: absolute;
     top: -12px;
@@ -340,6 +352,7 @@
     border-right: 7px solid transparent;
     border-bottom: 12px solid #007AFF;
 }
+
 
 
         /* task-marker eltávolítva, már nem használjuk */
@@ -672,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.30
+       v1.2.31
 
    </span>
 
@@ -3057,15 +3070,16 @@ window.deleteInstantAdventure = function(force = false) {
 
 
 window.applyRotation = function(deg) {
-    // Megnézzük melyik marker létezik (normál vagy mock)
     const activeMarker = appState.playerMarker || manualMarker;
-    
     if (!activeMarker) return;
     
     const el = activeMarker.getElement();
     if (el) {
-        // A CSS változót állítjuk be
-        el.style.setProperty('--rotation', `${deg}deg`);
+        // Megkeressük a belső kék kört és csak azt forgatjuk el
+        const visual = el.querySelector('.marker-visual');
+        if (visual) {
+            visual.style.setProperty('--rotation', `${deg}deg`);
+        }
     }
 };
 
@@ -5703,34 +5717,86 @@ if (!appState.isTestModeEnabled) {
 
   
         function toggleMapClickMock(enable) {
-            if (!appState.map) return;
-            if (appState.currentGame && appState.currentGame.taskOrder === 'explore' && appState.currentTaskIndex === 0 && appState.isTimerRunning) {
-                if (appState.map.clickHandler) { appState.map.off('click', appState.map.clickHandler); appState.map.clickHandler = null; }
-                return;
-            }
-            if (enable) {
-                if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
-                appState.geoWatchId = null;
-                if (!appState.map.clickHandler) {
-                     appState.map.clickHandler = (e) => {
-                        const latLng = e.latlng;
-                        const mockIcon = L.divIcon({ className: 'player-marker', iconSize: [20, 20], iconAnchor: [10, 10], html: '', style: 'background-color: blue; border-color: white;' });
-                        if (manualMarker) manualMarker.setLatLng(latLng); else manualMarker = L.marker(latLng, { icon: mockIcon }).addTo(appState.map);
-                        appState.userPosition = { lat: latLng.lat, lng: latLng.lng };
-                        if (appState.isTimerRunning) { appState.routeCoordinates.push([latLng.lat, latLng.lng]); saveGameState(); }
-                        checkGeofence();
-                        const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                        const bounds = L.latLngBounds(manualMarker.getLatLng(), L.latLng(currentTask.location.lat, currentTask.location.lng));
-                        appState.map.fitBounds(bounds.pad(0.2)); 
-                    };
-                    appState.map.on('click', appState.map.clickHandler);
-                }
-            } else {
-                if (appState.map.clickHandler) { appState.map.off('click', appState.map.clickHandler); appState.map.clickHandler = null; }
-                if (manualMarker) { manualMarker.remove(); manualMarker = null; }
-                if (appState.isManualMock) { appState.userPosition = null; watchPosition(); }
-            }
+    if (!appState.map) return;
+    
+    if (appState.currentGame && appState.currentGame.taskOrder === 'explore' && appState.currentTaskIndex === 0 && appState.isTimerRunning) {
+        if (appState.map.clickHandler) { 
+            appState.map.off('click', appState.map.clickHandler); 
+            appState.map.clickHandler = null; 
         }
+        return;
+    }
+
+    if (enable) {
+        if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
+        appState.geoWatchId = null;
+
+        if (!appState.map.clickHandler) {
+            appState.map.clickHandler = (e) => {
+                const latLng = e.latlng;
+                
+                // DivIcon létrehozása (a .player-marker osztály viszi a CSS formázást és a forgatást)
+                const mockIcon = L.divIcon({ 
+    className: 'player-marker', 
+    iconSize: [20, 20], 
+    iconAnchor: [10, 10], 
+    html: '<div class="marker-visual"></div>' // Ezt a div-et adjuk hozzá
+});
+
+                if (manualMarker) {
+                    manualMarker.setLatLng(latLng);
+                } else {
+                    manualMarker = L.marker(latLng, { icon: mockIcon }).addTo(appState.map);
+                }
+
+                appState.userPosition = { lat: latLng.lat, lng: latLng.lng };
+
+                // --- ÚJ: AUTOMATIKUS FORGATÁS ---
+                const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                if (currentTask && currentTask.location) {
+                    // Kiszámoljuk az irányt a kattintott pont és a célpont között
+                    const bearing = calculateBearing(
+                        latLng.lat, latLng.lng, 
+                        currentTask.location.lat, currentTask.location.lng
+                    );
+                    // Alkalmazzuk a forgatást az új központi függvényünkkel
+                    window.applyRotation(bearing);
+                }
+                // --- ÚJ RÉSZ VÉGE ---
+
+                if (appState.isTimerRunning) { 
+                    appState.routeCoordinates.push([latLng.lat, latLng.lng]); 
+                    saveGameState(); 
+                }
+
+                checkGeofence();
+
+                // Térkép igazítása a pozíciónk és a célpont közé
+                if (currentTask && currentTask.location) {
+                    const bounds = L.latLngBounds(
+                        [latLng.lat, latLng.lng], 
+                        [currentTask.location.lat, currentTask.location.lng]
+                    );
+                    appState.map.fitBounds(bounds.pad(0.2));
+                }
+            };
+            appState.map.on('click', appState.map.clickHandler);
+        }
+    } else {
+        if (appState.map.clickHandler) { 
+            appState.map.off('click', appState.map.clickHandler); 
+            appState.map.clickHandler = null; 
+        }
+        if (manualMarker) { 
+            manualMarker.remove(); 
+            manualMarker = null; 
+        }
+        if (appState.isManualMock) { 
+            appState.userPosition = null; 
+            watchPosition(); 
+        }
+    }
+}
         
   function initializeMap(gameData = null) {
     const mapContainer = document.getElementById('map');
@@ -5836,12 +5902,12 @@ if (!appState.isTestModeEnabled) {
             appState.playerMarker.setLatLng(latLng);
         } else {
             const playerIcon = L.divIcon({
-                className: 'player-marker',
-                html: '',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10],
-                popupAnchor: [0, -10]
-            });
+    className: 'player-marker',
+    html: '<div class="marker-visual"></div>', // Bekerült a belső elem
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -10]
+});
             
             appState.playerMarker = L.marker(latLng, { 
                 icon: playerIcon,
