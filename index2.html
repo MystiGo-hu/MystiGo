@@ -1891,44 +1891,55 @@ window.checkOnlineStatus = function() {
   // 1. LIMIT ELLENŐRZÉS ÉS NÖVELÉS (SZIGORÚ MÓD) - JAVÍTOTT
 window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
     if(!gameId) return true; 
-    if (!window.db || !window.runTransaction) return true; // Ha offline, átengedjük (kockázat)
+    if (!window.db || !window.runTransaction) return true;
 
-let statsId = gameId;
-    if (String(gameId).startsWith('instant_')) {
-        statsId = 'instant_kozos';
-    }
+    // 1. STATISZTIKAI ID MEGHATÁROZÁSA
+    // Ha instant, akkor az "instant_kozos" mappába írunk, minden más esetben a saját ID-jába
+    const isInstant = String(gameId).startsWith('instant_');
+    const statsId = isInstant ? 'instant_kozos' : gameId;
 
     const limit = parseInt(maxPlayers, 10);
-    if (isNaN(limit) || limit <= 0) return true; 
-
-    console.log(`Limit ellenőrzése: ${gameId}, Max: ${limit}`);
     
-    // MÓDOSÍTVA: window.ref használata
-    const gameRef = window.ref(window.db, 'game_stats/' + gameId + '/count');
+    // 2. ELÉRÉSI ÚT JAVÍTÁSA
+    // Itt a statsId-t kell használni, hogy ne jöjjön létre egyedi mappa!
+    const gameRef = window.ref(window.db, 'game_stats/' + statsId + '/count');
     
     try {
-        // MÓDOSÍTVA: window.runTransaction használata
         const result = await window.runTransaction(gameRef, (currentCount) => {
             const count = (currentCount || 0);
-            if (count >= limit) {
-                return undefined; 
+
+            // 3. LIMIT ELLENŐRZÉSE
+            // Csak akkor dobunk "undefined"-et (megállítást), ha:
+            // - NEM instant játékról van szó
+            // - VAN érvényes limit (nagyobb mint 0)
+            // - ÉS a számláló elérte azt
+            if (!isInstant && !isNaN(limit) && limit > 0) {
+                if (count >= limit) {
+                    return undefined; // Megszakítja a tranzakciót, betelt
+                }
             }
+
+            // Minden más esetben (instant játék vagy nincs limit) növeljük a számlálót
             return count + 1;
         });
           
         if (result.committed) {
-            console.log(`Sikeres belépés. Új létszám: ${result.snapshot.val()}`);
+            console.log(`Statisztika rögzítve (${statsId}). Új létszám: ${result.snapshot.val()}`);
             return true;
         } else {
+            // Ez csak akkor fut le, ha a fenti "return undefined" ág aktiválódott
             console.warn(`Limit elutasítva: Betelt (${limit} fő).`);
             return false;
         }
 
     } catch (error) { 
         console.error("KRITIKUS Limit hiba:", error); 
-        return false; 
+        // Hiba esetén is engedjük játszani a felhasználót, de naplózzuk
+        return true; 
     }
 };
+
+
 
 // ÚJ FÜGGVÉNY: Csak ellenőrzés - JAVÍTOTT
 window.checkGameLimitOnly = async function(gameId, maxPlayers) {
@@ -1952,7 +1963,7 @@ window.getGameCurrentCount = async function(gameId) {
     if(!gameId) return 0;
     if (!window.db || !window.get) return 0;
 
-    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
+    const statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
 
     try {
         const snapshot = await window.get(window.ref(window.db, 'game_stats/' + statsId + '/count'));
@@ -2175,6 +2186,10 @@ window.submitGameRating = async function() {
         
         closeRatingModal();
         showMessage("Köszönjük!", "Az értékelésedet rögzítettük.");
+if (String(window.currentGameId).startsWith('instant_')) {
+            window.resetAllInstantCustomization();
+        }
+
     } catch (e) {
         console.error("Értékelési hiba:", e);
     } finally {
@@ -2583,17 +2598,16 @@ html += `
 // --- ÚJ RÉSZ: Befejezett játékok számolása (Atomic Increment) ---
   window.incrementGameCompletion = async function(gameId) {
     if(!gameId) return;
-    if (!window.db || !window.ref) return;
+    if (!window.db || !window.runTransaction) return;
 
-    // --- ÚJ SZŰRŐ ---
-    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
+    const statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
 
     const gameRef = window.ref(window.db, 'game_stats/' + statsId + '/completed');
     try {
         await window.runTransaction(gameRef, (currentCount) => {
             return (currentCount || 0) + 1;
         });
-    } catch (error) { console.error(error); }
+    } catch (error) { console.error("Completion stats hiba:", error); }
 };
 
 
@@ -3103,6 +3117,7 @@ window.deleteInstantAdventure = function(force = false) {
             delete window.games[gameId];
         }
         window.checkInstantProgress();
+   window.resetAllInstantCustomization();
         console.log("Instant játék törölve, felület frissítve.");
     };
 
@@ -3227,6 +3242,32 @@ window.resetInstantTarget = function() {
     document.getElementById('confirm-target-btn').classList.add('opacity-50');
 };
 
+
+window.resetAllInstantCustomization = function() {
+    // 1. Legördülő menük (dropdowns) visszaállítása alaphelyzetbe
+    const catSelect = document.getElementById('instant-category-select');
+    const diffSelect = document.getElementById('instant-difficulty-select');
+    const countSelect = document.getElementById('instant-task-count-select');
+
+    if (catSelect) catSelect.value = 'all';
+    if (diffSelect) diffSelect.value = 'all';
+    if (countSelect) countSelect.value = '5';
+
+    // 2. Célpont és térkép törlése (a már meglévő függvényünkkel)
+    if (typeof window.resetInstantTarget === 'function') {
+        window.resetInstantTarget();
+    }
+
+    // 3. A testreszabás menü becsukása (hogy tiszta legyen a felület)
+    const content = document.getElementById('instant-custom-content');
+    const icon = document.getElementById('instant-custom-icon');
+    if (content && !content.classList.contains('hidden')) {
+        content.classList.add('hidden');
+        if (icon) icon.textContent = '+';
+    }
+    
+    console.log("Minden instant testreszabás alaphelyzetbe állítva.");
+};
 
 
 
