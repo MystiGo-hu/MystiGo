@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.31
+       v1.2.32
 
    </span>
 
@@ -3069,20 +3069,25 @@ window.deleteInstantAdventure = function(force = false) {
 
 
 
-window.applyRotation = function(deg) {
+window._currentAppliedRotation = 0; // Ebben tároljuk a folyamatos szöget
+
+window.applyRotation = function(targetDeg) {
     const activeMarker = appState.playerMarker || manualMarker;
     if (!activeMarker) return;
     
+    // Kiszámoljuk a legrövidebb különbséget (-180 és +180 fok között)
+    let diff = (targetDeg - (window._currentAppliedRotation % 360) + 540) % 360 - 180;
+    window._currentAppliedRotation += diff;
+
     const el = activeMarker.getElement();
     if (el) {
-        // Megkeressük a belső kék kört és csak azt forgatjuk el
         const visual = el.querySelector('.marker-visual');
         if (visual) {
-            visual.style.setProperty('--rotation', `${deg}deg`);
+            // A folyamatosan növekvő/csökkenő szöget írjuk be a CSS-be
+            visual.style.setProperty('--rotation', `${window._currentAppliedRotation}deg`);
         }
     }
 };
-
 
         function initializeState() {
             appState = { 
@@ -6134,8 +6139,6 @@ if (diff < -180) diff += 360;
 
 // Exponenciális simítás
 smoothedHeading += diff * smoothingFactor;
-// Itt marad a modulo, de mivel már nincs CSS transition, nem fog körbe-pörögni
-smoothedHeading = (smoothedHeading + 360) % 360;
 
         // Megjelenítés a térképen
         const markerEl = appState.playerMarker.getElement();
