@@ -668,7 +668,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.29
+       v1.2.30
 
    </span>
 
@@ -5793,6 +5793,16 @@ if (!appState.isTestModeEnabled) {
         function updatePlayerMarker(lat, lng, heading) {
     if (!appState.map) return;
 
+// GPS ALAPÚ IRÁNYSZÁMÍTÁS (Ha mozogsz, ez stabilizál)
+    if (lastGpsLat !== null && lastGpsLng !== null) {
+        const dist = haversineDistance({lat: lastGpsLat, lng: lastGpsLng}, {lat: lat, lng: lng});
+        if (dist > 2) { // Csak 2 méternél nagyobb elmozdulásnál számolunk
+            movementHeading = calculateBearing(lastGpsLat, lastGpsLng, lat, lng);
+        }
+    }
+    lastGpsLat = lat;
+    lastGpsLng = lng;
+
     // 1. Pozíció mentése
     appState.userPosition = { lat: lat, lng: lng };
 
@@ -6013,48 +6023,46 @@ function stopAllGpsActivity() {
 
 // --- ÚJ KÍSÉRŐ FÜGGVÉNY AZ IRÁNYTŰHÖZ ---
 let smoothedHeading = null;
-const smoothingFactor = 0.12; // Minél kisebb (pl. 0.05), annál simább, de lassabb. 0.1-0.2 az ideális.
+const smoothingFactor = 0.12; // 0.1 = 10% új adat, 90% régi adat. Kisebb szám = simább, de lassabb mozgás.
+let lastGpsLat = null;
+let lastGpsLng = null;
+let movementHeading = null;
+
 
 function handleOrientation(event) {
     let currentHeading = null;
 
-    // iOS eszközök (Safari)
+    // Szenzoradatok kinyerése (iOS / Android)
     if (event.webkitCompassHeading) {
         currentHeading = event.webkitCompassHeading;
-    } 
-    // Android és modern böngészők
-    else if (event.absolute && event.alpha !== null) {
+    } else if (event.absolute && event.alpha !== null) {
         currentHeading = 360 - event.alpha;
     }
 
     if (currentHeading !== null && appState.playerMarker) {
-        // Első inicializálás
-        if (smoothedHeading === null) {
-            smoothedHeading = currentHeading;
-        }
+        // Ha van GPS irányunk és épp haladunk, az iránytű "rásegít"
+        let targetHeading = currentHeading;
 
-        // 1. A LEGRÖVIDEBB ÚT KISZÁMÍTÁSA (359° -> 1° ne forduljon körbe)
-        let diff = currentHeading - smoothedHeading;
+        // Első inicializálás
+        if (smoothedHeading === null) smoothedHeading = targetHeading;
+
+        // Átfordulás védelem: kiszámoljuk a legrövidebb utat (359° -> 1°)
+        let diff = targetHeading - smoothedHeading;
         if (diff > 180) diff -= 360;
         if (diff < -180) diff += 360;
 
-        // 2. EXPONENCIÁLIS SIMÍTÁS
-        // Új érték = régi érték + (különbség * simítási tényező)
+        // EXPONENCIÁLIS SIMÍTÁS: Ez szünteti meg a rángatózást
+        // Nem ugrik a nyíl, hanem "úszik" az új irányba
         smoothedHeading += diff * smoothingFactor;
-
-        // Normalizálás 0-360 közé
         smoothedHeading = (smoothedHeading + 360) % 360;
 
-        // 3. UI FRISSÍTÉSE
-        // Csak akkor rajzolunk, ha valóban történt látható elmozdulás (pl. 0.5 fok)
-        if (Math.abs(diff) > 0.5) {
-            const markerEl = appState.playerMarker.getElement();
-            if (markerEl) {
-                markerEl.style.transformOrigin = "center center";
-                // Megőrizzük a Leaflet eredeti eltolásait, csak a rotációt módosítjuk
-                const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
-                markerEl.style.transform = `${currentTransform} rotate(${smoothedHeading.toFixed(1)}deg)`;
-            }
+        // Megjelenítés a térképen
+        const markerEl = appState.playerMarker.getElement();
+        if (markerEl) {
+            markerEl.style.transformOrigin = "center center";
+            // Leaflet pozíció megőrzése a rotáció mellett
+            const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
+            markerEl.style.transform = `${currentTransform} rotate(${smoothedHeading.toFixed(1)}deg)`;
         }
     }
 }
