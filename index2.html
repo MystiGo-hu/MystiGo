@@ -1893,6 +1893,11 @@ window.checkGameLimitAndIncrement = async function(gameId, maxPlayers) {
     if(!gameId) return true; 
     if (!window.db || !window.runTransaction) return true; // Ha offline, átengedjük (kockázat)
 
+let statsId = gameId;
+    if (String(gameId).startsWith('instant_')) {
+        statsId = 'instant_kozos';
+    }
+
     const limit = parseInt(maxPlayers, 10);
     if (isNaN(limit) || limit <= 0) return true; 
 
@@ -1930,36 +1935,29 @@ window.checkGameLimitOnly = async function(gameId, maxPlayers) {
     if(!gameId) return true;
     if (!window.db || !window.get) return true;
     
+    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId; // Rövidített szűrő
+
     try {
-        const snapshot = await window.get(window.ref(window.db, 'game_stats/' + gameId + '/count'));
+        const snapshot = await window.get(window.ref(window.db, 'game_stats/' + statsId + '/count'));
         const currentCount = parseInt(snapshot.val() || 0, 10);
         const limit = parseInt(maxPlayers, 10);
-
-        if (currentCount >= limit) {
-            return false; // BETELT
-        }
-        return true; // VAN HELY
-
-    } catch (error) {
-        return false; 
-    }
+        return currentCount < limit;
+    } catch (error) { return false; }
 };
+
 
 
 // ÚJ: Csak a létszám lekérése (megjelenítéshez) - JAVÍTOTT
 window.getGameCurrentCount = async function(gameId) {
     if(!gameId) return 0;
-    // Ellenőrzés: Van-e Firebase?
     if (!window.db || !window.get) return 0;
 
+    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
+
     try {
-        // MÓDOSÍTVA: window.get és window.ref használata!
-        const snapshot = await window.get(window.ref(window.db, 'game_stats/' + gameId + '/count'));
+        const snapshot = await window.get(window.ref(window.db, 'game_stats/' + statsId + '/count'));
         return parseInt(snapshot.val() || 0, 10);
-    } catch (error) {
-        console.error("Létszám lekérési hiba:", error);
-        return 0; 
-    }
+    } catch (error) { return 0; }
 };
 
 
@@ -2151,9 +2149,14 @@ window.submitGameRating = async function() {
 
     if (!gameId || !window.db || !window.runTransaction) return;
 
+    // --- ÚJ SZŰRŐ AZ INSTANT JÁTÉKOKHOZ ---
+    // Ha az ID "instant_" kezdetű, akkor a közös kulcsot használjuk a statisztikákhoz
+    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
+
     showLoading(true);
-    // A Firebase-ben a game_stats/JÁTÉK_ID/rating alá mentünk
-    const statsRef = window.ref(window.db, `game_stats/${gameId}/rating`);
+    
+    // A Firebase-ben most már a statsId (vagy az eredeti ID, vagy 'instant_kozos') alá mentünk
+    const statsRef = window.ref(window.db, `game_stats/${statsId}/rating`);
 
     try {
         await window.runTransaction(statsRef, (currentData) => {
@@ -2178,7 +2181,6 @@ window.submitGameRating = async function() {
         showLoading(false);
     }
 };
-
 
 
 
@@ -2581,20 +2583,17 @@ html += `
 // --- ÚJ RÉSZ: Befejezett játékok számolása (Atomic Increment) ---
   window.incrementGameCompletion = async function(gameId) {
     if(!gameId) return;
-    
-    // ✅ JAVÍTÁS: window.db és window.ref
-    if (!window.db || !window.runTransaction) return;
+    if (!window.db || !window.ref) return;
 
-    const gameRef = window.ref(window.db, 'game_stats/' + gameId + '/completed');
+    // --- ÚJ SZŰRŐ ---
+    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
+
+    const gameRef = window.ref(window.db, 'game_stats/' + statsId + '/completed');
     try {
-        // ✅ JAVÍTÁS: window.runTransaction
         await window.runTransaction(gameRef, (currentCount) => {
             return (currentCount || 0) + 1;
         });
-        console.log("Statisztika frissítve.");
-    } catch (error) {
-        console.error("Nem sikerült növelni a számlálót:", error);
-    }
+    } catch (error) { console.error(error); }
 };
 
 
