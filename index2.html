@@ -313,14 +313,31 @@
         }
         .hidden { display: none !important; }
 
-        .player-marker {
-            background-color: var(--brand-orange);
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 20px !important;
-            height: 20px !important;
-            box-shadow: 0 0 10px var(--brand-orange);
-        }
+        /* Iránytű jellegű játékos ikon */
+.player-marker {
+    width: 20px !important;
+    height: 20px !important;
+    background-color: #007AFF; /* iPhone kék */
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 122, 255, 0.6);
+    position: relative;
+    transition: transform 0.2s ease-out; /* Simább elfordulás */
+}
+
+/* Az irányt jelző kis "háromszög" az ikon tetején */
+.player-marker::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 12px solid #007AFF;
+}
+
+
         /* task-marker eltávolítva, már nem használjuk */
         .modal-overlay { z-index: 2000; }
         .geofence-circle {
@@ -651,7 +668,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.27
+       v1.2.28
 
    </span>
 
@@ -5767,109 +5784,102 @@ if (!appState.isTestModeEnabled) {
 
 
 
-        function updatePlayerMarker(lat, lng) {
-            if (!appState.map) return;
+        function updatePlayerMarker(lat, lng, heading) {
+    if (!appState.map) return;
 
-            // 1. Pozíció mentése
-            appState.userPosition = { lat: lat, lng: lng };
+    // 1. Pozíció mentése
+    appState.userPosition = { lat: lat, lng: lng };
 
-            // Útvonal rögzítése
-            if (appState.isTimerRunning) {
-                appState.routeCoordinates.push([lat, lng]);
-            }
+    // Útvonal rögzítése
+    if (appState.isTimerRunning) {
+        appState.routeCoordinates.push([lat, lng]);
+    }
 
-            if (!appState.isTestModeEnabled && !appState.isManualMock) {
-                const latLng = new L.LatLng(lat, lng);
+    if (!appState.isTestModeEnabled && !appState.isManualMock) {
+        const latLng = new L.LatLng(lat, lng);
 
-                // 2. Marker (kék/sárga pötty) kezelése
-                if (appState.playerMarker) {
-                    appState.playerMarker.setLatLng(latLng);
-                } else {
-                    const playerIcon = L.divIcon({
-                        className: 'player-marker',
-                        html: '',
-                        iconSize: [20, 20],
-                        iconAnchor: [10, 10],
-                        popupAnchor: [0, -10]
-                    });
-                    
-                    appState.playerMarker = L.marker(latLng, { 
-                        icon: playerIcon,
-                        zIndexOffset: 1000 
-                    }).addTo(appState.map);
-                }
-                
-                // 3. Térkép igazítása (Zoom logika) - SPECIÁLIS JAVÍTÁS
-                
-                // Megnézzük, mennyi idő telt el az utolsó kézi mozgatás óta
-                const now = Date.now();
-                const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
-
-                // --- ÚJ RÉSZ KEZDETE: EXPLORE MÓD KEZELÉSE ---
-                // Ellenőrizzük, hogy épp az Explore választó képernyőn vagyunk-e
-                const isExploreSelection = (
-                    appState.currentGame &&
-                    appState.currentGame.taskOrder === 'explore' &&
-                    !document.getElementById('explore-selection-container').classList.contains('hidden')
-                );
-
-                if (isExploreSelection) {
-                    // HA Explore választó nézetben vagyunk:
-                    
-                    // 1. Ha a felhasználó épp mozgatja (vagy az elmúlt 5 mp-ben mozgatta), NEM csinálunk semmit.
-                    // Hagyjuk, hadd nézelődjön szabadon.
-                    if (timeSinceLastInteraction < 5000) { // <--- ITT ÁLLÍTOTTUK ÁT 5000-re (5 mp)
-                        return; 
-                    }
-
-                    // 2. Ha eltelt 5 másodperc interakció nélkül, visszaállítjuk a "Teljes Nézetet"
-                    // Összegyűjtjük az összes marker pozícióját
-                    const markerKeys = Object.keys(appState.taskMarkers);
-                    if (markerKeys.length > 0) {
-                        const bounds = [];
-                        // Hozzáadjuk a feladatokat
-                        markerKeys.forEach(key => {
-                            if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
-                        });
-                        // Hozzáadjuk a játékos pozícióját is, hogy ő is rajta legyen a képen
-                        bounds.push(latLng);
-
-                        // Finom igazítás (animate: true), hogy ne legyen darabos
-                        appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
-                    }
-                    
-                    // KILÉPÜNK, hogy a lenti (régi) zoom logika NE fusson le, ami ráhúzna a játékosra
-                    checkGeofence();
-                    return; 
-                }
-                // --- ÚJ RÉSZ VÉGE ---
-
-
-                // --- RÉGI LOGIKA (Normál játékmenethez) ---
-                // CSAK akkor igazítjuk a kamerát, ha eltelt 3 másodperc (3000 ms) és NEM Explore választóban vagyunk
-                if (timeSinceLastInteraction > 3000) {
-                    
-                    if (appState.geofenceCircle && appState.playerMarker) { 
-                        const targetLatLng = appState.geofenceCircle.getLatLng();
-                        const distance = latLng.distanceTo(targetLatLng);
-                        const radius = appState.geofenceCircle.getRadius();
-    
-                        // KÖZELI NÉZET:
-                        if (distance <= radius + 20) {
-                            appState.map.setView(latLng, 19, { animate: true });
-                        } else {
-                            // TÁVOLABBI NÉZET:
-                            const bounds = L.latLngBounds(latLng, targetLatLng);
-                            appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
-                        }
-                    } else {
-                        appState.map.setView(latLng, 19);
-                    }
-                }
-            }
+        // 2. Marker (kék/sárga pötty) kezelése
+        if (appState.playerMarker) {
+            appState.playerMarker.setLatLng(latLng);
+        } else {
+            const playerIcon = L.divIcon({
+                className: 'player-marker',
+                html: '',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                popupAnchor: [0, -10]
+            });
             
-            checkGeofence();
+            appState.playerMarker = L.marker(latLng, { 
+                icon: playerIcon,
+                zIndexOffset: 1000 
+            }).addTo(appState.map);
         }
+
+        // --- ÚJ RÉSZ: AZ IKON ELFORGATÁSA ---
+        if (heading !== null && heading !== undefined && appState.playerMarker) {
+            const markerEl = appState.playerMarker.getElement();
+            if (markerEl) {
+                markerEl.style.transformOrigin = "center center";
+                // Megőrizzük a Leaflet eredeti eltolásait (translate), csak a rotációt adjuk hozzá/cseréljük
+                const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
+                markerEl.style.transform = `${currentTransform} rotate(${heading}deg)`;
+            }
+        }
+        // --- ÚJ RÉSZ VÉGE ---
+
+        
+        // 3. Térkép igazítása (Zoom logika) - SPECIÁLIS JAVÍTÁS
+        const now = Date.now();
+        const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
+
+        // EXPLORE MÓD KEZELÉSE
+        const isExploreSelection = (
+            appState.currentGame &&
+            appState.currentGame.taskOrder === 'explore' &&
+            !document.getElementById('explore-selection-container').classList.contains('hidden')
+        );
+
+        if (isExploreSelection) {
+            if (timeSinceLastInteraction < 5000) { 
+                checkGeofence();
+                return; 
+            }
+
+            const markerKeys = Object.keys(appState.taskMarkers);
+            if (markerKeys.length > 0) {
+                const bounds = [];
+                markerKeys.forEach(key => {
+                    if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
+                });
+                bounds.push(latLng);
+                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
+            }
+            checkGeofence();
+            return; 
+        }
+
+        // RÉGI LOGIKA (Normál játékmenethez)
+        if (timeSinceLastInteraction > 3000) {
+            if (appState.geofenceCircle && appState.playerMarker) { 
+                const targetLatLng = appState.geofenceCircle.getLatLng();
+                const distance = latLng.distanceTo(targetLatLng);
+                const radius = appState.geofenceCircle.getRadius();
+
+                if (distance <= radius + 20) {
+                    appState.map.setView(latLng, 19, { animate: true });
+                } else {
+                    const bounds = L.latLngBounds(latLng, targetLatLng);
+                    appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
+                }
+            } else {
+                appState.map.setView(latLng, 19);
+            }
+        }
+    }
+    
+    checkGeofence();
+}
 
 
 
@@ -5924,68 +5934,105 @@ function stopAllGpsActivity() {
     }
 }
 
-        function watchPosition() {
-            // ELŐSZÖR LEÁLLÍTJUK A RÉGIT, HA VAN
-            stopAllGpsActivity();
 
-            if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
-                appState.geoWatchId = navigator.geolocation.watchPosition(
-                    (pos) => { 
-                        // SIKER: Ha visszajött a jel, a updatePlayerMarker majd frissíti a térképet
-                        updatePlayerMarker(pos.coords.latitude, pos.coords.longitude); 
-                    }, 
-                    (err) => {
-                        // HIBA KEZELÉSE (Módosítva: Nem lép ki!)
-                        console.warn(`GEO ERROR(${err.code}): ${err.message}`);
-                        
-                        // Hiba esetén is nullázzuk az ID-t, hogy tiszta lappal indulhassunk újra
-                        appState.geoWatchId = null; 
-                        
-                        if (!appState.isTestModeEnabled) { 
-                            showLoading(false); 
-                            
-                            // --- ITT A VÁLTOZÁS ---
-                            // 1. Eset: Ha már megy a játék (számláló pörög)
-                            if (appState.isTimerRunning) {
-                                // NEM hívunk resetApp()-ot! Csak jelezzük a hibát a képernyőn.
-                                const distEl = document.getElementById('distance-info');
-                                if (distEl) {
-                                    distEl.className = 'text-center text-xs font-bold mt-2 text-red-600 animate-pulse';
-                                    distEl.innerHTML = '⚠️ GPS jel elveszett! Menj nyílt terepre...';
-                                }
-                                
-                                // Megpróbáljuk újraindítani a figyelést 5 másodperc múlva (automatikus retry)
-                                setTimeout(() => {
-                                    if(!appState.geoWatchId && appState.isTimerRunning) {
-                                        console.log("♻️ GPS újraindítási kísérlet...");
-                                        watchPosition();
-                                    }
-                                }, 5000);
-                            } 
-                            // 2. Eset: Ha még nem indult el a játék (Start képernyő)
-                            else {
-                                // Ilyenkor feldobjuk a segítő ablakot, de NEM resetelünk automatikusan.
-                                document.getElementById('gps-help-modal').classList.remove('hidden');
-                            }
-                        } 
-                        else { 
-                            // Teszt módban csak logolunk
-                            showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); 
-                            checkGeofence(); 
-                        }
-                    },
-                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-                );
-                console.log("🛰️ Új GPS figyelés indítva, ID:", appState.geoWatchId);
-            } else if (appState.isTestModeEnabled && !appState.isManualMock) {
-                 const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                 appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
-                 checkGeofence();
-            } else if (appState.isManualMock) {
-                 appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
-                 checkGeofence();
-            }
+
+        function watchPosition() {
+    // ELŐSZÖR LEÁLLÍTJUK A RÉGIT, HA VAN
+    stopAllGpsActivity();
+
+    // --- ÚJ: IRÁNYTŰ (ELFORGATÁS) FIGYELÉSE ---
+    // Megpróbáljuk figyelni a telefon iránytűjét
+    if (window.DeviceOrientationEvent) {
+        // Eltávolítjuk a régit, hogy ne legyen több példányban, majd hozzáadjuk
+        window.removeEventListener('deviceorientationabsolute', handleOrientation);
+        window.removeEventListener('deviceorientation', handleOrientation);
+
+        if ('ondeviceorientationabsolute' in window) {
+            window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        } else {
+            window.addEventListener('deviceorientation', handleOrientation, true);
         }
+    }
+
+    if (!appState.isTestModeEnabled && !appState.isManualMock && 'geolocation' in navigator) {
+        appState.geoWatchId = navigator.geolocation.watchPosition(
+            (pos) => { 
+                // SIKER: Átadjuk a koordinátákat ÉS a GPS alapú irányt (heading) is
+                updatePlayerMarker(pos.coords.latitude, pos.coords.longitude, pos.coords.heading); 
+            }, 
+            (err) => {
+                // HIBA KEZELÉSE (Meglévő logikád)
+                console.warn(`GEO ERROR(${err.code}): ${err.message}`);
+                
+                appState.geoWatchId = null; 
+                
+                if (!appState.isTestModeEnabled) { 
+                    showLoading(false); 
+                    
+                    if (appState.isTimerRunning) {
+                        const distEl = document.getElementById('distance-info');
+                        if (distEl) {
+                            distEl.className = 'text-center text-xs font-bold mt-2 text-red-600 animate-pulse';
+                            distEl.innerHTML = '⚠️ GPS jel elveszett! Menj nyílt terepre...';
+                        }
+                        
+                        setTimeout(() => {
+                            if(!appState.geoWatchId && appState.isTimerRunning) {
+                                console.log("♻️ GPS újraindítási kísérlet...");
+                                watchPosition();
+                            }
+                        }, 5000);
+                    } 
+                    else {
+                        document.getElementById('gps-help-modal').classList.remove('hidden');
+                    }
+                } 
+                else { 
+                    showMessage('GPS Hiba', 'Nem sikerült lekérni a helyzeted. Teszt Mód folytatódik.'); 
+                    checkGeofence(); 
+                }
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+        console.log("🛰️ Új GPS figyelés indítva, ID:", appState.geoWatchId);
+    } else if (appState.isTestModeEnabled && !appState.isManualMock) {
+         const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+         appState.userPosition = task ? { lat: task.location.lat, lng: task.location.lng } : { lat: appState.currentGame.startLocation.lat, lng: appState.currentGame.startLocation.lng };
+         checkGeofence();
+    } else if (appState.isManualMock) {
+         appState.userPosition = (manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : null;
+         checkGeofence();
+    }
+}
+
+// --- ÚJ KÍSÉRŐ FÜGGVÉNY AZ IRÁNYTŰHÖZ ---
+function handleOrientation(event) {
+    let heading = null;
+
+    // iOS eszközök (Safari)
+    if (event.webkitCompassHeading) {
+        heading = event.webkitCompassHeading;
+    } 
+    // Android és modern böngészők
+    else if (event.absolute && event.alpha !== null) {
+        heading = 360 - event.alpha;
+    }
+
+    // Ha van irány adatunk és létezik a marker, elforgatjuk
+    if (heading !== null && appState.playerMarker) {
+        const markerEl = appState.playerMarker.getElement();
+        if (markerEl) {
+            // Fontos: Itt csak a belső div-et (az ikont) forgatjuk, 
+            // hogy ne zavarjuk a Leaflet pozicionálását
+            markerEl.style.transformOrigin = "center center";
+            
+            // Megkeressük az aktuális transform értéket (ami a pozíciót adja)
+            // és hozzáadjuk a rotációt
+            const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
+            markerEl.style.transform = `${currentTransform} rotate(${heading}deg)`;
+        }
+    }
+}
 
 
         
@@ -7402,6 +7449,17 @@ const isIos = () => {
                 updateStatusDisplays();
             });
 
+
+
+document.getElementById('answer-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('submit-answer-btn').click();
+    }
+});
+
+
+
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
     const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
     if (!task) return;
@@ -8544,7 +8602,7 @@ window.openQrScanner = function() {
             closeQrScanner();
             
             // Opcionális: Azonnali beküldés beolvasás után
-            // setTimeout(() => { document.getElementById('submit-answer-btn').click(); }, 500);
+            setTimeout(() => { document.getElementById('submit-answer-btn').click(); }, 500);
         },
         (errorMessage) => {
             // Itt nem dobunk hibát, mert az olvasó folyamatosan próbálkozik
