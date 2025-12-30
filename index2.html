@@ -6012,7 +6012,8 @@ function stopAllGpsActivity() {
 }
 
 // --- ÚJ KÍSÉRŐ FÜGGVÉNY AZ IRÁNYTŰHÖZ ---
-let lastCompassHeading = 0; 
+let smoothedHeading = null;
+const smoothingFactor = 0.12; // Minél kisebb (pl. 0.05), annál simább, de lassabb. 0.1-0.2 az ideális.
 
 function handleOrientation(event) {
     let currentHeading = null;
@@ -6026,24 +6027,33 @@ function handleOrientation(event) {
         currentHeading = 360 - event.alpha;
     }
 
-    // Ha van irány adatunk és létezik a marker
     if (currentHeading !== null && appState.playerMarker) {
-        
-        // --- KÜSZÖBÉRTÉK (3 fokos holtzóna) ---
-        // Csak akkor frissítjük a kijelzőt, ha legalább 3 fokot fordultunk,
-        // vagy ha az előzőhöz képest hatalmasat ugrott (pl. átfordult 0-n)
-        const diff = Math.abs(currentHeading - lastCompassHeading);
-        
-        if (diff > 3) {
-            lastCompassHeading = currentHeading; // Elmentjük az új irányt
+        // Első inicializálás
+        if (smoothedHeading === null) {
+            smoothedHeading = currentHeading;
+        }
 
+        // 1. A LEGRÖVIDEBB ÚT KISZÁMÍTÁSA (359° -> 1° ne forduljon körbe)
+        let diff = currentHeading - smoothedHeading;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        // 2. EXPONENCIÁLIS SIMÍTÁS
+        // Új érték = régi érték + (különbség * simítási tényező)
+        smoothedHeading += diff * smoothingFactor;
+
+        // Normalizálás 0-360 közé
+        smoothedHeading = (smoothedHeading + 360) % 360;
+
+        // 3. UI FRISSÍTÉSE
+        // Csak akkor rajzolunk, ha valóban történt látható elmozdulás (pl. 0.5 fok)
+        if (Math.abs(diff) > 0.5) {
             const markerEl = appState.playerMarker.getElement();
             if (markerEl) {
                 markerEl.style.transformOrigin = "center center";
-                
-                // Megkeressük az aktuális pozíciót (translate) és csak a rotációt cseréljük
+                // Megőrizzük a Leaflet eredeti eltolásait, csak a rotációt módosítjuk
                 const currentTransform = markerEl.style.transform.replace(/rotate\(.*?\)/, "");
-                markerEl.style.transform = `${currentTransform} rotate(${currentHeading}deg)`;
+                markerEl.style.transform = `${currentTransform} rotate(${smoothedHeading.toFixed(1)}deg)`;
             }
         }
     }
