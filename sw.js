@@ -1,5 +1,5 @@
-const CACHE_NAME = 'mystigo-v13-static'; 
-const DYNAMIC_CACHE = 'mystigo-v13-dynamic';
+const CACHE_NAME = 'mystigo-v14-static'; 
+const DYNAMIC_CACHE = 'mystigo-v14-dynamic';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -80,6 +80,7 @@ self.addEventListener('fetch', (event) => {
   );
 
 });
+
 
 
 
