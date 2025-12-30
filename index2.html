@@ -322,7 +322,7 @@
     border-radius: 50%;
     box-shadow: 0 0 15px rgba(0, 122, 255, 0.6);
     position: relative;
-    transition: transform 0.4s ease-out !important; /* Simább elfordulás */
+    
 }
 
 /* Az irányt jelző kis "háromszög" az ikon tetején */
@@ -6042,25 +6042,28 @@ function handleOrientation(event) {
     if (currentHeading !== null && appState.playerMarker) {
         // Ha van GPS irányunk és épp haladunk, az iránytű "rásegít"
         let targetHeading = currentHeading;
-        if (movementHeading !== null) {
-            let geoDiff = movementHeading - currentHeading;
-            if (geoDiff > 180) geoDiff -= 360;
-            if (geoDiff < -180) geoDiff += 360;
-            // Az iránytűt finoman (20%-ban) a GPS haladási irány felé húzzuk
-            targetHeading = currentHeading + (geoDiff * 0.2); 
-        }
 
-        if (smoothedHeading === null) smoothedHeading = targetHeading;
+// Ha mozogsz (van GPS irányunk), akkor az stabilizálja az iránytűt
+if (movementHeading !== null) {
+    let geoDiff = movementHeading - currentHeading;
+    if (geoDiff > 180) geoDiff -= 360;
+    if (geoDiff < -180) geoDiff += 360;
+    
+    // Az iránytűt finoman (20%-ban) a valós haladási irány felé húzzuk
+    targetHeading = currentHeading + (geoDiff * 0.2); 
+}
 
-        // Átfordulás védelem: kiszámoljuk a legrövidebb utat (359° -> 1°)
-        let diff = targetHeading - smoothedHeading;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
+if (smoothedHeading === null) smoothedHeading = targetHeading;
 
-        // EXPONENCIÁLIS SIMÍTÁS: Ez szünteti meg a rángatózást
-        // Nem ugrik a nyíl, hanem "úszik" az új irányba
-        smoothedHeading += diff * smoothingFactor;
-        smoothedHeading = (smoothedHeading + 360) % 360;
+// Átfordulás védelem: kiszámoljuk a legrövidebb utat (359° -> 1°)
+let diff = targetHeading - smoothedHeading;
+if (diff > 180) diff -= 360;
+if (diff < -180) diff += 360;
+
+// Exponenciális simítás
+smoothedHeading += diff * smoothingFactor;
+// Itt marad a modulo, de mivel már nincs CSS transition, nem fog körbe-pörögni
+smoothedHeading = (smoothedHeading + 360) % 360;
 
         // Megjelenítés a térképen
         const markerEl = appState.playerMarker.getElement();
