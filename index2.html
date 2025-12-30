@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.31
+       v1.2.32
 
    </span>
 
@@ -6112,36 +6112,29 @@ function handleOrientation(event) {
     }
 
     if (currentHeading !== null && appState.playerMarker) {
-        // Ha van GPS irányunk és épp haladunk, az iránytű "rásegít"
         let targetHeading = currentHeading;
 
-// Ha mozogsz (van GPS irányunk), akkor az stabilizálja az iránytűt
-if (movementHeading !== null) {
-    let geoDiff = movementHeading - currentHeading;
-    if (geoDiff > 180) geoDiff -= 360;
-    if (geoDiff < -180) geoDiff += 360;
-    
-    // Az iránytűt finoman (20%-ban) a valós haladási irány felé húzzuk
-    targetHeading = currentHeading + (geoDiff * 0.2); 
-}
+        // Ha mozogsz (van GPS irányunk), akkor az stabilizálja az iránytűt
+        if (movementHeading !== null) {
+            let geoDiff = movementHeading - currentHeading;
+            if (geoDiff > 180) geoDiff -= 360;
+            if (geoDiff < -180) geoDiff += 360;
+            targetHeading = currentHeading + (geoDiff * 0.2); 
+        }
 
-if (smoothedHeading === null) smoothedHeading = targetHeading;
+        if (smoothedHeading === null) smoothedHeading = targetHeading;
 
-// Átfordulás védelem: kiszámoljuk a legrövidebb utat (359° -> 1°)
-let diff = targetHeading - smoothedHeading;
-if (diff > 180) diff -= 360;
-if (diff < -180) diff += 360;
+        // --- JAVÍTÁS: A LEGRÖVIDEBB ÚT KISZÁMÍTÁSA ---
+        // Kiszámoljuk a különbséget a cél és a jelenlegi (kumulatív) szög között
+        let diff = (targetHeading - (smoothedHeading % 360) + 540) % 360 - 180;
+        
+        // Hozzáadjuk a különbséget a kumulatív értékhez (simítással)
+        smoothedHeading += diff * smoothingFactor;
 
-// Exponenciális simítás
-smoothedHeading += diff * smoothingFactor;
-// Itt marad a modulo, de mivel már nincs CSS transition, nem fog körbe-pörögni
-smoothedHeading = (smoothedHeading + 360) % 360;
-
-        // Megjelenítés a térképen
+        // Megjelenítés a térképen (NINCS modulo reset!)
         const markerEl = appState.playerMarker.getElement();
         if (markerEl) {
             markerEl.style.transformOrigin = "center center";
-            // Leaflet pozíció megőrzése a rotáció mellett
             window.applyRotation(smoothedHeading);
         }
     }
