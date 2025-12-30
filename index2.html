@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.32
+       v1.2.31
 
    </span>
 
@@ -3069,25 +3069,20 @@ window.deleteInstantAdventure = function(force = false) {
 
 
 
-window._currentAppliedRotation = 0; // Ebben tároljuk a folyamatos szöget
-
-window.applyRotation = function(targetDeg) {
+window.applyRotation = function(deg) {
     const activeMarker = appState.playerMarker || manualMarker;
     if (!activeMarker) return;
     
-    // Kiszámoljuk a legrövidebb különbséget (-180 és +180 fok között)
-    let diff = (targetDeg - (window._currentAppliedRotation % 360) + 540) % 360 - 180;
-    window._currentAppliedRotation += diff;
-
     const el = activeMarker.getElement();
     if (el) {
+        // Megkeressük a belső kék kört és csak azt forgatjuk el
         const visual = el.querySelector('.marker-visual');
         if (visual) {
-            // A folyamatosan növekvő/csökkenő szöget írjuk be a CSS-be
-            visual.style.setProperty('--rotation', `${window._currentAppliedRotation}deg`);
+            visual.style.setProperty('--rotation', `${deg}deg`);
         }
     }
 };
+
 
         function initializeState() {
             appState = { 
@@ -6109,6 +6104,7 @@ let movementHeading = null;
 function handleOrientation(event) {
     let currentHeading = null;
 
+    // Szenzoradatok kinyerése (iOS / Android)
     if (event.webkitCompassHeading) {
         currentHeading = event.webkitCompassHeading;
     } else if (event.absolute && event.alpha !== null) {
@@ -6116,28 +6112,38 @@ function handleOrientation(event) {
     }
 
     if (currentHeading !== null && appState.playerMarker) {
+        // Ha van GPS irányunk és épp haladunk, az iránytű "rásegít"
         let targetHeading = currentHeading;
 
-        // --- FINOMHANGOLÁS: Ha mozogsz, a GPS irány "győzzön" ---
-        if (movementHeading !== null) {
-            let geoDiff = movementHeading - currentHeading;
-            if (geoDiff > 180) geoDiff -= 360;
-            if (geoDiff < -180) geoDiff += 360;
-            
-            // 0.2 helyett használjunk 0.7-et (70%-ban a GPS irányát vesszük alapul mozgáskor)
-            // Így a nyíl kényszerítve lesz az egyenes haladási irányba.
-            targetHeading = currentHeading + (geoDiff * 0.7); 
+// Ha mozogsz (van GPS irányunk), akkor az stabilizálja az iránytűt
+if (movementHeading !== null) {
+    let geoDiff = movementHeading - currentHeading;
+    if (geoDiff > 180) geoDiff -= 360;
+    if (geoDiff < -180) geoDiff += 360;
+    
+    // Az iránytűt finoman (20%-ban) a valós haladási irány felé húzzuk
+    targetHeading = currentHeading + (geoDiff * 0.2); 
+}
+
+if (smoothedHeading === null) smoothedHeading = targetHeading;
+
+// Átfordulás védelem: kiszámoljuk a legrövidebb utat (359° -> 1°)
+let diff = targetHeading - smoothedHeading;
+if (diff > 180) diff -= 360;
+if (diff < -180) diff += 360;
+
+// Exponenciális simítás
+smoothedHeading += diff * smoothingFactor;
+// Itt marad a modulo, de mivel már nincs CSS transition, nem fog körbe-pörögni
+smoothedHeading = (smoothedHeading + 360) % 360;
+
+        // Megjelenítés a térképen
+        const markerEl = appState.playerMarker.getElement();
+        if (markerEl) {
+            markerEl.style.transformOrigin = "center center";
+            // Leaflet pozíció megőrzése a rotáció mellett
+            window.applyRotation(smoothedHeading);
         }
-
-        if (smoothedHeading === null) smoothedHeading = targetHeading;
-
-        let diff = targetHeading - smoothedHeading;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-
-        smoothedHeading += diff * smoothingFactor;
-        
-        window.applyRotation(smoothedHeading);
     }
 }
 
