@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.34
+       v1.2.35
 
    </span>
 
@@ -1496,11 +1496,11 @@
             </div>
 
             <div class="space-y-3">
-                <button onclick="submitGameRating()" class="main-button w-full !bg-gradient-to-r from-orange-400 to-orange-500 !py-4 rounded-2xl shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all active:scale-95 font-bold text-lg">
+                <button onclick="window.submitGameRating()" class="main-button w-full !bg-gradient-to-r from-orange-400 to-orange-500 !py-4 rounded-2xl shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all active:scale-95 font-bold text-lg">
                     Értékelés beküldése
                 </button>
                 
-                <button onclick="closeRatingModal()" class="w-full py-2 text-gray-400 text-sm font-semibold hover:text-gray-600 transition-colors uppercase tracking-widest">
+                <button onclick="window.closeRatingModal()" class="w-full py-2 text-gray-400 text-sm font-semibold hover:text-gray-600 transition-colors uppercase tracking-widest">
                     Most nem értékelem
                 </button>
             </div>
@@ -2086,27 +2086,28 @@ window.getGameCurrentCount = async function(gameId) {
 
 
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
-  window.saveScoreToFirebase = function(data) {
+  // --- MENTÉS LOGIKA (0 PONT ELLENŐRZÉSSEL) ---
+window.saveScoreToFirebase = function(data) {
     if (!data.gameId) return;
 
-    // --- Dátum formázása ---
+    // Pontszám ellenőrzése: Ha 0 vagy kevesebb, nem mentünk semmit
+    let safeScore = Number(data.score);
+    if (isNaN(safeScore) || safeScore <= 0) {
+        console.log("0 pontos eredmény - nem kerül mentésre a ranglistára.");
+        return; 
+    }
+
     const now = new Date();
     const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    // --- ADATELŐKÉSZÍTÉS ---
     let safeTeamName = String(data.teamName || "Névtelen").trim();
     if (safeTeamName.length === 0) safeTeamName = "Névtelen Játékos";
-    if (safeTeamName.length > 30) safeTeamName = safeTeamName.substring(0, 30);
 
-    let safeScore = Number(data.score);
-    if (isNaN(safeScore)) safeScore = 0;
-
-    // Az adatobjektum összeállítása
     const scoreData = {
         gameId: data.gameId,
         teamName: safeTeamName,
         teamAvatar: data.teamAvatar || "no avatar",
-	isRegistered: !!(window.auth && window.auth.currentUser),
+        isRegistered: !!(window.auth && window.auth.currentUser),
         score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
@@ -2114,38 +2115,30 @@ window.getGameCurrentCount = async function(gameId) {
         dateString: readableDate
     };
 
-    // --- ELLENŐRZÉS: VAN INTERNET ÉS FIREBASE? ---
     if (navigator.onLine && window.db && window.push) {
-        
-        // ✅ MÓDOSÍTÁS: Azonnali kalandok közösítéséhez
         let targetLeaderboardId = data.gameId;
         if (String(targetLeaderboardId).startsWith('instant_')) {
-            targetLeaderboardId = 'instant_kozos'; // Ez lesz a közös lista neve
+            targetLeaderboardId = 'instant_kozos';
         }
 
-        // MÓDOSÍTVA: window.ref, window.push
         const leaderboardRef = window.ref(window.db, 'leaderboard/' + targetLeaderboardId);
-        
         window.push(leaderboardRef, scoreData).then(() => {
-            console.log("✅ Sikeres azonnali mentés a Firebase-be!");
+            console.log("✅ Mentés sikeres!");
             if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
         }).catch((error) => {
             console.warn("⚠️ Hiba a feltöltéskor:", error);
             saveToPendingUploads(scoreData);
         });
     } else {
-        // NINCS INTERNET -> Mentés offline sorba
-        console.warn("🌐 Nincs internetkapcsolat. Mentés az offline sorba...");
         saveToPendingUploads(scoreData);
     }
-  };
+};
 
-
-
-// --- ÚJ ÉRTÉKELÉSI FUNKCIÓK ---
+// --- ÉRTÉKELÉSI FUNKCIÓK ---
 window.closeRatingModal = function() {
-    document.getElementById('rating-modal').classList.add('hidden');
-    document.getElementById('rating-modal').classList.remove('flex');
+    const modal = document.getElementById('rating-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 };
 
 window.submitGameRating = async function() {
@@ -2160,13 +2153,9 @@ window.submitGameRating = async function() {
 
     if (!gameId || !window.db || !window.runTransaction) return;
 
-    // --- ÚJ SZŰRŐ AZ INSTANT JÁTÉKOKHOZ ---
-    // Ha az ID "instant_" kezdetű, akkor a közös kulcsot használjuk a statisztikákhoz
     let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
-
     showLoading(true);
     
-    // A Firebase-ben most már a statsId (vagy az eredeti ID, vagy 'instant_kozos') alá mentünk
     const statsRef = window.ref(window.db, `game_stats/${statsId}/rating`);
 
     try {
@@ -2184,12 +2173,8 @@ window.submitGameRating = async function() {
             }
         });
         
-        closeRatingModal();
+        window.closeRatingModal();
         showMessage("Köszönjük!", "Az értékelésedet rögzítettük.");
-if (String(window.currentGameId).startsWith('instant_')) {
-            window.resetAllInstantCustomization();
-        }
-
     } catch (e) {
         console.error("Értékelési hiba:", e);
     } finally {
@@ -2887,14 +2872,12 @@ window.openHallOfFame = async function() {
           `;
       });
 
-      if (filtered.length > renderLimit) {
-          html += `<tr><td colspan="5" class="text-center py-2 text-xs text-gray-400 italic">...és további ${filtered.length - renderLimit} eredmény (szűkítsd a keresést)</td></tr>`;
-      }
+      if (filtered.length > 500) {
+        tbody.innerHTML += `<tr><td colspan="5" class="text-center py-2 text-xs text-gray-400 italic">...és további ${filtered.length - 500} eredmény (szűkítsd a keresést)</td></tr>`;
+    }
+}; // Ez zárja le a window.filterGlobalLeaderboard függvényt
 
-      tbody.innerHTML = html;
-  };
-
-
+// Itt jön a script blokk vége
 window.isFirebaseModuleLoaded = true;
 
 </script>
@@ -5913,7 +5896,13 @@ if (!appState.isTestModeEnabled) {
             localStorage.removeItem(getStorageKey(appState.currentGame.id));
             localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
         }
-        appState.currentGame = null; 
+        
+
+if (typeof window.resetAllInstantCustomization === 'function') {
+            window.resetAllInstantCustomization();
+        }
+
+appState.currentGame = null; 
     }, 1500);
 }      
 
