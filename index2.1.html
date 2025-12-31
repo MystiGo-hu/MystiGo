@@ -1683,15 +1683,21 @@
         </div>
 
         <div class="bg-gray-50 p-3 border-b border-gray-200">
-            <div class="flex rounded-lg bg-gray-200 p-1">
-                <button onclick="openHallOfFame('monthly')" id="btn-hof-monthly" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm">
-                    🗓️ Aktuális Hónap
-                </button>
-                <button onclick="openHallOfFame('all')" id="btn-hof-all" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue">
-                    🏆 Összesített
-                </button>
-            </div>
-        </div>
+    <div class="flex rounded-lg bg-gray-200 p-1 mb-2">
+        <button onclick="openHallOfFame('monthly')" id="btn-hof-monthly" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm">
+            🗓️ Havi Ranglista
+        </button>
+        <button onclick="openHallOfFame('all')" id="btn-hof-all" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue">
+            🏆 Összesített
+        </button>
+    </div>
+
+    <div id="hof-month-selector-container" class="hidden animate-fade-in">
+        <label class="text-[9px] font-bold text-gray-400 uppercase ml-1">Időszak választása:</label>
+        <select id="hof-month-select" onchange="openHallOfFame('monthly')" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-brand-blue outline-none focus:ring-2 focus:ring-brand-cyan">
+            </select>
+    </div>
+</div>
         <div class="overflow-y-auto p-0 flex-grow bg-gray-50">
             <table class="min-w-full text-xs text-left">
                 <thead class="bg-gray-100 border-b sticky top-0 z-10">
@@ -2748,29 +2754,30 @@ window.openHallOfFame = async function(mode = 'monthly') {
     const tbody = document.getElementById('hall-of-fame-body');
     const btnAll = document.getElementById('btn-hof-all');
     const btnMonthly = document.getElementById('btn-hof-monthly');
+    const monthContainer = document.getElementById('hof-month-selector-container');
+    const monthSelect = document.getElementById('hof-month-select');
     
     modal.classList.remove('hidden');
-    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10"><div class="animate-spin h-6 w-6 border-2 border-brand-cyan border-t-transparent rounded-full mx-auto mb-2"></div>Összesítés...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10"><div class="animate-spin h-6 w-6 border-2 border-brand-cyan border-t-transparent rounded-full mx-auto mb-2"></div>Adatok összesítése...</td></tr>';
 
-    // Gombok vizuális váltása
-    if(btnAll && btnMonthly) {
-        if(mode === 'all') {
-            btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-            btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
-        } else {
-            btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-            btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
-        }
+    // Gombok és választó kezelése
+    if(mode === 'all') {
+        btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
+        btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
+        monthContainer.classList.add('hidden');
+    } else {
+        btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
+        btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
+        monthContainer.classList.remove('hidden');
     }
 
     if (!window.db || !window.get) return;
 
     try {
-        let players = [];
-
         if (mode === 'all') {
-            // --- ÖSSZESÍTETT NÉZET: marad a régi profil alapú lekérés ---
+            // --- ÖSSZESÍTETT NÉZET (Profilok alapján) ---
             const snapshot = await window.get(window.ref(window.db, 'users'));
+            let players = [];
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
                     const data = child.val().profile;
@@ -2784,78 +2791,104 @@ window.openHallOfFame = async function(mode = 'monthly') {
                     }
                 });
             }
+            renderHofTable(players, tbody);
         } else {
-            // --- HAVI NÉZET: Végigszaladunk az összes játékon és összegezzük a pontokat ---
+            // --- HAVI NÉZET (Leaderboard aggregáció) ---
             const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
-            const startOfMonth = new Date();
-            startOfMonth.setDate(1);
-            startOfMonth.setHours(0, 0, 0, 0);
-            
-            const monthlyAggregator = {};
+            if (!snapshot.exists()) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs adat.</td></tr>';
+                return;
+            }
 
-            if (snapshot.exists()) {
-                const games = snapshot.val();
-                Object.values(games).forEach(gameResults => {
-                    Object.values(gameResults).forEach(entry => {
-                        // Csak az ebben a hónapban szerzett pontok
-                        if (entry.timestamp && entry.timestamp >= startOfMonth.getTime()) {
+            const allGames = snapshot.val();
+            const monthMap = new Set();
+            const monthlyAggregator = {};
+            
+            // 1. Hónapok kigyűjtése a legördülőhöz (ha még üres)
+            Object.values(allGames).forEach(gameResults => {
+                Object.values(gameResults).forEach(entry => {
+                    if (entry.timestamp) {
+                        const d = new Date(entry.timestamp);
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        monthMap.add(key);
+                    }
+                });
+            });
+
+            // Hónapválasztó feltöltése ha még nincs benne semmi
+            if (monthSelect.options.length === 0) {
+                const sortedMonths = Array.from(monthMap).sort().reverse();
+                monthSelect.innerHTML = sortedMonths.map(m => {
+                    const [year, month] = m.split('-');
+                    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
+                    return `<option value="${m}">${label}</option>`;
+                }).join('');
+            }
+
+            const targetMonthKey = monthSelect.value; // Pl: "2024-05"
+
+            // 2. Pontok összegezése a választott hónapra
+            Object.values(allGames).forEach(gameResults => {
+                Object.values(gameResults).forEach(entry => {
+                    if (entry.timestamp) {
+                        const d = new Date(entry.timestamp);
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        
+                        if (key === targetMonthKey) {
                             const name = entry.teamName;
                             if (!monthlyAggregator[name]) {
-                                monthlyAggregator[name] = { 
-                                    score: 0, 
-                                    avatar: entry.teamAvatar, 
-                                    isRegistered: entry.isRegistered 
-                                };
+                                monthlyAggregator[name] = { score: 0, avatar: entry.teamAvatar, isRegistered: entry.isRegistered };
                             }
                             monthlyAggregator[name].score += parseInt(entry.score || 0);
                         }
-                    });
+                    }
                 });
-            }
-            
-            players = Object.entries(monthlyAggregator).map(([name, data]) => ({
+            });
+
+            const players = Object.entries(monthlyAggregator).map(([name, data]) => ({
                 name: name,
                 avatar: data.avatar,
                 score: data.score,
                 isRegistered: data.isRegistered
             }));
+
+            renderHofTable(players, tbody);
         }
-
-        // Rendezés pontszám szerint
-        players.sort((a, b) => b.score - a.score);
-
-        let html = "";
-        if (players.length === 0) {
-            html = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Ebben az időszakban még senki nem szerzett pontot.</td></tr>';
-        } else {
-            players.forEach((u, i) => {
-                const emoji = AVATAR_ICONS[u.avatar] || '👤';
-                html += `
-                    <tr class="hover:bg-cyan-50 transition">
-                        <td class="px-3 py-3 text-center font-bold text-gray-400">${i + 1}.</td>
-                        <td class="px-3 py-3">
-                            <div class="flex items-center gap-2">
-                                <div class="avatar-container v-sm !w-8 !h-8 !text-base">
-                                    ${emoji}
-                                    ${u.isRegistered ? '<div class="verified-badge verified-badge-sm active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7" /></svg></div>' : ''}
-                                </div>
-                                <div class="font-bold text-brand-blue leading-tight">${u.name}</div>
-                            </div>
-                        </td>
-                        <td class="px-3 py-3 text-right font-black text-brand-cyan-500 text-sm">
-                            ${u.score.toLocaleString()} ⭐
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-        tbody.innerHTML = html;
-
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt az adatok lekérésekor.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt az adatok betöltésekor.</td></tr>';
     }
 };
+
+// Segédfüggvény a táblázat kirajzolásához
+function renderHofTable(players, tbody) {
+    players.sort((a, b) => b.score - a.score);
+    let html = "";
+    if (players.length === 0) {
+        html = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Ebben az időszakban nem született eredmény.</td></tr>';
+    } else {
+        players.forEach((u, i) => {
+            const emoji = AVATAR_ICONS[u.avatar] || '👤';
+            html += `
+                <tr class="hover:bg-cyan-50 transition">
+                    <td class="px-3 py-3 text-center font-bold text-gray-400">${i + 1}.</td>
+                    <td class="px-3 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="avatar-container v-sm !w-8 !h-8 !text-base">
+                                ${emoji}
+                                ${u.isRegistered ? '<div class="verified-badge verified-badge-sm active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7" /></svg></div>' : ''}
+                            </div>
+                            <div class="font-bold text-brand-blue leading-tight">${u.name}</div>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 text-right font-black text-brand-cyan-500 text-sm">
+                        ${u.score.toLocaleString()} ⭐
+                    </td>
+                </tr>`;
+        });
+    }
+    tbody.innerHTML = html;
+}
 
 
 
@@ -8326,17 +8359,16 @@ window.startInstantAdventure = async function() {
 window.loadGameDataAndStart = async function(gameId) {
     const currentName = document.getElementById('team-name-input').value.trim();
     const avatarSelect = document.getElementById('team-avatar-select');
-    const avatarIndex = avatarSelect ? parseInt(avatarSelect.value) : 0;
+    const avatarKey = localStorage.getItem('mystigo_pref_teamAvatar') || 'cat';
     const normalized = window.normalizeForComparison(currentName);
     const user = window.auth.currentUser;
 
     showLoading(true);
-    const statusText = document.getElementById('loading-status');
-    if(statusText) statusText.textContent = "Játék előkészítése...";
 
     try {
-        // 1. NÉVFOGLALÁS (Csak regisztráltaknak)
-        if (user && !user.isAnonymous && normalized) {
+        // 1. NÉVFOGLALÁS JAVÍTÁSA: 
+        // Csak akkor fusson a tranzakció, ha nem a 'teszt-game'-ről van szó
+        if (user && !user.isAnonymous && normalized && gameId !== 'teszt-game') {
             const nameRef = window.ref(window.db, `taken_team_names/${normalized}`);
             await window.runTransaction(nameRef, (currentUid) => {
                 if (currentUid === null || currentUid === user.uid) return user.uid;
@@ -8347,12 +8379,14 @@ window.loadGameDataAndStart = async function(gameId) {
         // 2. ADATOK BETÖLTÉSE
         const storageKey = `MystiGo_GameData_${gameId}`;
         const basicInfo = window.games ? window.games[gameId] : null;
-        if (!basicInfo) throw new Error("Hiányzó alapadatok.");
-
+        
         let gameData = null;
-        if (gameId.startsWith('instant_')) {
+
+        // Kivétel: Ha instant játék VAGY a teszt játék, ne menjen a secure ágra
+        if (gameId.startsWith('instant_') || gameId === 'teszt-game') {
             gameData = basicInfo;
         } else {
+            // Normál esetben lekérjük a titkos tartalmat
             const dbRef = window.ref(window.db, 'games/secure_game_contents/' + gameId);
             const snapshot = await window.get(dbRef);
             if (snapshot.exists()) {
@@ -8361,10 +8395,9 @@ window.loadGameDataAndStart = async function(gameId) {
             } else {
                 const cached = localStorage.getItem(storageKey);
                 if (cached) gameData = JSON.parse(cached);
-                else throw new Error("A tartalom nem érhető el.");
+                else throw new Error("A játék tartalma nem érhető el.");
             }
         }
-
         // 3. INDÍTÁS
         window.games[gameId] = gameData;
         appState.currentGame = gameData;
@@ -8502,11 +8535,11 @@ window.handleEmailAuth = async function() {
             // érvényessé váljon az adatbázis számára is.
             setTimeout(async () => {
                 try {
-                    await set(ref(db, 'private_user_data/' + user.uid), {
-                        email: email,
-                        authMethod: 'email',
-                        registeredAt: Date.now()
-                    });
+                    await set(ref(db, 'users/' + user.uid + '/private_user_data'), {
+    						email: email,
+   						 authMethod: 'email',
+    						registeredAt: Date.now()
+			});
                     console.log("✅ Private data mentése sikeres.");
                 } catch (dbErr) {
                     console.error("❌ Adatbázis mentési hiba (Permission Denied lehet):", dbErr);
@@ -8527,11 +8560,11 @@ window.handleEmailAuth = async function() {
             // JAVÍTÁS: Bejelentkezéskor is érdemes frissíteni/menteni, ha korábban elmaradt volna
             setTimeout(async () => {
                 try {
-                    await update(ref(db, 'private_user_data/' + user.uid), {
-                        email: email,
-                        authMethod: 'email',
-                        lastLogin: Date.now()
-                    });
+                    await update(ref(db, 'users/' + user.uid + '/private_user_data'), {
+    email: email,
+    authMethod: 'email',
+    lastLogin: Date.now()
+});
                 } catch (e) {
                     console.error("Adat frissítési hiba bejelentkezéskor:", e);
                 }
@@ -8703,10 +8736,10 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         const user = result.user;
 
         // Google e-mail mentése/frissítése a privát ágba
-        await update(ref(db, 'private_user_data/' + user.uid), {
-            email: user.email,
-            authMethod: 'google',
-            lastLogin: Date.now()
+        await update(ref(db, 'users/' + user.uid + '/private_user_data'), {
+    email: user.email,
+    authMethod: 'google',
+    lastLogin: Date.now()
         });
 
         if (user) console.log("✅ Sikeres Google belépés:", user.displayName);
