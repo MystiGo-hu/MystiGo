@@ -2760,7 +2760,6 @@ window.openHallOfFame = async function(mode = 'monthly') {
     modal.classList.remove('hidden');
     tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10"><div class="animate-spin h-6 w-6 border-2 border-brand-cyan border-t-transparent rounded-full mx-auto mb-2"></div>Adatok összesítése...</td></tr>';
 
-    // Gombok és választó kezelése
     if(mode === 'all') {
         btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
         btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
@@ -2775,7 +2774,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
     try {
         if (mode === 'all') {
-            // --- ÖSSZESÍTETT NÉZET (Profilok alapján) ---
+            // ÖSSZESÍTETT: Csak a regisztrált profilok (marad a régi)
             const snapshot = await window.get(window.ref(window.db, 'users'));
             let players = [];
             if (snapshot.exists()) {
@@ -2793,7 +2792,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
             }
             renderHofTable(players, tbody);
         } else {
-            // --- HAVI NÉZET (Leaderboard aggregáció) ---
+            // HAVI NÉZET: Leaderboard aggregáció
             const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
             if (!snapshot.exists()) {
                 tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs adat.</td></tr>';
@@ -2804,10 +2803,11 @@ window.openHallOfFame = async function(mode = 'monthly') {
             const monthMap = new Set();
             const monthlyAggregator = {};
             
-            // 1. Hónapok kigyűjtése a legördülőhöz (ha még üres)
+            // 1. Hónapok kigyűjtése a legördülőhöz
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp) {
+                    // ✅ Csak regisztrált felhasználók eredményeit vesszük számításba a havi listán is
+                    if (entry.timestamp && entry.isRegistered === true) {
                         const d = new Date(entry.timestamp);
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         monthMap.add(key);
@@ -2815,7 +2815,6 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 });
             });
 
-            // Hónapválasztó feltöltése ha még nincs benne semmi
             if (monthSelect.options.length === 0) {
                 const sortedMonths = Array.from(monthMap).sort().reverse();
                 monthSelect.innerHTML = sortedMonths.map(m => {
@@ -2825,19 +2824,19 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 }).join('');
             }
 
-            const targetMonthKey = monthSelect.value; // Pl: "2024-05"
+            const targetMonthKey = monthSelect.value;
 
             // 2. Pontok összegezése a választott hónapra
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp) {
+                    if (entry.timestamp && entry.isRegistered === true) { // ✅ ÚJ SZŰRŐ FELTÉTEL
                         const d = new Date(entry.timestamp);
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         
                         if (key === targetMonthKey) {
                             const name = entry.teamName;
                             if (!monthlyAggregator[name]) {
-                                monthlyAggregator[name] = { score: 0, avatar: entry.teamAvatar, isRegistered: entry.isRegistered };
+                                monthlyAggregator[name] = { score: 0, avatar: entry.teamAvatar, isRegistered: true };
                             }
                             monthlyAggregator[name].score += parseInt(entry.score || 0);
                         }
@@ -2859,6 +2858,10 @@ window.openHallOfFame = async function(mode = 'monthly') {
         tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt az adatok betöltésekor.</td></tr>';
     }
 };
+
+
+
+
 
 // Segédfüggvény a táblázat kirajzolásához
 function renderHofTable(players, tbody) {
