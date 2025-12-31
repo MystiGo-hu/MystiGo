@@ -2120,10 +2120,13 @@ window.saveScoreToFirebase = function(data) {
     let safeTeamName = String(data.teamName || "Névtelen").trim();
     if (safeTeamName.length === 0) safeTeamName = "Névtelen Játékos";
 
+const user = window.auth ? window.auth.currentUser : null;
+
     const scoreData = {
         gameId: data.gameId,
         teamName: safeTeamName,
         teamAvatar: data.teamAvatar || "no avatar",
+	uid: user ? user.uid : null,
         isRegistered: !!(window.auth && window.auth.currentUser),
         score: safeScore,
         totalTime: data.totalTime || 0,
@@ -2806,7 +2809,6 @@ window.openHallOfFame = async function(mode = 'monthly') {
             // 1. Hónapok kigyűjtése a legördülőhöz
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
-                    // ✅ Csak regisztrált felhasználók eredményeit vesszük számításba a havi listán is
                     if (entry.timestamp && entry.isRegistered === true) {
                         const d = new Date(entry.timestamp);
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -2815,6 +2817,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 });
             });
 
+            // Hónapválasztó feltöltése, ha üres
             if (monthSelect.options.length === 0) {
                 const sortedMonths = Array.from(monthMap).sort().reverse();
                 monthSelect.innerHTML = sortedMonths.map(m => {
@@ -2826,19 +2829,30 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
             const targetMonthKey = monthSelect.value;
 
-            // 2. Pontok összegezése a választott hónapra
+            // 2. Pontok összegezése a választott hónapra (UID ALAPÚ AZONOSÍTÁSSAL)
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && entry.isRegistered === true) { // ✅ ÚJ SZŰRŐ FELTÉTEL
+                    if (entry.timestamp && entry.isRegistered === true) {
                         const d = new Date(entry.timestamp);
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         
                         if (key === targetMonthKey) {
-                            const name = entry.teamName;
-                            if (!monthlyAggregator[name]) {
-                                monthlyAggregator[name] = { score: 0, avatar: entry.teamAvatar, isRegistered: true };
+                            // ✅ KRITIKUS VÁLTOZÁS: UID-t használunk kulcsnak, ha van. 
+                            // Ha régi adat és nincs UID, akkor marad a név.
+                            const playerKey = entry.uid || entry.teamName; 
+                            
+                            if (!monthlyAggregator[playerKey]) {
+                                monthlyAggregator[playerKey] = { 
+                                    score: 0, 
+                                    name: entry.teamName, 
+                                    avatar: entry.teamAvatar, 
+                                    isRegistered: true 
+                                };
                             }
-                            monthlyAggregator[name].score += parseInt(entry.score || 0);
+                            // Mindig a legfrissebb nevet/avatart tartsuk meg a kijelzéshez
+                            monthlyAggregator[playerKey].name = entry.teamName;
+                            monthlyAggregator[playerKey].avatar = entry.teamAvatar;
+                            monthlyAggregator[playerKey].score += parseInt(entry.score || 0);
                         }
                     }
                 });
