@@ -8563,7 +8563,7 @@ window.handleEmailAuth = async function() {
             // érvényessé váljon az adatbázis számára is.
             setTimeout(async () => {
                 try {
-                    await set(ref(db, 'users/' + user.uid + '/private_user_data'), {
+                    await set(ref(db, 'private_user_data/' + user.uid), {
     						email: email,
    						 authMethod: 'email',
     						registeredAt: Date.now()
@@ -8588,7 +8588,7 @@ window.handleEmailAuth = async function() {
             // JAVÍTÁS: Bejelentkezéskor is érdemes frissíteni/menteni, ha korábban elmaradt volna
             setTimeout(async () => {
                 try {
-                    await update(ref(db, 'users/' + user.uid + '/private_user_data'), {
+                    await update(ref(db, 'private_user_data/' + user.uid), {
     email: email,
     authMethod: 'email',
     lastLogin: Date.now()
@@ -8764,7 +8764,7 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         const user = result.user;
 
         // Google e-mail mentése/frissítése a privát ágba
-        await update(ref(db, 'users/' + user.uid + '/private_user_data'), {
+        await update(ref(db, 'private_user_data/' + user.uid), {
     email: user.email,
     authMethod: 'google',
     lastLogin: Date.now()
