@@ -1018,7 +1018,7 @@
           
 
           
-<div id="filter-container" class="bg-grey-200 p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
+<div id="filter-container" class="bg-gray-200 p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
     <div onclick="toggleFilterSection()" class="cursor-pointer flex items-center justify-between select-none">
         <h3 class="text-sm font-bold text-brand-blue flex items-center">
             <span id="filter-toggle-icon" class="mr-2 text-lg font-extrabold text-black leading-none" style="margin-top: -2px;">+</span>
@@ -4240,7 +4240,7 @@ window.closeImageModal = function() {
                 // -----------------------------------------------------
                 let limitBadgeHtml = "";
                 if (game.globalLimit && game.globalLimit > 0) {
-                     limitBadgeHtml = `<div id="limit-badge-${game.id}" class="bg-grey-200 text-white text-xs font-bold px-2 py-1 rounded absolute bottom-2 right-2 shadow-md z-20 flex items-center gap-1 backdrop-blur-sm bg-opacity-20">
+                     limitBadgeHtml = `<div id="limit-badge-${game.id}" class="bg-gray-200 text-white text-xs font-bold px-2 py-1 rounded absolute bottom-2 right-2 shadow-md z-20 flex items-center gap-1 backdrop-blur-sm bg-opacity-20">
                         <span class="text-[10px]">👥</span> <span class="loading-dots">...</span> / ${game.globalLimit}
                     </div>`;
                 }
@@ -4347,7 +4347,7 @@ window.closeImageModal = function() {
                                 
                                 // Ha betelt, pirosra váltjuk
                                 if (isFull) {
-                                    badgeEl.classList.remove('bg-grey-200');
+                                    badgeEl.classList.remove('bg-gray-200');
                                     badgeEl.classList.add('bg-red-600');
                                     badgeEl.title = "A limit betelt!";
                                 }
@@ -4787,44 +4787,42 @@ window.autoSortGamesByDistance = function() {
       
         window.handleGameSelect = async function(gameId, title, type, price, hasSave, skipConfirmation = false) {
 
-            if (hasSave) {
-                 loadGameById(gameId);
-                 return; 
-            }
+    if (hasSave) {
+        loadGameById(gameId);
+        return; 
+    }
 
-            const gameConfig = games[gameId];
-            if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount === -1) {
-                showMessage('Nem elérhető 🔒', `Ez a kaland (${title}) jelenleg nem elérhető vagy fejlesztés alatt áll.`);
-                return;
-            }
+    const gameConfig = games[gameId];
+    const nameInput = document.getElementById('team-name-input');
+    const avatarSelect = document.getElementById('team-avatar-select');
+    const val = nameInput.value.trim();
 
-            let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + gameId) || 0);
-            if (!window.showHiddenGames && gameConfig && gameConfig.maxPlayCount > 0 && playCount >= gameConfig.maxPlayCount) {
-                showMessage('Limit Elérve! 🏆', `Ezt a kalandot (${title}) összesen ${gameConfig.maxPlayCount} alkalommal lehet végigjátszani.`);
-                return;
-            }
-            
-            const nameInput = document.getElementById('team-name-input');
-const avatarSelect = document.getElementById('team-avatar-select');
+    // 1. Alap validáció (üres mező, tiltott szavak)
+    const validation = window.validateTeamName(val);
+    if (!validation.valid) {
+        showMessage('Figyelem', validation.error, () => {
+            nameInput.value = "";
+            nameInput.focus();
+        });
+        return; 
+    }
 
-// ÚJ SZIGORÚ VALIDÁCIÓS LOGIKA (Kezeli az üres mezőt és a tiltott szavakat is)
-const validation = window.validateTeamName(nameInput.value);
-if (!validation.valid) {
-    showMessage('Figyelem', validation.error, () => {
-        nameInput.value = ""; // Hibás vagy üres név esetén a mező kiürítése
-        localStorage.removeItem('mystigo_pref_teamName'); // A mentett hibás adat törlése
-        nameInput.focus(); // A kurzor visszaugrik a mezőbe az újraíráshoz
-    });
-    if(skipConfirmation) window.closeGameMap();
-    return; 
+    // 2. KRITIKUS JAVÍTÁS: Adatbázis ellenőrzés (Vendégeknek is!)
+    showLoading(true);
+    const isUnique = await window.checkNameUniqueness(val);
+if (!isUnique) {
+    showMessage('Foglalt név', 'Ez a név már foglalt egy regisztrált felhasználó által. Kérlek válassz másikat!');
+    return; // Itt megáll a folyamat, nem indul el a játék
 }
+    showLoading(false);
 
-// Avatar ellenőrzése
-if (!avatarSelect.value) {
-    showMessage('Hiányzó Adat', 'Kérlek, válassz egy Avatart!');
-    if(skipConfirmation) window.closeGameMap();
-    return; 
-}
+    if (!isUnique) {
+        showMessage('Foglalt név', 'Sajnos ez a név már foglalt (egy regisztrált felhasználó már lefoglalta). Kérlek, válassz egy másikat!', () => {
+            nameInput.focus();
+        });
+        if(skipConfirmation) window.closeGameMap();
+        return; 
+    }
 
 // Ha a validáció sikeres, folytatódik a játék indítása
 const limitFromExcel = gameConfig.globalLimit;
@@ -8284,166 +8282,74 @@ window.startInstantAdventure = async function() {
     }
 };
 
-     
-
-
-   // ✅ ÚJ loadGameDataAndStart FÜGGVÉNY (Split adatbázishoz igazítva)
+   // ✅ EZ MARADJON: STABIL JÁTÉKINDÍTÓ (Helye: kb. 2653. sor)
 window.loadGameDataAndStart = async function(gameId) {
     const currentName = document.getElementById('team-name-input').value.trim();
+    const avatarSelect = document.getElementById('team-avatar-select');
+    const avatarIndex = avatarSelect ? parseInt(avatarSelect.value) : 0;
     const normalized = window.normalizeForComparison(currentName);
     const user = window.auth.currentUser;
 
-    // MÓDOSÍTÁS: Csak regisztrált (nem anonim) felhasználó foglalhat nevet
-    if (user && !user.isAnonymous && normalized) {
-        try {
-            await window.set(window.ref(window.db, `taken_team_names/${normalized}`), user.uid);
-            console.log("✅ Regisztrált felhasználónév rögzítve.");
-        } catch (e) {
-            console.error("❌ Hiba a név rögzítésekor:", e);
-        }
-    }
-
-
-    const storageKey = `MystiGo_GameData_${gameId}`;
-    let gameData = null;
-
-    // Loading képernyő
     showLoading(true);
     const statusText = document.getElementById('loading-status');
     if(statusText) statusText.textContent = "Játék előkészítése...";
 
-    // 1. Alap infók keresése a memóriában (window.games)
-    const basicInfo = window.games ? window.games[gameId] : null;
-    
-    if (!basicInfo) {
-        console.error("❌ Hiba: Nincs alapinfó a window.games-ben:", gameId);
-        showLoading(false);
-        alert("Hiba: A játék indítása sikertelen (Hiányzó alapadatok). Frissítsd az oldalt!");
-        return;
-    }
+    try {
+        // 1. NÉVFOGLALÁS (Csak regisztráltaknak)
+        if (user && !user.isAnonymous && normalized) {
+            const nameRef = window.ref(window.db, `taken_team_names/${normalized}`);
+            await window.runTransaction(nameRef, (currentUid) => {
+                if (currentUid === null || currentUid === user.uid) return user.uid;
+                return; 
+            });
+        }
 
-    // =================================================================
-    // A) INSTANT (GENERÁLT) JÁTÉK ESETÉN
-    // =================================================================
-    if (gameId.startsWith('instant_') || basicInfo.type === 'Instant') {
-        console.log("🎲 Instant játék felismerve. Helyi adat használata.");
-        
-        // Mivel ez helyben generált, az adat már ott van a basicInfo-ban
-        gameData = basicInfo;
-        
-        // Biztonsági mentés LocalStorage-ba
-        try { localStorage.setItem(storageKey, JSON.stringify(gameData)); } catch (e) {}
-    } 
-    
-    // =================================================================
-    // B) NORMÁL (FIREBASE) JÁTÉK ESETÉN
-    // =================================================================
-    else {
-        console.log("☁️ Normál játék. Letöltés a szerverről...");
-        
-        // Ellenőrizzük, van-e net és Firebase kapcsolat
-        const isOnline = navigator.onLine;
-        const hasFirebase = window.db && window.ref && window.get;
-        
-        // Ha nincs net, vagy nincs Firebase, próbáljuk Offline módban
-        if (!isOnline || !hasFirebase) {
-            console.warn("⚠️ Offline mód vagy Firebase hiba. Cache keresése...");
-            const cachedJSON = localStorage.getItem(storageKey);
-            if (cachedJSON) {
-                gameData = JSON.parse(cachedJSON);
-                if(statusText) statusText.textContent = "Offline indítás...";
+        // 2. ADATOK BETÖLTÉSE
+        const storageKey = `MystiGo_GameData_${gameId}`;
+        const basicInfo = window.games ? window.games[gameId] : null;
+        if (!basicInfo) throw new Error("Hiányzó alapadatok.");
+
+        let gameData = null;
+        if (gameId.startsWith('instant_')) {
+            gameData = basicInfo;
+        } else {
+            const dbRef = window.ref(window.db, 'games/secure_game_contents/' + gameId);
+            const snapshot = await window.get(dbRef);
+            if (snapshot.exists()) {
+                gameData = { ...basicInfo, ...snapshot.val() };
+                localStorage.setItem(storageKey, JSON.stringify(gameData));
             } else {
-                showLoading(false);
-                alert("Hiba: Nincs internetkapcsolat, és ez a játék nincs lementve offline.");
-                return;
-            }
-        } 
-        // Ha van net, letöltjük a legfrissebbet
-        else {
-            try {
-                if(statusText) statusText.textContent = "Adatok letöltése...";
-                
-                // Útvonal: Általában 'games/secure_game_contents/' + ID
-                const dbPath = 'games/secure_game_contents/' + gameId;
-                const dbRef = window.ref(window.db, dbPath);
-                
-                // Adat lekérése
-                const snapshot = await window.get(dbRef);
-
-                if (snapshot.exists()) {
-                    console.log("✅ Adatok sikeresen letöltve.");
-                    const secureData = snapshot.val();
-                    
-                    // Összefésüljük az alapadatokat a titkos tartalommal
-                    gameData = { ...basicInfo, ...secureData };
-                    
-                    // Verzió mentése és LocalStorage frissítése
-                    localStorage.setItem(storageKey, JSON.stringify(gameData));
-                } else {
-                    console.error("❌ A játék nem található a szerveren:", dbPath);
-                    throw new Error("A játék tartalma nem elérhető a szerveren.");
-                }
-            } catch (error) {
-                console.error("🔥 Letöltési hiba:", error);
-                
-                // Hiba esetén megpróbáljuk a korábbi mentést
-                const cachedJSON = localStorage.getItem(storageKey);
-                if (cachedJSON) {
-                    console.log("⚠️ Szerver hiba miatt a mentett verziót indítjuk.");
-                    gameData = JSON.parse(cachedJSON);
-                } else {
-                    showLoading(false);
-                    alert("Hiba a letöltéskor: " + error.message);
-                    return;
-                }
+                const cached = localStorage.getItem(storageKey);
+                if (cached) gameData = JSON.parse(cached);
+                else throw new Error("A tartalom nem érhető el.");
             }
         }
-    }
 
-    // =================================================================
-    // C) INDÍTÁS ÉS ADATOK ELLENŐRZÉSE
-    // =================================================================
-    if (!gameData) {
+        // 3. INDÍTÁS
+        window.games[gameId] = gameData;
+        appState.currentGame = gameData;
+        appState.teamName = currentName;
+        appState.teamAvatar = avatarIndex;
+        
+        document.getElementById('game-list-page').classList.add('hidden');
+        document.getElementById('game-page').classList.remove('hidden');
+
+        if (typeof initializeMap === 'function') {
+            initializeMap(gameData);
+        }
+
         showLoading(false);
-        return;
+        setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 200);
+
+    } catch (error) {
+        showLoading(false);
+        console.error("Hiba:", error);
+        showMessage("Hiba", error.message);
     }
+};  
 
-    // Tasks biztosítása tömbként
-    if (gameData.tasks && !Array.isArray(gameData.tasks)) {
-        gameData.tasks = Object.values(gameData.tasks).filter(t => t);
-    }
-    if (!gameData.tasks) gameData.tasks = [];
 
-    // Kezdőpont biztosítása (hogy ne szálljon el a térkép)
-    if (!gameData.startLocation && gameData.tasks.length > 0) {
-        // Ha nincs startLocation, legyen az első feladat helye
-        gameData.startLocation = gameData.tasks[0].location || { lat: 47.4979, lng: 19.0402 };
-    }
-
-    // Globális változó frissítése
-    window.games[gameId] = gameData;
-    
-    // --- 1. LÉPÉS: Képernyő váltás (Hogy látható legyen a térkép doboza) ---
-    // A te HTML-edben 'game-list-page' és 'game-page' a helyes azonosítók!
-    const gameListPage = document.getElementById('game-list-page');
-    const gamePage = document.getElementById('game-page');
-    
-    if(gameListPage) gameListPage.classList.add('hidden');
-    if(gamePage) gamePage.classList.remove('hidden');
-
-    // --- 2. LÉPÉS: Térkép indítása (Csak miután már látható a doboz) ---
-    if (typeof initializeMap === 'function') {
-        // Most már van magassága a div-nek, így nem dob hibát
-        initializeMap(gameData);
-    }
-
-    showLoading(false);
-    
-    // Biztonsági méretfrissítés (Leafletnek jót tesz)
-    setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
-    }, 200);
-};
+   
 
 </script>
 
@@ -8621,27 +8527,34 @@ window.normalizeForComparison = function(text) {
         .replace(/\s+/g, ''); // Szóközök eltávolítása
 };
 
+
+
+
 // 2. Egyediség ellenőrzése a Firebase-ben
 window.checkNameUniqueness = async function(teamName) {
-    // Mindig van user az anonim auth miatt
-    const user = window.auth.currentUser;
-    if (!teamName || !user) return true;
-
+    if (!teamName) return false;
     const normalizedName = window.normalizeForComparison(teamName);
     const nameIndexRef = window.ref(window.db, `taken_team_names/${normalizedName}`);
-    
+    const user = window.auth.currentUser;
+
     try {
         const snapshot = await window.get(nameIndexRef);
         if (snapshot.exists()) {
-            // Ha a név létezik, csak akkor szabad, ha az aktuális UID-hoz tartozik
-            return snapshot.val() === user.uid;
+            const takenByUid = snapshot.val();
+            // Csak akkor engedjük tovább, ha a felhasználó regisztrált ÉS az övé a név
+            if (user && !user.isAnonymous && takenByUid === user.uid) {
+                return true; 
+            }
+            // Ha a név létezik az adatbázisban, de a user anonim (vagy nem az övé), akkor elutasítjuk
+            return false;
         }
-        return true; // Ha nem létezik, szabad
+        // Ha nem létezik a rekord, bárki (anonim is) használhatja a nevet
+        return true; 
     } catch (e) {
+        console.error("Név ellenőrzési hiba:", e);
         return false;
     }
 };
-
 
 
 
@@ -8649,43 +8562,60 @@ window.checkNameUniqueness = async function(teamName) {
 window.saveUserProfile = async (newName, avatarIndex) => {
     const user = auth.currentUser;
 
-    // MÓDOSÍTÁS: Ha nincs felhasználó, VAGY anonim (vendég), azonnal lépjen ki.
-    // Így nem próbál meg nevet foglalni és nem kapnak UID-t a vendégek.
+    // 1. Jogosultság ellenőrzése
     if (!user || user.isAnonymous) {
         console.log("ℹ️ Vendég mód: Profil mentése kihagyva.");
         return;
     }
 
     const newNormalized = window.normalizeForComparison(newName);
-    
-    // 1. Lekérjük a JELENLEGI nevet az adatbázisból, hogy tudjuk, mit kell törölni
-    const snapshot = await window.get(window.ref(window.db, `users/${user.uid}/profile/teamName`));
-    const oldName = snapshot.val();
-    const oldNormalized = oldName ? window.normalizeForComparison(oldName) : null;
-
-    // 2. Unikális ellenőrzés: Csak akkor nézzük, ha tényleg változik a név
-    if (newNormalized !== oldNormalized) {
-        const isUnique = await window.checkNameUniqueness(newName);
-        if (!isUnique) throw new Error("A választott név már foglalt.");
-    }
-
-    // 3. Az összes módosítást egy objektumba gyűjtjük (Atomic Update)
-    const updates = {};
-    
-    // Ha volt régi neve és az más, mint az új, akkor a régit töröljük
-    if (oldNormalized && oldNormalized !== newNormalized) {
-        updates[`taken_team_names/${oldNormalized}`] = null;
-    }
-    
-    // Név foglalása és profil frissítése (Csak bejelentkezett tagoknak)
-    updates[`taken_team_names/${newNormalized}`] = user.uid;
-    updates[`users/${user.uid}/profile/teamName`] = newName;
-    updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
-    updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
 
     try {
+        // 2. Jelenlegi profil lekérése (szükséges a régi név felszabadításához)
+        const userRef = window.ref(window.db, `users/${user.uid}/profile`);
+        const snapshot = await window.get(userRef);
+        const currentProfile = snapshot.val() || {};
+        
+        const oldName = currentProfile.teamName || null;
+        const oldNormalized = oldName ? window.normalizeForComparison(oldName) : null;
+
+        // 3. TRANZAKCIÓ: Új név lefoglalása
+        // Csak akkor futtatjuk, ha a név valóban változott
+        if (newNormalized !== oldNormalized) {
+            const nameRef = window.ref(window.db, `taken_team_names/${newNormalized}`);
+            
+            const result = await window.runTransaction(nameRef, (currentUid) => {
+                // Ha a név szabad (null) vagy már a miénk, akkor mehet
+                if (currentUid === null || currentUid === user.uid) {
+                    return user.uid;
+                }
+                // Egyébként megszakítjuk (másé a név)
+                return; 
+            });
+
+            if (!result.committed) {
+                throw new Error("Sajnos valaki épp most foglalta le ezt a nevet!");
+            }
+        }
+
+        // 4. ATOMI FRISSÍTÉS: Minden adatot egyszerre írunk be
+        const updates = {};
+        
+        // Ha változott a név ÉS volt régi neve, a régit töröljük a foglalási listából
+        if (oldNormalized && oldNormalized !== newNormalized) {
+            updates[`taken_team_names/${oldNormalized}`] = null;
+        }
+        
+        // Profil adatok összeállítása
+        updates[`users/${user.uid}/profile/teamName`] = newName;
+        updates[`users/${user.uid}/profile/avatar`] = avatarIndex;
+        updates[`users/${user.uid}/profile/lastLogin`] = Date.now();
+        // Biztonsági mentés a taken_team_names-be is (tranzakció után is illik az update-be tenni)
+        updates[`taken_team_names/${newNormalized}`] = user.uid;
+
         await window.update(window.ref(window.db), updates);
-        console.log("✅ Profil frissítve.");
+        console.log("✅ Profil és névfoglalás sikeresen frissítve.");
+
     } catch (error) {
         console.error("❌ Hiba a profil mentésekor:", error);
         throw error;
