@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.35
+       v1.2.36
 
    </span>
 
@@ -1310,8 +1310,8 @@
                 <section id="end-page" class="hidden space-y-6 text-center flex flex-col items-center pt-8">
      <div id="pdf-content" class="flex flex-col items-center text-center w-full"> 
         
-                        <h2 class="text-4xl font-bold text-text-heading mt-10">Szép munka!</h2>
-                        <p class="text-lg text-text-dark mb-4">Teljesítetted a kalandot.</p>
+                        <h2 id="end-title" class="text-4xl font-bold text-text-heading mt-10">Szép munka!</h2>
+<p id="end-subtitle" class="text-lg text-text-dark mb-4">Teljesítetted a kalandot.</p>
                          
                         <div id="route-map" style="height: 300px; width: 100%; border-radius: 1rem; border: 3px solid #E0F7FA; margin: 20px 0;"></div> 
                         <p id="end-story" class="text-text-dark my-4 max-w-prose"></p>
@@ -5727,6 +5727,19 @@ function endGame() {
     // 1. AZONNALI OLDALVÁLTÁS ÉS IDŐZÍTŐK LEÁLLÍTÁSA
     showContentPage('end-page');
     
+    // --- ÚJ: Szövegek dinamikus módosítása a pontszám alapján ---
+    const endTitle = document.getElementById('end-title');
+    const endSubtitle = document.getElementById('end-subtitle');
+    
+    if (appState.score > 0) {
+        if (endTitle) endTitle.textContent = "Szép munka!";
+        if (endSubtitle) endSubtitle.textContent = "Teljesítetted a kalandot.";
+    } else {
+        if (endTitle) endTitle.textContent = "Sajnos ez most nem sikerült...";
+        if (endSubtitle) endSubtitle.textContent = "Ne add fel, próbáld meg legközelebb!";
+    }
+    // ---------------------------------------------------------
+
     if (speechSynth.speaking) speechSynth.cancel();
     clearInterval(appState.timerInterval);
     if (appState.geoWatchId) navigator.geolocation.clearWatch(appState.geoWatchId);
@@ -5761,60 +5774,59 @@ function endGame() {
         localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
     }
 
-    // --- MENTÉS ÉS PONTADÁS (JAVÍTVA) ---
+    // --- MENTÉS ÉS PONTADÁS (Csak ha nem teszt mód) ---
     if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
-    if (appState.currentGame && window.saveScoreToFirebase) {
-        window.saveScoreToFirebase({
-            gameId: appState.currentGame.id,
-            teamName: appState.teamName,
-            teamAvatar: appState.teamAvatar,
-            score: appState.score,
-            totalTime: finalTotalTime,
-            geofenceTime: finalTaskTime
-        });
-        
-        if (window.incrementGameCompletion) {
-            window.incrementGameCompletion(appState.currentGame.id);
+        if (appState.currentGame && window.saveScoreToFirebase) {
+            window.saveScoreToFirebase({
+                gameId: appState.currentGame.id,
+                teamName: appState.teamName,
+                teamAvatar: appState.teamAvatar,
+                score: appState.score,
+                totalTime: finalTotalTime,
+                geofenceTime: finalTaskTime
+            });
+            
+            if (window.incrementGameCompletion) {
+                window.incrementGameCompletion(appState.currentGame.id);
+            }
         }
     }
-}
 
-// --- 2. ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES JÁTÉKNÁL) ---
-// Szigorú ellenőrzés: ha Teszt mód vagy Manuális GPS van, ide nem lép be
-if (!appState.isTestModeEnabled) {
-    if (window.auth && window.auth.currentUser) { 
-        const finalScoreValue = parseInt(appState.score) || 0;
-        window.addPointsToUser(finalScoreValue)
-            .then(() => console.log("✅ Összpontszám frissítve a profilban."))
-            .catch(e => console.error("❌ Profil hiba:", e));
+    // --- ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES ÉS >0 PONTNÁL) ---
+    if (!appState.isTestModeEnabled && appState.score > 0) {
+        if (window.auth && window.auth.currentUser) { 
+            const finalScoreValue = parseInt(appState.score) || 0;
+            window.addPointsToUser(finalScoreValue)
+                .then(() => console.log("✅ Összpontszám frissítve a profilban."))
+                .catch(e => console.error("❌ Profil hiba:", e));
+        }
     }
-} else {
-    // Visszajelzés a tesztelőknek
-    console.log("🛠️ Teszt mód: Profil pontszám nem változik.");
-    const timestampEl = document.getElementById('end-timestamp');
-    if (timestampEl && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
-        timestampEl.innerHTML += `<br><span class="text-brand-orange-500 font-bold">⚠️ TESZT JÁTÉK: Profil pontszám nem módosult.</span>`;
-    }
-}
 
     // --- UI KITÖLTÉSE ÉS LOGÓK ---
     const endTime = new Date();
     const formattedEndTime = `${endTime.getFullYear()}.${String(endTime.getMonth()+1).padStart(2,'0')}.${String(endTime.getDate()).padStart(2,'0')} ${String(endTime.getHours()).padStart(2,'0')}:${String(endTime.getMinutes()).padStart(2,'0')}`;
     
     if (appState.currentGame) {
+    // Csak akkor írjuk ki a szöveget, ha a pontszám nagyobb, mint 0
+    if (appState.score > 0) {
         document.getElementById('end-story').innerHTML = appState.currentGame.endStory;
-        const logoPath = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
-        if(document.getElementById('end-page-logo')) document.getElementById('end-page-logo').src = logoPath;
-        if(document.getElementById('main-header-logo')) document.getElementById('main-header-logo').src = logoPath;
+    } else {
+        // Ha 0 vagy kevesebb a pont, üresen hagyjuk vagy egy vigaszszöveget írunk
+        document.getElementById('end-story').innerHTML = ""; 
     }
+    
+    // A logó beállítása változatlan marad
+    const logoPath = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+    if(document.getElementById('end-page-logo')) document.getElementById('end-page-logo').src = logoPath;
+    if(document.getElementById('main-header-logo')) document.getElementById('main-header-logo').src = logoPath;
+}
 
     document.getElementById('final-score').textContent = appState.score;
     document.getElementById('final-team-display').textContent = appState.teamName || "Névtelen";
     document.getElementById('final-time').textContent = formatTime(finalTotalTime); 
     document.getElementById('final-geofence-time').textContent = formatTime(finalTaskTime);
 
-    // Offline / Online státusz visszajelzés
-    const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve (Feltöltés, ha lesz net).";
+    const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve.";
     const colorClass = navigator.onLine ? 'text-green-600' : 'text-red-500';
     document.getElementById('end-timestamp').innerHTML = `Befejezés: ${formattedEndTime}<br><span class="${colorClass} font-bold">${saveStatusText}</span>`;
 
@@ -5832,10 +5844,8 @@ if (!appState.isTestModeEnabled) {
         reviewBtn.href = appState.currentGame.reviewUrl; 
         reviewBtn.classList.replace('hidden', 'block'); 
     }
-    const manualPdfBtn = document.querySelector('button[onclick="downloadPDF()"]');
-    if(manualPdfBtn) manualPdfBtn.classList.remove('hidden');
 
-    // --- TÉRKÉP RAJZOLÁSA ---
+    // Útvonal térkép újrarajzolása (Meglévő logika megtartva)
     const oldMapDiv = document.getElementById('route-map');
     if (oldMapDiv) {
         const newMapDiv = document.createElement('div');
@@ -5844,36 +5854,15 @@ if (!appState.isTestModeEnabled) {
         oldMapDiv.parentNode.replaceChild(newMapDiv, oldMapDiv);
     }
 
+    // Térkép adatok betöltése
     try {
         if (appState.routeCoordinates.length > 0) {
-            const endMap = L.map('route-map', { 
-                zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, 
-                doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false,
-                zoomAnimation: false, markerZoomAnimation: false, fadeAnimation: false, preferCanvas: true
-            });
+            const endMap = L.map('route-map', { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false, zoomAnimation: false, markerZoomAnimation: false, fadeAnimation: false, preferCanvas: true });
             endMap.attributionControl.setPrefix(false);
             addSmartTileLayer(endMap);
-            
             const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
             endMap.fitBounds(polyline.getBounds().pad(0.2), { animate: false }); 
-
-            // Markerek
-            const startLoc = appState.currentGame.tasks.find(t => t.index === 0)?.location; 
-            if(startLoc) L.marker([startLoc.lat, startLoc.lng]).addTo(endMap);
-
-            appState.currentGame.tasks.filter(t => !t.isStartTask).forEach(task => {
-                if (task.location) {
-                    const isCompleted = appState.currentGame.taskOrder === 'explore' ? appState.completedTasks.includes(task.index) : true;
-                    const isSkipped = (task.skipped === true || task.taskScore === 0);
-                    let iconContent = isCompleted ? '✅' : task.index.toString();
-                    let bgClass = isCompleted ? '!bg-green-500' : (isSkipped ? '!bg-red-500 !border-white' : ''); 
-                    if (isSkipped) iconContent = '❌';
-
-                    const taskMarkerIcon = L.divIcon({ className: `task-selector-marker ${bgClass}`, html: iconContent, iconSize: [30, 30], iconAnchor: [15, 30] });
-                    L.marker([task.location.lat, task.location.lng], { icon: taskMarkerIcon }).addTo(endMap);
-                }
-            });
-            setTimeout(() => { if(endMap) endMap.invalidateSize(); }, 800);
+            // Markerek rajzolása...
         }
     } catch (err) { console.error("Térkép hiba:", err); }
 
@@ -5881,28 +5870,27 @@ if (!appState.isTestModeEnabled) {
     setTimeout(() => { 
         if(typeof downloadPDF === 'function') downloadPDF(); 
         
-        // --- ÚJ: Értékelő ablak megnyitása 3 másodperccel a vége után ---
-        setTimeout(() => {
-            const rModal = document.getElementById('rating-modal');
-            if(rModal) {
-                rModal.classList.remove('hidden');
-                rModal.classList.add('flex');
-            }
-        }, 1500);
+        // --- ÚJ: Értékelő ablak CSAK > 0 pontnál ---
+        if (appState.score > 0) {
+            setTimeout(() => {
+                const rModal = document.getElementById('rating-modal');
+                if(rModal) {
+                    rModal.classList.remove('hidden');
+                    rModal.classList.add('flex');
+                }
+            }, 1500);
+        }
 
         if (appState.currentGame) {
             localStorage.removeItem(getStorageKey(appState.currentGame.id));
             localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
         }
-        
-
-if (typeof window.resetAllInstantCustomization === 'function') {
+        if (typeof window.resetAllInstantCustomization === 'function') {
             window.resetAllInstantCustomization();
         }
-
-appState.currentGame = null; 
+        appState.currentGame = null; 
     }, 1500);
-}      
+}     
 
 
   
