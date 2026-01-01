@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.37
+       v1.2.38
 
    </span>
 
@@ -694,7 +694,7 @@
         <img id="main-header-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó" class="w-full max-w-xs mx-4">
                  
    </div>
-   <h1 id="page-title" class="text-sm font-bold tracking-wider mb-1">Válassz Kalandot</h1>
+   <h1 id="page-title" class="text-sm font-bold tracking-wider mb-1">Fedezd fel a vásorst</h1>
 </div>
                  
                  <div id="game-header-logo-container" class="hidden">
@@ -2647,26 +2647,30 @@ window.openGlobalLeaderboard = async function() {
         const gameIdsSet = new Set();
         
         Object.keys(rawData).forEach(gameId => {
-            const gameScores = rawData[gameId];
-            const gameObj = window.games ? window.games[gameId] : null;
-            const gameTitle = gameObj ? gameObj.title : gameId;
-            
-            gameIdsSet.add(JSON.stringify({id: gameId, title: gameTitle})); 
+    const gameScores = rawData[gameId];
+    
+    // BIZTONSÁGI ELLENŐRZÉS: Csak akkor megyünk tovább, ha vannak pontszámok
+    if (gameScores && typeof gameScores === 'object') {
+        const gameObj = window.games ? window.games[gameId] : null;
+        const gameTitle = gameObj ? gameObj.title : gameId;
+        
+        gameIdsSet.add(JSON.stringify({id: gameId, title: gameTitle})); 
 
-            Object.keys(gameScores).forEach(scoreId => {
-                const entry = gameScores[scoreId];
-                flatData.push({
-                    gameId: gameId,
-                    gameTitle: gameTitle,
-                    teamName: entry.teamName || "Névtelen",
-                    teamAvatar: entry.teamAvatar || "cat",
-                    score: entry.score || 0,
-                    totalTime: entry.totalTime || 0,
-                    timestamp: entry.timestamp || 0,
-                    dateString: entry.dateString || "-"
-                });
+        Object.keys(gameScores).forEach(scoreId => {
+            const entry = gameScores[scoreId];
+            flatData.push({
+                gameId: gameId,
+                gameTitle: gameTitle,
+                teamName: entry.teamName || "Névtelen",
+                teamAvatar: entry.teamAvatar || "cat",
+                score: entry.score || 0,
+                totalTime: entry.totalTime || 0,
+                timestamp: entry.timestamp || 0,
+                dateString: entry.dateString || "-"
             });
         });
+    }
+});
 
         flatData.sort((a, b) => b.timestamp - a.timestamp);
         window.globalLeaderboardData = flatData;
@@ -2858,11 +2862,11 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 });
             });
 
-            const players = Object.entries(monthlyAggregator).map(([name, data]) => ({
-                name: name,
-                avatar: data.avatar,
-                score: data.score,
-                isRegistered: data.isRegistered
+            const players = Object.values(monthlyAggregator).map((data) => ({
+    name: data.name, // Itt az objektumon belüli 'name' tulajdonságot használjuk (ami a teamName)
+    avatar: data.avatar,
+    score: data.score,
+    isRegistered: data.isRegistered
             }));
 
             renderHofTable(players, tbody);
@@ -2909,75 +2913,7 @@ function renderHofTable(players, tbody) {
 
 
 
- window.filterGlobalLeaderboard = function() {
-      const searchTerm = document.getElementById('global-search-input').value.toLowerCase();
-      const selectedGameId = document.getElementById('global-game-filter').value;
-      const tbody = document.getElementById('global-leaderboard-body');
-      const countDisplay = document.getElementById('global-count-display');
-
-      const filtered = window.globalLeaderboardData.filter(item => {
-          // Játék szűrő
-          if (selectedGameId !== 'all' && item.gameId !== selectedGameId) return false;
-          
-          // Szöveges szűrő
-          if (searchTerm) {
-              const textToSearch = `${item.teamName} ${item.gameTitle} ${item.gameId}`.toLowerCase();
-              if (!textToSearch.includes(searchTerm)) return false;
-          }
-          return true;
-      });
-
-      countDisplay.textContent = `${filtered.length} eredmény`;
-
-      if (filtered.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Nincs találat.</td></tr>';
-          return;
-      }
-
-      // Limitálás
-      const renderLimit = 500;
-      
-      let html = "";
-      
-
-      const fmtTime = (s) => {
-         const m = Math.floor(s / 60).toString().padStart(2,'0');
-         const sec = (s % 60).toString().padStart(2,'0');
-         return `${m}:${sec}`;
-      };
-
-      filtered.slice(0, renderLimit).forEach(r => {
-          const icon = AVATAR_ICONS[r.teamAvatar] || '👤';
-          
-          // --- DÁTUM FORMÁTUM MÓDOSÍTÁSA ITT TÖRTÉNT ---
-          const dateObj = new Date(r.timestamp);
-          // Év.Hó.Nap Óra:Perc (pl: 2024.05.21 14:30)
-          const niceDate = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-          // ---------------------------------------------
-
-          html += `
-            <tr class="hover:bg-purple-50 transition">
-                <td class="p-3 border-b text-gray-500 whitespace-nowrap font-mono text-[11px]">${niceDate}</td>
-                <td class="p-3 border-b">
-                    <div class="font-bold text-gray-800">${r.gameTitle}</div>
-                    <div class="text-[10px] text-gray-400 font-mono">${r.gameId}</div>
-                </td>
-                <td class="p-3 border-b">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">${icon}</span>
-                        <span class="font-semibold text-purple-900">${r.teamName}</span>
-                    </div>
-                </td>
-                <td class="p-3 border-b text-right font-bold text-orange-600 text-lg">${r.score}</td>
-                <td class="p-3 border-b text-right text-gray-600 font-mono">${fmtTime(r.totalTime)}</td>
-            </tr>
-          `;
-      });
-
-      if (filtered.length > 500) {
-        tbody.innerHTML += `<tr><td colspan="5" class="text-center py-2 text-xs text-gray-400 italic">...és további ${filtered.length - 500} eredmény (szűkítsd a keresést)</td></tr>`;
-    }
-}; // Ez zárja le a window.filterGlobalLeaderboard függvényt
+ 
 
 // Itt jön a script blokk vége
 window.isFirebaseModuleLoaded = true;
@@ -3987,7 +3923,7 @@ async function sharePdfViaEmail() {
                     // Minden más oldalon (pl. Kalandválasztó) MEGJELENÍTJÜK
                     if (titleEl) {
                         titleEl.classList.remove('hidden');
-                        const titles = { 'game-list-page': 'Válassz Kalandot' };
+                        const titles = { 'game-list-page': 'Fedezd fel a várost' };
                         titleEl.textContent = titles[pageId] || 'MystiGo';
                     }
                 }
@@ -4015,7 +3951,7 @@ async function sharePdfViaEmail() {
                     if (titleEl && !titleEl.classList.contains('hidden')) {
                         const secretTrigger = document.createElement('span');
                         secretTrigger.id = 'secret-trigger';
-                        secretTrigger.className = 'text-brand-orange-500 cursor-pointer ml-1 font-extrabold';
+                        secretTrigger.className = 'text-brand-black-500 cursor-pointer ml-1 font-extrabold';
                         secretTrigger.textContent = '!';
                         titleEl.appendChild(secretTrigger);
                     }
@@ -5963,10 +5899,32 @@ function endGame() {
             endMap.attributionControl.setPrefix(false);
             addSmartTileLayer(endMap);
             const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
+            // --- JAVÍTÁS: Markerek kirajzolása ---
+            appState.currentGame.tasks.forEach(task => {
+                // Csak akkor rajzolunk, ha nem a kezdőpont (index 0) és van koordinátája
+                if (task.index > 0 && task.location && task.location.lat) {
+                    
+                    // Ikon kiválasztása: Ha átugrotta (skipped), akkor piros X, egyébként zöld pipa
+                    const iconEmoji = task.skipped ? "❌" : "✅";
+                    const iconColor = task.skipped ? "bg-red-100 border-red-500" : "bg-green-100 border-green-500";
+
+                    const taskIcon = L.divIcon({
+                        className: 'end-game-marker',
+                        html: `<div class="${iconColor} w-8 h-8 rounded-full border-2 shadow-md flex items-center justify-center text-sm">${iconEmoji}</div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    });
+
+                    L.marker([task.location.lat, task.location.lng], { icon: taskIcon })
+                     .addTo(endMap)
+                     .bindPopup(`<b>${task.index}. feladat</b><br>${task.skipped ? 'Átugorva' : 'Sikeresen megoldva'}`);
+                }
+            });
+            // -------------------------------------
+
             endMap.fitBounds(polyline.getBounds().pad(0.2), { animate: false }); 
-            // Markerek rajzolása...
         }
-    } catch (err) { console.error("Térkép hiba:", err); }
+    } catch (err) { console.error("Térkép hiba a befejezésnél:", err); }
 
     // --- LEZÁRÁS ---
     setTimeout(() => { 
