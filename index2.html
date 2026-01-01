@@ -8769,13 +8769,7 @@ window.logout = async () => {
 };
 
 
-        // --- KIJELENTKEZÉS ---
-        window.logout = async () => {
-            if(confirm("Biztosan ki szeretnél jelentkezni?")) {
-                try { await signOut(auth); } catch (e) { console.error(e); }
-            }
-        };
-
+        
         // --- UI ÁLLAPOTFIGYELŐ ---
         let profileListener = null; // Változó a figyelő leállításához
 
@@ -8842,32 +8836,29 @@ const btnGroup = document.getElementById('auth-buttons-group');
         });
 
     } else {
-        // KIJELENTKEZÉS KEZELÉSE (Gombok és feliratok alaphelyzetbe állítása)
+        // KIJELENTKEZÉS KEZELÉSE
         if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
-        
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
         if (authUserName) authUserName.textContent = "";
         if (authStatusLabel) authStatusLabel.textContent = "Bejelentkezés";
 
-        // VENDÉG ADATOK KEZELÉSE:
         const savedName = localStorage.getItem('mystigo_pref_teamName');
         const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
 
-        // Ha van elmentett vendég név, és az input mező üres, töltsük be (pl. oldalfrissítéskor)
-        if (savedName && teamInput && !teamInput.value) {
-            teamInput.value = savedName;
+        if (savedName) {
+            if (teamInput) teamInput.value = savedName;
+        } else {
+            // HA NINCS MENTETT NÉV (Kijelentkezés után vagyunk), ÜRÍTSÜNK!
+            if (teamInput) teamInput.value = "";
         }
 
-        // Avatar kezelése
         if (savedAvatar) {
-            // Ha van mentett avatar (vendég), akkor azt jelenítjük meg
             if (typeof window.selectAvatar === 'function') {
                 window.selectAvatar(savedAvatar);
             }
         } else {
-            // Ha nincs semmi (kijelentkezés után vagyunk), akkor kérdőjel
             if (previewContainer) previewContainer.textContent = '❓';
         }
     }
