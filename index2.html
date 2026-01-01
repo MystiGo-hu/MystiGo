@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.38
+       v1.2.39
 
    </span>
 
@@ -6093,9 +6093,9 @@ function endGame() {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
-    appState.map.on('mousedown touchstart dragstart zoomstart', () => {
-        appState.lastMapInteraction = Date.now();
-    });
+    appState.map.on('movestart zoomstart dragstart touchstart', () => {
+    appState.lastMapInteraction = Date.now();
+});
 
     // Mock click handler visszakapcsolása, ha szükséges
     if (appState.isManualMock) {
@@ -6133,19 +6133,19 @@ function endGame() {
     }
 
     if (!appState.isTestModeEnabled && !appState.isManualMock) {
-        const latLng = new L.LatLng(lat, lng);
+    const latLng = new L.LatLng(lat, lng);
 
-        // 2. Marker (kék/sárga pötty) kezelése
-        if (appState.playerMarker) {
+    // 1. A kék pötty (marker) pozícióját MINDIG frissítjük
+    if (appState.playerMarker) {
             appState.playerMarker.setLatLng(latLng);
         } else {
             const playerIcon = L.divIcon({
-    className: 'player-marker',
-    html: '<div class="marker-visual"></div>', // Bekerült a belső elem
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-    popupAnchor: [0, -10]
-});
+                className: 'player-marker',
+                html: '<div class="marker-visual"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                popupAnchor: [0, -10]
+            });
             
             appState.playerMarker = L.marker(latLng, { 
                 icon: playerIcon,
@@ -6153,13 +6153,11 @@ function endGame() {
             }).addTo(appState.map);
         }
 
-        
-        
-        // 3. Térkép igazítása (Zoom logika) - SPECIÁLIS JAVÍTÁS
+        // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT VERZIÓ
         const now = Date.now();
         const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
 
-        // EXPLORE MÓD KEZELÉSE
+        // A) EXPLORE MÓD KEZELÉSE (5 másodperces szabály)
         const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
@@ -6167,6 +6165,7 @@ function endGame() {
         );
 
         if (isExploreSelection) {
+            // Ha 5 mp-en belül nyúltál hozzá, nem mozgatjuk a nézetet
             if (timeSinceLastInteraction < 5000) { 
                 checkGeofence();
                 return; 
@@ -6185,22 +6184,29 @@ function endGame() {
             return; 
         }
 
-        // RÉGI LOGIKA (Normál játékmenethez)
+        // B) NORMÁL JÁTÉKMENET LOGIKÁJA (3 másodperces szabály)
+        // Csak akkor mozgatjuk a kamerát, ha legalább 3 másodperce nem nyúltál a térképhez
         if (timeSinceLastInteraction > 3000) {
             if (appState.geofenceCircle && appState.playerMarker) { 
                 const targetLatLng = appState.geofenceCircle.getLatLng();
                 const distance = latLng.distanceTo(targetLatLng);
                 const radius = appState.geofenceCircle.getRadius();
 
+                // Ha a zónán belül vagyunk, ráközelítünk a játékosra
                 if (distance <= radius + 20) {
                     appState.map.setView(latLng, 19, { animate: true });
                 } else {
+                    // Ha távolabb vagyunk, befoglaljuk a célpontot is
                     const bounds = L.latLngBounds(latLng, targetLatLng);
                     appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                 }
             } else {
                 appState.map.setView(latLng, 19);
             }
+        } else {
+            // Ha 3 mp-en belül vagy, nem nyúlunk a nézethez (setView/fitBounds elmarad),
+            // de a Geofence-t ellenőrizzük, hogy a kérdés felugorhasson, ha közben besétálsz a zónába.
+            console.log("Kézi vezérlés aktív, nézet rögzítve...");
         }
     }
     
