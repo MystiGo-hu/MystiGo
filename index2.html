@@ -694,7 +694,7 @@
         <img id="main-header-logo" src="logo/MystiGo_logo.png" alt="MystiGo Logó" class="w-full max-w-xs mx-4">
                  
    </div>
-   <h1 id="page-title" class="text-sm font-bold tracking-wider mb-1">Fedezd fel a vásorst</h1>
+   <h1 id="page-title" class="text-sm font-bold tracking-wider mb-1">Fedezd fel a várost</h1>
 </div>
                  
                  <div id="game-header-logo-container" class="hidden">
@@ -8735,42 +8735,38 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 };
 
 
-window.handleLogout = async function() {
-    try {
-        // Firebase kijelentkezés
-        await window.auth.signOut();
-        
-        // --- ADATOK ÜRÍTÉSE ---
-        
-        // 1. Input mező törlése
-        const nameInput = document.getElementById('team-name-input');
-        if (nameInput) nameInput.value = '';
-        
-        // 2. Avatar visszaállítása alapértelmezettre
-        if (typeof window.selectAvatar === 'function') {
-            window.selectAvatar('cat'); 
+window.logout = async () => {
+    if(confirm("Biztosan ki szeretnél jelentkezni?")) {
+        try {
+            // 1. Mezők ürítése a felületen
+            const nameInput = document.getElementById('team-name-input');
+            if (nameInput) nameInput.value = '';
+
+            // 2. LocalStorage ürítése (így nem jegyzi meg a regisztrált nevet vendégként)
+            localStorage.removeItem('mystigo_pref_teamName');
+            localStorage.setItem('mystigo_pref_teamAvatar', 'cat'); // Visszaállás cicára
+
+            // 3. Avatar vizuális visszaállítása
+            if (typeof window.selectAvatar === 'function') {
+                window.selectAvatar('cat'); 
+            }
+
+            // 4. Firebase kijelentkezés
+            await signOut(auth);
+
+            // 5. Gomb állapotának frissítése (letiltja az indítást név nélkül)
+            if (typeof window.updateInstantButtonEligibility === 'function') {
+                window.updateInstantButtonEligibility();
+            }
+
+            showMessage("Kijelentkezés", "Sikeresen kijelentkeztél.");
+
+        } catch (e) { 
+            console.error("Kijelentkezési hiba:", e);
+            showMessage("Hiba", "Nem sikerült kijelentkezni.");
         }
-
-        // 3. Böngészőben tárolt adatok törlése
-        localStorage.removeItem('mystigo_pref_teamName');
-        localStorage.setItem('mystigo_pref_teamAvatar', 'cat');
-
-        // 4. UI frissítése (ha van ilyen elem)
-        const userEmailSpan = document.getElementById('user-email-display');
-        if (userEmailSpan) userEmailSpan.textContent = '';
-
-        showToast("Sikeres kijelentkezés", "success");
-        
-        // Bezárjuk a profil modalt, ha nyitva van
-        const authModal = document.getElementById('auth-modal');
-        if (authModal) authModal.classList.add('hidden');
-
-    } catch (error) {
-        console.error("Kijelentkezési hiba:", error);
-        showToast("Hiba a kijelentkezés során", "error");
     }
 };
-
 
 
         // --- KIJELENTKEZÉS ---
@@ -8846,25 +8842,41 @@ const btnGroup = document.getElementById('auth-buttons-group');
         });
 
     } else {
-        // KIJELENTKEZÉS KEZELÉSE (Csak a gombokat és a pipát állítjuk vissza)
+        // KIJELENTKEZÉS KEZELÉSE (Gombok és feliratok alaphelyzetbe állítása)
         if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
         
         if (btnGroup) btnGroup.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (scoreDisplay) scoreDisplay.classList.add('hidden');
         if (authUserName) authUserName.textContent = "";
-        if (authStatusLabel) authStatusLabel.textContent = "Belépés";
+        if (authStatusLabel) authStatusLabel.textContent = "Bejelentkezés";
 
-        // NEM töröljük a teamInput-ot és a LocalStorage-ot, 
-        // hogy a vendég adatok megmaradjanak!
+        // VENDÉG ADATOK KEZELÉSE:
+        const savedName = localStorage.getItem('mystigo_pref_teamName');
+        const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
 
-        // Csak az avatart állítjuk vissza kérdőjellé, HA nincs mentett vendég avatar
-        if (!localStorage.getItem('mystigo_pref_teamAvatar')) {
+        // Ha van elmentett vendég név, és az input mező üres, töltsük be (pl. oldalfrissítéskor)
+        if (savedName && teamInput && !teamInput.value) {
+            teamInput.value = savedName;
+        }
+
+        // Avatar kezelése
+        if (savedAvatar) {
+            // Ha van mentett avatar (vendég), akkor azt jelenítjük meg
+            if (typeof window.selectAvatar === 'function') {
+                window.selectAvatar(savedAvatar);
+            }
+        } else {
+            // Ha nincs semmi (kijelentkezés után vagyunk), akkor kérdőjel
             if (previewContainer) previewContainer.textContent = '❓';
         }
     }
-setTimeout(window.updateInstantButtonEligibility, 1000);
-
+    // Az ellenőrzés futtatása, hogy az "Indítás" gomb aktív legyen, ha maradt bent név
+    setTimeout(() => {
+        if (typeof window.updateInstantButtonEligibility === 'function') {
+            window.updateInstantButtonEligibility();
+        }
+    }, 1000);
 });
 
     } catch (error) { console.error("❌ Firebase inicializálási hiba:", error); }
