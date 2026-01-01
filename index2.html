@@ -6459,7 +6459,6 @@ window.requestCompassPermission = async function() {
             if (appState.currentGame.taskOrder === 'explore' && appState.isTimerRunning && appState.currentTaskIndex === 0) {
                  taskInteractionArea.classList.add('hidden');
                  exploreSelectionContainer.classList.remove('hidden');
-                 renderTaskMarkers();
                  return; 
             }
             
@@ -6686,14 +6685,21 @@ function backToExploreMap() {
             else if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
             
             if (bounds.length > 0) {
+                 const now = Date.now();
+                 const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
+
                  if (appState.isTimerRunning) {
-                     setTimeout(() => {
-                         appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
-                         appState.map.invalidateSize();
-                     }, 100);
+                     // CSAK AKKOR IGAZÍTJUK A NÉZETET, HA LEGALÁBB 3 MÁSODPERCE NEM NYÚLTÁL A TÉRKÉPHEZ
+                     if (timeSinceLastInteraction > 3000) {
+                         setTimeout(() => {
+                             appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
+                             appState.map.invalidateSize();
+                         }, 100);
+                     } else {
+                         console.log("Nézet frissítés kihagyva az Explore módban interakció miatt.");
+                     }
                  } else {
                      const startTask = appState.currentGame.tasks.find(t => t.index === 0);
-                     // Itt is figyelünk a locationLat-ra a Start pontnál
                      let startLat = startTask?.location?.lat || startTask?.locationLat;
                      let startLng = startTask?.location?.lng || startTask?.locationLng;
                      
