@@ -6154,10 +6154,11 @@ function endGame() {
         }
 
         // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT VERZIÓ
-        const now = Date.now();
+       const now = Date.now();
         const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
+        const INTERACTION_THRESHOLD = 3000; // 3 másodperc (ezt átírhatod 5000-re is ha többet szeretnél)
 
-        // A) EXPLORE MÓD KEZELÉSE (5 másodperces szabály)
+        // EXPLORE MÓD KEZELÉSE (Amikor minden pont látszik)
         const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
@@ -6165,12 +6166,14 @@ function endGame() {
         );
 
         if (isExploreSelection) {
-            // Ha 5 mp-en belül nyúltál hozzá, nem mozgatjuk a nézetet
-            if (timeSinceLastInteraction < 5000) { 
+            // HA NEMRÉG NYÚLTÁL HOZZÁ: Csak geofence-t nézünk, de a térképnézetet TILOS bántani
+            if (timeSinceLastInteraction < INTERACTION_THRESHOLD) { 
+                console.log("Explore mód: Kézi vezérlés, nézet rögzítve...");
                 checkGeofence();
                 return; 
             }
 
+            // HA ELTELT A 3 MP: Akkor visszahúzzuk a nézetet, hogy minden pont és a játékos is látsszon
             const markerKeys = Object.keys(appState.taskMarkers);
             if (markerKeys.length > 0) {
                 const bounds = [];
@@ -6184,19 +6187,16 @@ function endGame() {
             return; 
         }
 
-        // B) NORMÁL JÁTÉKMENET LOGIKÁJA (3 másodperces szabály)
-        // Csak akkor mozgatjuk a kamerát, ha legalább 3 másodperce nem nyúltál a térképhez
-        if (timeSinceLastInteraction > 3000) {
+        // NORMÁL JÁTÉKMENET LOGIKÁJA (Amikor a célpontot követed)
+        if (timeSinceLastInteraction > INTERACTION_THRESHOLD) {
             if (appState.geofenceCircle && appState.playerMarker) { 
                 const targetLatLng = appState.geofenceCircle.getLatLng();
                 const distance = latLng.distanceTo(targetLatLng);
                 const radius = appState.geofenceCircle.getRadius();
 
-                // Ha a zónán belül vagyunk, ráközelítünk a játékosra
                 if (distance <= radius + 20) {
                     appState.map.setView(latLng, 19, { animate: true });
                 } else {
-                    // Ha távolabb vagyunk, befoglaljuk a célpontot is
                     const bounds = L.latLngBounds(latLng, targetLatLng);
                     appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                 }
@@ -6204,12 +6204,11 @@ function endGame() {
                 appState.map.setView(latLng, 19);
             }
         } else {
-            // Ha 3 mp-en belül vagy, nem nyúlunk a nézethez (setView/fitBounds elmarad),
-            // de a Geofence-t ellenőrizzük, hogy a kérdés felugorhasson, ha közben besétálsz a zónába.
-            console.log("Kézi vezérlés aktív, nézet rögzítve...");
+            console.log("Normál mód: Kézi vezérlés, nézet rögzítve...");
         }
     }
     
+    // A geofence ellenőrzést a végén mindig lefuttatjuk, hogy az üzenetek feljöjjenek
     checkGeofence();
 }
 
