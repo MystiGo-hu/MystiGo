@@ -500,27 +500,41 @@
 }
         
      #team-name-container {
+    position: relative;      /* ÚJ: Ez rögzíti a Teszt feliratot a dobozon belül */
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     white-space: nowrap;
-    background-color: #00CED1 !important; /* MystiGo Türkiz */
-    color: white !important;               /* Fehér szöveg a jobb kontrasztért */
-    padding: 4px 12px;                     /* Kicsit több hely a szövegnek */
-    border-radius: 20px;                   /* Kerekítettebb, "kapszula" forma */
-    box-shadow: 0 4px 10px rgba(0, 206, 209, 0.3); /* Türkiz árnyék */
+    background-color: rgba(0, 206, 209, 0.6) !important;
+    border: 1px solid #0D2B45 !important;
+    color: #0D2B45 !important;
+    padding: 1px 14px;       /* Picit növelheted a függőleges helyet (6px) */
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0, 206, 209, 0.3);
+    margin-top: 13px;
     margin-bottom: 2px;
     z-index: 1005;
+    min-height: 20px;        /* Fix magasságot ad, hogy ne ugráljon semmitől */
 }
         
         /* Teszt mód felirat stílusa */
         #test-mode-indicator {
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 0 4px;
-            border-radius: 4px;
-            font-size: 0.65rem !important; /* Kisebb betűméret, hogy elférjen */
-            line-height: 1.2;
-        }
+    position: absolute;      /* ÚJ: Nem foglal helyet, nem tolja el a csapatnevet */
+    top: 0;                  /* Teljesen a felső keretre tapad */
+    left: 50%;               /* Vízszintesen középre */
+    transform: translateX(-50%); /* Pontos középre igazítás */
+    
+    background-color: rgba(255, 165, 0, 0.6) !important;
+    padding: 0 6px;
+    border-radius: 0 0 4px 4px; /* Csak az alja legyen kerekített */
+    font-size: 0.5rem !important;
+    line-height: 1;
+    white-space: nowrap;
+    color: #0D2B45;          /* Sötétkék felirat a fehér háttéren */
+    font-weight: bold;
+    pointer-events: none;    /* Átlátszó az érintések számára */
+}
         
         /* 3. STATUS BAR (Pontszám, Idő - LEJJEBB TOLVA) */
         #game-status-bar {
@@ -687,7 +701,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.41
+       v1.2.42
 
    </span>
 
