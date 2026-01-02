@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.40
+       v1.2.41
 
    </span>
 
@@ -5819,25 +5819,25 @@ function endGame() {
             const polyline = L.polyline(appState.routeCoordinates, { color: 'var(--brand-orange)', weight: 5, opacity: 0.8 }).addTo(endMap);
             // --- JAVÍTÁS: Markerek kirajzolása ---
             appState.currentGame.tasks.forEach(task => {
-                // Csak akkor rajzolunk, ha nem a kezdőpont (index 0) és van koordinátája
-                if (task.index > 0 && task.location && task.location.lat) {
-                    
-                    // Ikon kiválasztása: Ha átugrotta (skipped), akkor piros X, egyébként zöld pipa
-                    const iconEmoji = task.skipped ? "❌" : "✅";
-                    const iconColor = task.skipped ? "bg-red-100 border-red-500" : "bg-green-100 border-green-500";
+    if (task.index > 0 && task.location && task.location.lat) {
+        
+        // JAVÍTOTT LOGIKA: Ha átugrotta VAGY megoldást kért, akkor tekintsük "sikertelennek"
+        const isFailed = task.skipped || task.solutionUsed;
+        const iconEmoji = isFailed ? "❌" : "✅";
+        const iconColor = isFailed ? "bg-red-100 border-red-500" : "bg-green-100 border-green-500";
 
-                    const taskIcon = L.divIcon({
-                        className: 'end-game-marker',
-                        html: `<div class="${iconColor} w-8 h-8 rounded-full border-2 shadow-md flex items-center justify-center text-sm">${iconEmoji}</div>`,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16]
-                    });
+        const taskIcon = L.divIcon({
+            className: 'end-game-marker',
+            html: `<div class="${iconColor} w-8 h-8 rounded-full border-2 shadow-md flex items-center justify-center text-sm">${iconEmoji}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
 
-                    L.marker([task.location.lat, task.location.lng], { icon: taskIcon })
-                     .addTo(endMap)
-                     .bindPopup(`<b>${task.index}. feladat</b><br>${task.skipped ? 'Átugorva' : 'Sikeresen megoldva'}`);
-                }
-            });
+        L.marker([task.location.lat, task.location.lng], { icon: taskIcon })
+         .addTo(endMap)
+         .bindPopup(`<b>${task.index}. feladat</b><br>${isFailed ? 'Megoldva / Átugorva' : 'Sikeresen megoldva'}`);
+    }
+});
             // -------------------------------------
 
             endMap.fitBounds(polyline.getBounds().pad(0.2), { animate: false }); 
@@ -7893,16 +7893,17 @@ if (solBtn) {
     solBtn.parentNode.replaceChild(newSolBtn, solBtn);
 
     newSolBtn.addEventListener('click', () => {
-        const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-        if (!task) return;
+    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+    if (!task) return;
 
-        if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
-        if (task.isStartTask) return;
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
+    if (task.isStartTask) return;
 
-        // 1. Pontszám nullázása és mentés
-        task.taskScore = 0;
-        updateStatusDisplays();
-        saveGameState();
+    // 1. Pontszám nullázása, a megoldás jelző beállítása és mentés
+    task.taskScore = 0;
+    task.solutionUsed = true; // <--- EZT ADTUK HOZZÁ
+    updateStatusDisplays();
+    saveGameState();
 
         // 2. MEGOLDÁS SZÖVEGÉNEK ELŐKÉSZÍTÉSE (JAVÍTOTT RÉSZ)
         let solutionText = "";
