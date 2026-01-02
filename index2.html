@@ -685,7 +685,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.39
+       v1.2.40
 
    </span>
 
@@ -5284,6 +5284,14 @@ if (window.auth && window.auth.currentUser) {
 
 
         function startGame(gameId, modeOverride = null) {
+
+if (window.pendingCouponCode && window.db) {
+        const couponRef = window.ref(window.db, 'coupons/' + window.pendingCouponCode);
+        window.set(couponRef, null).then(() => {
+            window.pendingCouponCode = null; // Törlés után ürítjük a változót
+        });
+    }
+
     // --- ÚJ: iOS IRÁNYTŰ ENGEDÉLY KÉRÉSE ---
     // Ez váltja ki iPhone-on a felugró ablakot
     if (typeof window.requestCompassPermission === 'function') {
@@ -7487,7 +7495,6 @@ window.closeCouponModal = function() {
 };
 
 async function validateAndUseCoupon() {
-    // 1. Előkészítés
     const code = document.getElementById('coupon-input').value.trim().toUpperCase();
     const errorEl = document.getElementById('coupon-error');
     const btn = document.getElementById('verify-coupon-btn');
@@ -7499,40 +7506,22 @@ async function validateAndUseCoupon() {
     errorEl.classList.add('hidden');
 
     try {
-        // 2. Első lépés: Csak ellenőrizzük, hogy létezik-e a kód
         const couponRef = window.ref(window.db, 'coupons/' + code);
         const snapshot = await window.get(couponRef);
 
         if (snapshot.exists()) {
-    console.log("🎫 Kupon érvényes, próbáljuk megnyitni a játékot...");
+            // CSAK ELMENTJÜK A KÓDOT, DE NEM TÖLTÜNK BE SEMMIT
+            window.pendingCouponCode = code; 
 
-    try {
-        await window.loadGameDataAndStart(currentCouponGameId);
-        await window.set(couponRef, null);
-        
-        // Visszaállítjuk a gombot a siker után is, mielőtt bezárjuk
-        btn.disabled = false; 
-        btn.textContent = "Ellenőrzés";
-
-        window.closeCouponModal();
-                
-                console.log("✅ Játék elindult, kupon sikeresen elégetve.");
-                
-                // Modal bezárása és GPS kérés (ez a szokásos folyamat vége)
-                
-                if (typeof requestGpsAndStart === 'function') {
-                    requestGpsAndStart(currentCouponGameId);
-                }
-
-            } catch (loadError) {
-                // Ha a játék betöltése nem sikerült (pl. elment a net)
-                console.error("Játék betöltési hiba:", loadError);
-                alert("Hiba: A játék adatait nem sikerült letölteni. A kuponod NEM veszett el, kérlek próbáld újra stabilabb internettel!");
-                btn.disabled = false;
-                btn.textContent = "Ellenőrzés";
+            btn.disabled = false; 
+            btn.textContent = "Ellenőrzés";
+            window.closeCouponModal();
+            
+            // ELŐBB GPS ELLENŐRZÉS (Ha ez elbukik, a választó képernyőn maradunk)
+            if (typeof requestGpsAndStart === 'function') {
+                requestGpsAndStart(currentCouponGameId);
             }
         } else {
-            // Nem létezik a kód
             errorEl.classList.remove('hidden');
             btn.disabled = false;
             btn.textContent = "Ellenőrzés";
