@@ -499,17 +499,19 @@
     padding-top: 5px;
 }
         
-        #team-name-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-            background-color: rgba(255, 255, 255, 0.9); /* Fehér háttér, hogy olvasható legyen */
-            padding: 2px 10px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 2px; /* Hely a teszt feliratnak */
-        }
+     #team-name-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    background-color: #00CED1 !important; /* MystiGo Türkiz */
+    color: white !important;               /* Fehér szöveg a jobb kontrasztért */
+    padding: 4px 12px;                     /* Kicsit több hely a szövegnek */
+    border-radius: 20px;                   /* Kerekítettebb, "kapszula" forma */
+    box-shadow: 0 4px 10px rgba(0, 206, 209, 0.3); /* Türkiz árnyék */
+    margin-bottom: 2px;
+    z-index: 1005;
+}
         
         /* Teszt mód felirat stílusa */
         #test-mode-indicator {
