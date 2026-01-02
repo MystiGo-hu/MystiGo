@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MystiGo - Kupon Adminisztráció</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #0D2B45; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .mystigo-glass { 
+            background: rgba(255, 255, 255, 0.03); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .btn-mystigo { 
+            background: linear-gradient(135deg, #20e3b2 0%, #009ad7 100%); 
+            transition: all 0.3s ease;
+        }
+        .btn-mystigo:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(32, 227, 178, 0.4); }
+        input, select { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; }
+        input:focus { border-color: #20e3b2 !important; outline: none; ring: 2px #20e3b2; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="login-container" class="flex items-center justify-center min-h-screen p-4">
+        <div class="mystigo-glass p-10 rounded-3xl w-full max-w-md text-center">
+            <img src="logo/icon-192_v3.png" alt="MystiGo" class="w-20 h-20 mx-auto mb-6 rounded-2xl shadow-lg">
+            <h1 class="text-3xl font-bold mb-2 text-white">MystiGo Admin</h1>
+            <p class="mb-8 text-gray-400">Kuponkezelő Rendszer</p>
+            <button id="login-btn" class="btn-mystigo w-full py-4 px-6 rounded-2xl font-bold text-white flex items-center justify-center gap-3">
+                <i class="fab fa-google text-xl"></i> Belépés Google fiókkal
+            </button>
+            <p id="login-error" class="mt-4 text-red-400 text-sm hidden">Nincs jogosultságod a belépéshez!</p>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="hidden animate-fadeIn">
+        <nav class="mystigo-glass border-t-0 border-x-0 rounded-none px-6 py-4 flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <span class="font-bold text-xl tracking-wider text-white">MystiGo <span class="text-[#20e3b2]">Coupons</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-display" class="hidden md:block text-sm text-gray-400 italic"></span>
+                <button id="logout-btn" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs py-2 px-4 rounded-full transition-all">
+                    <i class="fas fa-sign-out-alt"></i> Kijelentkezés
+                </button>
+            </div>
+        </nav>
+
+        <main class="container mx-auto px-4 pb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <div class="lg:col-span-4">
+                    <div class="mystigo-glass p-8 rounded-3xl sticky top-8">
+                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                            <i class="fas fa-plus-circle text-[#20e3b2]"></i> Új kupon hozzáadása
+                        </h2>
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-xs uppercase tracking-widest mb-2 text-gray-400">Kupon kód</label>
+                                <input type="text" id="cp-code" placeholder="PL: MYSTIGO20" class="w-full rounded-xl p-4 uppercase font-mono">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs uppercase tracking-widest mb-2 text-gray-400">Érték</label>
+                                    <input type="number" id="cp-discount" placeholder="20" class="w-full rounded-xl p-4">
+                                </div>
+                                <div>
+                                    <label class="block text-xs uppercase tracking-widest mb-2 text-gray-400">Típus</label>
+                                    <select id="cp-type" class="w-full rounded-xl p-4">
+                                        <option value="percentage">%</option>
+                                        <option value="fixed">Ft</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button id="save-btn" class="btn-mystigo w-full py-4 rounded-2xl font-bold text-lg mt-4 shadow-lg">
+                                Mentés az adatbázisba
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8">
+                    <div class="mystigo-glass p-8 rounded-3xl min-h-[500px]">
+                        <div class="flex justify-between items-center mb-8">
+                            <h2 class="text-xl font-bold flex items-center gap-2">
+                                <i class="fas fa-ticket-alt text-[#009ad7]"></i> Aktív kuponok
+                            </h2>
+                            <span id="coupon-counter" class="bg-[#20e3b2]/20 text-[#20e3b2] px-4 py-1 rounded-full text-sm font-bold">0 db</span>
+                        </div>
+
+                        <div id="coupon-list-container" class="space-y-4">
+                            <div class="text-center py-20 opacity-50">
+                                <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
+                                <p>Kuponok szinkronizálása...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // --- FIREBASE KONFIGURÁCIÓ ---
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", // Másold be az index2.html-ből a teljes konfigot!
+            authDomain: "mystigo-7b149.firebaseapp.com",
+            databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mystigo-7b149",
+            storageBucket: "mystigo-7b149.appspot.com",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+
+        // --- ADMIN FEHÉRLISTA ---
+        const AUTHORIZED_EMAILS = [
+            "krisztian.topler@gmail.com", // Ide írd be a saját címedet!
+            "admin@mystigo.hu"
+        ];
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const loginBtn = document.getElementById('login-btn');
+        const loginContainer = document.getElementById('login-container');
+        const adminPanel = document.getElementById('admin-panel');
+        const couponListContainer = document.getElementById('coupon-list-container');
+
+        // Belépés
+        loginBtn.addEventListener('click', async () => {
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Hiba:", error);
+                alert("Bejelentkezési hiba!");
+            }
+        });
+
+        // Kilépés
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+        // Auth állapot figyelése
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (AUTHORIZED_EMAILS.includes(user.email)) {
+                    loginContainer.classList.add('hidden');
+                    adminPanel.classList.remove('hidden');
+                    document.getElementById('user-display').innerText = user.email;
+                    document.getElementById('login-error').classList.add('hidden');
+                    initCouponListener();
+                } else {
+                    document.getElementById('login-error').classList.remove('hidden');
+                    signOut(auth);
+                }
+            } else {
+                loginContainer.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+            }
+        });
+
+        // Kuponok lekérése Realtime
+        function initCouponListener() {
+            const couponsRef = ref(db, 'coupons');
+            onValue(couponsRef, (snapshot) => {
+                couponListContainer.innerHTML = '';
+                const data = snapshot.val();
+                
+                if (!data) {
+                    couponListContainer.innerHTML = '<div class="text-center py-20 text-gray-500">Nincsenek elérhető kuponok.</div>';
+                    document.getElementById('coupon-counter').innerText = '0 db';
+                    return;
+                }
+
+                const keys = Object.keys(data);
+                document.getElementById('coupon-counter').innerText = `${keys.length} db`;
+
+                keys.reverse().forEach(key => {
+                    const cp = data[key];
+                    const card = document.createElement('div');
+                    card.className = "flex justify-between items-center p-5 rounded-2xl bg-slate-800/40 border border-white/5 hover:bg-slate-800/60 transition-all group";
+                    card.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#20e3b2]/20 to-[#009ad7]/20 flex items-center justify-center text-[#20e3b2]">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-mono text-xl font-bold text-white leading-none mb-1">${cp.code}</h3>
+                                <p class="text-xs text-gray-400 uppercase tracking-widest">
+                                    ${cp.discount} ${cp.type === 'percentage' ? '%' : 'Ft'} KEDVEZMÉNY
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="deleteCoupon('${key}')" class="opacity-0 group-hover:opacity-100 p-3 text-gray-500 hover:text-red-400 transition-all">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                    couponListContainer.appendChild(card);
+                });
+            });
+        }
+
+        // Mentés
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const code = document.getElementById('cp-code').value.toUpperCase().trim();
+            const discount = document.getElementById('cp-discount').value;
+            const type = document.getElementById('cp-type').value;
+
+            if (!code || !discount) {
+                alert("Minden mezőt tölts ki!");
+                return;
+            }
+
+            const newCouponRef = push(ref(db, 'coupons'));
+            await set(newCouponRef, {
+                code,
+                discount: parseInt(discount),
+                type,
+                createdAt: Date.now(),
+                createdBy: auth.currentUser.email
+            });
+
+            document.getElementById('cp-code').value = '';
+            document.getElementById('cp-discount').value = '';
+            alert("Kupon elmentve!");
+        });
+
+        // Törlés
+        window.deleteCoupon = (id) => {
+            if (confirm("Biztosan törölni szeretnéd a kupont?")) {
+                remove(ref(db, `coupons/${id}`));
+            }
+        };
+
+    </script>
+</body>
+</html>
