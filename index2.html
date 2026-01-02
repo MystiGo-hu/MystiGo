@@ -5284,7 +5284,6 @@ if (window.auth && window.auth.currentUser) {
 
 
         function startGame(gameId, modeOverride = null) {
-    // --- 1. INFRASTRUKTÚRA ÉS KUPONOK (MEGMARADT) ---
     if (window.pendingCouponCode && window.db) {
         const couponRef = window.ref(window.db, 'coupons/' + window.pendingCouponCode);
         window.set(couponRef, null).then(() => {
@@ -5296,7 +5295,6 @@ if (window.auth && window.auth.currentUser) {
         window.requestCompassPermission();
     }
 
-    // --- 2. ANALYTICS (MEGMARADT) ---
     if (typeof gtag === 'function') {
         gtag('event', 'game_start', {
             'game_id': gameId,
@@ -5308,79 +5306,47 @@ if (window.auth && window.auth.currentUser) {
     window.currentGameId = gameId;
     if (speechSynth.speaking) speechSynth.cancel();
 
-    // Játék mód meghatározása
     let gameMode = modeOverride || (document.querySelector('input[name="game_mode_selection"]:checked')?.value || 'normal');
     appState.isTestModeEnabled = (gameMode === 'test' || gameMode === 'mock');
     appState.isManualMock = (gameMode === 'mock');
 
-    if (!appState.isManualMock && window.manualMarker) {
-        window.manualMarker.remove();
-        window.manualMarker = null;
-    }
-
-    // --- 3. ADATBIZTONSÁGI JAVÍTÁS ---
-    // Csak akkor másoljuk le a games[gameId]-t, ha az appState-ben még nincs benne a letöltött tartalom
+    // FONTOS: Csak akkor töltjük be a games[gameId]-ből, ha az appState üres, 
+    // hogy ne írjuk felül a loadGameDataAndStart által letöltött feladatokat!
     if (!appState.currentGame || appState.currentGame.id !== gameId) {
-        if (window.games && window.games[gameId]) {
-            appState.currentGame = JSON.parse(JSON.stringify(window.games[gameId]));
-        } else {
-            console.error("Hiba: Nem található játékadat!");
-            showMessage("Hiba", "A játék adatai nem elérhetőek. Kérlek frissítsd az oldalt!");
-            return;
-        }
+        appState.currentGame = JSON.parse(JSON.stringify(window.games[gameId]));
     }
 
-    // Biztosítjuk, hogy a tasks egy tömb legyen, különben elszáll a filter/map
-    if (!appState.currentGame.tasks) appState.currentGame.tasks = [];
-
-    // Feladatok indexelése és koordináta javítása (MEGMARADT JAVÍTÁSSAL)
-    appState.currentGame.tasks = Object.values(appState.currentGame.tasks).map((t, i) => {
-        if (t.index === undefined || t.index === null) t.index = i;
-        t.index = parseInt(t.index);
-        if (t.location) {
-            t.location.lat = parseFloat(t.location.lat);
-            t.location.lng = parseFloat(t.location.lng);
-        }
-        return t;
-    });
-
-    // --- 4. LOGÓ KEZELÉS (MEGMARADT AZ EGYEDI LOGIKÁDDAL) ---
-    const gameLogo = document.getElementById('game-header-logo');
-    if (gameLogo) {
-        let logoSrc = appState.currentGame.headerLogo;
-        if (!logoSrc || logoSrc === "logo/default.png") logoSrc = "logo/MystiGo_logo.png";
-        gameLogo.src = logoSrc;
-        gameLogo.onerror = function() {
-            this.src = "logo/MystiGo_logo.png";
-            this.onerror = null;
-        };
+    // Koordináták és indexek javítása
+    if (appState.currentGame.tasks) {
+        appState.currentGame.tasks = Object.values(appState.currentGame.tasks).map((t, i) => {
+            if (t.index === undefined || t.index === null) t.index = i;
+            t.index = parseInt(t.index);
+            if (t.location) {
+                t.location.lat = parseFloat(t.location.lat);
+                t.location.lng = parseFloat(t.location.lng);
+            }
+            return t;
+        });
     }
 
-    // Sorrend beállítása
-    appState.taskOrder = document.getElementById('task-order-select')?.value || 'normal';
-    if (appState.currentGame.type === 'team' && appState.taskOrder !== 'explore') appState.taskOrder = 'random';
-    else if (appState.currentGame.type === 'explore') appState.taskOrder = 'explore';
-    appState.currentGame.taskOrder = appState.taskOrder;
+    // KRITIKUS PONT: Ez váltja le a fejlécet!
+    showPage('game-page');
 
-    // Alaphelyzetbe állítás
     appState.currentTaskIndex = 0;
     appState.score = 0;
     appState.totalTime = 0;
     appState.geofenceTime = 0;
-    appState.startTime = null;
     appState.isTimerRunning = false;
     appState.routeCoordinates = [];
-    appState.teamName = document.getElementById('team-name-input')?.value.trim() || "Névtelen Csapat";
-    appState.teamAvatar = localStorage.getItem('mystigo_pref_teamAvatar') || 'cat';
 
-    // --- 5. START FELADAT GENERÁLÁSA (MEGMARADT EGYEDI SZÖVEGEKKEL) ---
+    // Kezdőpont generálása (Start feladat)
     const startTaskTemplate = {
         index: 0,
         isStartTask: true,
-        location: appState.currentGame.startLocation || {lat: 47.4979, lng: 19.0402}, // Fallback ha nincs megadva
-        geofenceRadius: window.GEOFENCE_DEFAULT_RADIUS || 30,
+        location: appState.currentGame.startLocation || {lat: 47.4979, lng: 19.0402},
+        geofenceRadius: GEOFENCE_DEFAULT_RADIUS,
         story: appState.currentGame.type === "Instant" 
-            ? `<strong>Üdvözlünk az Azonnali Kalandban!</strong> 🎲<br><br>Generáltunk számodra egy egyedi útvonalat...` 
+            ? `<strong>Üdvözlünk az Azonnali Kalandban!</strong>...` 
             : `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre!`,
         prompt: '',
         hints: [],
@@ -5392,45 +5358,14 @@ if (window.auth && window.auth.currentUser) {
         isTaskTimerActive: false
     };
 
-    // --- 6. SORREND ÖSSZEÁLLÍTÁSA ---
-    let realTasks = appState.currentGame.tasks.filter(t => t && t.index > 0);
-    
-    if (appState.taskOrder === 'random' && realTasks.length > 0) {
-        // Megkeressük az utolsó feladatot, amit nem keverünk be (ha van)
-        const maxIndex = realTasks.reduce((max, task) => Math.max(max, task.index), 0);
-        const finalTask = realTasks.find(t => t.index === maxIndex);
-        let tasksToShuffle = realTasks.filter(t => t.index !== maxIndex);
-        
-        tasksToShuffle = shuffleArray(tasksToShuffle);
-        appState.currentGame.tasks = [startTaskTemplate, ...tasksToShuffle];
-        if (finalTask) appState.currentGame.tasks.push(finalTask);
-    } else {
-        appState.currentGame.tasks = [startTaskTemplate, ...realTasks];
-    }
+    let realTasks = appState.currentGame.tasks.filter(t => t.index > 0);
+    appState.currentGame.tasks = [startTaskTemplate, ...realTasks];
 
-    // UI Frissítése váltás előtt
-    document.getElementById('timer-display').textContent = '—:—';
-    document.getElementById('task-progress-display').textContent = `0 / ${Math.max(0, appState.currentGame.tasks.length - 1)}`;
-    if (appState.timerInterval) clearInterval(appState.timerInterval);
-    document.getElementById('test-mode-indicator')?.classList.toggle('hidden', !appState.isTestModeEnabled);
-
-    // --- 7. OLDALVÁLTÁS (KRITIKUS PONT) ---
-    showPage('game-page');
-
-    // --- 8. TÉRKÉP ÉS LOGIKA INDÍTÁSA ---
     setTimeout(() => {
-        console.log("🎬 Játék nézet betöltve, térkép indítása...");
         initializeMap();
-        if (appState.map) appState.map.invalidateSize();
-
         loadTask(0);
-
-        if (!appState.isManualMock) {
-            watchPosition();
-        } else {
-            if (typeof toggleMapClickMock === 'function') toggleMapClickMock(true);
-        }
-
+        if (!appState.isManualMock) watchPosition();
+        else toggleMapClickMock(true);
         updateStatusDisplays();
         saveGameState();
     }, 600);
@@ -7039,23 +6974,20 @@ window.loadGameDataAndStart = async function(gameId) {
     showLoading(true);
 
     try {
-        // 1. NÉVFOGLALÁS (Csak regisztráltaknak, és nem teszt játéknál)
+        // 1. NÉVFOGLALÁS
         if (user && !user.isAnonymous && normalized && gameId !== 'teszt-game') {
             const nameRef = window.ref(window.db, `taken_team_names/${normalized}`);
             await window.runTransaction(nameRef, (currentUid) => {
                 if (currentUid === null || currentUid === user.uid) return user.uid;
-                return; 
+                return undefined; 
             });
         }
 
         // 2. ADATOK BETÖLTÉSE
         const storageKey = `MystiGo_GameData_${gameId}`;
         const basicInfo = window.games ? window.games[gameId] : null;
-        
         let gameData = null;
 
-        // Csak az instant játéknál nincs secure letöltés. 
-        // A 'teszt-game' mostantól RENDESEN letölti a feladatokat!
         if (gameId.startsWith('instant_')) {
             gameData = basicInfo;
         } else {
@@ -7068,34 +7000,28 @@ window.loadGameDataAndStart = async function(gameId) {
             } else {
                 const cached = localStorage.getItem(storageKey);
                 if (cached) gameData = JSON.parse(cached);
-                else throw new Error("A játék tartalma nem érhető el.");
+                else throw new Error("A játék tartalma nem elérhető.");
             }
         }
 
-        // 3. JÁTÉK INDÍTÁSA
         if (!gameData || !gameData.tasks) {
             throw new Error("Ehhez a játékhoz nincsenek feladatok töltve.");
         }
 
+        // Adatok rögzítése az appState-be
         window.games[gameId] = gameData;
-        appState.currentGame = gameData;
+        appState.currentGame = JSON.parse(JSON.stringify(gameData));
         appState.teamName = currentName;
         appState.teamAvatar = avatarKey;
         
-        document.getElementById('game-list-page').classList.add('hidden');
-        document.getElementById('game-page').classList.remove('hidden');
-
-        if (typeof initializeMap === 'function') {
-            initializeMap(gameData);
-        }
-
+        // Itt nem váltunk oldalt manuálisan!
         showLoading(false);
-        setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 200);
 
     } catch (error) {
         showLoading(false);
         console.error("Indítási hiba:", error);
         showMessage("Hiba", error.message);
+        throw error; // Megállítjuk a folyamatot hiba esetén
     }
 }; 
 
