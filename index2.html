@@ -8170,12 +8170,12 @@ window.startInstantAdventure = async function() {
     
     if (!btn) return;
 
-    // Ellenőrzés, hogy van-e már folyamatban lévő kaland
+    // Folyamatban lévő mentés ellenőrzése
     const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
     if (saveKey) {
         showMessage(
             'Új kaland generálása', 
-            'Van egy már folyamatban lévő azonnali kalandod. Ha újat generálsz, a jelenlegi állásod elveszik. Biztosan újat szeretnél?', 
+            'Van egy már folyamatban lévő azonnali kalandod. Ha újat generálsz, a jelenlegi állásod elveszik.', 
             () => {
                 window.deleteInstantAdventure(true); 
                 setTimeout(() => window.startInstantAdventure(), 100);
@@ -8185,9 +8185,8 @@ window.startInstantAdventure = async function() {
         return;
     }
 
-    const selectedDiff = diffSelect ? diffSelect.value : 'all';
-    const selectedCat = catSelect ? catSelect.value : 'all';
-    // ÚJ: A választott feladatszám lekérése
+    const selectedDiff = diffSelect ? diffSelect.value.toLowerCase().trim() : 'all';
+    const selectedCat = catSelect ? catSelect.value.toLowerCase().trim() : 'all';
     const taskCount = countSelect ? parseInt(countSelect.value) : 5;
     
     const originalContent = btn.innerHTML;
@@ -8198,7 +8197,7 @@ window.startInstantAdventure = async function() {
 
         if (!window.db) throw new Error("A rendszer még nem állt fel.");
 
-        // 1. Aktuális helyzet lekérése
+        // 1. GPS pozíció lekérése
         let {lat: startLat, lng: startLng} = await new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
                 (p) => resolve({lat: p.coords.latitude, lng: p.coords.longitude}),
@@ -8207,7 +8206,7 @@ window.startInstantAdventure = async function() {
             );
         });
 
-        // 2. POI-k lekérése
+        // 2. POI-k lekérése (Útvonaltervezés)
         const fetchRadius = 2500;
         const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${fetchRadius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure|man_made|information)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain|place_of_worship|wayside_cross|wayside_shrine|museum|playground|tree|board|map|castle|ruins|city_gate|boundary_stone|tower|water_tower|fitness_station|public_bookcase|clock|binoculars)$"];out;`;
 
@@ -8216,78 +8215,74 @@ window.startInstantAdventure = async function() {
             const response = await fetch(overpassUrl);
             const osmData = await response.json();
             pool = osmData.elements.map(el => ({ lat: el.lat, lng: el.lon, name: el.tags.name || "Érdekes pont" }));
-        } catch (e) { console.warn("Overpass hiba."); }
+        } catch (e) { console.warn("Hiba az OSM adatok lekérésekor."); }
 
-        // 3. Láncolt útvonal generálása (Dinamikus hosszúsággal)
+        // 3. Útvonal generálása
         let routePoints = [];
         let currentPos = { lat: startLat, lng: startLng };
-        let lastBearing = null;
-        
-        if (appState.instantTarget) {
-            lastBearing = calculateBearing(startLat, startLng, appState.instantTarget.lat, appState.instantTarget.lng);
-        }
-
-        const MIN_STEP = 100;
-        const MAX_STEP = 400;
+        let lastBearing = appState.instantTarget ? calculateBearing(startLat, startLng, appState.instantTarget.lat, appState.instantTarget.lng) : null;
 
         for (let i = 0; i < taskCount; i++) {
             if (appState.instantTarget) {
                 lastBearing = calculateBearing(currentPos.lat, currentPos.lng, appState.instantTarget.lat, appState.instantTarget.lng);
             }
-
             let candidates = pool.filter(poi => {
                 const dist = haversineDistance(currentPos, poi);
                 const bearingToPoi = calculateBearing(currentPos.lat, currentPos.lng, poi.lat, poi.lng);
-                const isCorrectDist = dist >= MIN_STEP && dist <= MAX_STEP;
-                const isNew = !routePoints.some(p => p.lat === poi.lat && p.lng === poi.lng);
-                const deviationLimit = appState.instantTarget ? 45 : 85;
-                const isForward = isWithinAngle(lastBearing, bearingToPoi, deviationLimit);
-                return isCorrectDist && isNew && isForward;
+                return dist >= 100 && dist <= 400 && !routePoints.some(p => p.lat === poi.lat) && isWithinAngle(lastBearing, bearingToPoi, appState.instantTarget ? 45 : 85);
             });
 
-            let nextPoint;
-            if (candidates.length > 0) {
-                candidates.sort((a, b) => {
-                    const pA = getPointPriority(a);
-                    const pB = getPointPriority(b);
-                    if (pA !== pB) return pB - pA;
-                    return haversineDistance(currentPos, a) - haversineDistance(currentPos, b);
-                });
-                nextPoint = candidates[0]; 
-            } else {
-                const randomAngleOffset = (Math.random() * 90) - 45;
-                const targetAngle = (lastBearing === null) ? Math.random() * 360 : (lastBearing + randomAngleOffset);
-                const randomDist = MIN_STEP + (Math.random() * (MAX_STEP - MIN_STEP));
-                nextPoint = calculateNextPoint(currentPos.lat, currentPos.lng, randomDist, targetAngle);
-                nextPoint.name = "Felfedező pont";
-            }
-
-            lastBearing = calculateBearing(currentPos.lat, currentPos.lng, nextPoint.lat, nextPoint.lng);
-            
-            // Ha ez az utolsó pont és van célpontunk, oda tesszük
-            if (appState.instantTarget && i === (taskCount - 1)) {
-                 nextPoint = { ...appState.instantTarget, name: "Végső Célállomás" };
-            }
-
+            let nextPoint = candidates.length > 0 ? candidates.sort((a, b) => getPointPriority(b) - getPointPriority(a))[0] : calculateNextPoint(currentPos.lat, currentPos.lng, 250, (lastBearing || Math.random() * 360));
+            if (appState.instantTarget && i === (taskCount - 1)) nextPoint = { ...appState.instantTarget, name: "Cél" };
             routePoints.push(nextPoint);
             currentPos = nextPoint;
+            lastBearing = calculateBearing(routePoints[i-1]?.lat || startLat, routePoints[i-1]?.lng || startLng, nextPoint.lat, nextPoint.lng);
         }
 
-        // 4. Feladatok szűrése az adatbázisból
+        // 4. FELADATOK OKOS SZŰRÉSE (Javított rész)
         const snapshot = await window.get(window.ref(window.db, 'generic_tasks'));
         const allTasks = Object.values(snapshot.val() || {});
-        let filteredTasks = allTasks.filter(task => {
-            const matchesDiff = (selectedDiff === 'all' || (task.category || task.difficulty) === selectedDiff);
-            const taskType = task.Type || task.type;
-            return matchesDiff && (selectedCat === 'all' || taskType === selectedCat);
+        
+        // Segédfüggvény a normalizált témakörhöz (kezeli a többesszámot: movies -> movie)
+        const normalizeCat = (s) => s.toLowerCase().replace(/s$/, "").trim();
+        const normSelectedCat = normalizeCat(selectedCat);
+
+        // Elsődleges pool: Témakör ÉS Nehézség egyezik
+        let primaryPool = allTasks.filter(t => {
+           const tCat = normalizeCat(String(t.type || t.Type || ""));
+           const tDiff = String(t.difficulty || t.Difficulty || t.level || t.category || "").toLowerCase().trim();
+            const catMatch = (selectedCat === 'all' || tCat === normSelectedCat);
+            const diffMatch = (selectedDiff === 'all' || tDiff === selectedDiff);
+            return catMatch && diffMatch;
         });
 
-        if (filteredTasks.length < taskCount) {
-            filteredTasks = allTasks.sort(() => 0.5 - Math.random());
+        // Másodlagos pool: Témakör egyezik, de a nehézség bármilyen
+        let secondaryPool = allTasks.filter(t => {
+            const tCat = normalizeCat(String(t.type || t.Type || ""));
+            return (selectedCat === 'all' || tCat === normSelectedCat) && !primaryPool.includes(t);
+        });
+
+        // Összeválogatás
+        let finalSelection = [...primaryPool].sort(() => 0.5 - Math.random());
+        
+        // Ha nincs elég az elsődlegesből, pótoljuk a témakör többi feladatával
+        if (finalSelection.length < taskCount) {
+            const needed = taskCount - finalSelection.length;
+            const extraFromTheme = secondaryPool.sort(() => 0.5 - Math.random()).slice(0, needed);
+            finalSelection = finalSelection.concat(extraFromTheme);
         }
 
-        const shuffledTasks = filteredTasks.sort(() => 0.5 - Math.random()).slice(0, taskCount);
-        const tasksWithLocation = shuffledTasks.map((task, index) => ({
+        // Ha még mindig nincs elég (ritka eset), akkor jöhet bármi más
+        if (finalSelection.length < taskCount) {
+            const stillNeeded = taskCount - finalSelection.length;
+            const filler = allTasks.filter(t => !finalSelection.includes(t)).sort(() => 0.5 - Math.random()).slice(0, stillNeeded);
+            finalSelection = finalSelection.concat(filler);
+        }
+
+        // Végső 5 (vagy kért mennyiség) kiválasztása és keverése
+        finalSelection = finalSelection.sort(() => 0.5 - Math.random()).slice(0, taskCount);
+
+        const tasksWithLocation = finalSelection.map((task, index) => ({
             ...task,
             index: index + 1,
             location: routePoints[index],
@@ -8295,9 +8290,7 @@ window.startInstantAdventure = async function() {
             geofenceRadius: 40 
         }));
 
-        const themeLabel = (selectedCat !== 'all' && catSelect) ? 
-                           catSelect.options[catSelect.selectedIndex].text.split(' ')[1] : "Városi";
-
+        const themeLabel = (selectedCat !== 'all' && catSelect) ? catSelect.options[catSelect.selectedIndex].text.split(' ')[1] : "Városi";
         const instantGameId = "instant_" + Date.now();
         const instantGame = {
             id: instantGameId,
@@ -8305,17 +8298,15 @@ window.startInstantAdventure = async function() {
             type: "Instant",
             tasks: tasksWithLocation,
             startLocation: { lat: startLat, lng: startLng },
-            description: `Irányított ${themeLabel} kaland (${taskCount} feladat).`,
-            endStory: "Gratulálunk! Sikeresen teljesítetted a generált útvonalat!"
+            description: `Generált ${themeLabel} kaland.`,
+            endStory: "Gratulálunk a teljesítéshez!"
         };
 
         window.games[instantGameId] = instantGame;
         localStorage.setItem(`MystiGo_GameData_${instantGameId}`, JSON.stringify(instantGame));
-        
         appState.currentGame = instantGame;
         saveGameState(); 
         window.checkInstantProgress();
-
         handleGameSelect(instantGameId, instantGame.title, "Instant", "Ingyenes", false, true);
 
     } catch (error) {
