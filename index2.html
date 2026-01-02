@@ -701,7 +701,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.42
+       v1.2.43
 
    </span>
 
@@ -3146,17 +3146,17 @@ window.deleteInstantAdventure = function(force = false) {
 
     // Ez a függvény csak a törléssel foglalkozik
     const performDeletion = () => {
-        const gameId = saveKey.replace('MystiGoGameState_', '');
-        localStorage.removeItem(saveKey); 
-        localStorage.removeItem(`MystiGo_GameData_${gameId}`); 
-        
-        if (window.games && window.games[gameId]) {
-            delete window.games[gameId];
-        }
-        window.checkInstantProgress();
-   window.resetAllInstantCustomization();
-        console.log("Instant játék törölve, felület frissítve.");
-    };
+    const gameId = saveKey.replace('MystiGoGameState_', '');
+    localStorage.removeItem(saveKey); 
+    localStorage.removeItem(`MystiGo_GameData_${gameId}`); 
+    
+    if (window.games && window.games[gameId]) {
+        delete window.games[gameId];
+    }
+    window.checkInstantProgress();
+    // A reset törölve, hogy megmaradjanak a beállított szűrők felülíráskor
+    console.log("Instant játék törölve, felület frissítve.");
+};
 
     if (force) {
         performDeletion();
