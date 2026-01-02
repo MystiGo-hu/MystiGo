@@ -85,133 +85,125 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, push, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, push, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // CONFIG (index2.html alapján)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
-            authDomain: "mystigo-7b149.firebaseapp.com",
-            databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "mystigo-7b149",
-            storageBucket: "mystigo-7b149.appspot.com",
-            messagingSenderId: "367383637666",
-            appId: "1:367383637666:web:156184517316377e641775"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
+        authDomain: "mystigo-7b149.firebaseapp.com",
+        databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "mystigo-7b149",
+        storageBucket: "mystigo-7b149.appspot.com",
+        messagingSenderId: "367383637666",
+        appId: "1:367383637666:web:156184517316377e641775"
+    };
 
-        const AUTHORIZED_EMAILS = [
-            "krisztian.topler@gmail.com"
-        ];
+    // FONTOS: Ide írd be az összes e-mail címet, amivel be akarsz lépni!
+    const AUTHORIZED_EMAILS = [
+        "krisztian.topler@gmail.com"
+        "slyer.krisz@gmail.com"
+    ];
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-        const errorMsg = document.getElementById('auth-error-msg');
+    const loginBtn = document.getElementById('login-btn');
+    const errorMsg = document.getElementById('auth-error-msg');
 
-        // Belépés kezelése (Popup)
-        document.getElementById('login-btn').onclick = async () => {
-            try {
-                errorMsg.classList.add('hidden');
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("Auth Hiba:", error);
-                errorMsg.classList.remove('hidden');
-                if(error.code === 'auth/api-key-not-valid') {
-                    errorMsg.innerHTML = "<strong>API Kulcs hiba!</strong><br>Valószínűleg a domain korlátozás miatt nem engedi a belépést erről a címről.";
-                } else {
-                    errorMsg.textContent = "Hiba: " + error.message;
-                }
-            }
-        };
+    // 1. BEJELENTKEZÉS INDÍTÁSA (Redirect mód)
+    loginBtn.onclick = () => {
+        errorMsg.classList.add('hidden');
+        signInWithRedirect(auth, provider);
+    };
 
-        // Kilépés
-        document.getElementById('logout-btn').onclick = () => signOut(auth);
+    // 2. VISSZATÉRÉS KEZELÉSE (Amikor a Google visszaküldi az oldalt)
+    getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+            console.log("Sikeres visszatérés:", result.user.email);
+        }
+    }).catch((error) => {
+        console.error("Redirect hiba:", error);
+        errorMsg.classList.remove('hidden');
+        errorMsg.innerText = "Hiba a visszatéréskor: " + error.message;
+    });
 
-        // Állapot figyelő
-        onAuthStateChanged(auth, (user) => {
-            if (user && AUTHORIZED_EMAILS.includes(user.email)) {
+    // 3. KILÉPÉS
+    document.getElementById('logout-btn').onclick = () => {
+        signOut(auth).then(() => {
+            window.location.reload(); // Teljes frissítés kilépéskor
+        });
+    };
+
+    // 4. JOGOSULTSÁG ELLENŐRZÉSE
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            if (AUTHORIZED_EMAILS.includes(user.email)) {
+                // SIKER: Admin vagy
                 document.getElementById('login-container').classList.add('hidden');
                 document.getElementById('admin-panel').classList.remove('hidden');
-                document.getElementById('admin-user-info').innerText = "Admin: " + user.email;
+                document.getElementById('admin-user-info').innerText = "Bejelentkezve: " + user.email;
                 loadCoupons();
-            } else if (user) {
-                alert("Nincs jogosultságod ezzel az e-mail címmel!");
-                signOut(auth);
             } else {
-                document.getElementById('login-container').classList.remove('hidden');
-                document.getElementById('admin-panel').classList.add('hidden');
+                // HIBA: Be van lépve, de nem admin
+                errorMsg.classList.remove('hidden');
+                errorMsg.innerText = "Nincs jogosultságod ezzel a címmel: " + user.email;
+                // Megvárjuk, hogy lássa az üzenetet, majd kijelentkeztetjük
+                setTimeout(() => signOut(auth), 3000);
             }
-        });
-
-        // Adatok betöltése
-        function loadCoupons() {
-            onValue(ref(db, 'coupons'), (snapshot) => {
-                const list = document.getElementById('coupons-list');
-                list.innerHTML = '';
-                const data = snapshot.val();
-                if (!data) {
-                    list.innerHTML = '<p class="text-center py-10 text-gray-500">Nincsenek kuponok.</p>';
-                    document.getElementById('coupon-count').innerText = '0 db';
-                    return;
-                }
-
-                const keys = Object.keys(data);
-                document.getElementById('coupon-count').innerText = keys.length + ' db';
-
-                keys.reverse().forEach(key => {
-                    const item = data[key];
-                    const div = document.createElement('div');
-                    div.className = "flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/10 hover:border-[#20e3b2]/50 transition-all";
-                    div.innerHTML = `
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-[#20e3b2]/10 flex items-center justify-center text-[#20e3b2]">
-                                <i class="fas fa-tag"></i>
-                            </div>
-                            <div>
-                                <span class="font-mono text-lg font-bold text-white">${item.code}</span>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-tighter">
-                                    ${item.discount}${item.type === 'percentage' ? '%' : ' Ft'} kedvezmény
-                                </p>
-                            </div>
-                        </div>
-                        <button class="text-red-400 hover:text-red-500 p-2" onclick="window.del('${key}')">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    `;
-                    list.appendChild(div);
-                });
-            });
+        } else {
+            // NINCS BELÉPVE
+            document.getElementById('login-container').classList.remove('hidden');
+            document.getElementById('admin-panel').classList.add('hidden');
         }
+    });
 
-        // Új kupon mentése
-        document.getElementById('save-btn').onclick = async () => {
-            const code = document.getElementById('cp-code').value.toUpperCase().trim();
-            const val = document.getElementById('cp-discount').value;
-            const type = document.getElementById('cp-type').value;
-
-            if (!code || !val) return alert("Minden mezőt tölts ki!");
-
-            try {
-                await push(ref(db, 'coupons'), {
-                    code, discount: parseInt(val), type, createdAt: Date.now()
-                });
-                document.getElementById('cp-code').value = '';
-                document.getElementById('cp-discount').value = '';
-            } catch (e) {
-                alert("Hiba a mentésnél: " + e.message);
+    // --- ADATBÁZIS MŰVELETEK (Változatlan) ---
+    function loadCoupons() {
+        onValue(ref(db, 'coupons'), (snapshot) => {
+            const list = document.getElementById('coupons-list');
+            list.innerHTML = '';
+            const data = snapshot.val();
+            if (!data) {
+                document.getElementById('coupon-count').innerText = '0 db';
+                return;
             }
-        };
+            const keys = Object.keys(data);
+            document.getElementById('coupon-count').innerText = keys.length + ' db';
+            keys.reverse().forEach(key => {
+                const item = data[key];
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/10 mb-2";
+                div.innerHTML = `
+                    <div>
+                        <span class="font-mono font-bold text-white">${item.code}</span>
+                        <p class="text-xs text-gray-400">${item.discount}${item.type === 'percentage' ? '%' : ' Ft'}</p>
+                    </div>
+                    <button class="text-red-400 p-2" onclick="window.del('${key}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        });
+    }
 
-        // Törlés
-        window.del = (id) => {
-            if(confirm("Biztosan törlöd ezt a kupont?")) {
-                remove(ref(db, `coupons/${id}`));
-            }
-        };
-    </script>
+    document.getElementById('save-btn').onclick = async () => {
+        const code = document.getElementById('cp-code').value.toUpperCase().trim();
+        const val = document.getElementById('cp-discount').value;
+        const type = document.getElementById('cp-type').value;
+        if (!code || !val) return alert("Töltsd ki!");
+        await push(ref(db, 'coupons'), { code, discount: parseInt(val), type, createdAt: Date.now() });
+        document.getElementById('cp-code').value = '';
+        document.getElementById('cp-discount').value = '';
+    };
+
+    window.del = (id) => {
+        if(confirm("Biztosan törlöd?")) remove(ref(db, `coupons/${id}`));
+    };
+</script>
 </body>
 </html>
