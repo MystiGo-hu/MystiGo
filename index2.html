@@ -7411,14 +7411,17 @@ async function validateAndUseCoupon() {
         const snapshot = await window.get(couponRef);
 
         if (snapshot.exists()) {
-            // CSAK ELMENTJÜK A KÓDOT, DE NEM TÖLTÜNK BE SEMMIT
             window.pendingCouponCode = code; 
-
             btn.disabled = false; 
             btn.textContent = "Ellenőrzés";
             window.closeCouponModal();
             
-            // ELŐBB GPS ELLENŐRZÉS (Ha ez elbukik, a választó képernyőn maradunk)
+            // --- JAVÍTÁS KEZDETE ---
+            // Itt kötelezően le kell futtatni az adatok betöltését, 
+            // hogy a név és avatar bekerüljön az appState-be!
+            await window.loadGameDataAndStart(currentCouponGameId);
+            // --- JAVÍTÁS VÉGE ---
+
             if (typeof requestGpsAndStart === 'function') {
                 requestGpsAndStart(currentCouponGameId);
             }
