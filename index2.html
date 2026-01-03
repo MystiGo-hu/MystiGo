@@ -701,7 +701,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.44
+       v1.2.45
 
    </span>
 
@@ -8258,7 +8258,7 @@ window.startInstantAdventure = async function() {
         
         return dist >= minDist && dist <= maxDist && 
                !routePoints.some(p => p.lat === poi.lat) && 
-               isWithinAngle(lastBearing, bearingToPoi, appState.instantTarget ? 45 : 85);
+               isWithinAngle(lastBearing, bearingToPoi, appState.instantTarget ? 60 : 80);
     });
 
     // Ha nem találtunk POI-t a tartományban, választunk egyet a prioritás szerint, vagy generálunk egy pontot
