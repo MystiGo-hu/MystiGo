@@ -5747,22 +5747,22 @@ function endGame() {
     }
 
     // --- MENTÉS ÉS PONTADÁS (Csak ha nem teszt mód) ---
-    if (!appState.isTestModeEnabled || (appState.currentGame && appState.currentGame.id === 'teszt-game')) { 
-        if (appState.currentGame && window.saveScoreToFirebase) {
-            window.saveScoreToFirebase({
-                gameId: appState.currentGame.id,
-                teamName: appState.teamName,
-                teamAvatar: appState.teamAvatar,
-                score: appState.score,
-                totalTime: finalTotalTime,
-                geofenceTime: finalTaskTime
-            });
-            
-            if (window.incrementGameCompletion) {
-                window.incrementGameCompletion(appState.currentGame.id);
-            }
+    if (!appState.isTestModeEnabled && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
+    if (window.saveScoreToFirebase) {
+        window.saveScoreToFirebase({
+            gameId: appState.currentGame.id,
+            teamName: appState.teamName,
+            teamAvatar: appState.teamAvatar,
+            score: appState.score,
+            totalTime: finalTotalTime,
+            geofenceTime: finalTaskTime
+        });
+        
+        if (window.incrementGameCompletion) {
+            window.incrementGameCompletion(appState.currentGame.id);
         }
     }
+}
 
     // --- ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES ÉS >0 PONTNÁL) ---
     if (!appState.isTestModeEnabled && appState.score > 0) {
