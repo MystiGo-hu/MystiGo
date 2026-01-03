@@ -3384,7 +3384,8 @@ window.applyRotation = function(deg) {
                 availableTasks: appState.availableTasks,
                 taskOrder: appState.taskOrder,
                 tasks: appState.currentGame.tasks,
-		lastTimestamp: Date.now() 
+		lastTimestamp: Date.now(),
+		isInZone: appState.isInZone 
             };
             
             try {
@@ -3445,7 +3446,7 @@ if (state.lastTimestamp) {
                         console.log(`Időkorrekció bezárás után: +${awaySeconds} mp.`);
                     }
                 }
-
+		appState.isInZone = state.isInZone || false;
                 appState.isTimerRunning = state.isTimerRunning;
                 appState.teamName = state.teamName;
                 appState.teamAvatar = state.teamAvatar;
