@@ -3446,6 +3446,7 @@ if (state.lastTimestamp) {
         // Fontos: a 'state.isInZone'-t használjuk, amit a localStorage-ból töltöttünk be
         if (state.isInZone) {
             appState.geofenceTime += awaySeconds;
+	appState.isInZone = true;
             
             // Frissítjük az aktuális feladat saját számlálóját is a memóriában
             const currentTask = appState.currentGame.tasks.find(t => t.index === state.currentTaskIndex);
@@ -5701,7 +5702,7 @@ if (taskImageEl) {
     currentTask.completed = true;
 
     // Pontszám és idő rögzítése
-    currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
+    
     currentTask.isTaskTimerActive = false;
 
     if (currentTask.taskScore > 0 && !currentTask.isStartTask) {
@@ -6419,6 +6420,14 @@ window.requestCompassPermission = async function() {
             const startButtonContainer = document.getElementById('start-task-button-container'); 
             const exploreSelectionContainer = document.getElementById('explore-selection-container');
             const currentLocation = (appState.isManualMock && manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : appState.userPosition;
+	    if (!currentLocation) {
+        if (!appState.isInZone) { // Csak akkor írjuk ki a "Helyzet meghatározása" szöveget, ha tényleg nincs még zónában
+            distEl.textContent = "Helyzet meghatározása...";
+            distEl.className = 'text-center text-xs font-bold mt-2 text-gray-500';
+        }
+        return; 
+    }
+
             const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null;
             if (!currentTask) return;
 
