@@ -3384,8 +3384,9 @@ window.applyRotation = function(deg) {
                 availableTasks: appState.availableTasks,
                 taskOrder: appState.taskOrder,
                 tasks: appState.currentGame.tasks,
-		lastTimestamp: Date.now(),
-		isInZone: appState.isInZone 
+		isInZone: appState.isInZone,
+		lastTimestamp: Date.now()
+		 
             };
             
             try {
@@ -3434,24 +3435,27 @@ function loadGameById(gameId) {
                 appState.geofenceTime = state.geofenceTime;
 
 if (state.lastTimestamp) {
-                    const now = Date.now();
-                    const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
-                    
-                    if (awaySeconds > 0) {
-                        appState.totalTime += awaySeconds;
-                        // Ha éppen zónában volt, a globális és a feladat időhöz is hozzáadjuk
-                        if (appState.isInZone) {
-                            appState.geofenceTime += awaySeconds;
-                            
-                            // JAVÍTÁS: Frissítjük az aktuális feladat egyéni időmérőjét is
-                            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                            if (currentTask && !currentTask.isStartTask) {
-                                currentTask.timeSpent = (currentTask.timeSpent || 0) + awaySeconds;
-                            }
-                        }
-                        console.log(`Időkorrekció teljes bezárás után: +${awaySeconds} mp.`);
-                    }
-                }
+    const now = Date.now();
+    const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
+    
+    if (awaySeconds > 0) {
+        // 1. Teljes idő növelése
+        appState.totalTime += awaySeconds;
+        
+        // 2. Feladat idő növelése (csak ha a mentés pillanatában a zónában volt)
+        // Fontos: a 'state.isInZone'-t használjuk, amit a localStorage-ból töltöttünk be
+        if (state.isInZone) {
+            appState.geofenceTime += awaySeconds;
+            
+            // Frissítjük az aktuális feladat saját számlálóját is a memóriában
+            const currentTask = appState.currentGame.tasks.find(t => t.index === state.currentTaskIndex);
+            if (currentTask && !currentTask.isStartTask) {
+                currentTask.timeSpent = (currentTask.timeSpent || 0) + awaySeconds;
+            }
+        }
+        console.log(`Precíziós időkorrekció: +${awaySeconds} mp.`);
+    }
+}
 		appState.isInZone = state.isInZone || false;
                 appState.isTimerRunning = state.isTimerRunning;
                 appState.teamName = state.teamName;
@@ -3497,12 +3501,14 @@ if (state.lastTimestamp) {
                     updateStatusDisplays();
                     
                     if (appState.isTimerRunning) {
-                        // Biztonsági tisztítás, ha már futna egy intervallum
-                        if (appState.timerInterval) clearInterval(appState.timerInterval);
-                        
-                        appState.timerInterval = setInterval(updateTimer, 1000);
-                        lastTimeUpdate = new Date().getTime(); 
-                    }
+    if (appState.timerInterval) clearInterval(appState.timerInterval);
+    
+    // JAVÍTÁS: Szinkronizáljuk a belső órát a mostani pillanathoz
+    lastTimeUpdate = Date.now(); 
+    timeAccumulator = 0; // Nullázzuk a maradékidőt a pontos induláshoz
+    
+    appState.timerInterval = setInterval(updateTimer, 1000);
+}
                     
                     if (appState.currentGame.taskOrder === 'explore') {
                          if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
