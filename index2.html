@@ -3398,143 +3398,112 @@ window.applyRotation = function(deg) {
 
 
 function loadGameById(gameId) {
-            try {
-                const savedStateJson = localStorage.getItem(getStorageKey(gameId));
-                if (!savedStateJson) return false;
+    try {
+        const savedStateJson = localStorage.getItem(getStorageKey(gameId));
+        if (!savedStateJson) return false;
 
-                // --- BIZTONSÁGI JAVÍTÁS (CRASH FIX) ---
-                // Ellenőrizzük, hogy létezik-e még a játék az Excel adatbázisban
-                if (!games[gameId]) {
-                    console.warn(`A mentett játék (${gameId}) már nem található az adatbázisban. Mentés törlése.`);
-                    // Töröljük a beragadt, hibás mentést, hogy ne omoljon össze újra
-                    deleteSavedGame(gameId); 
-                    return false; 
-                }
-                // --------------------------------------
+        if (!games[gameId]) {
+            console.warn(`A mentett játék (${gameId}) már nem található az adatbázisban. Mentés törlése.`);
+            deleteSavedGame(gameId); 
+            return false; 
+        }
 
-                const state = JSON.parse(savedStateJson);
-                if (!state.gameId || state.gameId !== gameId) return false;
+        const state = JSON.parse(savedStateJson);
+        if (!state.gameId || state.gameId !== gameId) return false;
 
-                appState.currentGame = JSON.parse(JSON.stringify(games[gameId]));
+        // 1. Alapadatok és a játék sablon betöltése
+        appState.currentGame = JSON.parse(JSON.stringify(games[gameId]));
+        window.currentGameId = gameId;                
 
+        // 2. FONTOS: Előbb töltsük be a mentett feladat-adatokat, 
+        // hogy tudjuk, melyik feladatnál indult el az óra (isTaskTimerActive)!
+        if (state.tasks) {
+            appState.currentGame.tasks = state.tasks;
+            appState.currentGame.tasks.forEach(t => {
+                if (!t.location) t.location = {};
+                if (t.locationLat && !t.location.lat) t.location.lat = parseFloat(t.locationLat);
+                if (t.locationLng && !t.location.lng) t.location.lng = parseFloat(t.locationLng);
+            });
+        }
 
+        // 3. Állapotváltozók visszaállítása
+        appState.currentTaskIndex = state.currentTaskIndex;
+        appState.score = state.score;
+        appState.totalTime = state.totalTime;
+        appState.geofenceTime = state.geofenceTime;
+        appState.isTimerRunning = state.isTimerRunning;
+        appState.isInZone = state.isInZone || false;
 
-
-// --- ÚJ KÓD: Játék fejléc logó beállítása (Mentésnél is!) ---
-                const gameLogo = document.getElementById('game-header-logo');
-                if (gameLogo) {
-                     gameLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
-                }
-                // ----
-
-		window.currentGameId = gameId;                
-
-                appState.currentTaskIndex = state.currentTaskIndex;
-                appState.score = state.score;
-                appState.totalTime = state.totalTime;
-                appState.geofenceTime = state.geofenceTime;
-
-if (state.lastTimestamp) {
-    const now = Date.now();
-    const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
-    
-    if (awaySeconds > 0) {
-        // 1. Teljes idő növelése
-        appState.totalTime += awaySeconds;
-        
-        // 2. Feladat idő növelése (csak ha a mentés pillanatában a zónában volt)
-        // Fontos: a 'state.isInZone'-t használjuk, amit a localStorage-ból töltöttünk be
-        if (state.isInZone) {
-            appState.geofenceTime += awaySeconds;
-	appState.isInZone = true;
+        // 4. IDŐKORREKCIÓ (A bezárás óta eltelt idő hozzáadása)
+        if (state.lastTimestamp && appState.isTimerRunning) {
+            const now = Date.now();
+            const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
             
-            // Frissítjük az aktuális feladat saját számlálóját is a memóriában
-            const currentTask = appState.currentGame.tasks.find(t => t.index === state.currentTaskIndex);
-            if (currentTask && !currentTask.isStartTask) {
-                currentTask.timeSpent = (currentTask.timeSpent || 0) + awaySeconds;
+            if (awaySeconds > 0) {
+                // A teljes játékidőt mindenképp növeljük
+                appState.totalTime += awaySeconds;
+                
+                // Megkeressük az aktuális feladatot a már betöltött listából
+                const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                
+                // Ha ez a feladat már aktiválva volt (isTaskTimerActive), 
+                // akkor a "zöld órát" is növeljük a távollét idejével
+                if (currentTask && currentTask.isTaskTimerActive && !currentTask.isStartTask) {
+                    appState.geofenceTime += awaySeconds;
+                    currentTask.timeSpent = (currentTask.timeSpent || 0) + awaySeconds;
+                    console.log(`Időkorrekció aktív feladathoz: +${awaySeconds} mp.`);
+                }
             }
         }
-        console.log(`Precíziós időkorrekció: +${awaySeconds} mp.`);
+
+        // 5. További adatok visszaállítása
+        appState.teamName = state.teamName;
+        appState.teamAvatar = state.teamAvatar;
+        appState.isTestModeEnabled = state.isTestModeEnabled;
+        appState.isManualMock = state.isManualMock;
+        appState.routeCoordinates = state.routeCoordinates || [];
+        appState.completedTasks = state.completedTasks || [];
+        appState.availableTasks = state.availableTasks || [];
+        appState.taskOrder = state.taskOrder;
+        if (appState.currentGame) appState.currentGame.taskOrder = state.taskOrder;
+
+        // Logo beállítása
+        const gameLogo = document.getElementById('game-header-logo');
+        if (gameLogo) {
+             gameLogo.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+        }
+
+        // Oldal megjelenítése
+        showPage('game-page');
+        
+        setTimeout(() => {
+            initializeMap();
+            if(appState.map) appState.map.invalidateSize();
+            
+            if(appState.isManualMock) {
+                toggleMapClickMock(true);
+            } else {
+                if (manualMarker) { manualMarker.remove(); manualMarker = null; }
+                watchPosition(); 
+            }
+            
+            updateStatusDisplays();
+            
+            // 6. Időzítő újraindítása (precíz szinkronnal)
+            if (appState.isTimerRunning) {
+                if (appState.timerInterval) clearInterval(appState.timerInterval);
+                lastTimeUpdate = Date.now(); 
+                timeAccumulator = 0; 
+                appState.timerInterval = setInterval(updateTimer, 1000);
+            }
+        }, 100);
+
+        return true;
+    } catch (e) {
+        console.error("Hiba a betöltés során:", e);
+        return false;
     }
 }
-		appState.isInZone = state.isInZone || false;
-                appState.isTimerRunning = state.isTimerRunning;
-                appState.teamName = state.teamName;
-                appState.teamAvatar = state.teamAvatar;
-                appState.isTestModeEnabled = state.isTestModeEnabled;
-                appState.isManualMock = state.isManualMock;
-                appState.routeCoordinates = state.routeCoordinates || [];
-                appState.completedTasks = state.completedTasks || [];
-                appState.availableTasks = state.availableTasks || [];
-                
-                // TaskOrder helyreállítása
-                appState.taskOrder = state.taskOrder;
-                if (appState.currentGame) {
-                    appState.currentGame.taskOrder = state.taskOrder;
-                }
-                
-                if (state.tasks) {
-                    appState.currentGame.tasks = state.tasks;
-                    
-                    // --- JAVÍTÁS: Koordináták egységesítése a záró térkép és a mentés miatt ---
-                    appState.currentGame.tasks.forEach(t => {
-                        if (!t.location) t.location = {};
-                        // Ha van régi típusú koordináta mentve, átemeljük a standard helyre
-                        if (t.locationLat && !t.location.lat) t.location.lat = parseFloat(t.locationLat);
-                        if (t.locationLng && !t.location.lng) t.location.lng = parseFloat(t.locationLng);
-                    });
-                }
-
-                showPage('game-page');
-                
-                setTimeout(() => {
-                    initializeMap();
-                    if(appState.map) appState.map.invalidateSize();
-                    
-                    if(appState.isManualMock) {
-                        toggleMapClickMock(true);
-                    } else {
-                        if (manualMarker) { manualMarker.remove(); manualMarker = null; }
-                        watchPosition(); 
-                    }
-                    
-                    // --- JAVÍTÁS: Az elmentett idők és pontok azonnali kiküldése a kijelzőre ---
-                    updateStatusDisplays();
-                    
-                    if (appState.isTimerRunning) {
-    if (appState.timerInterval) clearInterval(appState.timerInterval);
-    
-    // JAVÍTÁS: Szinkronizáljuk a belső órát a mostani pillanathoz
-    lastTimeUpdate = Date.now(); 
-    timeAccumulator = 0; // Nullázzuk a maradékidőt a pontos induláshoz
-    
-    appState.timerInterval = setInterval(updateTimer, 1000);
-}
-                    
-                    if (appState.currentGame.taskOrder === 'explore') {
-                         if (appState.currentTaskIndex === 0 && appState.isTimerRunning) {
-                             showTaskSelectionMap();
-                             showMessage("Visszatérés", `Üdv újra, ${appState.teamName || ''}! A játék folytatódik a térképes választónál.`);
-                             return true; 
-                         }
-                    } 
-                    
-                    // Betöltjük az aktuális feladatot
-                    loadTask(appState.currentTaskIndex); 
-                    
-                    let msg = `Üdv újra, ${appState.teamName || ''}! A játék folytatódik.`;
-                    showMessage("Folytatás", msg, null);
-
-                }, 100);
-
-                return true;
-
-            } catch (e) {
-                console.error("Hiba az állapot betöltésekor:", e);
-                return false;
-            }
-        }
-
         function deleteSavedGame(gameId) {
     // Saját modális ablak használata megerősítésre
     showMessage(
@@ -5185,53 +5154,52 @@ window.triggerSolutionUI = function(solutionText, onOk) {
         let timeAccumulator = 0;
 
         function updateTimer() {
-            if (!appState.isTimerRunning) return;
+    // 1. Biztonsági ellenőrzés: Ha nincs futó játék vagy játék adat, ne csináljon semmit
+    if (!appState.isTimerRunning || !appState.currentGame) return;
 
-            const now = Date.now();
-            if (!lastTimeUpdate) lastTimeUpdate = now;
+    const now = Date.now();
+    if (!lastTimeUpdate) lastTimeUpdate = now;
 
-            const dt = now - lastTimeUpdate;
-            lastTimeUpdate = now;
+    const dt = now - lastTimeUpdate;
+    lastTimeUpdate = now;
+    
+    timeAccumulator += dt;
+
+    if (timeAccumulator >= 1000) {
+        const secondsToAdd = Math.floor(timeAccumulator / 1000);
+        timeAccumulator %= 1000;
+
+        appState.totalTime += secondsToAdd;
+
+        // 2. Feladat idő növelése
+        const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+        
+        // Itt a kulcs: csak az isTaskTimerActive-ot nézzük!
+        if (currentTask && currentTask.isTaskTimerActive && !currentTask.isStartTask) {
+            appState.geofenceTime += secondsToAdd;
             
-            timeAccumulator += dt;
-
-            // Ha eltelt legalább 1 másodperc
-            if (timeAccumulator >= 1000) {
-                const secondsToAdd = Math.floor(timeAccumulator / 1000);
-                timeAccumulator %= 1000;
-
-                // 1. Teljes idő növelése
-                appState.totalTime += secondsToAdd;
-
-                // 2. Feladat idő növelése (csak ha a feladat aktív)
-                const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                if (currentTask && currentTask.isTaskTimerActive && !currentTask.isStartTask) {
-                    appState.geofenceTime += secondsToAdd;
-                    
-                    if (typeof currentTask.timeSpent === 'undefined') currentTask.timeSpent = 0;
-                    currentTask.timeSpent += secondsToAdd;
-                    
-                    const geoTimerDisplay = document.getElementById('geofence-timer-display');
-                    if (geoTimerDisplay) geoTimerDisplay.textContent = formatTime(appState.geofenceTime);
-                }
-
-                // --- BIZTONSÁGI SZINKRONIZÁCIÓ ---
-                // Ez javítja a hibát: A teljes idő sosem lehet kevesebb, mint a részidő!
-                if (appState.totalTime < appState.geofenceTime) {
-                    appState.totalTime = appState.geofenceTime;
-                }
-                // ---------------------------------
-
-                // UI Frissítés
-                const timerDisplay = document.getElementById('timer-display');
-                if (timerDisplay) timerDisplay.textContent = formatTime(appState.totalTime);
-
-                // Ritkább mentés
-                if (appState.totalTime % 5 === 0) {
-                    saveGameState();
-                }
-            }
+            if (typeof currentTask.timeSpent === 'undefined') currentTask.timeSpent = 0;
+            currentTask.timeSpent += secondsToAdd;
+            
+            const geoTimerDisplay = document.getElementById('geofence-timer-display');
+            if (geoTimerDisplay) geoTimerDisplay.textContent = formatTime(appState.geofenceTime);
         }
+
+        // BIZTONSÁGI SZINKRONIZÁCIÓ
+        if (appState.totalTime < appState.geofenceTime) {
+            appState.totalTime = appState.geofenceTime;
+        }
+
+        // UI Frissítés
+        const timerDisplay = document.getElementById('timer-display');
+        if (timerDisplay) timerDisplay.textContent = formatTime(appState.totalTime);
+
+        // Mentés (5 másodpercenként)
+        if (appState.totalTime % 5 === 0) {
+            saveGameState();
+        }
+    }
+}
 
 
 
@@ -6415,136 +6383,140 @@ window.requestCompassPermission = async function() {
         }
         
         function checkGeofence() {
-            const taskInteractionArea = document.getElementById('task-interaction-area');
-            const distEl = document.getElementById('distance-info');
-            const startButtonContainer = document.getElementById('start-task-button-container'); 
-            const exploreSelectionContainer = document.getElementById('explore-selection-container');
-            const currentLocation = (appState.isManualMock && manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : appState.userPosition;
-	    if (!currentLocation) {
-        if (!appState.isInZone) { // Csak akkor írjuk ki a "Helyzet meghatározása" szöveget, ha tényleg nincs még zónában
-            distEl.textContent = "Helyzet meghatározása...";
-            distEl.className = 'text-center text-xs font-bold mt-2 text-gray-500';
+    const taskInteractionArea = document.getElementById('task-interaction-area');
+    const distEl = document.getElementById('distance-info');
+    const startButtonContainer = document.getElementById('start-task-button-container'); 
+    const exploreSelectionContainer = document.getElementById('explore-selection-container');
+    
+    const currentLocation = (appState.isManualMock && manualMarker) ? { lat: manualMarker.getLatLng().lat, lng: manualMarker.getLatLng().lng } : appState.userPosition;
+
+    // 1. Ha nyitva van a hibaüzenet ablak, ne csináljon semmit
+    if (!document.getElementById('report-error-modal').classList.contains('hidden')) {
+        if (currentLocation) {
+            const distance = haversineDistance(currentLocation, currentTask.location);
+            appState.isInZone = distance <= currentRadius;
+            distEl.textContent = appState.isInZone ? t('in_zone') : t('out_zone', Math.round(distance));
         }
-        return; 
+        return;
     }
 
-            const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null;
-            if (!currentTask) return;
+    const currentTask = appState.currentGame ? appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex) : null;
+    if (!currentTask) return;
 
-            const currentRadius = (currentTask.geofenceRadius && currentTask.geofenceRadius > 0) ? currentTask.geofenceRadius : GEOFENCE_DEFAULT_RADIUS;
-            const isStartTask = currentTask.isStartTask; 
-            
-            if (appState.currentGame.taskOrder === 'explore' && isStartTask) {
-                 startButtonContainer.classList.remove('hidden');
-                 document.getElementById('start-game-btn').disabled = false;
-                 taskInteractionArea.classList.remove('hidden'); 
-                 document.getElementById('prompt').classList.add('hidden');
-                 distEl.textContent = "Kaland indítható bárhol!";
-                 distEl.className = 'text-center text-xs font-bold mt-2 text-green-600';
-                 if (appState.geofenceCircle) { appState.geofenceCircle.remove(); appState.geofenceCircle = null; }
-                 if (appState.isTimerRunning) showTaskSelectionMap();
-                 return; 
-            }
-            if (appState.currentGame.taskOrder === 'explore' && appState.isTimerRunning && appState.currentTaskIndex === 0) {
-                 taskInteractionArea.classList.add('hidden');
-                 exploreSelectionContainer.classList.remove('hidden');
-                 return; 
-            }
-            
-            if (!document.getElementById('report-error-modal').classList.contains('hidden')) {
-                 if (currentLocation) {
-                    const distance = haversineDistance(currentLocation, currentTask.location);
-                    appState.isInZone = distance <= currentRadius;
-                    distEl.textContent = appState.isInZone ? t('in_zone') : t('out_zone', Math.round(distance));
-                }
-                return;
-            }
+    const currentRadius = (currentTask.geofenceRadius && currentTask.geofenceRadius > 0) ? currentTask.geofenceRadius : GEOFENCE_DEFAULT_RADIUS;
+    const isStartTask = currentTask.isStartTask; 
 
-            startButtonContainer.classList.add('hidden');
-            exploreSelectionContainer.classList.add('hidden'); 
-            
-            if (appState.isTestModeEnabled && !appState.isManualMock) {
-                appState.isInZone = true;
-		        playArrivalNotification();                
-                if (!currentTask.isTaskTimerActive) {
-                    currentTask.isTaskTimerActive = true;
-		            playArrivalNotification();
-                    if (appState.isTimerRunning && !isStartTask) currentTask.startTime = appState.geofenceTime;
-                }
-                if (isStartTask) { 
-                    startButtonContainer.classList.remove('hidden');
-                    taskInteractionArea.classList.remove('hidden'); 
-                    document.getElementById('prompt').classList.add('hidden');
-                } else {
-                     document.getElementById('submit-answer-btn').disabled = false;
-                     document.getElementById('answer-input').disabled = false;
-                     taskInteractionArea.classList.remove('hidden'); 
-                     document.getElementById('prompt').classList.remove('hidden');
-                }
-                distEl.textContent = "A Geo-fence inaktív (TESZT MÓD)";
-                distEl.className='text-center text-xs font-bold mt-2 text-green-600';
-                if (appState.geofenceCircle) { appState.geofenceCircle.setRadius(currentRadius); appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); }
-                
-            } else {
-                if (!currentLocation) {
-                    appState.isInZone = false;
-                    document.getElementById('submit-answer-btn').disabled = true;
-                    document.getElementById('answer-input').disabled = true;
-                    if (!isStartTask && !currentTask.isTaskTimerActive) taskInteractionArea.classList.add('hidden');
-                    else { taskInteractionArea.classList.remove('hidden'); document.getElementById('prompt').classList.remove('hidden'); }
-                    
-                    if (appState.isManualMock) {
-                        distEl.textContent = "Kattints a térképre a pozíció beállításához!";
-                        distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
-                    } else {
-                        distEl.textContent = "Helyzet meghatározása...";
-                        distEl.className='text-center text-xs font-bold mt-2 text-gray-500';
-                    }
-                    
-                    if (appState.geofenceCircle) { appState.geofenceCircle.setRadius(currentRadius); appState.geofenceCircle.setStyle({ color: 'red', fillColor: 'red', fillOpacity: 0.1 }); }
-                    return; 
-                }
+    // Alaphelyzetbe állítás minden futáskor
+    startButtonContainer.classList.add('hidden');
+    exploreSelectionContainer.classList.add('hidden'); 
 
-                const distance = haversineDistance(currentLocation, currentTask.location);
-                appState.isInZone = distance <= currentRadius; 
-                
-                if (appState.isInZone && !currentTask.isTaskTimerActive) {
-                    currentTask.isTaskTimerActive = true;
-                    playArrivalNotification();
-			        if (appState.isTimerRunning && !isStartTask) currentTask.startTime = appState.geofenceTime;
-                }
-                
-                if (appState.isInZone) {
-                    distEl.textContent = t('in_zone');
-                    distEl.className='text-center text-xs font-bold mt-2 text-green-600';
-                    appState.geofenceCircle.setRadius(currentRadius);
-                    appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
-                    document.getElementById('submit-answer-btn').disabled = false;
-                    document.getElementById('answer-input').disabled = false;
-                    taskInteractionArea.classList.remove('hidden'); 
-                    if (isStartTask) {
-                        startButtonContainer.classList.remove('hidden');
-                        document.getElementById('submit-answer-btn').disabled = true; 
-                        document.getElementById('answer-input').disabled = true;
-                        taskInteractionArea.classList.remove('hidden'); 
-                        document.getElementById('prompt').classList.add('hidden');
-                    }
-                } else {
-                    distEl.textContent = t('out_zone', Math.round(distance));
-                    distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
-                    appState.geofenceCircle.setRadius(currentRadius);
-                    appState.geofenceCircle.setStyle({ color: 'red', fillColor: 'red', fillOpacity: 0.1 }); 
-                    if (!isStartTask && !currentTask.isTaskTimerActive) taskInteractionArea.classList.add('hidden');
-                    else { taskInteractionArea.classList.remove('hidden'); document.getElementById('prompt').classList.remove('hidden'); }
-                }
+    // 2. TESZT MÓD KEZELÉSE
+    if (appState.isTestModeEnabled && !appState.isManualMock) {
+        appState.isInZone = true;
+        if (!currentTask.isTaskTimerActive) {
+            currentTask.isTaskTimerActive = true;
+            playArrivalNotification();
+            // Az időzítő indítása
+            if (appState.isTimerRunning && !isStartTask) {
+                currentTask.startTime = appState.geofenceTime;
             }
-            if (!currentTask.isStartTask) updateHintButtons(currentTask);
-            if (currentTask && currentTask.isTaskTimerActive && !isStartTask) {
-                document.getElementById('submit-answer-btn').disabled = false;
-                document.getElementById('answer-input').disabled = false;
-            }
-            saveGameState(); 
         }
+        
+        if (isStartTask) { 
+            startButtonContainer.classList.remove('hidden');
+            taskInteractionArea.classList.remove('hidden'); 
+            document.getElementById('prompt').classList.add('hidden');
+        } else {
+            document.getElementById('submit-answer-btn').disabled = false;
+            document.getElementById('answer-input').disabled = false;
+            taskInteractionArea.classList.remove('hidden'); 
+            document.getElementById('prompt').classList.remove('hidden');
+        }
+        distEl.textContent = "A Geo-fence inaktív (TESZT MÓD)";
+        distEl.className='text-center text-xs font-bold mt-2 text-green-600';
+        if (appState.geofenceCircle) { 
+            appState.geofenceCircle.setRadius(currentRadius); 
+            appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
+        }
+        
+    } else {
+        // 3. NORMÁL MŰKÖDÉS (Nincs GPS pozíció)
+        if (!currentLocation) {
+            appState.isInZone = false;
+            // Ha még sosem volt aktiválva, elrejtjük a területet
+            if (!isStartTask && !currentTask.isTaskTimerActive) {
+                taskInteractionArea.classList.add('hidden');
+            } else {
+                taskInteractionArea.classList.remove('hidden');
+                document.getElementById('prompt').classList.remove('hidden');
+            }
+            
+            distEl.textContent = appState.isManualMock ? "Kattints a térképre!" : "Helyzet meghatározása...";
+            distEl.className='text-center text-xs font-bold mt-2 text-gray-500';
+            return; 
+        }
+
+        // 4. TÁVOLSÁG SZÁMÍTÁSA ÉS AKTIVÁLÁS
+        const distance = haversineDistance(currentLocation, currentTask.location);
+        appState.isInZone = distance <= currentRadius; 
+        
+        // --- EZ AZ A RÉSZ, AMI ELINDÍTJA AZ ÓRÁT VÉGLEG ---
+        if (appState.isInZone && !currentTask.isTaskTimerActive) {
+            currentTask.isTaskTimerActive = true;
+            playArrivalNotification();
+            if (appState.isTimerRunning && !isStartTask) {
+                currentTask.startTime = appState.geofenceTime;
+            }
+        }
+        
+        // UI frissítése a zónán belül/kívül
+        if (appState.isInZone) {
+            distEl.textContent = t('in_zone');
+            distEl.className='text-center text-xs font-bold mt-2 text-green-600';
+            if (appState.geofenceCircle) {
+                appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
+            }
+            
+            if (isStartTask) {
+                startButtonContainer.classList.remove('hidden');
+                taskInteractionArea.classList.remove('hidden'); 
+                document.getElementById('prompt').classList.add('hidden');
+            } else {
+                taskInteractionArea.classList.remove('hidden'); 
+                document.getElementById('prompt').classList.remove('hidden');
+            }
+        } else {
+            // ZÓNÁN KÍVÜL
+            distEl.textContent = t('out_zone', Math.round(distance));
+            distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
+            if (appState.geofenceCircle) {
+                appState.geofenceCircle.setStyle({ color: 'red', fillColor: 'red', fillOpacity: 0.1 }); 
+            }
+            
+            // Ha már aktiválva volt (ketyeg az óra), akkor ne rejtse el a feladatot!
+            if (!isStartTask && !currentTask.isTaskTimerActive) {
+                taskInteractionArea.classList.add('hidden');
+            } else {
+                taskInteractionArea.classList.remove('hidden');
+                document.getElementById('prompt').classList.remove('hidden');
+            }
+        }
+    }
+
+    // Segítségek és gombok állapota a végén
+    if (!currentTask.isStartTask) updateHintButtons(currentTask);
+
+    // Ha ketyeg az óra, lehessen válaszolni (akkor is, ha közben kiment a zónából)
+    // Megjegyzés: Ha azt akarod, hogy CSAK zónán belül lehessen válaszolni, ezt tedd az isInZone-ba!
+    if (currentTask && currentTask.isTaskTimerActive && !isStartTask) {
+        document.getElementById('submit-answer-btn').disabled = false;
+        document.getElementById('answer-input').disabled = false;
+    }
+
+    saveGameState(); 
+}
+
+
 
         function exploreSelectionMapMarkerSelectHandler(e) {
             if (!e.target || !e.target.options || e.target.options.taskIndex === undefined) return;
