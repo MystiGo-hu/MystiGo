@@ -701,7 +701,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.43
+       v1.2.44
 
    </span>
 
@@ -8223,21 +8223,71 @@ window.startInstantAdventure = async function() {
         let lastBearing = appState.instantTarget ? calculateBearing(startLat, startLng, appState.instantTarget.lat, appState.instantTarget.lng) : null;
 
         for (let i = 0; i < taskCount; i++) {
-            if (appState.instantTarget) {
-                lastBearing = calculateBearing(currentPos.lat, currentPos.lng, appState.instantTarget.lat, appState.instantTarget.lng);
-            }
-            let candidates = pool.filter(poi => {
-                const dist = haversineDistance(currentPos, poi);
-                const bearingToPoi = calculateBearing(currentPos.lat, currentPos.lng, poi.lat, poi.lng);
-                return dist >= 100 && dist <= 400 && !routePoints.some(p => p.lat === poi.lat) && isWithinAngle(lastBearing, bearingToPoi, appState.instantTarget ? 45 : 85);
-            });
+    let minDist, maxDist;
 
-            let nextPoint = candidates.length > 0 ? candidates.sort((a, b) => getPointPriority(b) - getPointPriority(a))[0] : calculateNextPoint(currentPos.lat, currentPos.lng, 250, (lastBearing || Math.random() * 360));
-            if (appState.instantTarget && i === (taskCount - 1)) nextPoint = { ...appState.instantTarget, name: "Cél" };
-            routePoints.push(nextPoint);
-            currentPos = nextPoint;
-            lastBearing = calculateBearing(routePoints[i-1]?.lat || startLat, routePoints[i-1]?.lng || startLng, nextPoint.lat, nextPoint.lng);
+    if (appState.instantTarget) {
+        // Kiszámoljuk a maradék távolságot és a hátralévő feladatokat
+        const remainingDist = haversineDistance(currentPos, appState.instantTarget);
+        const tasksLeft = taskCount - i;
+        
+        // Ideális lépésköz kiszámítása
+        let idealStep = remainingDist / tasksLeft;
+
+        // VÉDELEM: Ha túl közel van a célpont, akkor is tartson 200-400m távolságot
+        if (idealStep < 250) {
+            minDist = 200;
+            maxDist = 400;
+        } else {
+            // Normál esetben az ideális lépéskörül keresünk (+/- 30% rugalmasság)
+            minDist = idealStep * 0.7;
+            maxDist = idealStep * 1.3;
         }
+
+        // Irány beállítása a célpont felé
+        lastBearing = calculateBearing(currentPos.lat, currentPos.lng, appState.instantTarget.lat, appState.instantTarget.lng);
+    } else {
+        // Ha nincs fix célpont, marad az alapértelmezett távolság
+        minDist = 200;
+        maxDist = 450;
+    }
+
+    // Jelöltek szűrése az új minDist és maxDist alapján
+    let candidates = pool.filter(poi => {
+        const dist = haversineDistance(currentPos, poi);
+        const bearingToPoi = calculateBearing(currentPos.lat, currentPos.lng, poi.lat, poi.lng);
+        
+        return dist >= minDist && dist <= maxDist && 
+               !routePoints.some(p => p.lat === poi.lat) && 
+               isWithinAngle(lastBearing, bearingToPoi, appState.instantTarget ? 45 : 85);
+    });
+
+    // Ha nem találtunk POI-t a tartományban, választunk egyet a prioritás szerint, vagy generálunk egy pontot
+    let nextPoint;
+    if (candidates.length > 0) {
+        nextPoint = candidates.sort((a, b) => getPointPriority(b) - getPointPriority(a))[0];
+    } else {
+        // Ha nincs POI, generálunk egy koordinátát a számolt irányba
+        const stepDist = (minDist + maxDist) / 2;
+        nextPoint = calculateNextPoint(currentPos.lat, currentPos.lng, stepDist, (lastBearing || Math.random() * 360));
+        nextPoint.name = "Érdekes pont";
+    }
+
+    // Utolsó pontnál, ha van célpont, azt kényszerítjük
+    if (appState.instantTarget && i === (taskCount - 1)) {
+        nextPoint = { ...appState.instantTarget, name: "Cél" };
+    }
+
+    routePoints.push(nextPoint);
+    currentPos = nextPoint;
+    
+    // Irány frissítése a következő körhöz
+    lastBearing = calculateBearing(
+        routePoints[i-1]?.lat || startLat, 
+        routePoints[i-1]?.lng || startLng, 
+        nextPoint.lat, 
+        nextPoint.lng
+    );
+}
 
         // 4. FELADATOK OKOS SZŰRÉSE (Javított rész)
         const snapshot = await window.get(window.ref(window.db, 'generic_tasks'));
