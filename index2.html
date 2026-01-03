@@ -3383,13 +3383,14 @@ window.applyRotation = function(deg) {
                 completedTasks: appState.completedTasks,
                 availableTasks: appState.availableTasks,
                 taskOrder: appState.taskOrder,
-                tasks: appState.currentGame.tasks 
+                tasks: appState.currentGame.tasks,
+		lastTimestamp: Date.now() 
             };
             
             try {
                 localStorage.setItem(getStorageKey(appState.currentGame.id), JSON.stringify(stateToSave));
-            } catch (e) {
-                console.error("Hiba az állapot mentésekor:", e);
+   				 } catch (e) {
+      				  console.error("Hiba az állapot mentésekor:", e);
             }
         }
 
@@ -3430,6 +3431,21 @@ function loadGameById(gameId) {
                 appState.score = state.score;
                 appState.totalTime = state.totalTime;
                 appState.geofenceTime = state.geofenceTime;
+
+if (state.lastTimestamp) {
+                    const now = Date.now();
+                    const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
+                    
+                    if (awaySeconds > 0) {
+                        appState.totalTime += awaySeconds;
+                        // Ha éppen zónában (helyszínen) volt, hozzáadjuk a feladatidőhöz is
+                        if (appState.isInZone) {
+                            appState.geofenceTime += awaySeconds;
+                        }
+                        console.log(`Időkorrekció bezárás után: +${awaySeconds} mp.`);
+                    }
+                }
+
                 appState.isTimerRunning = state.isTimerRunning;
                 appState.teamName = state.teamName;
                 appState.teamAvatar = state.teamAvatar;
@@ -8929,15 +8945,6 @@ window.selectAvatar = function(key) {
 window.updateInstantButtonEligibility();
 };
 
-// Az eredeti updateAvatarPreview módosítása
-window.updateAvatarPreview = function() {
-    const previewContainer = document.getElementById('avatar-preview-container');
-    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
-    
-    if (previewContainer && savedAvatar) {
-        previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
-    }
-};
 
 let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
