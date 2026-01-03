@@ -701,7 +701,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.46
+       v1.2.47
 
    </span>
 
@@ -3439,11 +3439,17 @@ if (state.lastTimestamp) {
                     
                     if (awaySeconds > 0) {
                         appState.totalTime += awaySeconds;
-                        // Ha éppen zónában (helyszínen) volt, hozzáadjuk a feladatidőhöz is
+                        // Ha éppen zónában volt, a globális és a feladat időhöz is hozzáadjuk
                         if (appState.isInZone) {
                             appState.geofenceTime += awaySeconds;
+                            
+                            // JAVÍTÁS: Frissítjük az aktuális feladat egyéni időmérőjét is
+                            const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                            if (currentTask && !currentTask.isStartTask) {
+                                currentTask.timeSpent = (currentTask.timeSpent || 0) + awaySeconds;
+                            }
                         }
-                        console.log(`Időkorrekció bezárás után: +${awaySeconds} mp.`);
+                        console.log(`Időkorrekció teljes bezárás után: +${awaySeconds} mp.`);
                     }
                 }
 		appState.isInZone = state.isInZone || false;
@@ -8013,43 +8019,50 @@ if (solBtn) {
             let lastBackgroundTime = 0;
 
 document.addEventListener('visibilitychange', () => {
-    if (!appState.currentGame) return;
+                if (!appState.currentGame) return;
 
-    if (document.hidden) { 
-        // --- 1. AMIKOR KIKAPCSOLOD A KIJELZŐT / HÁTTÉRBE KERÜL ---
-        lastBackgroundTime = Date.now(); // Mentjük a kilépés pontos idejét
-        saveGameState(); // Elmentjük a játékállást
-        
-        if (speechSynth.speaking) speechSynth.cancel(); // Beszéd leállítása
-        stopAllGpsActivity(); // GPS leállítása (akkukímélés)
-        
-        console.log("Játék háttérbe került, állás elmentve.");
-    } 
-    else { 
-        // --- 2. AMIKOR VISSZATÉRSZ A JÁTÉKBA ---
-        if (lastBackgroundTime > 0) {
-            // Kiszámoljuk, hány másodperc telt el a háttérben
-            const elapsedSeconds = Math.floor((Date.now() - lastBackgroundTime) / 1000);
-            
-            // Hozzáadjuk a teljes időhöz, így nem fog késni az óra
-            appState.totalTime += elapsedSeconds;
-            
-            // Ha épp egy feladat helyszínén volt (geofence), ahhoz is hozzáadjuk
-            if (appState.isInZone) {
-    appState.geofenceTime += elapsedSeconds;
-}
-            
-            lastBackgroundTime = 0; // Alaphelyzetbe állítjuk
-            updateStatusDisplays(); // Frissítjük a kijelzőt az új időkkel
-        }
+                if (document.hidden) { 
+                    // AMIKOR HÁTTÉRBE KERÜL
+                    lastBackgroundTime = Date.now();
+                    saveGameState(); 
+                    
+                    if (speechSynth.speaking) speechSynth.cancel();
+                    stopAllGpsActivity(); 
+                    console.log("Játék háttérbe került, állás elmentve.");
+                } 
+                else { 
+                    // AMIKOR VISSZATÉR A JÁTÉKOS
+                    if (lastBackgroundTime > 0) {
+                        const elapsedSeconds = Math.floor((Date.now() - lastBackgroundTime) / 1000);
+                        
+                        if (elapsedSeconds > 0) {
+                            appState.totalTime += elapsedSeconds;
+                            
+                            if (appState.isInZone) {
+                                appState.geofenceTime += elapsedSeconds;
+                                
+                                // JAVÍTÁS: Frissítjük az aktuális feladat egyéni időmérőjét is
+                                const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                                if (currentTask && !currentTask.isStartTask) {
+                                    currentTask.timeSpent = (currentTask.timeSpent || 0) + elapsedSeconds;
+                                }
+                            }
+                            
+                            // KRITIKUS JAVÍTÁS: Reseteljük a lastTimeUpdate-et a mostani időre,
+                            // hogy az updateTimer ne adja hozzá mégegyszer az eltelt időt (dupla számolás elkerülése)
+                            lastTimeUpdate = Date.now();
+                        }
+                        
+                        lastBackgroundTime = 0;
+                        updateStatusDisplays();
+                    }
 
-        // GPS újraindítása, ha szükséges
-        if (!appState.geoWatchId) { 
-            watchPosition(); 
-        }
-        console.log("Játék visszatért, idő korrigálva.");
-    }
-});
+                    if (!appState.geoWatchId) { 
+                        watchPosition(); 
+                    }
+                    console.log("Játék visszatért, idők korrigálva.");
+                }
+            });
 
           document.getElementById('answer-input').addEventListener('focus', (e) => {
     const inputElement = e.target;
