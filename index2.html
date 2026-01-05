@@ -3438,7 +3438,7 @@ if (state.isTimerRunning && state.lastTimestamp) {
     const now = Date.now();
     const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
     
-    if (awaySeconds > 0) {
+   if (awaySeconds > 0) {
         appState.totalTime += awaySeconds;
         
         if (state.isInZone) {
@@ -5388,6 +5388,10 @@ if (window.auth && window.auth.currentUser) {
 
     // KRITIKUS PONT: Ez váltja le a fejlécet!
     showPage('game-page');
+
+if (appState.timerInterval) clearInterval(appState.timerInterval);
+    appState.timerInterval = null;
+
 
     appState.currentTaskIndex = 0;
     appState.score = 0;
@@ -8020,25 +8024,24 @@ if (solBtn) {
             let lastBackgroundTime = 0;
 
 document.addEventListener('visibilitychange', () => {
-                if (!appState.currentGame) return;
+    if (!appState.currentGame) return;
 
-                if (document.hidden) { 
-                    // AMIKOR HÁTTÉRBE KERÜL
-                    lastBackgroundTime = Date.now();
-                    saveGameState(); 
-                    
-                    if (speechSynth.speaking) speechSynth.cancel();
-                    stopAllGpsActivity(); 
-                    console.log("Játék háttérbe került, állás elmentve.");
-                } 
-                else { 
-        // JAVÍTÁS: Csak akkor adjunk hozzá időt, ha fut a timer!
+    if (document.hidden) { 
+        // Amikor a játékos kilép az appból
+        lastBackgroundTime = Date.now();
+        saveGameState(); 
+        if (speechSynth.speaking) speechSynth.cancel();
+        stopAllGpsActivity(); 
+    } 
+    else { 
+        // JAVÍTÁS: Csak akkor adjunk hozzá időt, ha a játék már elindult (isTimerRunning)!
         if (lastBackgroundTime > 0 && appState.isTimerRunning) {
             const elapsedSeconds = Math.floor((Date.now() - lastBackgroundTime) / 1000);
             
             if (elapsedSeconds > 0) {
                 appState.totalTime += elapsedSeconds;
                 
+                // Csak akkor adjuk a feladat időhöz, ha épp zónában állt
                 if (appState.isInZone) {
                     appState.geofenceTime += elapsedSeconds;
                     const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
@@ -8049,7 +8052,7 @@ document.addEventListener('visibilitychange', () => {
                 lastTimeUpdate = Date.now();
             }
         }
-        lastBackgroundTime = 0; // Mindig nullázzuk a segédváltozót
+        lastBackgroundTime = 0; // Mindig nullázzuk a segédváltozót visszatéréskor
 
         if (!appState.geoWatchId) { 
             watchPosition(); 
@@ -8057,6 +8060,8 @@ document.addEventListener('visibilitychange', () => {
         updateStatusDisplays();
     }
 });
+
+
 
           document.getElementById('answer-input').addEventListener('focus', (e) => {
     const inputElement = e.target;
