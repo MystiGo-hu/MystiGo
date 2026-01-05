@@ -701,7 +701,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.47
+       v1.2.48
 
    </span>
 
@@ -3434,26 +3434,21 @@ function loadGameById(gameId) {
                 appState.totalTime = state.totalTime;
                 appState.geofenceTime = state.geofenceTime;
 
-if (state.lastTimestamp) {
+if (state.isTimerRunning && state.lastTimestamp) {
     const now = Date.now();
     const awaySeconds = Math.floor((now - state.lastTimestamp) / 1000);
     
     if (awaySeconds > 0) {
-        // 1. Teljes idő növelése
         appState.totalTime += awaySeconds;
         
-        // 2. Feladat idő növelése (csak ha a mentés pillanatában a zónában volt)
-        // Fontos: a 'state.isInZone'-t használjuk, amit a localStorage-ból töltöttünk be
         if (state.isInZone) {
             appState.geofenceTime += awaySeconds;
-            
-            // Frissítjük az aktuális feladat saját számlálóját is a memóriában
             const currentTask = appState.currentGame.tasks.find(t => t.index === state.currentTaskIndex);
             if (currentTask && !currentTask.isStartTask) {
                 currentTask.timeSpent = (currentTask.timeSpent || 0) + awaySeconds;
             }
         }
-        console.log(`Precíziós időkorrekció: +${awaySeconds} mp.`);
+        console.log(`Precíziós időkorrekció alkalmazva: +${awaySeconds} mp.`);
     }
 }
 		appState.isInZone = state.isInZone || false;
@@ -8037,38 +8032,31 @@ document.addEventListener('visibilitychange', () => {
                     console.log("Játék háttérbe került, állás elmentve.");
                 } 
                 else { 
-                    // AMIKOR VISSZATÉR A JÁTÉKOS
-                    if (lastBackgroundTime > 0) {
-                        const elapsedSeconds = Math.floor((Date.now() - lastBackgroundTime) / 1000);
-                        
-                        if (elapsedSeconds > 0) {
-                            appState.totalTime += elapsedSeconds;
-                            
-                            if (appState.isInZone) {
-                                appState.geofenceTime += elapsedSeconds;
-                                
-                                // JAVÍTÁS: Frissítjük az aktuális feladat egyéni időmérőjét is
-                                const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-                                if (currentTask && !currentTask.isStartTask) {
-                                    currentTask.timeSpent = (currentTask.timeSpent || 0) + elapsedSeconds;
-                                }
-                            }
-                            
-                            // KRITIKUS JAVÍTÁS: Reseteljük a lastTimeUpdate-et a mostani időre,
-                            // hogy az updateTimer ne adja hozzá mégegyszer az eltelt időt (dupla számolás elkerülése)
-                            lastTimeUpdate = Date.now();
-                        }
-                        
-                        lastBackgroundTime = 0;
-                        updateStatusDisplays();
+        // JAVÍTÁS: Csak akkor adjunk hozzá időt, ha fut a timer!
+        if (lastBackgroundTime > 0 && appState.isTimerRunning) {
+            const elapsedSeconds = Math.floor((Date.now() - lastBackgroundTime) / 1000);
+            
+            if (elapsedSeconds > 0) {
+                appState.totalTime += elapsedSeconds;
+                
+                if (appState.isInZone) {
+                    appState.geofenceTime += elapsedSeconds;
+                    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                    if (currentTask && !currentTask.isStartTask) {
+                        currentTask.timeSpent = (currentTask.timeSpent || 0) + elapsedSeconds;
                     }
-
-                    if (!appState.geoWatchId) { 
-                        watchPosition(); 
-                    }
-                    console.log("Játék visszatért, idők korrigálva.");
                 }
-            });
+                lastTimeUpdate = Date.now();
+            }
+        }
+        lastBackgroundTime = 0; // Mindig nullázzuk a segédváltozót
+
+        if (!appState.geoWatchId) { 
+            watchPosition(); 
+        }
+        updateStatusDisplays();
+    }
+});
 
           document.getElementById('answer-input').addEventListener('focus', (e) => {
     const inputElement = e.target;
