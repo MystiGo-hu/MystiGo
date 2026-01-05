@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MystiGo Generic Task Konverter v5 (Hash & Secure)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #0D2B45; font-weight: 800; margin-bottom: 10px; }
+        .code-preview { max-height: 300px; overflow-y: auto; background: #1e293b; color: #a5b4fc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-2xl">🎲 Generic Task Konverter (v5 - Biztonságos)</h1>
+    <p class="mb-6 text-gray-600 text-sm">
+        Töltsd be az Excel/CSV fájlt. A program a megoldásokat <b>HASH-eli</b> (nem visszafejthető), a segítségeket és a megjelenítendő megoldást pedig titkosítja. <br>
+        Így a válaszok nem olvashatók ki az adatbázisból.
+    </p>
+
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="font-bold text-blue-800 text-sm mb-2">Elvárt oszlopok (fejléc):</p>
+        <p class="font-mono text-xs text-blue-700">type | category | question | solution | hint1 | hint2</p>
+        <p class="text-xs text-gray-500 mt-2">A 'solution' oszlopba pontosvesszővel elválasztva több jó választ is írhatsz (pl.: kutya; eb). Mindegyiket elfogadja majd a játék.</p>
+    </div>
+
+    <div class="mb-6">
+        <label class="block text-sm font-bold text-gray-700 mb-2">Fájl kiválasztása (.xlsx, .csv)</label>
+        <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 cursor-pointer"/>
+    </div>
+
+    <button onclick="processAndDownload()" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition shadow-lg flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Konvertálás és Letöltés
+    </button>
+
+    <div class="mt-6">
+        <label class="block text-sm font-bold text-gray-700 mb-2">Előnézet:</label>
+        <textarea id="output" readonly class="code-preview w-full p-3 border border-gray-300 rounded font-mono text-xs outline-none"></textarea>
+    </div>
+</div>
+
+<script>
+    const SECRET_KEY = "MystiGo_Szuper_Titkos_Kulcs_2025";
+
+    // 1. Szöveg titkosítása (visszafejthető a kulccsal) - Segítségekhez
+    function encryptText(text) {
+        if (!text) return "";
+        return CryptoJS.AES.encrypt(String(text).trim(), SECRET_KEY).toString();
+    }
+
+    // 2. Hash generálás (NEM visszafejthető, csak ellenőrzésre) - Megoldáshoz
+    function generateHash(text) {
+        if (!text) return "";
+        // Normalizálás: kisbetű, ékezetek nélkül, írásjelek nélkül (ugyanaz a logika, mint a játékban)
+        let cleanText = String(text).trim().toLowerCase();
+        cleanText = cleanText.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Ékezetek le
+        cleanText = cleanText.replace(/[^a-z0-9]/g, ''); // Csak betűk és számok
+        
+        return CryptoJS.SHA256(cleanText).toString();
+    }
+
+    function safeString(val) {
+        return (val === undefined || val === null) ? "" : String(val).trim();
+    }
+
+    function processAndDownload() {
+        const fileInput = document.getElementById('fileUpload');
+        const outputArea = document.getElementById('output');
+
+        if (!fileInput.files.length) {
+            alert("Kérlek válassz egy fájlt!");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                
+                if (jsonData.length === 0) {
+                    alert("A fájl üres!");
+                    return;
+                }
+
+                const firebaseData = {};
+
+                jsonData.forEach((row, index) => {
+                    const taskId = `task_${String(index + 1).padStart(3, '0')}`;
+                    
+                    // --- VÁLASZOK FELDOLGOZÁSA ---
+                    const rawSol = safeString(row.solution || row.megoldas);
+                    
+                    // Szétválasztás ; mentén
+                    let answersArray = rawSol.split(';').map(s => s.trim()).filter(s => s !== "");
+                    if (answersArray.length === 0) answersArray = ["Kész"];
+
+                    // 1. Hash-ek generálása az ellenőrzéshez (Ez kerül az adatbázisba nyílt szöveg helyett)
+                    const acceptedHashes = answersArray.map(ans => generateHash(ans));
+                    const solutionHash = acceptedHashes[0]; // Az első válasz hash-e
+
+                    // 2. Megoldás titkosítása (csak a "Megoldás" gombhoz)
+                    // Csak az ELSŐ választ titkosítjuk be megjelenítésre
+                    const encryptedMainSolution = encryptText("A helyes válasz: " + answersArray[0]);
+
+                    // --- SEGÍTSÉGEK ---
+                    const hints = [];
+                    const h1 = safeString(row.hint1 || row.segitseg1);
+                    const h2 = safeString(row.hint2 || row.segitseg2);
+                    
+                    if (h1) hints.push(encryptText(h1)); else hints.push("");
+                    if (h2) hints.push(encryptText(h2)); else hints.push("");
+
+                    // Kategória
+                    const categoryText = safeString(row.category || row.kategoria) || "vegyes";
+                    const typeText = safeString(row.type || row.tipus) || "generic";
+
+                    // --- JSON OBJEKTUM ÖSSZEÁLLÍTÁSA ---
+                    firebaseData[taskId] = {
+                        type: typeText,
+                        category: categoryText,
+                        
+                        // Megjelenő szövegek
+                        story: `Kategória: ${categoryText}`,
+                        question: safeString(row.question || row.kerdes) || "Nincs kérdés megadva.",
+                        
+                        // BIZTONSÁGI FRISSÍTÉS:
+                        // NEM mentjük el az 'answers' tömböt nyílt szövegként!
+                        // Helyette hash-eket használunk:
+                        acceptedHashes: acceptedHashes,
+                        solutionHash: solutionHash,
+                        
+                        // Titkosított adatok (visszafejthetőek a kulccsal)
+                        hints: hints, 
+                        solution: encryptedMainSolution
+                    };
+                });
+
+                const jsonString = JSON.stringify(firebaseData, null, 2);
+                outputArea.value = jsonString;
+
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "generic_tasks_SECURE_v5.json";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error(error);
+                alert("Hiba: " + error.message);
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+</script>
+
+</body>
+</html>
