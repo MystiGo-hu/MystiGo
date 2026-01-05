@@ -5179,15 +5179,22 @@ window.triggerSolutionUI = function(solutionText, onOk) {
         let timeAccumulator = 0;
 
         function updateTimer() {
-            if (!appState.isTimerRunning) return;
+    if (!appState.isTimerRunning) return;
 
-            const now = Date.now();
-            if (!lastTimeUpdate) lastTimeUpdate = now;
+    const now = Date.now();
+    if (!lastTimeUpdate) lastTimeUpdate = now;
 
-            const dt = now - lastTimeUpdate;
-            lastTimeUpdate = now;
-            
-            timeAccumulator += dt;
+    const dt = now - lastTimeUpdate;
+    lastTimeUpdate = now;
+    
+    // Ha a dt több mint 5 másodperc (pl. háttérbe került, de nem állt le az interval), 
+    // akkor ne adjuk hozzá a dt-t, mert azt a visibilitychange fogja kezelni visszatéréskor.
+    if (dt > 5000) {
+        timeAccumulator = 0;
+        return;
+    }
+
+    timeAccumulator += dt;
 
             // Ha eltelt legalább 1 másodperc
             if (timeAccumulator >= 1000) {
@@ -8027,21 +8034,29 @@ document.addEventListener('visibilitychange', () => {
     if (!appState.currentGame) return;
 
     if (document.hidden) { 
-        // Amikor a játékos kilép az appból
+        // 1. ELMENTJÜK A KILÉPÉS IDEJÉT
         lastBackgroundTime = Date.now();
+        
+        // 2. MEGÁLLÍTJUK AZ IDŐZÍTŐT (hogy ne számoljon duplán a háttérben)
+        if (appState.timerInterval) {
+            clearInterval(appState.timerInterval);
+            appState.timerInterval = null;
+        }
+
         saveGameState(); 
         if (speechSynth.speaking) speechSynth.cancel();
         stopAllGpsActivity(); 
     } 
     else { 
-        // JAVÍTÁS: Csak akkor adjunk hozzá időt, ha a játék már elindult (isTimerRunning)!
+        // VISSZATÉRÉS
         if (lastBackgroundTime > 0 && appState.isTimerRunning) {
-            const elapsedSeconds = Math.floor((Date.now() - lastBackgroundTime) / 1000);
+            // 3. KISZÁMÍTJUK A TÉNYLEGESEN ELTELT IDŐT
+            const now = Date.now();
+            const elapsedSeconds = Math.floor((now - lastBackgroundTime) / 1000);
             
             if (elapsedSeconds > 0) {
                 appState.totalTime += elapsedSeconds;
                 
-                // Csak akkor adjuk a feladat időhöz, ha épp zónában állt
                 if (appState.isInZone) {
                     appState.geofenceTime += elapsedSeconds;
                     const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
@@ -8049,10 +8064,15 @@ document.addEventListener('visibilitychange', () => {
                         currentTask.timeSpent = (currentTask.timeSpent || 0) + elapsedSeconds;
                     }
                 }
-                lastTimeUpdate = Date.now();
             }
+            
+            // 4. RESETELJÜK A SEGÉDVÁLTOZÓKAT ÉS ÚJRAINDÍTJUK A SZÁMLÁLÓT
+            lastTimeUpdate = Date.now(); 
+            timeAccumulator = 0;
+            appState.timerInterval = setInterval(updateTimer, 1000);
         }
-        lastBackgroundTime = 0; // Mindig nullázzuk a segédváltozót visszatéréskor
+        
+        lastBackgroundTime = 0; 
 
         if (!appState.geoWatchId) { 
             watchPosition(); 
@@ -8060,6 +8080,7 @@ document.addEventListener('visibilitychange', () => {
         updateStatusDisplays();
     }
 });
+
 
 
 
