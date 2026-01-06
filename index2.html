@@ -2136,27 +2136,21 @@ window.getGameCurrentCount = async function(gameId) {
 window.saveScoreToFirebase = function(data) {
     if (!data.gameId) return;
 
-    // Pontszám ellenőrzése: Ha 0 vagy kevesebb, nem mentünk semmit
     let safeScore = Number(data.score);
-    if (isNaN(safeScore) || safeScore <= 0) {
-        console.log("0 pontos eredmény - nem kerül mentésre a ranglistára.");
-        return; 
-    }
+    if (isNaN(safeScore) || safeScore <= 0) return; 
 
     const now = new Date();
     const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    let safeTeamName = String(data.teamName || "Névtelen").trim();
-    if (safeTeamName.length === 0) safeTeamName = "Névtelen Játékos";
-
-const user = window.auth ? window.auth.currentUser : null;
+    const user = window.auth ? window.auth.currentUser : null;
+    if (!user) return; // Ha nincs user, nem tudunk menteni a szabályok miatt
 
     const scoreData = {
         gameId: data.gameId,
-        teamName: safeTeamName,
-        teamAvatar: data.teamAvatar || "no avatar",
-	uid: user ? user.uid : null,
-        isRegistered: !!(user && !user.isAnonymous),
+        teamName: String(data.teamName || "Névtelen").trim(),
+        teamAvatar: data.teamAvatar || "cat",
+        uid: user.uid,
+        isRegistered: !user.isAnonymous,
         score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
@@ -2164,18 +2158,17 @@ const user = window.auth ? window.auth.currentUser : null;
         dateString: readableDate
     };
 
-    if (navigator.onLine && window.db && window.push) {
-        let targetLeaderboardId = data.gameId;
-        if (String(targetLeaderboardId).startsWith('instant_')) {
-            targetLeaderboardId = 'instant_kozos';
-        }
-
-        const leaderboardRef = window.ref(window.db, 'leaderboard/' + targetLeaderboardId);
-        window.push(leaderboardRef, scoreData).then(() => {
-            console.log("✅ Mentés sikeres!");
+    if (navigator.onLine && window.db) {
+        let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
+        
+        // JAVÍTÁS: push() helyett konkrétan a user.uid alá mentünk!
+        const leaderboardEntryRef = window.ref(window.db, `leaderboard/${targetId}/${user.uid}`);
+        
+        window.set(leaderboardEntryRef, scoreData).then(() => {
+            console.log("✅ Ranglista mentve (UID alapján).");
             if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
         }).catch((error) => {
-            console.warn("⚠️ Hiba a feltöltéskor:", error);
+            console.error("❌ Mentési hiba (valószínűleg Rules hiba):", error);
             saveToPendingUploads(scoreData);
         });
     } else {
@@ -9063,53 +9056,58 @@ window.logout = async () => {
         let profileListener = null; // Változó a figyelő leállításához
 
 onAuthStateChanged(auth, (user) => {
-    // Elemek lekérése
     const previewVerifiedBadge = document.getElementById('preview-verified-badge');
     const authStatusLabel = document.getElementById('auth-status-label');
     const scoreDisplay = document.getElementById('total-score-display');
     const logoutBtn = document.getElementById('logout-btn');
     const btnGroup = document.getElementById('auth-buttons-group');
+    const nameInput = document.getElementById('team-name-input'); // ÚJ
 
-    // ALAPHELYZET: Mindenkitől elvesszük a pipát és elrejtjük a pontokat
     if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
     if (scoreDisplay) scoreDisplay.classList.add('hidden');
     if (logoutBtn) logoutBtn.classList.add('hidden');
 
     if (user) {
         if (!user.isAnonymous) {
-            // --- REGISZTRÁLT FELHASZNÁLÓ ---
             console.log("Regisztrált user belépve:", user.email);
-            
-            if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active'); // Itt kapja meg a pipát
+            if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
             if (scoreDisplay) scoreDisplay.classList.remove('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
             if (btnGroup) btnGroup.classList.add('hidden');
             if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
             
-            // Profil adatok betöltése...
             const profileRef = ref(db, `users/${user.uid}/profile`);
             onValue(profileRef, (snapshot) => {
                 const profile = snapshot.val() || {};
                 document.getElementById('user-total-score').textContent = profile.totalScore || 0;
-                document.getElementById('auth-user-name').textContent = profile.teamName || user.displayName || "Játékos";
+                
+                const finalName = profile.teamName || user.displayName || "Játékos";
+                document.getElementById('auth-user-name').textContent = finalName;
+
+                // --- ÚJ: SZINKRONIZÁCIÓ A MEZŐKKEL ---
+                if (nameInput) {
+                    nameInput.value = finalName;
+                    localStorage.setItem('mystigo_pref_teamName', finalName);
+                }
+                if (profile.avatar) {
+                    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+                    if (window.updateAvatarPreview) window.updateAvatarPreview();
+                }
+                if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
+                // --------------------------------------
             });
 
         } else {
-            // --- NÉVTELEN VENDÉG ---
             console.log("Vendég mód aktív.");
-            
-            // Itt duplán biztosítjuk, hogy ne legyen pipa
             if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
             if (btnGroup) btnGroup.classList.remove('hidden');
             if (authStatusLabel) authStatusLabel.textContent = "Vendég mód";
             document.getElementById('auth-user-name').textContent = "Regisztrálj a mentéshez";
         }
     } else {
-        // Automatikus névtelen belépés, ha senki nincs bent
         signInAnonymously(auth);
     }
 });
-
 
 
                
