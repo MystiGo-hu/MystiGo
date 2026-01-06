@@ -9110,28 +9110,7 @@ onAuthStateChanged(auth, (user) => {
 
 
 
-        } 
-        // --- HA A FELHASZNÁLÓ NÉVTELEN VENDÉG ---
-        else {
-            console.log("Vendégként bejelentkezve (UID: " + user.uid + ")");
-            if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active'); // Nincs kék pipa
-            if (btnGroup) btnGroup.classList.remove('hidden'); // Regisztrációs lehetőségek mutatása
-            if (logoutBtn) logoutBtn.classList.add('hidden'); // Nincs kijelentkezés gomb
-            if (scoreDisplay) scoreDisplay.classList.add('hidden'); // Nincs összpontszám
-            if (authStatusLabel) authStatusLabel.textContent = "Vendég mód";
-            if (authUserName) authUserName.textContent = "Nincs mentett profil";
-        }
-    } else {
-        // --- HA SENKI NINCS BENT, AUTOMATIKUSAN BELÉPTETÜNK NÉVTELENÜL ---
-        signInAnonymously(auth).catch(e => console.error("Anonim hiba:", e));
-    }
-
-    setTimeout(() => {
-        if (typeof window.updateInstantButtonEligibility === 'function') {
-            window.updateInstantButtonEligibility();
-        }
-    }, 1000);
-});
+               
 
     } catch (error) { console.error("❌ Firebase inicializálási hiba:", error); }
 
