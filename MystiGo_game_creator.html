@@ -213,7 +213,7 @@
     <h3>🌍 Játék Alapadatok</h3>
     <div class="input-grid">
         <div class="field-group">
-            <label>Játék címe</label>
+            <label>Játék címe*</label>
             <input type="text" id="title" oninput="generateId(this.value)">
         </div>
         <div class="field-group">
@@ -221,7 +221,7 @@
             <input type="text" id="generated-id" readonly style="background:#f1f5f9;">
         </div>
         <div class="field-group">
-            <label>Típus</label>
+            <label>Típus*</label>
             <select id="type">
                 <option value="normal">normal</option>
                 <option value="kids">kids</option>
@@ -246,7 +246,7 @@
 
     <div class="input-grid">
         <div class="field-group">
-            <label>Kezdő Koordináták</label>
+            <label>Kezdő Koordináták*</label>
             <div class="gps-container">
                 <input type="text" id="start-coords" placeholder="Lat, Lng">
                 <div class="gps-btn-group">
@@ -266,8 +266,8 @@
         <div class="field-group"><label>Értékelés URL</label><input type="text" id="reviewUrl"></div>
     </div>
 
-    <div class="field-group" style="margin-top:10px;"><label>Kezdő Történet</label><textarea id="description" rows="4"></textarea></div>
-    <div class="field-group"><label>Záró Történet</label><textarea id="endStory" rows="4"></textarea></div>
+    <div class="field-group" style="margin-top:10px;"><label>Kezdő Történet*</label><textarea id="description" rows="4"></textarea></div>
+    <div class="field-group"><label>Záró Történet*</label><textarea id="endStory" rows="4"></textarea></div>
 </div>
 
         <div id="task-groups-container"></div>
@@ -338,7 +338,7 @@
             </div>
 
             <div class="field-group"><label>Helyszín Sztori</label><textarea id="t-story-${id}" rows="3"></textarea></div>
-            <div class="field-group"><label>Konkrét Feladat / Kérdés</label><textarea id="t-prompt-${id}" rows="2"></textarea></div>
+            <div class="field-group"><label>Konkrét Feladat / Kérdés*</label><textarea id="t-prompt-${id}" rows="2"></textarea></div>
             
             <div class="input-grid">
                 <div class="field-group"><label>Segítség 1</label><input type="text" id="t-h1-${id}"></div>
@@ -347,7 +347,7 @@
 
             <div class="solution-zone">
                 <div class="field-group">
-                    <label style="color:var(--primary);">Megoldás</label>
+                    <label style="color:var(--primary);">Megoldás*</label>
                     <input type="text" id="t-sol-${id}" placeholder="Helyes válasz...">
                 </div>
                 <div class="field-group">
