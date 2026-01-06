@@ -2156,7 +2156,7 @@ const user = window.auth ? window.auth.currentUser : null;
         teamName: safeTeamName,
         teamAvatar: data.teamAvatar || "no avatar",
 	uid: user ? user.uid : null,
-        isRegistered: !!(window.auth && window.auth.currentUser),
+        isRegistered: !!(user && !user.isAnonymous),
         score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
