@@ -70,6 +70,13 @@
         animation: floatUp 3s ease-out forwards;
     }
 
+
+@keyframes fadeUp {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); }
+}
+
+
     @keyframes floatUp {
     0% { 
         transform: translate(-50%, -50%) translateY(0) scale(0.5); 
@@ -701,7 +708,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.48
+       v1.2.49
 
    </span>
 
@@ -3360,6 +3367,7 @@ window.applyRotation = function(deg) {
                 taskMarkers: {},
 		lastAutoZoomTime: 0,
 	        visibleGamesLimit: 5,
+		bonusPoints: [],
 		currentFilteredGames: null
             };
         }
@@ -3389,6 +3397,9 @@ window.applyRotation = function(deg) {
                 taskOrder: appState.taskOrder,
                 tasks: appState.currentGame.tasks,
 		isInZone: appState.isInZone,
+		bonusPoints: appState.bonusPoints.map(bp => ({
+            id: bp.id, lat: bp.lat, lng: bp.lng, collected: bp.collected, score: bp.score
+        })),
 		lastTimestamp: Date.now()
 		 
             };
@@ -3435,8 +3446,10 @@ function loadGameById(gameId) {
 
                 appState.currentTaskIndex = state.currentTaskIndex;
                 appState.score = state.score;
+		appState.bonusPoints = state.bonusPoints || [];
                 appState.totalTime = state.totalTime;
                 appState.geofenceTime = state.geofenceTime;
+		
 
 if (state.isTimerRunning && state.lastTimestamp) {
     const now = Date.now();
@@ -3520,6 +3533,11 @@ if (state.isTimerRunning && state.lastTimestamp) {
                     // Betöltjük az aktuális feladatot
                     loadTask(appState.currentTaskIndex); 
                     
+
+if (appState.bonusPoints && appState.bonusPoints.length > 0) {
+    setTimeout(() => { renderBonusMarkers(); }, 200); 
+}
+
                     let msg = `Üdv újra, ${appState.teamName || ''}! A játék folytatódik.`;
                     showMessage("Folytatás", msg, null);
 
@@ -5242,6 +5260,9 @@ window.triggerSolutionUI = function(solutionText, onOk) {
 
    // ASYNC lett a függvény, mert várni kell a Firebase-re
       window.startTimersAndGPS = async function() {
+if (appState.currentGame && appState.currentGame.bonuspoint) {
+        window.generateBonusPoints(parseInt(appState.currentGame.bonuspoint));
+    }
     // ✅ ÚJ: Profil mentése indításkor
 if (window.auth && window.auth.currentUser) {
     console.log("Profil adatok mentése a felhőbe...");
@@ -5910,6 +5931,36 @@ function endGame() {
          .bindPopup(`<b>${task.index}. feladat</b><br>${isFailed ? 'Megoldva / Átugorva' : 'Sikeresen megoldva'}`);
     }
 });
+
+
+// --- BÓNUSZOK FELHELYEZÉSE A ZÁRÓ TÉRKÉPRE ---
+if (appState.bonusPoints && appState.bonusPoints.length > 0) {
+    const collectedIcon = L.divIcon({
+        className: 'bonus-marker-end',
+        html: `<div style="font-size: 16px; filter: drop-shadow(0 0 3px gold);">💎</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
+
+    const missedIcon = L.divIcon({
+        className: 'bonus-marker-end-missed',
+        html: `<div style="font-size: 16px; opacity: 0.5; filter: grayscale(100%);">💎</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
+
+    appState.bonusPoints.forEach(bp => {
+        // Eldöntjük, hogy megkapja-e a csillogó vagy a szürke ikont
+        const iconToUse = bp.collected ? collectedIcon : missedIcon;
+        const statusText = bp.collected ? "Begyűjtve" : "Kihagyva";
+        
+        L.marker([bp.lat, bp.lng], { icon: iconToUse, zIndexOffset: 500 })
+            .addTo(endMap) 
+            .bindPopup(`Bónusz pont: ${statusText}`);
+    });
+}
+
+
             // -------------------------------------
 
             endMap.fitBounds(polyline.getBounds().pad(0.2), { animate: false }); 
@@ -6025,7 +6076,118 @@ function endGame() {
         }
     }
 }
+     
+
+
+window.generateBonusPoints = async function(count) {
+    if (!count || count <= 0) return;
+    
+    console.log(`${count} bónusz pont generálása folyamatban...`);
+    appState.bonusPoints = [];
+    
+    const tasks = appState.currentGame.tasks.filter(t => t.location && t.location.lat && !t.isStartTask);
+    if (tasks.length === 0) return;
+
+    // Halmaz a már felhasznált OSM azonosítók tárolására, hogy ne legyen átfedés
+    const usedOsmIds = new Set();
+
+    for (let i = 0; i < count; i++) {
+        const anchor = tasks[i % tasks.length];
+        const lat = anchor.location.lat;
+        const lng = anchor.location.lng;
+
+        const query = [
+            '[out:json][timeout:25];',
+            '(',
+            `node(around:300,${lat},${lng})["highway"~"crossing|bus_stop|traffic_signals"];`,
+            `node(around:250,${lat},${lng})["amenity"~"waste_basket|bench"];`,
+            ');',
+            'out body;'
+        ].join('');
         
+        const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
+        try {
+            const response = await fetch(osmUrl);
+            if (!response.ok) throw new Error("OSM hiba");
+            const data = await response.json();
+            
+            const jitter = () => (Math.random() - 0.5) * 0.0001;
+
+            // Kiszűrjük azokat a pontokat, amiket már ebben a ciklusban felhasználtunk
+            let candidates = data.elements ? data.elements.filter(el => !usedOsmIds.has(el.id)) : [];
+
+            if (candidates.length > 0) {
+                // Választunk egy egyedi pontot
+                let el = candidates[Math.floor(Math.random() * candidates.length)];
+                usedOsmIds.add(el.id); // Megjegyezzük, hogy ez már foglalt
+                
+                appState.bonusPoints.push({
+                    id: `bonus_${Date.now()}_${i}`,
+                    lat: el.lat + jitter(),
+                    lng: el.lon + jitter(),
+                    collected: false,
+                    score: 10 
+                });
+                console.log(`Bónusz ${i+1} elhelyezve egyedi POI mellé (ID: ${el.id})`);
+            } else {
+                // FALLBACK: Ha nincs több egyedi POI, akkor egy távolabbi köríven helyezzük el
+                // Így biztosan nem egy ház tetejére, hanem az utca irányába kerül (statisztikailag)
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 0.0015 + (Math.random() * 0.001); // Kb. 150-250 méter távolság
+                const fLat = lat + Math.cos(angle) * radius;
+                const fLng = lng + Math.sin(angle) * radius;
+                
+                appState.bonusPoints.push({
+                    id: `bonus_fallback_${Date.now()}_${i}`,
+                    lat: fLat,
+                    lng: fLng,
+                    collected: false,
+                    score: 10
+                });
+                console.warn(`Bónusz ${i+1} véletlenszerű helyre került (nincs több szabad POI).`);
+            }
+        } catch (e) { 
+            console.error("Hiba a generálásnál:", e);
+            appState.bonusPoints.push({
+                id: `bonus_err_${Date.now()}_${i}`,
+                lat: lat + (Math.random() - 0.5) * 0.002,
+                lng: lng + (Math.random() - 0.5) * 0.002,
+                collected: false,
+                score: 10
+            });
+        }
+    }
+    
+    console.log(`Generálás kész. Összesen ${appState.bonusPoints.length} pont a térképen.`);
+    renderBonusMarkers();
+
+    // --- ÚJ: Átmeneti ki-zoomolás az összes bónuszra ---
+    const bonusBounds = [];
+    appState.bonusPoints.forEach(bp => {
+        bonusBounds.push([bp.lat, bp.lng]);
+    });
+
+    if (bonusBounds.length > 0 && appState.map) {
+        // Hozzáadjuk a játékos jelenlegi pozícióját is, hogy ő is látsszon a képen
+        if (appState.userPosition) {
+            bonusBounds.push([appState.userPosition.lat, appState.userPosition.lng]);
+        }
+        
+        // Térkép igazítása úgy, hogy minden bónusz és a játékos is benne legyen
+        // A .pad(0.3) ad egy kis extra margót a széleken
+        appState.map.fitBounds(L.latLngBounds(bonusBounds).pad(0.3));
+        
+        // KRITIKUS: Frissítjük az utolsó interakció idejét a jelenlegi pillanatra.
+        // Mivel a kódodban az auto-zoom (updatePlayerMarker) nézi ezt az értéket,
+        // így 3 másodpercig (vagy amíg el nem éri az INTERACTION_THRESHOLD-ot) 
+        // nem fog visszaugrani a nézet a játékosra.
+        appState.lastMapInteraction = Date.now();
+    }
+};
+
+
+   
   function initializeMap(gameData = null) {
     const mapContainer = document.getElementById('map');
     
@@ -6544,7 +6706,43 @@ window.requestCompassPermission = async function() {
                 document.getElementById('submit-answer-btn').disabled = false;
                 document.getElementById('answer-input').disabled = false;
             }
-            saveGameState(); 
+            
+if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) {
+        appState.bonusPoints.forEach(bp => {
+            if (!bp.collected) {
+                const dist = haversineDistance(currentLocation, { lat: bp.lat, lng: bp.lng });
+                
+                if (dist <= 25 && !bp.collected) { // Dupla ellenőrzés a biztonság kedvéért
+    bp.collected = true;
+    if (bp.marker) bp.marker.remove();
+    
+    let bonusValue = parseInt(bp.score) || 10;
+    appState.score += bonusValue;
+    
+    console.log("Bónusz begyűjtve! Új pontszám:", appState.score);
+                    
+                    // Látványos felugró szöveg (+10 💎)
+                    const float = document.createElement('div');
+                    float.style.cssText = `
+                        position: fixed; left: 50%; top: 45%; transform: translate(-50%, -50%);
+                        color: #FFD700; font-weight: bold; font-size: 32px; z-index: 10000;
+                        text-shadow: 2px 2px 10px rgba(0,0,0,0.5); pointer-events: none;
+                        animation: fadeUp 2s forwards;
+                    `;
+                    float.innerHTML = `+${bp.score || 10} 💎`;
+                    document.body.appendChild(float);
+                    setTimeout(() => float.remove(), 2000);
+                    
+                    if (window.MystiSounds) MystiSounds.success();
+                    updateStatusDisplays(); // Pontszám frissítése a fejlécben
+	saveGameState();
+                }
+            }
+        });
+    }
+
+
+saveGameState(); 
         }
 
         function exploreSelectionMapMarkerSelectHandler(e) {
@@ -6588,6 +6786,33 @@ function backToExploreMap() {
     }
 }
 
+
+
+window.renderBonusMarkers = function() {
+    if (!appState.map) return;
+    
+    // Létrehozzuk az ikont (az animate-bounce-szal ugrálni fog a térképen)
+    const bonusIcon = L.divIcon({
+        className: 'bonus-marker',
+        html: `<div class="animate-bounce" style="font-size: 20px; filter: drop-shadow(0 0 5px gold); cursor: pointer;">💎</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+    });
+
+    // Végigmegyünk a pontokon
+    appState.bonusPoints.forEach(bp => {
+        // Csak akkor rajzoljuk ki, ha még nincs begyűjtve
+        if (!bp.collected) {
+            // Létrehozzuk a markert a koordináták alapján
+            bp.marker = L.marker([bp.lat, bp.lng], { 
+                icon: bonusIcon,
+                zIndexOffset: 2000 // Kényszerítjük, hogy a többi jelölő (pl. kék pötty) felett legyen
+            })
+            .addTo(appState.map)
+            .bindPopup("<b>Bónusz!</b><br>Menj közelebb (+10 pont)");
+        }
+    });
+};
 
 
         function renderTaskMarkers() {
