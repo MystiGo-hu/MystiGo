@@ -3965,7 +3965,8 @@ async function sharePdfViaEmail() {
                 
                 if (appState.teamName) {
         const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
-        const isRegistered = !!(window.auth && window.auth.currentUser);
+        const user = window.auth ? window.auth.currentUser : null;
+const isRegistered = !!(user && !user.isAnonymous);
 
         // Alkalmazzuk az egységes struktúrát
         teamAvatarIcon.className = "avatar-container"; 
@@ -5904,7 +5905,8 @@ function endGame() {
     // Avatar és Verified badge
     const finalAvatarEl = document.getElementById('final-team-avatar-icon');
     if (finalAvatarEl) {
-        const isRegistered = !!(window.auth && window.auth.currentUser);
+        const user = window.auth ? window.auth.currentUser : null;
+const isRegistered = !!(user && !user.isAnonymous);
         finalAvatarEl.className = "avatar-container"; 
         finalAvatarEl.innerHTML = `${AVATAR_ICONS[appState.teamAvatar] || ''}${isRegistered ? '<div class="verified-badge verified-badge-lg active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>' : ''}`;
     }
