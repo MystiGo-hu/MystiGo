@@ -258,6 +258,7 @@
         <div class="field-group"><label>Sugár (m)</label><input type="number" id="game-radius" value="15"></div>
         <div class="field-group"><label>Max Játék/Fő</label><input type="number" id="maxPlayCount"></div>
         <div class="field-group"><label>Globális Limit</label><input type="number" id="globalLimit"></div>
+	<div class="field-group"><label>Bónusz Pontok száma</label><input type="number" id="bonuspoint" placeholder="0"></div>
     </div>
 
     <div class="input-grid">
@@ -414,6 +415,7 @@
     // Pótolt mezők betöltése:
     document.getElementById('maxPlayCount').value = g.maxPlayCount || '';
     document.getElementById('globalLimit').value = g.globalLimit || '';
+    document.getElementById('bonuspoint').value = g.bonuspoint || '';
 
     // Feladatok betöltése (a korábbi logika szerint)...
     const tc = document.getElementById('task-groups-container'); tc.innerHTML = ''; taskCounter = 0;
@@ -457,7 +459,8 @@
         reviewUrl: document.getElementById('reviewUrl').value,
         // Pótolt mezők mentése:
         maxPlayCount: document.getElementById('maxPlayCount').value,
-        globalLimit: document.getElementById('globalLimit').value
+        globalLimit: document.getElementById('globalLimit').value,
+	bonuspoint: document.getElementById('bonuspoint').value
     };
 
     const gIdx = allGamesData.findIndex(x => x.id === gid);
