@@ -2,22 +2,22 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MystiGo - Kupon Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0D2B45; color: #e2e8f0; font-family: sans-serif; }
+        body { background-color: #0D2B45; color: #e2e8f0; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn-mystigo { background: linear-gradient(135deg, #20e3b2 0%, #009ad7 100%); transition: all 0.2s; }
-        input { background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; }
+        input { background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; font-size: 16px !important; } /* 16px megelőzi az iOS zoomot */
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="login-container" class="flex items-center justify-center min-h-screen">
-        <div class="glass p-10 rounded-3xl text-center max-w-sm w-full border-t-4 border-[#20e3b2]">
+    <div id="login-container" class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass p-8 rounded-3xl text-center max-w-sm w-full border-t-4 border-[#20e3b2]">
             <h1 class="text-2xl font-bold mb-6 text-[#20e3b2]">MystiGo Admin</h1>
             <div id="auth-status-msg" class="mb-6">
                 <div class="animate-spin h-8 w-8 border-4 border-[#20e3b2] border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -25,8 +25,8 @@
             </div>
             
             <div id="login-actions" class="hidden">
-                <p id="error-msg" class="text-red-400 text-xs mb-4 hidden">Nincs admin jogosultságod ezzel a fiókkal!</p>
-                <button id="google-login-btn" class="flex items-center justify-center gap-3 bg-white text-gray-700 w-full py-3 rounded-xl font-bold hover:bg-gray-100 transition-all shadow-lg">
+                <p id="error-msg" class="text-red-400 text-xs mb-4 hidden">Nincs admin jogosultságod!</p>
+                <button id="google-login-btn" class="flex items-center justify-center gap-3 bg-white text-gray-700 w-full py-4 rounded-xl font-bold hover:bg-gray-100 transition-all shadow-lg active:scale-95">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/0/google.svg" width="20">
                     Belépés Google-lel
                 </button>
@@ -34,16 +34,17 @@
         </div>
     </div>
 
-    <div id="admin-panel" class="p-6 hidden">
+    <div id="admin-panel" class="p-4 sm:p-6 hidden">
         <div class="max-w-2xl mx-auto">
-            <div class="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-white/10 pb-4 gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-[#20e3b2]">Kupon Admin</h1>
-                    <p id="admin-email-info" class="text-[10px] text-gray-400 uppercase"></p>
+                    <p id="admin-email-info" class="text-[10px] text-gray-400 uppercase break-all"></p>
                 </div>
-                <div class="flex gap-4 items-center">
-                    <a href="index2.html" class="text-xs text-gray-400 hover:text-white underline">Vissza a játékba</a>
-                    <button id="logout-btn" class="text-xs text-red-400 hover:text-red-300">Kijelentkezés</button>
+                <div class="flex w-full sm:w-auto justify-between sm:justify-end items-center gap-4">
+                    <a href="index2.html" class="text-xs text-gray-400 hover:text-white underline">Vissza</a>
+                    <button id="logout-btn" class="text-xs text-red-400 font-bold border border-red-400/30 px-3 py-1 rounded-lg">Kilépés</button>
                 </div>
             </div>
 
@@ -51,22 +52,25 @@
                 <h2 class="mb-4 font-bold flex items-center gap-2">
                     <i class="fas fa-plus-circle text-[#20e3b2]"></i> Új kód generálása
                 </h2>
-                <div class="flex gap-4">
-                    <input type="text" id="cp-code" placeholder="Üresen hagyva generál" class="p-3 rounded-xl uppercase flex-1 text-center font-mono font-bold">
-                    <button id="save-btn" class="btn-mystigo px-8 py-3 rounded-xl font-bold text-white shadow-lg">
-                        Létrehozás
+                <div class="flex flex-col gap-3">
+                    <input type="text" id="cp-code" placeholder="Üresen hagyva generál" 
+                           class="p-4 rounded-xl uppercase w-full text-center font-mono font-bold tracking-widest outline-none focus:border-[#20e3b2]">
+                    <button id="save-btn" class="btn-mystigo w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95">
+                        Kupon Létrehozása
                     </button>
                 </div>
             </div>
 
             <div class="glass p-6 rounded-2xl">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="font-bold flex items-center gap-2">
-                        <i class="fas fa-database text-[#009ad7]"></i> Adatbázisban lévő kuponok
+                    <h2 class="font-bold flex items-center gap-2 text-sm sm:text-base">
+                        <i class="fas fa-database text-[#009ad7]"></i> Aktív kuponok
                     </h2>
-                    <span id="count" class="bg-white/10 px-3 py-1 rounded-full text-xs font-mono">0 db</span>
+                    <span id="count" class="bg-white/10 px-3 py-1 rounded-full text-[10px] font-mono">0 db</span>
                 </div>
-                <div id="list" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+                
+                <div id="list" class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
+                    </div>
             </div>
         </div>
     </div>
@@ -86,8 +90,6 @@
             appId: "1:367383637666:web:156184517316377e641775"
         };
 
-        // --- ADMIN BEÁLLÍTÁS ---
-        // Ide írd be a saját e-mail címedet!
         const AUTHORIZED_ADMINS = ["krisztian.topler@gmail.com"];
 
         const app = initializeApp(firebaseConfig);
@@ -101,24 +103,19 @@
         const statusMsg = document.getElementById('auth-status-msg');
         const errorMsg = document.getElementById('error-msg');
 
-        // Figyeljük a bejelentkezési állapotot
         onAuthStateChanged(auth, (user) => {
             if (user && AUTHORIZED_ADMINS.includes(user.email)) {
-                // SIKER: Be van lépve és admin
                 loginContainer.classList.add('hidden');
                 adminPanel.classList.remove('hidden');
                 document.getElementById('admin-email-info').textContent = `Admin: ${user.email}`;
                 loadCoupons();
             } else {
-                // HIBA: Nincs belépve, vagy belépett, de nem admin
                 statusMsg.classList.add('hidden');
                 loginActions.classList.remove('hidden');
                 adminPanel.classList.add('hidden');
                 loginContainer.classList.remove('hidden');
-                
                 if (user) {
                     errorMsg.classList.remove('hidden');
-                    // 3 mp múlva kiléptetjük, hogy próbálkozhasson másikkal
                     setTimeout(() => signOut(auth), 3000);
                 }
             }
@@ -127,7 +124,6 @@
         document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, provider);
         document.getElementById('logout-btn').onclick = () => signOut(auth);
 
-        // --- KUPON LOGIKA (Változatlan) ---
         function loadCoupons() {
             onValue(ref(db, 'coupons'), (snapshot) => {
                 const listDiv = document.getElementById('list');
@@ -139,9 +135,12 @@
                 countSpan.innerText = codes.length + ' db';
                 codes.sort().forEach(code => {
                     const item = document.createElement('div');
-                    item.className = "flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/10 hover:border-white/30 transition-all";
-                    item.innerHTML = `<span class="font-mono font-bold text-sm text-[#20e3b2]">${code}</span>
-                        <button onclick="window.delCoupon('${code}')" class="text-gray-600 hover:text-red-500"><i class="fas fa-trash-alt text-xs"></i></button>`;
+                    item.className = "flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/10 hover:border-[#20e3b2]/30 transition-all";
+                    item.innerHTML = `
+                        <span class="font-mono font-bold text-sm text-[#20e3b2]">${code}</span>
+                        <button onclick="window.delCoupon('${code}')" class="text-gray-500 hover:text-red-500 p-2">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>`;
                     listDiv.appendChild(item);
                 });
             });
