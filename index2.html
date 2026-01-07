@@ -1423,14 +1423,7 @@
                      
                      <button onclick="resetApp()" class="main-button w-full max-w-xs mt-auto !text-base">Új Kaland</button>
                      
-                     <div class="mt-4 p-2 text-center text-xs">
-                        <a href="https://www.iubenda.com/privacy-policy/40995967" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Adatvédelmi Szabályzat">Adatvédelem</a> | 
-                        <a href="https://www.iubenda.com/privacy-policy/40995967/cookie-policy" class="iubenda-white iubenda-noiframe iubenda-embed iubenda-noiframe text-brand-blue/80 hover:text-brand-cyan-500 transition" title="Cookie Szabályzat">Cookie-k</a> | 
-                        
-                        <a href="#" class="iubenda-cs-preferences-link text-brand-blue/80 hover:text-brand-cyan-500 transition font-bold">
-                            Süti Beállítások
-                        </a>
-                    </div>
+ 
                     </section>
 
 <div class="w-full mt-auto pt-6 pb-6 px-4">
@@ -1438,7 +1431,24 @@
                        class="block w-full py-2 rounded-xl border border-gray-200 bg-gray-50 text-[10px] uppercase tracking-widest font-bold text-center text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all cursor-pointer no-underline shadow-sm">
                         📢 Visszajelzés / Hiba bejelentés
                     </a>
-                </div>
+                
+
+
+
+<div class="mt-8 pt-6 border-t border-gray-100 text-center text-[10px] text-gray-400 pb-4">
+    <div class="flex justify-center gap-4 mb-2">
+        <a href="aszf.html" class="hover:text-brand-cyan-500 transition">ÁSZF</a>
+        <span>|</span>
+        <a href="adatvedelem.html" class="hover:text-brand-cyan-500 transition">Adatvédelem</a>
+        <span>|</span>
+        <a href="#" class="iubenda-cs-preferences-link font-bold hover:text-brand-cyan-500 transition">Süti Beállítások</a>
+    </div>
+    <p>© 2026 MystiGo - A játék szórakoztató célú, használata saját felelősségre történik.</p>
+</div>
+
+
+
+		</div>
                 </div> </div>
     </div>
 
@@ -5744,7 +5754,11 @@ if (taskImageEl) {
                  document.getElementById('hint-buttons-container').classList.add('hidden');
                  document.getElementById('prompt').classList.remove('hidden');
                  
-		document.getElementById('report-error-btn').classList.add('hidden');
+		if (appState.currentGame.taskOrder === 'explore') {
+        document.getElementById('report-error-btn').classList.add('hidden');
+    } else {
+        document.getElementById('report-error-btn').classList.remove('hidden');
+    }
 
                  if (appState.currentGame.taskOrder === 'explore') {
                      // Explore módban a Startnál nincs hova navigálni, ezért ezt is elrejtjük
