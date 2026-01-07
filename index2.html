@@ -8801,6 +8801,7 @@ window.handleEmailAuth = async function() {
     }
 
     try {
+        isAuthProcessActive = true; // <--- 1. ÚJ SOR: Jelezzük a folyamat kezdetét
         errorEl.classList.add('hidden');
         showLoading(true);
         
@@ -8854,6 +8855,7 @@ window.handleEmailAuth = async function() {
         }
         
     } catch (error) {
+	isAuthProcessActive = false;
         showLoading(false);
         console.error("Firebase Auth/Database hiba:", error.code, error.message);
         errorEl.classList.remove('hidden');
@@ -9065,6 +9067,9 @@ window.logout = async () => {
         
         // --- UI ÁLLAPOTFIGYELŐ ---
         let profileListener = null; // Változó a figyelő leállításához
+	let isAuthProcessActive = false; // ÚJ: jelzi, ha manuális belépés van folyamatban
+	let profileUnsubscribe = null;  // ÚJ: segít leállítani a régi adatfigyelőt
+
 
 onAuthStateChanged(auth, (user) => {
     const previewVerifiedBadge = document.getElementById('preview-verified-badge');
@@ -9072,13 +9077,22 @@ onAuthStateChanged(auth, (user) => {
     const scoreDisplay = document.getElementById('total-score-display');
     const logoutBtn = document.getElementById('logout-btn');
     const btnGroup = document.getElementById('auth-buttons-group');
-    const nameInput = document.getElementById('team-name-input'); // ÚJ
+    const nameInput = document.getElementById('team-name-input');
 
+    // Alaphelyzetbe állítás
     if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
     if (scoreDisplay) scoreDisplay.classList.add('hidden');
     if (logoutBtn) logoutBtn.classList.add('hidden');
+    
+    // Régi adatfigyelő leállítása (hogy ne duplázódjon)
+    if (profileUnsubscribe) {
+        profileUnsubscribe();
+        profileUnsubscribe = null;
+    }
 
     if (user) {
+        isAuthProcessActive = false; // Sikeres belépés, kikapcsoljuk a jelzőt
+
         if (!user.isAnonymous) {
             console.log("Regisztrált user belépve:", user.email);
             if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
@@ -9088,14 +9102,14 @@ onAuthStateChanged(auth, (user) => {
             if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
             
             const profileRef = ref(db, `users/${user.uid}/profile`);
-            onValue(profileRef, (snapshot) => {
+            // Elmentjük a leiratkozó függvényt
+            profileUnsubscribe = onValue(profileRef, (snapshot) => {
                 const profile = snapshot.val() || {};
                 document.getElementById('user-total-score').textContent = profile.totalScore || 0;
                 
                 const finalName = profile.teamName || user.displayName || "Játékos";
                 document.getElementById('auth-user-name').textContent = finalName;
 
-                // --- ÚJ: SZINKRONIZÁCIÓ A MEZŐKKEL ---
                 if (nameInput) {
                     nameInput.value = finalName;
                     localStorage.setItem('mystigo_pref_teamName', finalName);
@@ -9105,18 +9119,23 @@ onAuthStateChanged(auth, (user) => {
                     if (window.updateAvatarPreview) window.updateAvatarPreview();
                 }
                 if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
-                // --------------------------------------
             });
 
         } else {
             console.log("Vendég mód aktív.");
-            if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
             if (btnGroup) btnGroup.classList.remove('hidden');
             if (authStatusLabel) authStatusLabel.textContent = "Vendég mód";
             document.getElementById('auth-user-name').textContent = "Regisztrálj/Lépj be";
         }
     } else {
-        signInAnonymously(auth);
+        // CSAK akkor lépjen be anonimként, ha nem éppen egy e-mailes belépés közepén vagyunk!
+        if (!isAuthProcessActive) { 
+            console.log("Nincs user és nincs folyamatban belépés -> Vendég mód indítása");
+            signInAnonymously(auth);
+        } else {
+            console.log("Belépés folyamatban, várunk a Firebase-re...");
+        
+        }
     }
 });
 
