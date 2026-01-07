@@ -959,7 +959,12 @@
                         <div id="email-auth-error" class="text-red-500 text-xs hidden font-bold"></div>
                     </div>
                     <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
-                    <div class="mt-4 text-center">
+                    
+<button id="forgot-password-btn" onclick="handleForgotPassword()" class="w-full mt-2 text-[11px] text-gray-500 hover:text-brand-cyan-500 underline text-center">
+    Elfelejtettem a jelszót
+</button>
+
+		    <div class="mt-4 text-center">
                         <button id="email-toggle-mode" onclick="toggleEmailAuthMode()" class="text-xs text-brand-cyan-500 font-semibold hover:underline">Nincs még fiókod? Regisztráció</button>
                     </div>
                     <button onclick="closeEmailAuthModal()" class="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1">Mégse</button>
@@ -8729,7 +8734,7 @@ window.startInstantAdventure = async function() {
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification} 
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail} 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     // ✅ FONTOS: Ide a SAJÁT konfigurációdat másold be!
@@ -8792,17 +8797,68 @@ function updateEmailModalUI() {
     const title = document.getElementById('email-modal-title');
     const primaryBtn = document.getElementById('email-primary-btn');
     const toggleBtn = document.getElementById('email-toggle-mode');
+    const forgotBtn = document.getElementById('forgot-password-btn'); // ÚJ ELEM
     
     if (isRegistrationMode) {
         title.textContent = "Regisztráció";
         primaryBtn.textContent = "Fiók létrehozása";
         toggleBtn.textContent = "Már van fiókod? Bejelentkezés";
+        if(forgotBtn) forgotBtn.classList.add('hidden'); // Regisztrációnál elrejtjük
     } else {
         title.textContent = "Bejelentkezés";
         primaryBtn.textContent = "Bejelentkezés";
         toggleBtn.textContent = "Nincs még fiókod? Regisztráció";
+        if(forgotBtn) forgotBtn.classList.remove('hidden'); // Belépésnél mutatjuk
     }
 }
+
+
+
+window.handleForgotPassword = async function() {
+    const email = document.getElementById('auth-email').value;
+    const errorEl = document.getElementById('email-auth-error');
+
+    if (!email) {
+        errorEl.textContent = "Kérlek, írd be az e-mail címedet a mezőbe!";
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        // Betöltés jelzése
+        const btn = document.getElementById('forgot-password-btn');
+        const originalText = btn.textContent;
+        btn.textContent = "Küldés...";
+        btn.disabled = true;
+
+        await sendPasswordResetEmail(auth, email);
+        
+        // Siker esetén
+        errorEl.classList.add('hidden');
+        window.closeEmailAuthModal();
+        window.showMessage("E-mail elküldve", `A jelszó-visszaállító linket elküldtük a(z) <b>${email}</b> címre.\n(Nézd meg a SPAM mappát is!)`);
+    } catch (error) {
+        console.error("Jelszó visszaállítás hiba:", error);
+        errorEl.classList.remove('hidden');
+        
+        if (error.code === 'auth/user-not-found') {
+            errorEl.textContent = "Nincs fiók ezzel az e-mail címmel.";
+        } else if (error.code === 'auth/invalid-email') {
+            errorEl.textContent = "Érvénytelen e-mail formátum.";
+        } else {
+            errorEl.textContent = "Hiba történt: " + error.message;
+        }
+    } finally {
+        // Gomb visszaállítása
+        const btn = document.getElementById('forgot-password-btn');
+        if(btn) {
+            btn.textContent = "Elfelejtettem a jelszót";
+            btn.disabled = false;
+        }
+    }
+};
+
+
 
 window.handleEmailAuth = async function() {
     const email = document.getElementById('auth-email').value;
