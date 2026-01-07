@@ -708,7 +708,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.51
+       v1.2.52
 
    </span>
 
@@ -874,7 +874,7 @@
                                    <p>⭐ Minden feladat 50 pontot ér</p>
                                    <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
                                    <p>❌ Minden rossz válasz: −1 pont</p>
-                                   
+                                   <p>💎 Titkos kincsek: +10 pont (opcionális). Bizonyos pályákon találkozhatsz velük. Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!</p>
                                    <div class="mt-3 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                                        <p class="font-bold text-brand-blue mb-1">🏆 Rangsorolás sorrendje:</p>
                                        <ol class="list-decimal list-inside space-y-1 ml-1">
@@ -3363,7 +3363,8 @@ window.applyRotation = function(deg) {
 		lastAutoZoomTime: 0,
 	        visibleGamesLimit: 5,
 		bonusPoints: [],
-		currentFilteredGames: null
+		currentFilteredGames: null,
+		isDirectLink: false
             };
         }
 
@@ -3687,8 +3688,8 @@ window.initializeGamesFromFirebase = async function() {
             });
         }
         populateLocationFilter();
-        showPage('game-list-page');
-        handleInitialUrlFiltering(); 
+handleInitialUrlFiltering(); // 1. Előbb szűrünk és beállítjuk a logót/címet
+showPage('game-list-page');  // 2. Csak utána mutatjuk az oldalt 
         if (typeof autoSortGamesByDistance === 'function') {
             try { autoSortGamesByDistance(); } catch(e){} 
         }
@@ -3956,6 +3957,13 @@ async function sharePdfViaEmail() {
                 centerHeaderContent.classList.remove('hidden');
                 testModeIndicator.classList.toggle('hidden', !appState.isTestModeEnabled);
                 
+
+const gameLogoImg = document.getElementById('game-header-logo');
+    if (gameLogoImg && appState.currentGame) {
+        gameLogoImg.src = appState.currentGame.headerLogo || "logo/MystiGo_logo.png";
+    }
+
+
                 if (appState.teamName) {
         const avatarEmoji = AVATAR_ICONS[appState.teamAvatar] || '';
         const user = window.auth ? window.auth.currentUser : null;
@@ -3994,14 +4002,20 @@ const isRegistered = !!(user && !user.isAnonymous);
                 } else {
                     // Minden más oldalon (pl. Kalandválasztó) MEGJELENÍTJÜK
                     if (titleEl) {
-                        titleEl.classList.remove('hidden');
-                        const titles = { 'game-list-page': 'Fedezd fel a várost' };
-                        titleEl.textContent = titles[pageId] || 'MystiGo';
-                    }
-                }
+    titleEl.classList.remove('hidden');
+    const titles = { 'game-list-page': 'Fedezd fel a várost' };
+    
+    // CSAK AKKOR írjuk felül a címet, ha NEM egyedi direkt linkről van szó
+    if (!(pageId === 'game-list-page' && appState.isDirectLink)) {
+        titleEl.textContent = titles[pageId] || 'MystiGo';
+    }
+}
+}
+
                 // -------------------------------
                 
-                if (pageId === 'game-list-page') {
+                if (pageId === 'game-list-page' && !appState.isDirectLink) {
+    const secretTrigger = document.createElement('span');
                     // Logó visszaállítása a főmenüben
                     window.checkInstantProgress();
 		    const mainHeaderLogo = document.getElementById('main-header-logo');
@@ -4020,13 +4034,14 @@ const isRegistered = !!(user && !user.isAnonymous);
 
 
                     // Titkos kapcsoló visszaállítása a cím mellé (csak ha van cím elem és látható)
-                    if (titleEl && !titleEl.classList.contains('hidden')) {
-                        const secretTrigger = document.createElement('span');
-                        secretTrigger.id = 'secret-trigger';
-                        secretTrigger.className = 'text-brand-black-500 cursor-pointer ml-1 font-extrabold';
-                        secretTrigger.textContent = '!';
-                        titleEl.appendChild(secretTrigger);
-                    }
+                    if (titleEl && !titleEl.classList.contains('hidden') && !appState.isDirectLink) {
+    // Csak akkor rakjuk ki a "!" jelet, ha NEM direkt URL-el érkeztünk
+    const secretTrigger = document.createElement('span');
+    secretTrigger.id = 'secret-trigger';
+    secretTrigger.className = 'text-brand-black-500 cursor-pointer ml-1 font-extrabold';
+    secretTrigger.textContent = '!';
+    titleEl.appendChild(secretTrigger);
+}
 
                 } else {
                     document.getElementById('secret-switches-container').classList.add('hidden');
@@ -4736,111 +4751,117 @@ window.autoSortGamesByDistance = function() {
 
   // --- ÚJ, BIZTOSABB URL SZŰRŐ LOGIKA (Adat-vezérelt) ---
         function handleInitialUrlFiltering() {
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Paraméterek kiolvasása
-            const pGameId = urlParams.get('game') || urlParams.get('id');
-            const pLoc = urlParams.get('location') || urlParams.get('helyszin');
-            const pType = urlParams.get('type') || urlParams.get('tipus');
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Paraméterek kiolvasása
+    const pGameId = urlParams.get('game') || urlParams.get('id');
+    const pLoc = urlParams.get('location') || urlParams.get('helyszin');
+    const pType = urlParams.get('type') || urlParams.get('tipus');
 
-            // Ha nincs semmilyen paraméter, nem csinálunk semmit (minden látszik)
-            if (!pGameId && !pLoc && !pType) return;
+    // Ha nincs semmilyen paraméter, nem csinálunk semmit
+    if (!pGameId && !pLoc && !pType) return;
 
-            console.log("🔍 URL Szűrés aktív:", { pGameId, pLoc, pType });
+    console.log("🔍 URL Szűrés aktív:", { pGameId, pLoc, pType });
 
-            let filteredGames = {};
-            let matchFound = false;
+    let filteredGames = {};
+    let matchFound = false;
 
-            // --- ÚJ BLOKK KEZDETE (Rejtett játékok listázása) ---
-            if (pType === 'hidden' || pType === 'rejtett') {
-                Object.values(games).forEach(game => {
-                    if (game.isHidden) {
-                        filteredGames[game.id] = game;
-                        matchFound = true;
-                    }
-                });
-                
-                if (matchFound) {
-                    console.log("Rejtett játékok listázása...");
-                    // FONTOS: Itt is el kell menteni az állapotot!
-                    appState.currentFilteredGames = filteredGames; 
-                    renderGameList(filteredGames);
-                    updateFilterUI(null, 'hidden', null);
-                    return; 
-                } else {
-                     alert("Nincsenek rejtett játékok az adatbázisban.");
-                     return;
-                }
+    // --- 1. SPECIÁLIS ESET: Rejtett játékok listázása ---
+    if (pType === 'hidden' || pType === 'rejtett') {
+        Object.values(games).forEach(game => {
+            if (game.isHidden) {
+                filteredGames[game.id] = game;
+                matchFound = true;
             }
-            // ----------------------------------------------------
-
-            // 1. ESET: Konkrét játék ID keresése
-            if (pGameId) {
-                const searchKey = pGameId.trim().toLowerCase();
-                const realId = Object.keys(games).find(id => id.trim().toLowerCase() === searchKey);
-
-                if (realId) {
-                    filteredGames[realId] = games[realId];
-                    matchFound = true;
-                    console.log("✅ Játék megtalálva:", realId);
-
-                    if (games[realId].headerLogo) {
-                        const mainHeaderLogo = document.getElementById('main-header-logo');
-                        if (mainHeaderLogo) {
-                            mainHeaderLogo.src = games[realId].headerLogo;
-                        }
-                    }
-
-                } else {
-                    console.warn("❌ A keresett játék ID nem található:", pGameId);
-                    alert(`A kért játék (${pGameId}) nem található.`);
-                    return; 
-                }
-            } 
-            // 2. ESET: Helyszín és/vagy Típus szűrés
-            else {
-                Object.values(games).forEach(game => {
-                    let locMatch = true;
-                    let typeMatch = true;
-
-                    if (pLoc) {
-                        const gameLocs = (game.location || "").toLowerCase().split(',').map(s => s.trim());
-                        const searchLoc = pLoc.toLowerCase().trim();
-                        locMatch = gameLocs.some(l => l.includes(searchLoc));
-                    }
-
-                    if (pType) {
-                        if (game.type !== pType.toLowerCase()) {
-                            typeMatch = false;
-                        }
-                    }
-
-                    if (locMatch && typeMatch) {
-                        filteredGames[game.id] = game;
-                        matchFound = true;
-                    }
-                });
-            }
-
-            // 3. EREDMÉNY KIRAJZOLÁSA
-            if (matchFound) {
-                // --- EZT A SORT KELLETT HOZZÁADNI: ---
-                appState.currentFilteredGames = filteredGames; 
-                // --------------------------------------
-
-                renderGameList(filteredGames);
-                updateFilterUI(pLoc, pType, pGameId);
-            } else {
-                // Ha nincs találat, nullázzuk a szűrt állapotot is
-                appState.currentFilteredGames = null; 
-                
-                document.getElementById('game-list').innerHTML = `
-                    <div class="text-center p-8 bg-red-50 rounded-xl border border-red-200">
-                        <p class="text-red-600 font-bold">Nincs találat a megadott feltételekre.</p>
-                        <button onclick="window.location.href=window.location.pathname" class="text-brand-blue underline mt-2 text-sm">Összes játék mutatása</button>
-                    </div>`;
-            }
+        });
+        
+        if (matchFound) {
+            appState.currentFilteredGames = filteredGames; 
+            renderGameList(filteredGames);
+            updateFilterUI(null, 'hidden', null);
+            return; // Itt megállunk, mert ez egy speciális nézet
+        } else {
+             alert("Nincsenek rejtett játékok az adatbázisban.");
+             return;
         }
+    }
+
+    // --- 2. ESET: Konkrét játék ID keresése (Direkt link) ---
+    if (pGameId) {
+        const searchKey = pGameId.trim().toLowerCase();
+        const realId = Object.keys(games).find(id => id.trim().toLowerCase() === searchKey);
+
+        if (realId) {
+            const gameData = games[realId];
+            filteredGames[realId] = gameData;
+            matchFound = true;
+            
+            // Beállítjuk a jelzőt
+            appState.isDirectLink = true; 
+
+            const mainHeaderLogo = document.getElementById('main-header-logo');
+            const titleEl = document.getElementById('page-title');
+
+            // Logo csere
+            if (gameData.headerLogo && mainHeaderLogo) {
+                mainHeaderLogo.src = gameData.headerLogo;
+            }
+
+            // Felirat csere
+            if (gameData.headerLabel && titleEl) {
+                titleEl.textContent = gameData.headerLabel;
+            }
+
+            // MINDENKÉPP eltávolítjuk a titkos kapcsolót, ha direkt linkünk van
+            const oldTrigger = document.getElementById('secret-trigger');
+            if (oldTrigger) oldTrigger.remove();
+
+            console.log("✅ Direkt játék betöltve, fejléc rögzítve:", realId);
+        } else {
+            console.warn("❌ A keresett játék ID nem található:", pGameId);
+            alert(`A kért játék (${pGameId}) nem található.`);
+            return; 
+        }
+    } 
+    // --- 3. ESET: Helyszín és/vagy Általános Típus szűrés ---
+    else {
+        Object.values(games).forEach(game => {
+            let locMatch = true;
+            let typeMatch = true;
+
+            if (pLoc) {
+                const gameLocs = (game.location || "").toLowerCase().split(',').map(s => s.trim());
+                const searchLoc = pLoc.toLowerCase().trim();
+                locMatch = gameLocs.some(l => l.includes(searchLoc));
+            }
+
+            if (pType) {
+                if (game.type !== pType.toLowerCase()) {
+                    typeMatch = false;
+                }
+            }
+
+            if (locMatch && typeMatch) {
+                filteredGames[game.id] = game;
+                matchFound = true;
+            }
+        });
+    }
+
+    // 4. EREDMÉNY KIRAJZOLÁSA ÉS ÁLLAPOT MENTÉSE
+    if (matchFound) {
+        appState.currentFilteredGames = filteredGames; 
+        renderGameList(filteredGames);
+        updateFilterUI(pLoc, pType, pGameId);
+    } else {
+        appState.currentFilteredGames = null; 
+        document.getElementById('game-list').innerHTML = `
+            <div class="text-center p-8 bg-red-50 rounded-xl border border-red-200">
+                <p class="text-red-600 font-bold">Nincs találat a megadott feltételekre.</p>
+                <button onclick="window.location.href=window.location.pathname" class="text-brand-blue underline mt-2 text-sm">Összes játék mutatása</button>
+            </div>`;
+    }
+}
 
 
 
@@ -6109,7 +6130,7 @@ window.generateBonusPoints = async function(count) {
     let aroundParts = tasks.map(t => `node(around:300,${t.location.lat},${t.location.lng})["highway"~"crossing|bus_stop|traffic_signals"];
                                      node(around:250,${t.location.lat},${t.location.lng})["amenity"~"waste_basket|bench"];`).join('\n');
 
-    const query = `[out:json][timeout:25]; ( ${aroundParts} ); out body;`;
+    const query = `[out:json][timeout:60]; ( ${aroundParts} ); out body;`;
     const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
@@ -7984,17 +8005,7 @@ const isIos = () => {
             if (okBtn) okBtn.onclick = hideMessage;
             if (cancelBtn) cancelBtn.onclick = hideMessage;
             
-            // Titkos menü kapcsoló (Logo 'O' betűje)
-            if (logoO) {
-                logoO.addEventListener('click', () => {
-                     const switchesContainer = document.getElementById('secret-switches-container');
-                     if (switchesContainer) {
-                        if (!document.getElementById('game-list-page').classList.contains('hidden')) {
-                            switchesContainer.classList.toggle('hidden');
-                        }
-                     }
-                });
-            }
+            
             
             const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
             if (mainHeaderLogoContainer) {
