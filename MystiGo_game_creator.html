@@ -31,6 +31,45 @@
             flex-direction: column;
         }
 
+        /* Nézet választó stílusa */
+        .view-selector {
+            display: flex;
+            justify-content: center;
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            gap: 10px;
+        }
+
+        .view-btn {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--secondary);
+            transition: all 0.2s;
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Haladó mezők elrejtése alapból */
+        .advanced-only {
+            display: none !important;
+        }
+
+        /* Ha a body-n rajta van az advanced-mode osztály, mutassuk őket */
+        body.advanced-mode .advanced-only {
+            display: flex !important;
+        }
+
         /* Mobile Header */
         #mobile-nav {
             display: none;
@@ -86,7 +125,6 @@
 
         h3 { margin-top: 0; margin-bottom: 25px; color: var(--primary); border-bottom: 2px solid var(--primary-light); padding-bottom: 10px; }
 
-        /* Grid System */
         .input-grid {
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -102,7 +140,6 @@
         }
         textarea { resize: vertical; }
 
-        /* Solution Zone */
         .solution-zone {
             background: #f8fafc; border: 2px solid var(--primary-light);
             border-radius: 12px; padding: 20px; margin-top: 20px;
@@ -120,35 +157,14 @@
         }
         .radio-option input:checked + label { background: var(--primary); color: white; }
 
-        /* Buttons */
         .btn { padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-success { background: var(--success); color: white; }
         .btn-ghost { background: #e2e8f0; color: var(--text-dark); }
 
-        .gps-container { 
-    display: flex; 
-    flex-direction: column; /* Egymás alá rakja az inputot és a gombokat */
-    gap: 10px; 
-}
-
-.gps-btn-group {
-    display: flex;
-    gap: 10px;
-    width: 100%;
-}
-
-.gps-btn { 
-    flex: 1; /* A két gomb egyenlő széles lesz */
-    height: 48px; /* Kényelmesebb érintés mobilon */
-    aspect-ratio: auto !important; 
-    font-size: 0.85rem !important;
-}
-
-/* Mobilon is maradjon meg ez az elrendezés */
-@media (max-width: 480px) {
-    .gps-container input { width: 100%; }
-}
+        .gps-container { display: flex; flex-direction: column; gap: 10px; }
+        .gps-btn-group { display: flex; gap: 10px; width: 100%; }
+        .gps-btn { flex: 1; height: 48px; aspect-ratio: auto !important; font-size: 0.85rem !important; }
 
         .sticky-actions {
             position: sticky; bottom: 20px; background: rgba(255,255,255,0.95);
@@ -157,17 +173,11 @@
             box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
         }
 
-        /* Modals */
         #map-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px); padding: 10px; }
         #map-content { width: 100%; max-width: 900px; height: 90vh; background: white; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
         #map-canvas { flex-grow: 1; border-radius: 12px; border: 1px solid var(--border); }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; }
 
-        /* Sidebar Overlay for Mobile */
-        #sidebar-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999;
-        }
-
-        /* --- RESPONSIVE ADJUSTMENTS --- */
         @media (max-width: 992px) {
             #mobile-nav { display: flex; }
             #game-list-sidebar { transform: translateX(-100%); width: 280px; }
@@ -208,68 +218,73 @@
 
 <div id="main-layout">
     <div id="form-container">
+        
+        <div class="view-selector">
+            <button id="view-simple" class="view-btn active" onclick="setViewMode('simple')">Egyszerű nézet</button>
+            <button id="view-advanced" class="view-btn" onclick="setViewMode('advanced')">Haladó nézet</button>
+        </div>
+
         <div class="card">
-            <div class="card">
-    <h3>🌍 Játék Alapadatok</h3>
-    <div class="input-grid">
-        <div class="field-group">
-            <label>Játék címe*</label>
-            <input type="text" id="title" oninput="generateId(this.value)">
-        </div>
-        <div class="field-group">
-            <label>Azonosító (ID)</label>
-            <input type="text" id="generated-id" readonly style="background:#f1f5f9;">
-        </div>
-        <div class="field-group">
-            <label>Típus*</label>
-            <select id="type">
-                <option value="normal">normal</option>
-                <option value="kids">kids</option>
-                <option value="team">team</option>
-                <option value="explore">explore</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="input-grid">
-        <div class="field-group"><label>Helyszín</label><input type="text" id="location"></div>
-        <div class="field-group"><label>Életkor</label><input type="text" id="age"></div>
-        <div class="field-group"><label>Ár</label><input type="text" id="price"></div>
-        <div class="field-group">
-            <label>Rejtett?</label>
-            <select id="isHidden">
-                <option value="">Nem</option>
-                <option value="1">Igen (1)</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="input-grid">
-        <div class="field-group">
-            <label>Kezdő Koordináták*</label>
-            <div class="gps-container">
-                <input type="text" id="start-coords" placeholder="Lat, Lng">
-                <div class="gps-btn-group">
-                    <button class="btn btn-ghost gps-btn" onclick="getCurrentGps('start-coords')">📍 Pozícióm</button>
-                    <button class="btn btn-primary gps-btn" onclick="openMapPicker('start-coords')">🗺️ Térkép</button>
+            <h3>🌍 Játék Alapadatok</h3>
+            <div class="input-grid">
+                <div class="field-group">
+                    <label>Játék címe*</label>
+                    <input type="text" id="title" oninput="generateId(this.value)">
+                </div>
+                <div class="field-group advanced-only">
+                    <label>Azonosító (ID)</label>
+                    <input type="text" id="generated-id" readonly style="background:#f1f5f9;">
+                </div>
+                <div class="field-group">
+                    <label>Típus*</label>
+                    <select id="type">
+                        <option value="normal">normal</option>
+                        <option value="kids">kids</option>
+                        <option value="team">team</option>
+                        <option value="explore">explore</option>
+                    </select>
                 </div>
             </div>
+
+            <div class="input-grid">
+                <div class="field-group"><label>Helyszín</label><input type="text" id="location"></div>
+                <div class="field-group"><label>Életkor</label><input type="text" id="age"></div>
+                <div class="field-group"><label>Ár</label><input type="text" id="price"></div>
+                <div class="field-group advanced-only">
+                    <label>Rejtett?</label>
+                    <select id="isHidden">
+                        <option value="">Nem</option>
+                        <option value="1">Igen (1)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-grid">
+                <div class="field-group">
+                    <label>Indulási pont Koordinátái*</label>
+                    <div class="gps-container">
+                        <input type="text" id="start-coords" placeholder="Lat, Lng">
+                        <div class="gps-btn-group">
+                            <button class="btn btn-ghost gps-btn" onclick="getCurrentGps('start-coords')">📍 Pozícióm</button>
+                            <button class="btn btn-primary gps-btn" onclick="openMapPicker('start-coords')">🗺️ Térkép</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field-group"><label>Sugár (m)</label><input type="number" id="game-radius" value="15"></div>
+                <div class="field-group advanced-only"><label>Max Játék/Fő</label><input type="number" id="maxPlayCount"></div>
+                <div class="field-group advanced-only"><label>Globális Limit</label><input type="number" id="globalLimit"></div>
+                <div class="field-group"><label>Bónusz Pontok száma</label><input type="number" id="bonuspoint" placeholder="0"></div>
+            </div>
+
+            <div class="input-grid advanced-only">
+                <div class="field-group"><label>Borítókép URL</label><input type="text" id="imageUrl"></div>
+                <div class="field-group"><label>Header Logo</label><input type="text" id="headerLogo"></div>
+                <div class="field-group"><label>Értékelés URL</label><input type="text" id="reviewUrl"></div>
+            </div>
+
+            <div class="field-group" style="margin-top:10px;"><label>Kezdő Történet*</label><textarea id="description" rows="4"></textarea></div>
+            <div class="field-group"><label>Záró Történet*</label><textarea id="endStory" rows="4"></textarea></div>
         </div>
-        <div class="field-group"><label>Sugár (m)</label><input type="number" id="game-radius" value="15"></div>
-        <div class="field-group"><label>Max Játék/Fő</label><input type="number" id="maxPlayCount"></div>
-        <div class="field-group"><label>Globális Limit</label><input type="number" id="globalLimit"></div>
-	<div class="field-group"><label>Bónusz Pontok száma</label><input type="number" id="bonuspoint" placeholder="0"></div>
-    </div>
-
-    <div class="input-grid">
-        <div class="field-group"><label>Borítókép URL</label><input type="text" id="imageUrl"></div>
-        <div class="field-group"><label>Header Logo</label><input type="text" id="headerLogo"></div>
-        <div class="field-group"><label>Értékelés URL</label><input type="text" id="reviewUrl"></div>
-    </div>
-
-    <div class="field-group" style="margin-top:10px;"><label>Kezdő Történet*</label><textarea id="description" rows="4"></textarea></div>
-    <div class="field-group"><label>Záró Történet*</label><textarea id="endStory" rows="4"></textarea></div>
-</div>
 
         <div id="task-groups-container"></div>
 
@@ -299,7 +314,23 @@
     let allTasksData = [];
     let map, mapMarker, currentMapId;
 
-    // UI HELPER: Mobile sidebar toggle
+    // NÉZET MÓD KEZELÉSE
+    function setViewMode(mode) {
+        const body = document.body;
+        const btnSimple = document.getElementById('view-simple');
+        const btnAdvanced = document.getElementById('view-advanced');
+
+        if (mode === 'advanced') {
+            body.classList.add('advanced-mode');
+            btnAdvanced.classList.add('active');
+            btnSimple.classList.remove('active');
+        } else {
+            body.classList.remove('advanced-mode');
+            btnSimple.classList.add('active');
+            btnAdvanced.classList.remove('active');
+        }
+    }
+
     function toggleSidebar() {
         const sb = document.getElementById('game-list-sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -411,13 +442,10 @@
     document.getElementById('reviewUrl').value = g.reviewUrl || '';
     document.getElementById('description').value = g.description || '';
     document.getElementById('endStory').value = g.endStory || '';
-    
-    // Pótolt mezők betöltése:
     document.getElementById('maxPlayCount').value = g.maxPlayCount || '';
     document.getElementById('globalLimit').value = g.globalLimit || '';
     document.getElementById('bonuspoint').value = g.bonuspoint || '';
 
-    // Feladatok betöltése (a korábbi logika szerint)...
     const tc = document.getElementById('task-groups-container'); tc.innerHTML = ''; taskCounter = 0;
     ts.forEach(t => {
         taskCounter++; tc.insertAdjacentHTML('beforeend', getTaskHTML(taskCounter));
@@ -432,8 +460,6 @@
         if(t.disableSolution == 1) document.getElementById(`dis-y-${taskCounter}`).checked = true;
     });
 }
-
-
 
     function saveData() {
     const gid = document.getElementById('generated-id').value;
@@ -457,7 +483,6 @@
         isHidden: document.getElementById('isHidden').value,
         headerLogo: document.getElementById('headerLogo').value, 
         reviewUrl: document.getElementById('reviewUrl').value,
-        // Pótolt mezők mentése:
         maxPlayCount: document.getElementById('maxPlayCount').value,
         globalLimit: document.getElementById('globalLimit').value,
 	bonuspoint: document.getElementById('bonuspoint').value
@@ -466,7 +491,6 @@
     const gIdx = allGamesData.findIndex(x => x.id === gid);
     if(gIdx > -1) allGamesData[gIdx] = gameObj; else allGamesData.push(gameObj);
 
-    // Feladatok mentése (a korábbi logika szerint)...
     const newTasks = [];
     document.querySelectorAll('.task-group').forEach((el, i) => {
         const id = el.id.split('-').pop();
@@ -489,10 +513,6 @@
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allGamesData), "games");
     XLSX.writeFile(wb, `MystiGo_DB_${gid}.xlsx`);
 }
-
-
-
-
 
     function initMap() { 
         if(!map){ 
