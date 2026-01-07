@@ -708,7 +708,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.52
+       v1.2.53
 
    </span>
 
@@ -961,7 +961,7 @@
                     <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
                     
 <button id="forgot-password-btn" onclick="handleForgotPassword()" class="w-full mt-2 text-[11px] text-gray-500 hover:text-brand-cyan-500 underline text-center">
-    Elfelejtettem a jelszót
+    Elfelejtettem a jelszavamat
 </button>
 
 		    <div class="mt-4 text-center">
@@ -1251,9 +1251,14 @@
                             </button>
                         </div>
                         <div id="explore-selection-container" class="mt-4 hidden text-center">
-                            <h3 class="text-lg font-bold text-brand-blue mb-2">Válassz Feladatot a Térképen!</h3>
-                            <p class="text-sm text-gray-600 mb-4">A következő célpont kiválasztásához kattints egy kék jelölőre a térképen.</p>
-                        </div>
+    <h3 class="text-lg font-bold text-brand-blue mb-2">Válassz Feladatot a Térképen!</h3>
+    <p class="text-sm text-gray-600 mb-4">A következő célpont kiválasztásához kattints egy kék jelölőre a térképen.</p>
+    
+    <button onclick="finishExploreGameEarly()" 
+            class="mt-2 px-6 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-full font-bold text-xs hover:bg-red-100 transition shadow-sm flex items-center justify-center gap-2 mx-auto">
+        <span>🏁</span> Játék befejezése most
+    </button>
+    </div>
                         </div>
                     
                     <div id="task-interaction-area"> 
@@ -5739,7 +5744,12 @@ if (taskImageEl) {
                  document.getElementById('hint-buttons-container').classList.add('hidden');
                  document.getElementById('prompt').classList.remove('hidden');
                  
+		document.getElementById('report-error-btn').classList.add('hidden');
+
                  if (appState.currentGame.taskOrder === 'explore') {
+                     // Explore módban a Startnál nincs hova navigálni, ezért ezt is elrejtjük
+                     document.getElementById('google-maps-btn').classList.add('hidden');
+
                      document.getElementById('start-game-btn').disabled = false; 
                      document.getElementById('start-task-button-container').classList.remove('hidden');
                  }
@@ -5813,7 +5823,26 @@ if (taskImageEl) {
     updateStatusDisplays();
     saveGameState();
 }
-        
+   
+
+// --- EXPLORE JÁTÉK KORAI BEFEJEZÉSE ---
+window.finishExploreGameEarly = function() {
+    // Kiszámoljuk, hol tart a játékos, hogy tájékoztassuk
+    const totalTasks = appState.currentGame ? (appState.currentGame.tasks.length - 1) : 0;
+    const completedCount = appState.completedTasks ? appState.completedTasks.filter(t => t > 0).length : 0;
+    
+    const message = `Biztosan befejezed a játékot?\n\nEddig teljesítve: <strong>${completedCount} / ${totalTasks}</strong> feladat.\n\nHa most lezárod, az eddig szerzett pontjaid megmaradnak, de a hátralévő feladatokat nem tudod teljesíteni.`;
+
+    // A showMessage 'true' paramétere aktiválja a Mégse gombot is
+    showMessage('Játék lezárása', message, () => {
+        // Ha az "Igen"-re nyom:
+        endGame();
+    }, true);
+};
+
+
+
+     
 function endGame() {
     // 1. AZONNALI OLDALVÁLTÁS ÉS IDŐZÍTŐK LEÁLLÍTÁSA
     showContentPage('end-page');
@@ -5917,6 +5946,49 @@ function endGame() {
     document.getElementById('final-time').textContent = formatTime(finalTotalTime); 
     document.getElementById('final-geofence-time').textContent = formatTime(finalTaskTime);
 
+
+
+const list = document.getElementById('end-task-list');
+    if (list) {
+        list.innerHTML = '';
+        appState.currentGame.tasks.forEach((t, i) => {
+            // Ellenőrizzük, hogy az adott 'i' index benne van-e a teljesített feladatok között
+            const isCompleted = appState.completedTasks.includes(i);
+            
+            // Csak a valódi feladatokat listázzuk (aminek van kérdése vagy leírása)
+            if (t.question || t.prompt) {
+                const li = document.createElement('li');
+                const taskText = t.question || t.prompt;
+                const points = t.points || 10;
+
+                if (isCompleted) {
+                    // --- TELJESÍTETT FELADAT (Zöld pipa) ---
+                    li.className = "flex justify-between items-center p-3 bg-green-50 border border-green-100 rounded-lg";
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="flex-shrink-0 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">✓</span>
+                            <span class="font-medium text-gray-800 text-xs">${taskText}</span>
+                        </div>
+                        <span class="text-green-600 font-bold whitespace-nowrap text-xs">+${points}p</span>
+                    `;
+                } else {
+                    // --- KIHAGYOTT FELADAT (Szürke mínusz) ---
+                    li.className = "flex justify-between items-center p-3 bg-gray-50 border border-gray-100 rounded-lg opacity-75";
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="flex-shrink-0 w-6 h-6 bg-gray-300 text-white rounded-full flex items-center justify-center text-xs">−</span>
+                            <span class="font-medium text-gray-500 text-xs">${taskText}</span>
+                        </div>
+                        <span class="text-gray-400 font-bold whitespace-nowrap text-xs">Kihagyva</span>
+                    `;
+                }
+                list.appendChild(li);
+            }
+        });
+    }
+
+
+
     const saveStatusText = navigator.onLine ? "Adatok feltöltve." : "Offline mód: Adatok elmentve.";
     const colorClass = navigator.onLine ? 'text-green-600' : 'text-red-500';
     document.getElementById('end-timestamp').innerHTML = `Befejezés: ${formattedEndTime}<br><span class="${colorClass} font-bold">${saveStatusText}</span>`;
@@ -5957,10 +6029,28 @@ const isRegistered = !!(user && !user.isAnonymous);
             appState.currentGame.tasks.forEach(task => {
     if (task.index > 0 && task.location && task.location.lat) {
         
-        // JAVÍTOTT LOGIKA: Ha átugrotta VAGY megoldást kért, akkor tekintsük "sikertelennek"
+        // Ellenőrizzük, hogy tényleg befejezte-e
+        const isCompleted = appState.completedTasks.includes(task.index);
         const isFailed = task.skipped || task.solutionUsed;
-        const iconEmoji = isFailed ? "❌" : "✅";
-        const iconColor = isFailed ? "bg-red-100 border-red-500" : "bg-green-100 border-green-500";
+
+        let iconEmoji, iconColor, statusLabel;
+
+        if (isCompleted && !isFailed) {
+            // SIKERESEN MEGOLDVA
+            iconEmoji = "✅";
+            iconColor = "bg-green-100 border-green-500";
+            statusLabel = "Sikeresen megoldva";
+        } else if (isFailed) {
+            // ÁTUGORVA VAGY MEGOLDÁS KÉRVE
+            iconEmoji = "❌";
+            iconColor = "bg-red-100 border-red-500";
+            statusLabel = "Átugorva / Megoldás kérve";
+        } else {
+            // MEG SEM LÁTOGATOTT (Explore korai befejezés)
+            iconEmoji = "⚪";
+            iconColor = "bg-gray-100 border-gray-400";
+            statusLabel = "Nem teljesített";
+        }
 
         const taskIcon = L.divIcon({
             className: 'end-game-marker',
@@ -5971,9 +6061,11 @@ const isRegistered = !!(user && !user.isAnonymous);
 
         L.marker([task.location.lat, task.location.lng], { icon: taskIcon })
          .addTo(endMap)
-         .bindPopup(`<b>${task.index}. feladat</b><br>${isFailed ? 'Megoldva / Átugorva' : 'Sikeresen megoldva'}`);
+         .bindPopup(`<b>${task.index}. feladat</b><br>${statusLabel}`);
     }
 });
+
+
 
 
 // --- BÓNUSZOK FELHELYEZÉSE A ZÁRÓ TÉRKÉPRE ---
@@ -6958,13 +7050,17 @@ window.renderBonusMarkers = function() {
             if (backBtn) backBtn.classList.add('hidden');
             document.getElementById('explore-selection-container').classList.remove('hidden');
             
+	document.getElementById('google-maps-btn').classList.add('hidden');
+    			document.getElementById('report-error-btn').classList.add('hidden');
+
+
             // --- ÚJ RÉSZ: Távolság infó törlése ---
             const distEl = document.getElementById('distance-info');
             if (distEl) {
                 distEl.textContent = '';
                 distEl.className = ''; // A stílust is leszedjük, hogy biztosan eltűnjön
             }
-            // --------------------------------------
+            appState.lastMapInteraction = 0;
             
             renderTaskMarkers();
         }
@@ -8281,7 +8377,7 @@ if (solBtn) {
             document.getElementById('start-game-btn').addEventListener('click', startTimersAndGPS);
             document.getElementById('exit-game-btn').addEventListener('click', showExitConfirmation);
             document.getElementById('report-error-btn').addEventListener('click', showReportModal); 
-            document.getElementById('submit-error-report').addEventListener('click', handleSubmitError); 
+             
 
             let lastBackgroundTime = 0;
 
@@ -8852,7 +8948,7 @@ window.handleForgotPassword = async function() {
         // Gomb visszaállítása
         const btn = document.getElementById('forgot-password-btn');
         if(btn) {
-            btn.textContent = "Elfelejtettem a jelszót";
+            btn.textContent = "Elfelejtettem a jelszavamat";
             btn.disabled = false;
         }
     }
