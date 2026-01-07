@@ -9060,7 +9060,7 @@ window.logout = async () => {
             if (typeof window.selectAvatar === 'function') {
                 window.selectAvatar('cat'); 
             }
-
+	isExplicitLogout = true;
             // 4. Firebase kijelentkezés
             await signOut(auth);
 
@@ -9084,7 +9084,8 @@ window.logout = async () => {
         let profileListener = null; // Változó a figyelő leállításához
 	let isAuthProcessActive = false; // ÚJ: jelzi, ha manuális belépés van folyamatban
 	let profileUnsubscribe = null;  // ÚJ: segít leállítani a régi adatfigyelőt
-
+	let isExplicitLogout = false;   // Jelezzük, ha a felhasználó AKART kilépni
+	let wasRegisteredUser = false;  // Megjegyezzük, ha regisztrált fiókban voltunk
 
 onAuthStateChanged(auth, (user) => {
     const previewVerifiedBadge = document.getElementById('preview-verified-badge');
@@ -9095,41 +9096,35 @@ onAuthStateChanged(auth, (user) => {
     const nameInput = document.getElementById('team-name-input');
     const nameDisplay = document.getElementById('auth-user-name');
 
-    // --- 1. MINDENT ALAPHELYZETBE ÁLLÍTUNK (Tiszta lap) ---
+    // Takarítás állapotváltáskor
     if (profileUnsubscribe) { profileUnsubscribe(); profileUnsubscribe = null; }
-    
-    if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
-    if (scoreDisplay) scoreDisplay.classList.add('hidden');
-    if (logoutBtn) logoutBtn.classList.add('hidden');
-    if (btnGroup) btnGroup.classList.remove('hidden'); // Alapból mutatjuk a belépő gombokat
 
     if (user) {
+        // --- FELHASZNÁLÓ VAN ---
         isAuthProcessActive = false; 
+        isExplicitLogout = false; // Sikeres belépésnél nullázzuk a kilépés jelzőt
 
         if (!user.isAnonymous) {
-            // --- REGISZTRÁLT FELHASZNÁLÓ ---
-            console.log("Regisztrált user aktív:", user.email);
+            // Regisztrált felhasználó vagyunk -> Bekapcsoljuk a memóriát
+            wasRegisteredUser = true; 
             
+            console.log("Regisztrált user aktív:", user.email);
             if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
             if (scoreDisplay) scoreDisplay.classList.remove('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
-            if (btnGroup) btnGroup.classList.add('hidden'); // Belépve elrejtjük a G és Email gombokat
+            if (btnGroup) btnGroup.classList.add('hidden');
             if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
             
             const profileRef = ref(db, `users/${user.uid}/profile`);
             profileUnsubscribe = onValue(profileRef, (snapshot) => {
                 const profile = snapshot.val() || {};
-                
-                // Pontszám frissítése
                 const scoreVal = document.getElementById('user-total-score');
                 if (scoreVal) scoreVal.textContent = profile.totalScore || 0;
                 
-                // Név szinkronizálása
                 const finalName = profile.teamName || user.displayName || "Játékos";
                 if (nameDisplay) nameDisplay.textContent = finalName;
                 if (nameInput && !nameInput.value) nameInput.value = finalName;
 
-                // Avatar szinkronizálása
                 if (profile.avatar) {
                     localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
                     if (window.updateAvatarPreview) window.updateAvatarPreview();
@@ -9137,24 +9132,42 @@ onAuthStateChanged(auth, (user) => {
             });
 
         } else {
-            // --- VENDÉG MÓD ---
+            // Vendég mód
             console.log("Vendég mód aktív.");
             if (authStatusLabel) authStatusLabel.textContent = "Vendég mód";
             if (nameDisplay) nameDisplay.textContent = "Regisztrálj / Lépj be";
-            // Vendégnél biztosan rejtjük ezeket (ez javítja a képen látott hibát)
+            
+            if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
             if (scoreDisplay) scoreDisplay.classList.add('hidden');
             if (logoutBtn) logoutBtn.classList.add('hidden');
-            if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
+            if (btnGroup) btnGroup.classList.remove('hidden');
         }
     } else {
-        // --- NINCS SENKI (Kijelentkezés vagy frissítés alatt) ---
+        // --- NINCS FELHASZNÁLÓ (Kijelentkezés vagy Hiba) ---
+        
+        // VÉDELEM: Ha regisztrált voltál, de NEM te léptél ki, akkor ez csak hiba!
+        // Ilyenkor NEM indítunk vendég módot, mert az törölné a játékodat.
+        if (wasRegisteredUser && !isExplicitLogout) {
+            console.warn("Kapcsolat megszakadt a regisztrált fiókkal. Várakozás a helyreállásra...");
+            // Itt esetleg kiírhatsz egy üzenetet: showMessage("Hiba", "Kapcsolat megszakadt!");
+            return; // KILÉPÜNK, nem csinálunk semmit, megvárjuk míg a Firebase visszacsatlakozik.
+        }
+
+        // Csak akkor lépünk be vendégként, ha tényleg indokolt (első indítás vagy szándékos kijelentkezés)
         if (!isAuthProcessActive) {
             setTimeout(() => {
+                // Újra ellenőrizzük a feltételeket
                 if (!auth.currentUser && !isAuthProcessActive) {
-                    console.log("Automatikus vendég belépés...");
+                    // Még egyszer a biztonság kedvéért:
+                    if (wasRegisteredUser && !isExplicitLogout) return;
+
+                    console.log("Szándékos kilépés vagy első indítás -> Vendég mód");
                     signInAnonymously(auth).catch(err => console.error("Anonim hiba:", err));
+                    
+                    // Ha vendég lett, reseteljük a "regisztrált volt" jelzőt
+                    wasRegisteredUser = false; 
                 }
-            }, 800); // Kicsit több időt adunk a regisztrált munkamenetnek, hogy magára találjon
+            }, 500);
         }
     }
 });
