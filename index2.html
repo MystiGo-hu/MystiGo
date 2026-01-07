@@ -7950,28 +7950,43 @@ const isIos = () => {
 
 
             if (avatarSelectEl) {
-                // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
-                window.updateAvatarPreview = () => {
-    const previewContainer = document.getElementById('avatar-preview-container');
-    // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
-    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
-    
-    if (previewContainer && savedAvatar) {
-        // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
-        previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+    // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
+    window.updateAvatarPreview = () => {
+        const previewContainer = document.getElementById('avatar-preview-container');
+        const badge = document.getElementById('preview-verified-badge'); // <--- ÚJ: A pipa lekérése
         
-        // Kis vizuális visszajelzés
-        previewContainer.classList.add('scale-110');
-        setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
-    }
-};
+        // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
+        const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
 
-                // Eseményfigyelő hozzáadása
-                avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
+        // 1. Avatar (Emoji) frissítése
+        if (previewContainer && savedAvatar) {
+            // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
+            previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
 
-                // Kezdeti betöltés (mentett adatok alapján)
-                setTimeout(window.updateAvatarPreview, 200);
+            // Kis vizuális visszajelzés
+            previewContainer.classList.add('scale-110');
+            setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
+        }
+
+        // 2. Kék pipa (Verified Badge) frissítése - EZ HIÁNYZOTT
+        if (badge) {
+            // Biztonságos ellenőrzés: létezik-e már az auth objektum?
+            const user = (window.auth) ? window.auth.currentUser : null;
+
+            if (user && !user.isAnonymous) {
+                badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
+            } else {
+                badge.classList.remove('active'); // Ha vendég, elrejtjük
             }
+        }
+    };
+
+    // Eseményfigyelő hozzáadása
+    avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
+
+    // Kezdeti betöltés (mentett adatok alapján)
+    setTimeout(window.updateAvatarPreview, 200);
+}
 
 
             // --- ÚJ RÉSZ VÉGE ---
@@ -9078,72 +9093,71 @@ onAuthStateChanged(auth, (user) => {
     const logoutBtn = document.getElementById('logout-btn');
     const btnGroup = document.getElementById('auth-buttons-group');
     const nameInput = document.getElementById('team-name-input');
+    const nameDisplay = document.getElementById('auth-user-name');
 
-    // Régi adatfigyelő leállítása minden állapotváltáskor
-    if (profileUnsubscribe) {
-        profileUnsubscribe();
-        profileUnsubscribe = null;
-    }
+    // --- 1. MINDENT ALAPHELYZETBE ÁLLÍTUNK (Tiszta lap) ---
+    if (profileUnsubscribe) { profileUnsubscribe(); profileUnsubscribe = null; }
+    
+    if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
+    if (scoreDisplay) scoreDisplay.classList.add('hidden');
+    if (logoutBtn) logoutBtn.classList.add('hidden');
+    if (btnGroup) btnGroup.classList.remove('hidden'); // Alapból mutatjuk a belépő gombokat
 
     if (user) {
-        // Ha van user, biztosan nem tart már a belépési folyamat
         isAuthProcessActive = false; 
 
         if (!user.isAnonymous) {
-            console.log("Regisztrált user belépve:", user.email);
+            // --- REGISZTRÁLT FELHASZNÁLÓ ---
+            console.log("Regisztrált user aktív:", user.email);
+            
             if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
             if (scoreDisplay) scoreDisplay.classList.remove('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
-            if (btnGroup) btnGroup.classList.add('hidden');
+            if (btnGroup) btnGroup.classList.add('hidden'); // Belépve elrejtjük a G és Email gombokat
             if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
             
             const profileRef = ref(db, `users/${user.uid}/profile`);
             profileUnsubscribe = onValue(profileRef, (snapshot) => {
                 const profile = snapshot.val() || {};
-                const scoreEl = document.getElementById('user-total-score');
-                if (scoreEl) scoreEl.textContent = profile.totalScore || 0;
                 
+                // Pontszám frissítése
+                const scoreVal = document.getElementById('user-total-score');
+                if (scoreVal) scoreVal.textContent = profile.totalScore || 0;
+                
+                // Név szinkronizálása
                 const finalName = profile.teamName || user.displayName || "Játékos";
-                const nameDisplay = document.getElementById('auth-user-name');
                 if (nameDisplay) nameDisplay.textContent = finalName;
+                if (nameInput && !nameInput.value) nameInput.value = finalName;
 
-                if (nameInput) {
-                    nameInput.value = finalName;
-                    localStorage.setItem('mystigo_pref_teamName', finalName);
-                }
+                // Avatar szinkronizálása
                 if (profile.avatar) {
                     localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
                     if (window.updateAvatarPreview) window.updateAvatarPreview();
                 }
-                if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
             });
 
         } else {
+            // --- VENDÉG MÓD ---
             console.log("Vendég mód aktív.");
-            if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
-            if (btnGroup) btnGroup.classList.remove('hidden');
             if (authStatusLabel) authStatusLabel.textContent = "Vendég mód";
-            const nameDisplay = document.getElementById('auth-user-name');
-            if (nameDisplay) nameDisplay.textContent = "Regisztrálj/Lépj be";
+            if (nameDisplay) nameDisplay.textContent = "Regisztrálj / Lépj be";
+            // Vendégnél biztosan rejtjük ezeket (ez javítja a képen látott hibát)
+            if (scoreDisplay) scoreDisplay.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.add('hidden');
+            if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
         }
     } else {
-        // --- KRITIKUS JAVÍTÁS A JÁTÉK VÉGI KILÉPÉSHEZ ---
-        // Csak akkor jelentkeztetünk be vendégként, ha tényleg nincs senki 
-        // ÉS nem éppen egy belépés vagy adatmentés zajlik a háttérben.
-        if (!isAuthProcessActive) { 
-            // Adunk egy kis időt (500ms), hátha csak egy pillanatnyi token-frissítésről van szó
+        // --- NINCS SENKI (Kijelentkezés vagy frissítés alatt) ---
+        if (!isAuthProcessActive) {
             setTimeout(() => {
                 if (!auth.currentUser && !isAuthProcessActive) {
-                    console.log("Nincs aktív user -> Vendég mód indítása");
+                    console.log("Automatikus vendég belépés...");
                     signInAnonymously(auth).catch(err => console.error("Anonim hiba:", err));
                 }
-            }, 500);
-        } else {
-            console.log("Belépés folyamatban, várakozás...");
+            }, 800); // Kicsit több időt adunk a regisztrált munkamenetnek, hogy magára találjon
         }
     }
 });
-
 
                
 
