@@ -4200,35 +4200,35 @@ window.closeImageModal = function() {
 
 
 
+
+
         window.hideReportModal = function() { 
             document.getElementById('report-error-modal').classList.add('hidden'); 
         }
 
         window.handleSubmitError = function() {
     if (!appState.currentGame) return;
-    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex); 
+    
+    // Javítás: Típusbiztos keresés
+    const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex)); 
     if (!currentTask) return;
 
-    // --- MÓDOSÍTÁS KEZDETE ---
-    // Ha a 0. feladatot (Start pont) ugorjuk át, akkor el kell indítani a rendszert!
     if (currentTask.index === 0) {
-        // Ez a függvény elindítja az időt, a GPS rögzítést, és betölti a következő feladatot (Task 1)
         startTimersAndGPS();
-        
         hideReportModal();
-        
-        // Jelzünk a felhasználónak, de NEM hívjuk meg a handleCorrectAnswer-t,
-        // mert a startTimersAndGPS() már elvégezte a lapozást.
-        showMessage("Játék Elindítva", "A kezdőpontot átugrottad. A játék és az időmérés elindult!", null);
+        showMessage("Játék Elindítva", "A kezdőpontot átugrottad. A játék elindult!");
         return; 
     }
-    // --- MÓDOSÍTÁS VÉGE ---
 
-    // Ez marad a régi a többi feladathoz:
     currentTask.taskScore = 0;
-    currentTask.skipped = true; 
-    updateStatusDisplays(); hideReportModal();
-    showMessage("Átugorva", "A feladatot teljesítettnek jelöltük (0 pont). A játék folytatódik.", () => { handleCorrectAnswer(); });
+    currentTask.skipped = true; // Ez a kulcsfontosságú jelző
+       
+    updateStatusDisplays(); 
+    hideReportModal();
+    
+    showMessage("Átugorva", "A feladatot kihagytad (0 pont).", () => { 
+        handleCorrectAnswer(); 
+    });
 }
         
         function handleExitGame() { resetApp(); }
@@ -5797,6 +5797,13 @@ if (taskImageEl) {
 
     currentTask.completed = true;
 
+
+if (appState.completedTasks.indexOf(currentTask.index) === -1) {
+        appState.completedTasks.push(currentTask.index);
+    }
+
+
+
     // Pontszám és idő rögzítése
     currentTask.timeSpent = appState.geofenceTime - (currentTask.startTime || 0);
     currentTask.isTaskTimerActive = false;
@@ -6043,24 +6050,26 @@ const isRegistered = !!(user && !user.isAnonymous);
             appState.currentGame.tasks.forEach(task => {
     if (task.index > 0 && task.location && task.location.lat) {
         
-        // Ellenőrizzük, hogy tényleg befejezte-e
-        const isCompleted = appState.completedTasks.includes(task.index);
-        const isFailed = task.skipped || task.solutionUsed;
+        // Típusbiztos ellenőrzés a teljesítésre
+        const isCompleted = appState.completedTasks.some(idx => Number(idx) === Number(task.index));
+        
+        // Hibás/Átugrott állapot ellenőrzése (ha a score 0 vagy a flag-ek be vannak állítva)
+        const isFailed = task.skipped === true || task.solutionUsed === true || (isCompleted && Number(task.taskScore) === 0);
 
         let iconEmoji, iconColor, statusLabel;
 
-        if (isCompleted && !isFailed) {
-            // SIKERESEN MEGOLDVA
-            iconEmoji = "✅";
-            iconColor = "bg-green-100 border-green-500";
-            statusLabel = "Sikeresen megoldva";
-        } else if (isFailed) {
-            // ÁTUGORVA VAGY MEGOLDÁS KÉRVE
+        if (isFailed) {
+            // ÁTUGORVA VAGY MEGOLDÁS KÉRVE (Piros X)
             iconEmoji = "❌";
             iconColor = "bg-red-100 border-red-500";
             statusLabel = "Átugorva / Megoldás kérve";
+        } else if (isCompleted) {
+            // SIKERESEN MEGOLDVA (Zöld pipa)
+            iconEmoji = "✅";
+            iconColor = "bg-green-100 border-green-500";
+            statusLabel = "Sikeresen megoldva";
         } else {
-            // MEG SEM LÁTOGATOTT (Explore korai befejezés)
+            // MEG SEM LÁTOGATOTT (Szürke kör)
             iconEmoji = "⚪";
             iconColor = "bg-gray-100 border-gray-400";
             statusLabel = "Nem teljesített";
@@ -6231,21 +6240,37 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
 window.generateBonusPoints = async function(count) {
     if (!count || count <= 0) return;
     
-    console.log(`${count} bónusz pont generálása optimalizált lekérdezéssel...`);
+    console.log(`💎 ${count} bónusz pont generálása optimalizált módban...`);
     appState.bonusPoints = [];
     
     const tasks = appState.currentGame.tasks.filter(t => t.location && t.location.lat && !t.isStartTask);
     if (tasks.length === 0) return;
 
-    // 1. Összeállítunk EGYETLEN Overpass lekérdezést az összes feladat helyszínére
-    let aroundParts = tasks.map(t => `node(around:300,${t.location.lat},${t.location.lng})["highway"~"crossing|bus_stop|traffic_signals"];
-                                     node(around:250,${t.location.lat},${t.location.lng})["amenity"~"waste_basket|bench"];`).join('\n');
+    // --- OPTIMALIZÁCIÓ: Csak az első 4 feladat és a középpont köré kérünk adatot ---
+    // Ez drasztikusan csökkenti az Overpass szerver terhelését.
+    const sampleTasks = tasks.slice(0, 4);
+    let centerLat = sampleTasks.reduce((sum, t) => sum + t.location.lat, 0) / sampleTasks.length;
+    let centerLng = sampleTasks.reduce((sum, t) => sum + t.location.lng, 0) / sampleTasks.length;
 
-    const query = `[out:json][timeout:60]; ( ${aroundParts} ); out body;`;
+    // Hatékonyabb Overpass lekérdezés: Egyetlen nagy terület, kevesebb szűrővel
+    const query = `[out:json][timeout:15];
+    (
+      node(around:1000,${centerLat},${centerLng})["highway"~"crossing|bus_stop|traffic_signals"];
+      node(around:800,${centerLat},${centerLng})["amenity"~"waste_basket|bench|fountain"];
+      node(around:1200,${centerLat},${centerLng})["tourism"~"information|artwork"];
+    );
+    out body 50;`; // Limitáljuk a válaszokat 50-re a gyorsaságért
+
     const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
-        const response = await fetch(osmUrl);
+        // Gyorsabb időkorlát (AbortController), hogy ne várjunk 1 percet a hibaüzenetre
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 mp után feladjuk
+
+        const response = await fetch(osmUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (!response.ok) throw new Error("OSM szerver hiba: " + response.status);
         const data = await response.json();
         
@@ -6253,14 +6278,13 @@ window.generateBonusPoints = async function(count) {
         const usedOsmIds = new Set();
         const jitter = () => (Math.random() - 0.5) * 0.0001;
 
+        if (candidates.length < count) throw new Error("Kevés a POI találat.");
+
         for (let i = 0; i < count; i++) {
-            // Ha van találatunk, válasszunk egyet véletlenszerűen, amit még nem használtunk
             let filteredCandidates = candidates.filter(el => !usedOsmIds.has(el.id));
-            
             if (filteredCandidates.length > 0) {
                 let el = filteredCandidates[Math.floor(Math.random() * filteredCandidates.length)];
                 usedOsmIds.add(el.id);
-                
                 appState.bonusPoints.push({
                     id: `bonus_${Date.now()}_${i}`,
                     lat: el.lat + jitter(),
@@ -6268,29 +6292,20 @@ window.generateBonusPoints = async function(count) {
                     collected: false,
                     score: 10 
                 });
-            } else {
-                // FALLBACK: Ha elfogytak a POI-k vagy nem sikerült a lekérdezés
-                const anchor = tasks[i % tasks.length];
-                const angle = Math.random() * Math.PI * 2;
-                const radius = 0.0015 + (Math.random() * 0.001);
-                appState.bonusPoints.push({
-                    id: `bonus_fallback_${Date.now()}_${i}`,
-                    lat: anchor.location.lat + Math.cos(angle) * radius,
-                    lng: anchor.location.lng + Math.sin(angle) * radius,
-                    collected: false,
-                    score: 10
-                });
             }
         }
     } catch (e) { 
-        console.error("Hiba a bónusz generálásnál, fallback mód aktív:", e);
-        // Teljes hiba esetén is generálunk pontokat véletlenszerűen, hogy a játék ne álljon meg
+        console.warn("⚠️ OSM hiba (504 vagy lassú net), azonnali fallback generálás...", e.message);
+        
+        // --- MATEMATIKAI FALLBACK (Ha az API nem válaszol) ---
         for (let i = 0; i < count; i++) {
             const anchor = tasks[i % tasks.length];
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 0.002 + (Math.random() * 0.002); // Kb. 200-400 méter
             appState.bonusPoints.push({
-                id: `bonus_err_${Date.now()}_${i}`,
-                lat: anchor.location.lat + (Math.random() - 0.5) * 0.003,
-                lng: anchor.location.lng + (Math.random() - 0.5) * 0.003,
+                id: `bonus_fallback_${Date.now()}_${i}`,
+                lat: anchor.location.lat + Math.cos(angle) * radius,
+                lng: anchor.location.lng + Math.sin(angle) * radius,
                 collected: false,
                 score: 10
             });
@@ -6298,15 +6313,12 @@ window.generateBonusPoints = async function(count) {
     }
     
     renderBonusMarkers();
-    // Térkép igazítása...
     if (appState.map && appState.bonusPoints.length > 0) {
         const bounds = appState.bonusPoints.map(bp => [bp.lat, bp.lng]);
         if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
         appState.map.fitBounds(L.latLngBounds(bounds).pad(0.3));
-        appState.lastMapInteraction = Date.now();
     }
 };
-
 
    
   function initializeMap(gameData = null) {
