@@ -2928,117 +2928,117 @@ window.filterGlobalLeaderboard = function() {
 
 
 
-window.openHallOfFame = async function(mode = 'monthly') {
-    const modal = document.getElementById('hall-of-fame-modal');
-    const tbody = document.getElementById('hall-of-fame-body');
-    const btnAll = document.getElementById('btn-hof-all');
-    const btnMonthly = document.getElementById('btn-hof-monthly');
-    const monthContainer = document.getElementById('hof-month-selector-container');
-    const monthSelect = document.getElementById('hof-month-select');
-    
+window.openHallOfFame = async function() {
+    const modal = document.getElementById('hallOfFameModal');
+    const listContainer = document.getElementById('hallOfFameList');
+    const monthSelect = document.getElementById('hallOfFameMonthSelect');
+
     modal.classList.remove('hidden');
-    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10"><div class="animate-spin h-6 w-6 border-2 border-brand-cyan border-t-transparent rounded-full mx-auto mb-2"></div>Adatok összesítése...</td></tr>';
-
-    if(mode === 'all') {
-        btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-        btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
-        monthContainer.classList.add('hidden');
-    } else {
-        btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-        btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
-        monthContainer.classList.remove('hidden');
-    }
-
-    if (!window.db || !window.get) return;
+    listContainer.innerHTML = '<div class="text-center p-4">Betöltés...</div>';
 
     try {
-        if (mode === 'all') {
-            const snapshot = await window.get(window.ref(window.db, 'users'));
-            let players = [];
-            if (snapshot.exists()) {
-                snapshot.forEach(child => {
-                    const val = child.val();
-                    const data = val.profile;
-                    if (data && data.teamName) {
-                        players.push({
-                            name: data.teamName,
-                            avatar: data.avatar || 'cat',
-                            score: parseInt(data.totalScore || 0),
-                            isRegistered: true
-                        });
-                    }
-                });
-            }
-            renderHofTable(players, tbody);
-        } else {
-            const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
-            if (!snapshot.exists()) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs adat.</td></tr>';
-                return;
-            }
+        const snapshot = await get(ref(database, 'results'));
+        const allGames = snapshot.val();
 
-            const allGames = snapshot.val();
-            const monthMap = new Set();
-            
-            Object.values(allGames).forEach(gameResults => {
-                Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && (entry.isRegistered === true || entry.isRegistered === "true")) {
-                        const d = new Date(entry.timestamp);
-                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        monthMap.add(key);
-                    }
-                });
-            });
-
-            if (monthSelect.options.length === 0) {
-    const sortedMonthKeys = Object.keys(allMonthsData).sort().reverse();
-    
-    monthSelect.innerHTML = sortedMonthKeys.map(m => {
-        const [year, month] = m.split('-');
-        const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
-        return `<option value="${m}">${label}</option>`;
-    }).join('');
-
-    // Az első (legfrissebb) hónap legyen az alapértelmezett
-    if (sortedMonthKeys.length > 0) {
-        monthSelect.value = sortedMonthKeys[0];
-    }
-}
-
-            // --- FONTOS: ITT HATÁROZZUK MEG A KULCSOT ---
-            const targetMonthKey = monthSelect.value;
-            const monthlyAggregator = {};
-
-            Object.values(allGames).forEach(gameResults => {
-                Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && (entry.isRegistered === true || entry.isRegistered === "true")) {
-                        const d = new Date(entry.timestamp);
-                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        
-                        if (key === targetMonthKey) {
-                            const playerKey = entry.uid || entry.teamName; 
-                            if (!monthlyAggregator[monthKey][playerKey]) {
-    monthlyAggregator[monthKey][playerKey] = {
-        name: entry.teamName,
-        totalPoints: 0,
-        gamesCount: 0,
-        isRegistered: true
-    };
-                            }
-                            monthlyAggregator[playerKey].name = entry.teamName;
-                            monthlyAggregator[playerKey].avatar = entry.teamAvatar;
-                            monthlyAggregator[playerKey].score += parseInt(entry.score || 0);
-                        }
-                    }
-                });
-            });
-
-            const players = Object.values(monthlyAggregator);
-            renderHofTable(players, tbody);
+        if (!allGames) {
+            listContainer.innerHTML = '<div class="text-center p-4 text-gray-400">Nincsenek még eredmények.</div>';
+            return;
         }
-    } catch (e) {
-        console.error("Dicsőségfal hiba:", e);
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt.</td></tr>';
+
+        // --- 1. ADATOK ÖSSZESÍTÉSE (Havi és Összesített szinten) ---
+        const allMonthsData = {}; // Ebben tárolunk mindent: { "2024-05": { playerID: {score, name...} } }
+        const monthMap = new Set();
+
+        Object.values(allGames).forEach(gameResults => {
+            Object.values(gameResults).forEach(entry => {
+                if (entry.timestamp && entry.isRegistered === true) {
+                    const d = new Date(entry.timestamp);
+                    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    monthMap.add(monthKey);
+
+                    // Hónap inicializálása
+                    if (!allMonthsData[monthKey]) allMonthsData[monthKey] = {};
+
+                    const playerKey = entry.uid || entry.teamName;
+                    
+                    if (!allMonthsData[monthKey][playerKey]) {
+                        allMonthsData[monthKey][playerKey] = {
+                            score: 0,
+                            name: entry.teamName,
+                            avatar: entry.teamAvatar,
+                            isRegistered: true
+                        };
+                    }
+                    // Pontok hozzáadása a hónaphoz
+                    allMonthsData[monthKey][playerKey].score += parseInt(entry.score || 0);
+                }
+            });
+        });
+
+        // --- 2. A SELECT MENÜ FELTÖLTÉSE (Csak ha üres) ---
+        if (monthSelect.options.length === 0) {
+            const sortedMonths = Array.from(monthMap).sort().reverse();
+            let optionsHtml = '<option value="all">Összesített (Minden idő)</option>';
+            optionsHtml += sortedMonths.map(m => {
+                const [year, month] = m.split('-');
+                const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
+                return `<option value="${m}">${label}</option>`;
+            }).join('');
+            monthSelect.innerHTML = optionsHtml;
+
+            monthSelect.value = "all"; // Alapértelmezett az összesített
+        }
+
+        // --- 3. MEGJELENÍTENDŐ ADATOK KIVÁLASZTÁSA ---
+        const targetMonthKey = monthSelect.value;
+        let finalAggregator = {};
+
+        if (targetMonthKey === "all") {
+            // Ha mindent látni akarunk, összeadjuk az összes hónapot
+            Object.values(allMonthsData).forEach(monthGroup => {
+                Object.entries(monthGroup).forEach(([pKey, data]) => {
+                    if (!finalAggregator[pKey]) {
+                        finalAggregator[pKey] = { ...data };
+                    } else {
+                        finalAggregator[pKey].score += data.score;
+                    }
+                });
+            });
+        } else {
+            // Csak a választott hónap
+            finalAggregator = allMonthsData[targetMonthKey] || {};
+        }
+
+        // --- 4. RENDEZÉS ÉS KIÍRÁS ---
+        const sortedScores = Object.values(finalAggregator).sort((a, b) => b.score - a.score);
+
+        if (sortedScores.length === 0) {
+            listContainer.innerHTML = '<div class="text-center p-4 text-gray-400">Ebben az időszakban nincs eredmény.</div>';
+            return;
+        }
+
+        listContainer.innerHTML = sortedScores.map((player, index) => `
+            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div class="flex items-center gap-3">
+                    <span class="text-lg font-bold ${index < 3 ? 'text-yellow-400' : 'text-gray-400'}">#${index + 1}</span>
+                    <img src="${player.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + player.name}" 
+                         class="w-10 h-10 rounded-full border-2 border-purple-500/30">
+                    <div>
+                        <div class="font-bold text-white">${player.name}</div>
+                        <div class="text-xs text-gray-400">${player.isRegistered ? 'Regisztrált' : 'Vendég'}</div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xl font-black text-purple-400">${player.score}</div>
+                    <div class="text-[10px] uppercase tracking-tighter text-gray-500">Összpont</div>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error("Dicsőségfal hiba:", error);
+        listContainer.innerHTML = '<div class="text-center p-4 text-red-400">Hiba történt az adatok betöltésekor.</div>';
     }
 };
 
