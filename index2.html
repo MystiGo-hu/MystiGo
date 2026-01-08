@@ -2982,7 +2982,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
             
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && entry.isRegistered === true) {
+                    if (entry.timestamp && (entry.isRegistered === true || entry.isRegistered === "true")) {
                         const d = new Date(entry.timestamp);
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         monthMap.add(key);
@@ -2991,17 +2991,19 @@ window.openHallOfFame = async function(mode = 'monthly') {
             });
 
             if (monthSelect.options.length === 0) {
-                const sortedMonths = Array.from(monthMap).sort().reverse();
-                monthSelect.innerHTML = sortedMonths.map(m => {
-                    const [year, month] = m.split('-');
-                    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
-                    return `<option value="${m}">${label}</option>`;
-                }).join('');
+    const sortedMonthKeys = Object.keys(allMonthsData).sort().reverse();
+    
+    monthSelect.innerHTML = sortedMonthKeys.map(m => {
+        const [year, month] = m.split('-');
+        const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
+        return `<option value="${m}">${label}</option>`;
+    }).join('');
 
-                if (!monthSelect.value && sortedMonths.length > 0) {
-                    monthSelect.value = sortedMonths[0];
-                }
-            }
+    // Az első (legfrissebb) hónap legyen az alapértelmezett
+    if (sortedMonthKeys.length > 0) {
+        monthSelect.value = sortedMonthKeys[0];
+    }
+}
 
             // --- FONTOS: ITT HATÁROZZUK MEG A KULCSOT ---
             const targetMonthKey = monthSelect.value;
@@ -3009,19 +3011,19 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && entry.isRegistered === true) {
+                    if (entry.timestamp && (entry.isRegistered === true || entry.isRegistered === "true")) {
                         const d = new Date(entry.timestamp);
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         
                         if (key === targetMonthKey) {
                             const playerKey = entry.uid || entry.teamName; 
-                            if (!monthlyAggregator[playerKey]) {
-                                monthlyAggregator[playerKey] = { 
-                                    score: 0, 
-                                    name: entry.teamName, 
-                                    avatar: entry.teamAvatar, 
-                                    isRegistered: true 
-                                };
+                            if (!monthlyAggregator[monthKey][playerKey]) {
+    monthlyAggregator[monthKey][playerKey] = {
+        name: entry.teamName,
+        totalPoints: 0,
+        gamesCount: 0,
+        isRegistered: true
+    };
                             }
                             monthlyAggregator[playerKey].name = entry.teamName;
                             monthlyAggregator[playerKey].avatar = entry.teamAvatar;
@@ -3086,7 +3088,26 @@ window.isFirebaseModuleLoaded = true;
 
        
 <script>
-        // --- GLOBAL STATE & CONSTANTS ---
+        
+
+window.hashString = function(text) {
+        if (!text) return "";
+        const cleanText = String(text).trim().toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+            .replace(/[^a-z0-9]/g, ''); 
+        if (typeof CryptoJS !== 'undefined') {
+            return CryptoJS.SHA256(cleanText).toString();
+        } else {
+            console.error("CryptoJS nem található!");
+            return "";
+        }
+    };
+
+
+
+
+
+// --- GLOBAL STATE & CONSTANTS ---
         window.games = {}; // A "let" törlése és window-ra rakása megoldja a láthatóságot
 	window.badWordsList = [];
 
@@ -8071,22 +8092,6 @@ async function validateAndUseCoupon() {
   
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
-
-
-window.hashString = function(text) {
-        if (!text) return "";
-        const cleanText = String(text).trim().toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-            .replace(/[^a-z0-9]/g, ''); 
-        if (typeof CryptoJS !== 'undefined') {
-            return CryptoJS.SHA256(cleanText).toString();
-        } else {
-            console.error("CryptoJS nem található!");
-            return "";
-        }
-    };
-
-
 
 		appState.currentPage = 'game-list-page';
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
