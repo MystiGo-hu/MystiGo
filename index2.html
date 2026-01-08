@@ -2953,12 +2953,12 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
     try {
         if (mode === 'all') {
-            // ÖSSZESÍTETT: Csak a regisztrált profilok (marad a régi)
             const snapshot = await window.get(window.ref(window.db, 'users'));
             let players = [];
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
-                    const data = child.val().profile;
+                    const val = child.val();
+                    const data = val.profile;
                     if (data && data.teamName) {
                         players.push({
                             name: data.teamName,
@@ -2971,7 +2971,6 @@ window.openHallOfFame = async function(mode = 'monthly') {
             }
             renderHofTable(players, tbody);
         } else {
-            // HAVI NÉZET: Leaderboard aggregáció
             const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
             if (!snapshot.exists()) {
                 tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs adat.</td></tr>';
@@ -2980,9 +2979,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
             const allGames = snapshot.val();
             const monthMap = new Set();
-            const monthlyAggregator = {};
             
-            // 1. Hónapok kigyűjtése a legördülőhöz
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
                     if (entry.timestamp && entry.isRegistered === true) {
@@ -2993,21 +2990,23 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 });
             });
 
-            // Hónapválasztó feltöltése, ha üres
             if (monthSelect.options.length === 0) {
                 const sortedMonths = Array.from(monthMap).sort().reverse();
-monthSelect.innerHTML = sortedMonths.map(m => {
-    const [year, month] = m.split('-');
-    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
-    return `<option value="${m}">${label}</option>`;
-}).join('');
+                monthSelect.innerHTML = sortedMonths.map(m => {
+                    const [year, month] = m.split('-');
+                    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
+                    return `<option value="${m}">${label}</option>`;
+                }).join('');
 
-// Ha még nincs választott érték, legyen az aktuális hónap a default
-if (!monthSelect.value && sortedMonths.length > 0) {
-    monthSelect.value = sortedMonths[0];
-}
+                if (!monthSelect.value && sortedMonths.length > 0) {
+                    monthSelect.value = sortedMonths[0];
+                }
+            }
 
-            // 2. Pontok összegezése a választott hónapra (UID ALAPÚ AZONOSÍTÁSSAL)
+            // --- FONTOS: ITT HATÁROZZUK MEG A KULCSOT ---
+            const targetMonthKey = monthSelect.value;
+            const monthlyAggregator = {};
+
             Object.values(allGames).forEach(gameResults => {
                 Object.values(gameResults).forEach(entry => {
                     if (entry.timestamp && entry.isRegistered === true) {
@@ -3015,10 +3014,7 @@ if (!monthSelect.value && sortedMonths.length > 0) {
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         
                         if (key === targetMonthKey) {
-                            // ✅ KRITIKUS VÁLTOZÁS: UID-t használunk kulcsnak, ha van. 
-                            // Ha régi adat és nincs UID, akkor marad a név.
                             const playerKey = entry.uid || entry.teamName; 
-                            
                             if (!monthlyAggregator[playerKey]) {
                                 monthlyAggregator[playerKey] = { 
                                     score: 0, 
@@ -3027,7 +3023,6 @@ if (!monthSelect.value && sortedMonths.length > 0) {
                                     isRegistered: true 
                                 };
                             }
-                            // Mindig a legfrissebb nevet/avatart tartsuk meg a kijelzéshez
                             monthlyAggregator[playerKey].name = entry.teamName;
                             monthlyAggregator[playerKey].avatar = entry.teamAvatar;
                             monthlyAggregator[playerKey].score += parseInt(entry.score || 0);
@@ -3036,21 +3031,14 @@ if (!monthSelect.value && sortedMonths.length > 0) {
                 });
             });
 
-            const players = Object.values(monthlyAggregator).map((data) => ({
-    name: data.name, // Itt az objektumon belüli 'name' tulajdonságot használjuk (ami a teamName)
-    avatar: data.avatar,
-    score: data.score,
-    isRegistered: data.isRegistered
-            }));
-
+            const players = Object.values(monthlyAggregator);
             renderHofTable(players, tbody);
         }
     } catch (e) {
-        console.error(e);
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt az adatok betöltésekor.</td></tr>';
+        console.error("Dicsőségfal hiba:", e);
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt.</td></tr>';
     }
 };
-
 
 
 
