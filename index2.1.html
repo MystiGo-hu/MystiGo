@@ -4068,40 +4068,33 @@ const isRegistered = !!(user && !user.isAnonymous);
             
 
   window.resetApp = function() {
-            // 1. Térkép és markerek takarítása
-            if (appState.map) {
-                appState.map.remove();
-                appState.map = null;
-            }
-            if (manualMarker) {
-                manualMarker.remove();
-                manualMarker = null;
-            }
-            if (appState.geoWatchId) {
-                stopAllGpsActivity();
-            }
-            if (appState.timerInterval) clearInterval(appState.timerInterval);
+    console.log("🔄 Alkalmazás alaphelyzetbe állítása...");
 
-            // 2. Változók alaphelyzetbe állítása
-            initializeState();
-
-            // 3. UI visszaállítása
-            document.getElementById('landing-page').classList.add('hidden');
-            document.getElementById('content-wrapper').classList.remove('hidden');
-            document.getElementById('content-wrapper').classList.remove('translate-y-full');
-            
-            // UI elemek elrejtése a biztonság kedvéért
-            document.getElementById('task-interaction-area').classList.add('hidden');
-            document.getElementById('start-task-button-container').classList.add('hidden');
-            document.getElementById('game-status-bar').classList.add('hidden');
-
-            // 4. Játéklista betöltése Firebase-ből
-            initializeGamesFromFirebase(); 
-            
-            // 5. Oldalváltás a listára
-            // (A initializeGamesFromFirebase a végén úgyis meghívja a showPage-t, 
-            // de nem baj, ha itt is megvan, a betöltésjelző addig látszik)
-        };
+    // 1. Aktuális játékállapot törlése a memóriából
+    window.currentActiveGameId = null;
+    window.currentTaskIndex = 0;
+    
+    // 2. Mentett játékállapot törlése a telefonról
+    localStorage.removeItem('MystiGo_CurrentGameId');
+    localStorage.removeItem('MystiGo_CurrentTaskIndex');
+    localStorage.removeItem('MystiGo_FoundCodes');
+    localStorage.removeItem('MystiGo_StartTime');
+    
+    // 3. UI elemek elrejtése (JAVÍTVA)
+    const loader = document.getElementById('loading-overlay');
+    if (loader) loader.classList.add('hidden');
+    
+    // 4. VISSZATÉRÉS A JÁTÉKLISTÁHOZ
+    showPage('game-list-page');
+    
+    // 5. Biztosítjuk, hogy a lista friss legyen és látható
+    if (typeof window.initializeGamesFromFirebase === 'function') {
+        window.initializeGamesFromFirebase();
+    }
+    
+    // 6. Felgörgetünk a tetejére
+    window.scrollTo(0, 0);
+};
 
         window.showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
@@ -9327,9 +9320,21 @@ onAuthStateChanged(auth, (user) => {
                 if (nameInput && !nameInput.value) nameInput.value = finalName;
 
                 if (profile.avatar) {
-                    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-                    if (window.updateAvatarPreview) window.updateAvatarPreview();
-                }
+    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+    
+    // --- JAVÍTÁS KEZDTE ---
+    // Szinkronizáljuk a rejtett select mezőt is, hogy a validáció átengedjen!
+    const avatarSelectEl = document.getElementById('team-avatar-select');
+    if (avatarSelectEl) {
+        avatarSelectEl.innerHTML = `<option value="${profile.avatar}" selected>${profile.avatar}</option>`;
+    }
+    // --- JAVÍTÁS VÉGE ---
+
+    if (window.updateAvatarPreview) window.updateAvatarPreview();
+    
+    // Frissítjük a gomb állapotát is (hogy zöld legyen az "Azonnali kaland" gomb, ha van)
+    if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
+}
             });
 
         } else {
