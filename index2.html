@@ -8085,16 +8085,18 @@ async function validateAndUseCoupon() {
         document.addEventListener('DOMContentLoaded', () => {
 
 
-// Segédfüggvény: Szöveg Hash-elése (SHA-256)
-    // Ezt hívjuk meg ellenőrzéskor és betöltéskor is
-    window.hashString = function(text) {
+window.hashString = function(text) {
         if (!text) return "";
         const cleanText = String(text).trim().toLowerCase()
             .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
             .replace(/[^a-z0-9]/g, ''); 
-        return CryptoJS.SHA256(cleanText).toString();
+        if (typeof CryptoJS !== 'undefined') {
+            return CryptoJS.SHA256(cleanText).toString();
+        } else {
+            console.error("CryptoJS nem található!");
+            return "";
+        }
     };
-
 
 
 
