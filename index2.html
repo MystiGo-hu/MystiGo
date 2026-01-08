@@ -19,6 +19,15 @@
 
 <style>
 
+.description-truncate {
+    display: -webkit-box;
+    -webkit-line-clamp: 10; /* Itt állíthatod a sorok számát */
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
 .star-rating {
     display: flex;
     flex-direction: row-reverse;
@@ -4435,7 +4444,7 @@ window.closeImageModal = function() {
                                 ${gameTypeBadge}
                             </div>
                             ${locationBadge}
-                            <p class="text-text-dark mt-1 text-sm">${game.description || 'Nincs leírás megadva.'}</p>
+                            <p class="text-text-dark mt-1 text-sm description-truncate">${game.description || 'Nincs leírás megadva.'}</p>
                             <p class="text-xs font-semibold mt-3 text-brand-orange-500 pr-10">${priceText}</p>
                             ${hasSave ? '<p class="text-xs font-bold text-green-600 mt-2">Kattints a folytatáshoz!</p>' : ''}
                         </div>
