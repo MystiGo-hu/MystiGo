@@ -2080,69 +2080,60 @@ window.getGameCurrentCount = async function(gameId) {
 
   // 2. Szinkronizáció végrehajtása (Feltöltés) - JAVÍTOTT VERZIÓ
   window.syncPendingUploads = async function() {
-    if (!navigator.onLine) return; 
+    if (!navigator.onLine || !window.db || !window.auth.currentUser) return; 
 
-    // Ellenőrizzük, hogy a Firebase modul betöltött-e
-    if (typeof window.push !== 'function' || !window.db) {
-        console.warn("⏳ Firebase modul betöltése folyamatban...");
-        return; 
-    }
-
-    let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
+    let pending = JSON.parse(localStorage.getItem('MystiGo_PendingUploads') || "[]");
     if (pending.length === 0) return; 
 
-    console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
+    console.log(`🔄 Offline eredmények szinkronizálása (${pending.length} db)...`);
     
     const newPending = [];
-    let uploadCount = 0;
+    const user = window.auth.currentUser;
 
     for (const data of pending) {
         try {
-            // JAVÍTÁS: A helyes útvonal meghatározása (Instant vagy Normál)
+            // Meghatározzuk a célmappát (instant játékoknál közös)
             let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
             
-            // JAVÍTÁS: Ha van UID (regisztrált user), akkor pontosan oda mentjük (SET), nem új ID-t generálunk (PUSH)
-            // Ez biztosítja, hogy a Havi Ranglista megtalálja a UID-t és az isRegistered flaget.
-            if (data.uid) {
-                const exactRef = window.ref(window.db, `leaderboard/${targetId}/${data.uid}`);
-                // A teljes 'data' objektumot mentjük, így nem vész el az isRegistered és a uid mező!
-                await window.set(exactRef, data);
-            } else {
-                // Ha valamiért nincs UID (vendég), akkor generálunk egy új ID-t (régi viselkedés)
-                const listRef = window.ref(window.db, `leaderboard/${targetId}`);
-                await window.push(listRef, data);
+            // JAVÍTÁS: Nem push-t használunk, hanem a user UID-ja alá mentünk (mint online módban)
+            // Ezzel elkerüljük a duplikációt is.
+            const leaderboardEntryRef = window.ref(window.db, `leaderboard/${targetId}/${data.uid || user.uid}`);
+            
+            await window.set(leaderboardEntryRef, {
+                gameId: data.gameId,
+                teamName: data.teamName,
+                teamAvatar: data.teamAvatar,
+                score: data.score,
+                totalTime: data.totalTime,
+                geofenceTime: data.geofenceTime,
+                timestamp: data.timestamp, 
+                dateString: data.dateString,
+                uid: data.uid || user.uid,
+                isRegistered: data.isRegistered === undefined ? true : data.isRegistered // KRITIKUS JAVÍTÁS
+            });
+
+            // 2. Frissítjük a profil összpontszámát is (Dicsőségfal "Összesített" fül)
+            if (window.addPointsToUser && data.score > 0) {
+                await window.addPointsToUser(data.score);
             }
 
-            // Statisztika növelése (Game Completion)
             if (window.incrementGameCompletion) {
-                try {
-                    await window.incrementGameCompletion(data.gameId);
-                } catch (cntErr) {
-                    console.error(`⚠️ ${data.teamName}: Számláló hiba:`, cntErr);
-                }
+                await window.incrementGameCompletion(data.gameId);
             }
             
-            uploadCount++;
-            console.log(`✅ ${data.teamName} eredménye szinkronizálva (UID: ${data.uid || 'Vendég'}).`);
+            console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
 
         } catch (error) {
             console.error("Szinkronizációs hiba:", error);
-            // Ha hiba van, visszatesszük a sorba későbbre
-            newPending.push(data);
+            newPending.push(data); // Ha hiba van, marad a listában
         }
     }
 
-    // A még nem sikerült elemek visszamentése
-    if (newPending.length > 0) {
-        localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
-    } else {
-        localStorage.removeItem(PENDING_UPLOADS_KEY);
-    }
-    
-    if (uploadCount > 0) {
-        console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
-    }
+    localStorage.setItem('MystiGo_PendingUploads', JSON.stringify(newPending));
 };
+
+
+
 
 
 window.syncPendingRatings = async function() {
@@ -2230,6 +2221,10 @@ window.syncPendingRatings = async function() {
 
   // Indításkor is próbálja meg (hátha most van net, de tegnap nem volt)
   setTimeout(() => { if(window.syncPendingUploads) window.syncPendingUploads(); }, 6000);
+
+
+
+
 
 
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
@@ -3905,7 +3900,12 @@ window.initializeGamesFromFirebase = async function() {
     element.style.lineHeight = '1.5';
 
     const now = new Date();
-    // ... (dátum formázás marad a régi) ...
+    const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = String(now.getHours()).padStart(2, '0');
+            const minute = String(now.getMinutes()).padStart(2, '0');
+            const second = String(now.getSeconds()).padStart(2, '0');
     const fileNameTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     
     const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
