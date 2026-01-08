@@ -696,7 +696,7 @@
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
+        <main id="landing-page" class="hidden flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
             
             <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
                 <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
@@ -712,12 +712,12 @@
             
             </main>
         
-        <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
+        <div id="content-wrapper" class="absolute inset-0 transition-transform duration-500 top-0">
             <div id="header" class="relative text-text-heading text-center pt-1 pb-10">
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.54
+       v1.2.55
 
    </span>
 
@@ -784,7 +784,7 @@
             
             <div id="content-page-wrapper" class="absolute top-40 bottom-0 left-0 right-0 overflow-y-auto px-6 pb-6 bg-white">
                 
-                <section id="game-list-page" class="hidden">
+                <section id="game-list-page" class="">
                     <div id="game-list-controls" class="space-y-4 mb-6">
                         
                         
@@ -3619,10 +3619,24 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
-    showLoading(true);
+    // --- MÓDOSÍTÁS: Kivettük a showLoading(true)-t a blokkolás elkerülése végett ---
+    // showLoading(true); 
+    
+    // Helyette: Helyi töltésjelzőt rakunk a lista helyére, amíg tölt
+    const listEl = document.getElementById('game-list');
+    if (listEl && listEl.innerHTML.trim() === "") {
+        listEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 opacity-60">
+                <div class="animate-spin h-8 w-8 border-4 border-brand-orange border-t-transparent rounded-full mb-3"></div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Kalandok betöltése...</p>
+            </div>
+        `;
+    }
+
     const statusText = document.getElementById('loading-status');
 
-    // ✅ ÚJ: Várakozás, ha a Firebase modul még nem töltött be (max 5 mp)
+    // ✅ Várakozás, ha a Firebase modul még nem töltött be (max 5 mp)
+    // Ez a rész maradhat, mert a háttérben fut (async), nem fagyasztja a UI-t
     let retryCount = 0;
     while ((!window.db || !window.child) && retryCount < 50) {
         if(statusText) statusText.textContent = "Firebase motor indítása...";
@@ -3661,7 +3675,6 @@ window.initializeGamesFromFirebase = async function() {
 
         if (snapshot.exists()) {
             // --- SIKERES ONLINE LETÖLTÉS ---
-            // 🟢 JELZŐ ELREJTÉSE
             if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
 
             const data = snapshot.val();
@@ -3691,30 +3704,18 @@ window.initializeGamesFromFirebase = async function() {
         
         if (cachedList) {
             console.log("📂 Mentett (Offline) lista betöltése...");
-            
-            // 🔴 JELZŐ BEKAPCSOLÁSA (Mert cache-ből töltünk)
             if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
 
             try {
                 window.games = JSON.parse(cachedList);
-                if(statusText) {
-                    statusText.innerHTML = `<span style='color:orange'>${reasonMsg}: Mentett adatok betöltése...</span>`;
-                }
                 processGameDataAndRender();
-                
-                setTimeout(() => {
-                    if(!document.getElementById('game-list-page').classList.contains('hidden')){
-                         // Opcionális toast üzenet
-                    }
-                }, 1000);
-
             } catch(e) {
                 console.error("A mentett adatok sérültek:", e);
                 document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">A mentett adatok sérültek.<br>Internet szükséges a javításhoz!</div>`;
                 showLoading(false);
             }
         } else {
-            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Nem sikerült kapcsolódni.<br>Az első indításhoz internet szükséges!</div>`;
+            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500 font-bold text-sm">Hiba a kapcsolatban.<br><button onclick="location.reload()" class="mt-2 underline">Próbáld újra!</button></div>`;
             showLoading(false);
         }
     }
@@ -3731,8 +3732,22 @@ window.initializeGamesFromFirebase = async function() {
             });
         }
         populateLocationFilter();
-handleInitialUrlFiltering(); // 1. Előbb szűrünk és beállítjuk a logót/címet
-showPage('game-list-page');  // 2. Csak utána mutatjuk az oldalt 
+        handleInitialUrlFiltering(); 
+        
+        // --- MÓDOSÍTÁS: Nem hívjuk meg a showPage-t, mert már ott vagyunk, 
+        // csak frissítjük a UI állapotokat ha kell.
+        // showPage('game-list-page'); <--- EZT KIVETTÜK
+        
+        // Ezt viszont meghívjuk, hogy a layout (header padding stb.) biztosan jó legyen:
+        if (typeof showPage === 'function') {
+            // Csak "silent" módban igazítjuk a stílusokat, ha szükséges lenne
+            // De mivel a HTML-ben átírtuk a default classokat, ez már csak biztonsági háló.
+             const contentWrapperEl = document.getElementById('content-page-wrapper');
+             const headerEl = document.getElementById('header');
+             if(contentWrapperEl) contentWrapperEl.style.top = '160px';
+             if(headerEl) headerEl.style.paddingBottom = '';
+        }
+
         if (typeof autoSortGamesByDistance === 'function') {
             try { autoSortGamesByDistance(); } catch(e){} 
         }
@@ -4094,40 +4109,41 @@ const isRegistered = !!(user && !user.isAnonymous);
             
 
   window.resetApp = function() {
-            // 1. Térkép és markerek takarítása
-            if (appState.map) {
-                appState.map.remove();
-                appState.map = null;
-            }
-            if (manualMarker) {
-                manualMarker.remove();
-                manualMarker = null;
-            }
-            if (appState.geoWatchId) {
-                stopAllGpsActivity();
-            }
-            if (appState.timerInterval) clearInterval(appState.timerInterval);
+    // 1. Térkép és markerek takarítása
+    if (appState.map) {
+        appState.map.remove();
+        appState.map = null;
+    }
+    if (manualMarker) {
+        manualMarker.remove();
+        manualMarker = null;
+    }
+    if (appState.geoWatchId) {
+        stopAllGpsActivity();
+    }
+    if (appState.timerInterval) clearInterval(appState.timerInterval);
 
-            // 2. Változók alaphelyzetbe állítása
-            initializeState();
+    // 2. Változók alaphelyzetbe állítása
+    initializeState();
 
-            // 3. UI visszaállítása
-            document.getElementById('landing-page').classList.add('hidden');
-            document.getElementById('content-wrapper').classList.remove('hidden');
-            document.getElementById('content-wrapper').classList.remove('translate-y-full');
-            
-            // UI elemek elrejtése a biztonság kedvéért
-            document.getElementById('task-interaction-area').classList.add('hidden');
-            document.getElementById('start-task-button-container').classList.add('hidden');
-            document.getElementById('game-status-bar').classList.add('hidden');
+    // 3. UI visszaállítása - MÓDOSÍTVA
+    // Nem rejtjük el a landing page-et, mert már el van rejtve alapból.
+    // Biztosítjuk, hogy a content wrapper látható legyen.
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('content-wrapper').classList.remove('hidden');
+    document.getElementById('content-wrapper').classList.remove('translate-y-full');
+    
+    // UI elemek elrejtése a biztonság kedvéért (játék nézet elemei)
+    document.getElementById('task-interaction-area').classList.add('hidden');
+    document.getElementById('start-task-button-container').classList.add('hidden');
+    document.getElementById('game-status-bar').classList.add('hidden');
+    
+    // Visszatérés a lista nézethez
+    showPage('game-list-page');
 
-            // 4. Játéklista betöltése Firebase-ből
-            initializeGamesFromFirebase(); 
-            
-            // 5. Oldalváltás a listára
-            // (A initializeGamesFromFirebase a végén úgyis meghívja a showPage-t, 
-            // de nem baj, ha itt is megvan, a betöltésjelző addig látszik)
-        };
+    // 4. Játéklista újratöltése
+    initializeGamesFromFirebase(); 
+};
 
         window.showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
@@ -7935,7 +7951,7 @@ async function validateAndUseCoupon() {
   
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
-
+		appState.currentPage = 'game-list-page';
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
 
@@ -9352,12 +9368,28 @@ onAuthStateChanged(auth, (user) => {
                 
                 const finalName = profile.teamName || user.displayName || "Játékos";
                 if (nameDisplay) nameDisplay.textContent = finalName;
-                if (nameInput && !nameInput.value) nameInput.value = finalName;
+                if (nameInput) {
+    nameInput.value = finalName;
+    // Opcionális: A localStorage-ot is frissítjük azonnal, hogy szinkronban legyen
+    localStorage.setItem('mystigo_pref_teamName', finalName);
+}
 
                 if (profile.avatar) {
-                    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-                    if (window.updateAvatarPreview) window.updateAvatarPreview();
-                }
+    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+    
+    // --- JAVÍTÁS KEZDTE ---
+    // Szinkronizáljuk a rejtett select mezőt is, hogy a validáció átengedjen!
+    const avatarSelectEl = document.getElementById('team-avatar-select');
+    if (avatarSelectEl) {
+        avatarSelectEl.innerHTML = `<option value="${profile.avatar}" selected>${profile.avatar}</option>`;
+    }
+    // --- JAVÍTÁS VÉGE ---
+
+    if (window.updateAvatarPreview) window.updateAvatarPreview();
+    
+    // Frissítjük a gomb állapotát is (hogy zöld legyen az "Azonnali kaland" gomb, ha van)
+    if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
+}
             });
 
         } else {
