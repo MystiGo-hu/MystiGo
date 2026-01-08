@@ -8144,43 +8144,57 @@ const isIos = () => {
 
 
             if (avatarSelectEl) {
-    // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
-    window.updateAvatarPreview = () => {
-        const previewContainer = document.getElementById('avatar-preview-container');
-        const badge = document.getElementById('preview-verified-badge'); // <--- ÚJ: A pipa lekérése
-        
-        // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
-        const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+        // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
+        window.updateAvatarPreview = () => {
+            const previewContainer = document.getElementById('avatar-preview-container');
+            const badge = document.getElementById('preview-verified-badge');
+            const selectEl = document.getElementById('team-avatar-select'); // Lekérjük a rejtett mezőt
 
-        // 1. Avatar (Emoji) frissítése
-        if (previewContainer && savedAvatar) {
-            // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
-            previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+            // Megnézzük, mi van a memóriában. Ha semmi, alapértelmezett 'cat'-re állunk.
+            const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar') || 'cat';
 
-            // Kis vizuális visszajelzés
-            previewContainer.classList.add('scale-110');
-            setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
-        }
-
-        // 2. Kék pipa (Verified Badge) frissítése - EZ HIÁNYZOTT
-        if (badge) {
-            // Biztonságos ellenőrzés: létezik-e már az auth objektum?
-            const user = (window.auth) ? window.auth.currentUser : null;
-
-            if (user && !user.isAnonymous) {
-                badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
-            } else {
-                badge.classList.remove('active'); // Ha vendég, elrejtjük
+            // --- JAVÍTÁS: A rejtett mező kényszerített szinkronizálása ---
+            // Ez biztosítja, hogy a "Válassz avatart" hiba ne jöjjön elő, 
+            // mert a programkód is látni fogja, hogy van választott karakter.
+            if (selectEl) {
+                // Ha üres, vagy eltér a mentettől, akkor beállítjuk
+                if (selectEl.value !== savedAvatar) {
+                    selectEl.innerHTML = `<option value="${savedAvatar}" selected>${savedAvatar}</option>`;
+                    selectEl.value = savedAvatar; // Biztos, ami biztos
+                }
             }
-        }
-    };
+            // -----------------------------------------------------------
 
-    // Eseményfigyelő hozzáadása
-    avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
+            // 1. Avatar (Emoji) vizuális frissítése
+            if (previewContainer) {
+                // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
+                previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
 
-    // Kezdeti betöltés (mentett adatok alapján)
-    setTimeout(window.updateAvatarPreview, 200);
-}
+                // Kis vizuális visszajelzés
+                previewContainer.classList.add('scale-110');
+                setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
+            }
+
+            // 2. Kék pipa (Verified Badge) frissítése
+            if (badge) {
+                const user = (window.auth) ? window.auth.currentUser : null;
+                if (user && !user.isAnonymous) {
+                    badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
+                } else {
+                    badge.classList.remove('active'); // Ha vendég, elrejtjük
+                }
+            }
+
+            // Gomb állapotának frissítése (ha szükséges)
+            if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
+        };
+
+        // Eseményfigyelő hozzáadása
+        avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
+
+        // Kezdeti betöltés (mentett adatok alapján)
+        setTimeout(window.updateAvatarPreview, 200);
+    }
 
 
             // --- ÚJ RÉSZ VÉGE ---
