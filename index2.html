@@ -2231,46 +2231,46 @@ window.syncPendingRatings = async function() {
   // --- MENTÉS LOGIKA (0 PONT ELLENŐRZÉSSEL) ---
 window.saveScoreToFirebase = function(data) {
     if (!data.gameId) return;
-
     let safeScore = Number(data.score);
     if (isNaN(safeScore) || safeScore <= 0) return; 
 
-    const now = new Date();
-    const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
     const user = window.auth ? window.auth.currentUser : null;
-    if (!user) return; // Ha nincs user, nem tudunk menteni a szabályok miatt
+    if (!user) return;
 
     const scoreData = {
         gameId: data.gameId,
         teamName: String(data.teamName || "Névtelen").trim(),
         teamAvatar: data.teamAvatar || "cat",
         uid: user.uid,
-        isRegistered: !user.isAnonymous,
+        isRegistered: !user.isAnonymous, 
         score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
         timestamp: Date.now(),
-        dateString: readableDate
+        dateString: new Date().toLocaleString('hu-HU')
     };
 
     if (navigator.onLine && window.db) {
         let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
         
-        // JAVÍTÁS: push() helyett konkrétan a user.uid alá mentünk!
-        const leaderboardEntryRef = window.ref(window.db, `leaderboard/${targetId}/${user.uid}`);
+        // JAVÍTÁS: .push() használata a user.uid helyett, hogy ne írjuk felül a régit!
+        const leaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
         
-        window.set(leaderboardEntryRef, scoreData).then(() => {
-            console.log("✅ Ranglista mentve (UID alapján).");
+        window.push(leaderboardRef, scoreData).then(() => {
+            console.log("✅ Eredmény rögzítve a dicsőségfalhoz.");
             if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
         }).catch((error) => {
-            console.error("❌ Mentési hiba (valószínűleg Rules hiba):", error);
             saveToPendingUploads(scoreData);
         });
     } else {
         saveToPendingUploads(scoreData);
     }
 };
+
+
+
+
+
 
 // --- ÉRTÉKELÉSI FUNKCIÓK ---
 window.closeRatingModal = function() {
@@ -2627,18 +2627,55 @@ window.populateMonthSelector = function() {
     const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
     let data = [...window.currentLeaderboardData];
 
-    // SZŰRÉS
+const bestScores = {};
+data.forEach(entry => {
+    const key = entry.uid || entry.teamName;
+    if (!bestScores[key] || entry.score > bestScores[key].score) {
+        bestScores[key] = entry;
+    }
+});
+data = Object.values(bestScores);
+
+
+  // 1. NYERS SZŰRÉS (időpont alapján) - amit te küldtél
     if (mode === 'today') {
         const startOfToday = new Date().setHours(0, 0, 0, 0);
         data = data.filter(r => r.timestamp >= startOfToday);
     } else if (mode === 'monthly') {
-        const selectedMonth = document.getElementById('leaderboard-month-select').value; // Pl: "2024-05"
+        const selectedMonth = document.getElementById('leaderboard-month-select').value;
         data = data.filter(r => {
+            if (!r.timestamp) return false;
             const d = new Date(r.timestamp);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             return key === selectedMonth;
         });
     }
+
+    // 2. CSOPORTOSÍTÁS ÉS ÖSSZEGZÉS (hogy ne legyen névismétlés)
+    // Létrehozunk egy objektumot, ahol a kulcs a User ID (uid) lesz
+    const aggregatedData = {};
+
+    data.forEach(entry => {
+        // Ha nincs UID (pl. régi vendég), használjuk a csapatnevet kulcsnak
+        const key = entry.uid || entry.teamName;
+        
+        if (!aggregatedData[key]) {
+            // Első alkalommal lementjük az alap adatokat
+            aggregatedData[key] = { ...entry };
+        } else {
+            // Ha már benne van, hozzáadjuk az új pontszámot a meglévőhöz
+            aggregatedData[key].score += entry.score;
+            // A legfrissebb időbélyeget és nevet tartsuk meg
+            if (entry.timestamp > aggregatedData[key].timestamp) {
+                aggregatedData[key].timestamp = entry.timestamp;
+                aggregatedData[key].teamName = entry.teamName;
+                aggregatedData[key].teamAvatar = entry.teamAvatar;
+            }
+        }
+    });
+
+    // Visszaalakítjuk az objektumot tömbbé a megjelenítéshez
+    data = Object.values(aggregatedData);
 
     // RENDEZÉS (Pont -> Feladat idő -> Teljes idő)
     data.sort((a, b) => {
@@ -2968,14 +3005,16 @@ window.openHallOfFame = async function(mode = 'monthly') {
             // Hónapválasztó feltöltése, ha üres
             if (monthSelect.options.length === 0) {
                 const sortedMonths = Array.from(monthMap).sort().reverse();
-                monthSelect.innerHTML = sortedMonths.map(m => {
-                    const [year, month] = m.split('-');
-                    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
-                    return `<option value="${m}">${label}</option>`;
-                }).join('');
-            }
+monthSelect.innerHTML = sortedMonths.map(m => {
+    const [year, month] = m.split('-');
+    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
+    return `<option value="${m}">${label}</option>`;
+}).join('');
 
-            const targetMonthKey = monthSelect.value;
+// Ha még nincs választott érték, legyen az aktuális hónap a default
+if (!monthSelect.value && sortedMonths.length > 0) {
+    monthSelect.value = sortedMonths[0];
+}
 
             // 2. Pontok összegezése a választott hónapra (UID ALAPÚ AZONOSÍTÁSSAL)
             Object.values(allGames).forEach(gameResults => {
@@ -3906,7 +3945,7 @@ window.initializeGamesFromFirebase = async function() {
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
             const second = String(now.getSeconds()).padStart(2, '0');
-    const fileNameTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
     
     const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
     const gameId = window.currentGameId || 'Eredmény'; 
