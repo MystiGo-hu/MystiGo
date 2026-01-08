@@ -2082,85 +2082,143 @@ window.getGameCurrentCount = async function(gameId) {
   window.syncPendingUploads = async function() {
     if (!navigator.onLine) return; 
 
-    // ✅ JAVÍTÁS: Csak akkor fusson, ha a modul már betöltötte a Firebase-t
+    // Ellenőrizzük, hogy a Firebase modul betöltött-e
     if (typeof window.push !== 'function' || !window.db) {
         console.warn("⏳ Firebase modul betöltése folyamatban...");
         return; 
     }
 
     let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
-      if (pending.length === 0) return; 
+    if (pending.length === 0) return; 
 
-      console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
-      
-      const newPending = [];
-      let uploadCount = 0;
+    console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
+    
+    const newPending = [];
+    let uploadCount = 0;
 
-      for (const data of pending) {
-          try {
-              // ✅ JAVÍTÁS: window.ref és window.db használata
-              const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
-              
-              // ✅ JAVÍTÁS: window.push használata
-              await window.push(leaderboardRef, {
-                  teamName: data.teamName,
-                  teamAvatar: data.teamAvatar,
-                  score: data.score,
-                  totalTime: data.totalTime,
-                  geofenceTime: data.geofenceTime,
-                  timestamp: data.timestamp, 
-                  dateString: data.dateString
-              });
+    for (const data of pending) {
+        try {
+            // JAVÍTÁS: A helyes útvonal meghatározása (Instant vagy Normál)
+            let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
+            
+            // JAVÍTÁS: Ha van UID (regisztrált user), akkor pontosan oda mentjük (SET), nem új ID-t generálunk (PUSH)
+            // Ez biztosítja, hogy a Havi Ranglista megtalálja a UID-t és az isRegistered flaget.
+            if (data.uid) {
+                const exactRef = window.ref(window.db, `leaderboard/${targetId}/${data.uid}`);
+                // A teljes 'data' objektumot mentjük, így nem vész el az isRegistered és a uid mező!
+                await window.set(exactRef, data);
+            } else {
+                // Ha valamiért nincs UID (vendég), akkor generálunk egy új ID-t (régi viselkedés)
+                const listRef = window.ref(window.db, `leaderboard/${targetId}`);
+                await window.push(listRef, data);
+            }
 
-              if (window.incrementGameCompletion) {
-                  try {
-                      await window.incrementGameCompletion(data.gameId);
-                      console.log(`✅ ${data.teamName}: Számláló növelve.`);
-                  } catch (cntErr) {
-                      console.error(`⚠️ ${data.teamName}: Számláló hiba:`, cntErr);
-                  }
-              }
-              
-              uploadCount++;
-              console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
+            // Statisztika növelése (Game Completion)
+            if (window.incrementGameCompletion) {
+                try {
+                    await window.incrementGameCompletion(data.gameId);
+                } catch (cntErr) {
+                    console.error(`⚠️ ${data.teamName}: Számláló hiba:`, cntErr);
+                }
+            }
+            
+            uploadCount++;
+            console.log(`✅ ${data.teamName} eredménye szinkronizálva (UID: ${data.uid || 'Vendég'}).`);
 
-          } catch (error) {
-              console.error("Szinkronizációs hiba:", error);
-              newPending.push(data);
-          }
-      }
+        } catch (error) {
+            console.error("Szinkronizációs hiba:", error);
+            // Ha hiba van, visszatesszük a sorba későbbre
+            newPending.push(data);
+        }
+    }
 
-      localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
-      
-      if (uploadCount > 0) {
-          console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
-      }
-  };
+    // A még nem sikerült elemek visszamentése
+    if (newPending.length > 0) {
+        localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
+    } else {
+        localStorage.removeItem(PENDING_UPLOADS_KEY);
+    }
+    
+    if (uploadCount > 0) {
+        console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
+    }
+};
+
+
+window.syncPendingRatings = async function() {
+    if (!navigator.onLine || !window.db) return;
+
+    const pendingRatingsJson = localStorage.getItem('MystiGo_PendingRatings');
+    if (!pendingRatingsJson) return;
+
+    let pendingRatings = JSON.parse(pendingRatingsJson);
+    if (pendingRatings.length === 0) return;
+
+    console.log(`🔄 ${pendingRatings.length} db offline értékelés szinkronizálása...`);
+    
+    const remainingRatings = [];
+
+    for (const item of pendingRatings) {
+        try {
+            const statsRef = window.ref(window.db, `game_stats/${item.gameId}/rating`);
+            await window.runTransaction(statsRef, (currentData) => {
+                if (currentData === null) {
+                    return { sum: item.rating, count: 1, average: item.rating };
+                } else {
+                    const newCount = (currentData.count || 0) + 1;
+                    const newSum = (currentData.sum || 0) + item.rating;
+                    return {
+                        sum: newSum,
+                        count: newCount,
+                        average: Math.round((newSum / newCount) * 10) / 10
+                    };
+                }
+            });
+            console.log(`✅ Értékelés feltöltve: ${item.gameId}`);
+        } catch (e) {
+            console.error("Hiba a szinkronizálásnál:", e);
+            remainingRatings.push(item); // Ha hiba volt, tartsuk meg későbbre
+        }
+    }
+
+    if (remainingRatings.length > 0) {
+        localStorage.setItem('MystiGo_PendingRatings', JSON.stringify(remainingRatings));
+    } else {
+        localStorage.removeItem('MystiGo_PendingRatings');
+        console.log("✅ Minden értékelés szinkronizálva.");
+    }
+};
+
 
 
 
 
   // 3. Eseményfigyelők indítása (Internet visszatérés figyelése)
   window.addEventListener('online', () => {
-      console.log("🌐 Internet kapcsolat helyreállt.");
-      
-      // A) Piros felirat azonnali eltüntetése
-      if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
-      
-      // B) Esetleges hibaüzenetek (Toast) eltüntetése
-      const statusText = document.getElementById('loading-status');
-      if(statusText && statusText.textContent.includes('Offline')) {
-          statusText.textContent = "";
-      }
+    console.log("🌐 Internet kapcsolat helyreállt.");
+    
+    // A) Piros felirat azonnali eltüntetése
+    if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
+    
+    // B) Esetleges hibaüzenetek (Toast) eltüntetése
+    const statusText = document.getElementById('loading-status');
+    if(statusText && statusText.textContent.includes('Offline')) {
+        statusText.textContent = "";
+    }
 
-      // C) Elmentett eredmények feltöltése
-      if(window.syncPendingUploads) window.syncPendingUploads();
-      
-      // D) Ha épp a főoldalon (játéklista) vagyunk, logolunk
-      if (!document.getElementById('game-list-page').classList.contains('hidden')) {
-          console.log("A lista nézet aktív, a következő interakció már online lesz.");
-      }
-  });
+    // C) Elmentett eredmények feltöltése (MEGLÉVŐ)
+    if(window.syncPendingUploads) window.syncPendingUploads();
+
+    // ÚJ: Elmentett értékelések feltöltése (EZ AZ ÚJ RÉSZ)
+    if(window.syncPendingRatings) window.syncPendingRatings();
+    
+    // D) Ha épp a főoldalon (játéklista) vagyunk, logolunk (MEGLÉVŐ)
+    if (!document.getElementById('game-list-page').classList.contains('hidden')) {
+        console.log("A lista nézet aktív, a következő interakció már online lesz.");
+    }
+});
+
+
 
   // Amikor elmegy a net (játék közben):
   window.addEventListener('offline', () => {
@@ -2236,7 +2294,28 @@ window.submitGameRating = async function() {
     const ratingValue = parseInt(selectedStar.value);
     const gameId = window.currentGameId;
 
-    if (!gameId || !window.db || !window.runTransaction) return;
+    if (!gameId) return;
+
+    // --- OFFLINE KEZELÉS ---
+    if (!navigator.onLine || !window.db) {
+        try {
+            const pendingRatings = JSON.parse(localStorage.getItem('MystiGo_PendingRatings') || "[]");
+            // Hozzáadjuk az új értékelést
+            pendingRatings.push({
+                gameId: String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId,
+                rating: ratingValue,
+                timestamp: Date.now()
+            });
+            localStorage.setItem('MystiGo_PendingRatings', JSON.stringify(pendingRatings));
+            
+            window.closeRatingModal();
+            showMessage("Offline mód", "Az értékelésedet elmentettük, és internetkapcsolat esetén automatikusan beküldjük!");
+        } catch (e) {
+            console.error("Hiba az offline értékelés mentésekor:", e);
+        }
+        return;
+    }
+    // -----------------------
 
     let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
     showLoading(true);
@@ -2262,6 +2341,11 @@ window.submitGameRating = async function() {
         showMessage("Köszönjük!", "Az értékelésedet rögzítettük.");
     } catch (e) {
         console.error("Értékelési hiba:", e);
+        // Ha hiba van (pl. hirtelen elment a net), mentsük el offline-ra
+        const pendingRatings = JSON.parse(localStorage.getItem('MystiGo_PendingRatings') || "[]");
+        pendingRatings.push({ gameId: statsId, rating: ratingValue, timestamp: Date.now() });
+        localStorage.setItem('MystiGo_PendingRatings', JSON.stringify(pendingRatings));
+        window.closeRatingModal();
     } finally {
         showLoading(false);
     }
@@ -3799,73 +3883,72 @@ window.initializeGamesFromFirebase = async function() {
 
  // --- PDF GENERATION (Avatarral kiegészítve) ---
        function downloadPDF() {
-            const element = document.getElementById('pdf-content');
-            if (!element) return;
-            
-            showLoading(true); 
-            document.getElementById('loading-status').textContent = "Eredménylap generálása...";
+    const element = document.getElementById('pdf-content');
+    if (!element) return;
+    
+    // Ellenőrizzük az offline állapotot a PDF generálás előtt
+    if (!navigator.onLine) {
+        alert("Offline módban vagy. A PDF generálása képek nélkül történhet, vagy sikertelen lehet.");
+    }
 
-            const originalStyle = element.style.cssText;
-            
-            // --- UNIVERZÁLIS JAVÍTÁS (Desktop + Mobil) ---
-            
-            // 1. Kényszerítjük a szélességet A4 méretre (kb. 800px)
-            // Így nem "csúszik el" semmilyen képernyőn.
-            element.style.width = '790px'; 
-            element.style.margin = '0 auto'; // Középre igazítás
-            element.style.padding = '20px'; 
-            element.style.backgroundColor = '#ffffff';
-            
-            // 2. Biztonságos betűtípus
-            element.style.fontFamily = 'Arial, Helvetica, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
-            element.style.lineHeight = '1.5';
-            // ---------------------------
+    showLoading(true); 
+    document.getElementById('loading-status').textContent = "Eredménylap generálása...";
 
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hour = String(now.getHours()).padStart(2, '0');
-            const minute = String(now.getMinutes()).padStart(2, '0');
-            const second = String(now.getSeconds()).padStart(2, '0'); 
+    const originalStyle = element.style.cssText;
+    
+    // Stílusok rögzítése a generáláshoz
+    element.style.width = '790px'; 
+    element.style.margin = '0 auto';
+    element.style.padding = '20px'; 
+    element.style.backgroundColor = '#ffffff';
+    element.style.fontFamily = 'Arial, Helvetica, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
+    element.style.lineHeight = '1.5';
 
-            const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-            
-            const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
-            const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
-            const gameId = window.currentGameId || 'Eredmény'; 
+    const now = new Date();
+    // ... (dátum formázás marad a régi) ...
+    const fileNameTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
+    const gameId = window.currentGameId || 'Eredmény'; 
+    const fileName = `MystiGo_${gameId}_${safeTeamName}_${fileNameTimestamp}.pdf`;
 
-            const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
+    // Konfiguráció beállítása az internetkapcsolat függvényében
+    // Ha offline, kikapcsoljuk a CORS-t, hogy ne akadjon el a külső képeken
+    const useCorsSetting = navigator.onLine;
 
-            setTimeout(() => {
-                html2pdf().from(element).set({
-                    margin: 10, 
-                    filename: fileName, 
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2, 
-                        logging: false, 
-                        useCORS: true, 
-                        letterRendering: false, 
-                        scrollY: 0,
-                        // KULCSFONTOSSÁGÚ: A virtuális ablak szélessége egyezzen meg az elem szélességével!
-                        windowWidth: 800,
-                        width: 800,
-                        x: 0
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                }).save().then(() => {
-                    element.style.cssText = originalStyle;
-                    document.getElementById('loading-status').textContent = ""; 
-                    showLoading(false);
-                }).catch(err => {
-                    console.error("PDF generálási hiba:", err);
-                    element.style.cssText = originalStyle;
-                    document.getElementById('loading-status').textContent = "";
-                    showLoading(false);
-                });
-            }, 500); 
-        }
+    const opt = {
+        margin: 10, 
+        filename: fileName, 
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2, 
+            logging: false, 
+            useCORS: useCorsSetting, // Dinamikus beállítás
+            letterRendering: false, 
+            scrollY: 0,
+            windowWidth: 800,
+            width: 800,
+            x: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // A generálást becsomagoljuk egy Promise-ba a biztonságos lezárásért
+    html2pdf().from(element).set(opt).save()
+        .then(() => {
+            console.log("PDF generálás kész.");
+        })
+        .catch(err => {
+            console.error("PDF generálási hiba:", err);
+            alert("Hiba történt a PDF generálása közben (lehet, hogy a hálózat hiánya okozza a képek betöltésénél).");
+        })
+        .finally(() => {
+            // EZT A RÉSZT MINDENKÉPP LEFUTTATJUK
+            element.style.cssText = originalStyle;
+            document.getElementById('loading-status').textContent = ""; 
+            showLoading(false);
+        });
+}
 
 
 async function sharePdfViaEmail() {
