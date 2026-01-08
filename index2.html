@@ -4433,12 +4433,12 @@ window.closeImageModal = function() {
                         ${leaderboardBtnHtml}
                         
                         <div class="relative">
-                            <img src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
+                            <img id="game-img-${game.id}" src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
                             ${distanceBadge}
                             ${ratingBadgeHtml}
 			    ${limitBadgeHtml}  </div>
 
-                        <div class="p-5 ${contentOpacityClass}">
+                        <div id="game-content-${game.id}" class="p-5 ${contentOpacityClass}">
                             <div class="flex justify-between items-start">
                                 <h3 class="text-xl font-bold text-text-heading">${game.title}</h3>
                                 ${gameTypeBadge}
@@ -4505,6 +4505,12 @@ window.closeImageModal = function() {
                                     badgeEl.classList.remove('bg-gray-200');
                                     badgeEl.classList.add('bg-red-600');
                                     badgeEl.title = "A limit betelt!";
+
+				    const imgEl = document.getElementById(`game-img-${game.id}`);
+				      const contentEl = document.getElementById(`game-content-${game.id}`);
+				      if (imgEl) imgEl.classList.add('opacity-40', 'grayscale');
+				      if (contentEl) contentEl.classList.add('opacity-40', 'grayscale');
+
                                 }
                             }
                         });
