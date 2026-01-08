@@ -1,0 +1,7 @@
+1000x400
+800x320
+dpi 72
+
+.webp  51-es detail
+
+2.5:1 arány
