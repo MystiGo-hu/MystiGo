@@ -717,7 +717,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.53
+       v1.2.54
 
    </span>
 
@@ -1254,12 +1254,25 @@
 </button>
                         
 
+
+
+
                         <div id="start-task-button-container" class="mt-4 hidden">
                             <button id="start-game-btn" class="main-button w-full !text-lg !py-3 disabled:!bg-gray-400 leading-tight">
     <span class="block">🚀 Kaland Indítása</span>
     <span class="block text-sm opacity-80">(Időmérés elindul)</span>
 </button>
                         </div>
+
+
+<div id="normal-finish-button-container" class="mt-4 hidden">
+    <button onclick="finishExploreGameEarly()" 
+            class="w-full py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-100 transition shadow-sm flex items-center justify-center gap-2 transform active:scale-95">
+        <span>🏁</span> Játék befejezése most
+    </button>
+</div>
+
+
                         <div id="explore-selection-container" class="mt-4 hidden text-center">
     <h3 class="text-lg font-bold text-brand-blue mb-2">Válassz Feladatot a Térképen!</h3>
     <p class="text-sm text-gray-600 mb-4">A következő célpont kiválasztásához kattints egy kék jelölőre a térképen.</p>
@@ -5706,6 +5719,7 @@ function updateHintButtons(task) {
             document.getElementById('start-task-button-container').classList.add('hidden');
             document.getElementById('google-maps-btn').classList.remove('hidden');
             document.getElementById('report-error-btn').classList.remove('hidden');
+	    document.getElementById('normal-finish-button-container').classList.add('hidden');
 
             const backBtn = document.getElementById('back-to-map-btn');
             if (backBtn) {
@@ -5864,15 +5878,21 @@ if (appState.completedTasks.indexOf(currentTask.index) === -1) {
 
 // --- EXPLORE JÁTÉK KORAI BEFEJEZÉSE ---
 window.finishExploreGameEarly = function() {
-    // Kiszámoljuk, hol tart a játékos, hogy tájékoztassuk
-    const totalTasks = appState.currentGame ? (appState.currentGame.tasks.length - 1) : 0;
-    const completedCount = appState.completedTasks ? appState.completedTasks.filter(t => t > 0).length : 0;
-    
-    const message = `Biztosan befejezed a játékot?\n\nEddig teljesítve: <strong>${completedCount} / ${totalTasks}</strong> feladat.\n\nHa most lezárod, az eddig szerzett pontjaid megmaradnak, de a hátralévő feladatokat nem tudod teljesíteni.`;
+    if (!appState.currentGame) return;
 
-    // A showMessage 'true' paramétere aktiválja a Mégse gombot is
+    const totalTasks = appState.currentGame.tasks.length - 1;
+    let completedCount = 0;
+
+    if (appState.currentGame.taskOrder === 'explore') {
+        completedCount = appState.completedTasks.filter(t => t > 0).length;
+    } else {
+        const currentIndex = appState.currentGame.tasks.findIndex(t => t.index === appState.currentTaskIndex);
+        completedCount = Math.max(0, currentIndex - 1);
+    }
+    
+    const message = `Biztosan befejezed a játékot?<br><br>Eddig teljesítve: <strong>${completedCount} / ${totalTasks}</strong> feladat.<br><br>Ha most lezárod, az eddig szerzett pontjaid megmaradnak, viszont a játéknak Vége, nem fogod tudni folytatni!`;
+
     showMessage('Játék lezárása', message, () => {
-        // Ha az "Igen"-re nyom:
         endGame();
     }, true);
 };
@@ -6769,12 +6789,14 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
                     setTimeout(() => float.remove(), 2000);
                     
                     if (window.MystiSounds) MystiSounds.success();
-                    updateStatusDisplays(); // Pontszám frissítése a fejlécben
-	saveGameState();
+                    updateStatusDisplays(); 
                 }
-            }
-        });
-    }
+            } 
+        }); 
+    }     
+
+    saveGameState();
+
 
 
 
@@ -6894,6 +6916,19 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
                 document.getElementById('answer-input').disabled = false;
             }
             
+
+const normalFinishBtn = document.getElementById('normal-finish-button-container');
+if (normalFinishBtn && appState.currentGame) {
+    // Csak akkor mutassuk, ha normál/team játék van, megy az idő, nem vagyunk zónában és már elhagytuk a Start-ot
+    const isNormalGame = appState.currentGame.taskOrder !== 'explore';
+    const isBetweenTasks = !appState.isInZone && !currentTask.isStartTask;
+    
+    if (isNormalGame && appState.isTimerRunning && isBetweenTasks) {
+        normalFinishBtn.classList.remove('hidden');
+    } else {
+        normalFinishBtn.classList.add('hidden');
+    }
+}
 
 
 
