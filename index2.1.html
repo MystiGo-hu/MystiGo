@@ -696,7 +696,7 @@
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
+        <main id="landing-page" class="hidden flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
             
             <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
                 <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
@@ -712,7 +712,7 @@
             
             </main>
         
-        <div id="content-wrapper" class="absolute inset-0 transition-transform duration-500">
+        <div id="content-wrapper" class="absolute inset-0 transition-transform duration-500 top-0">
             <div id="header" class="relative text-text-heading text-center pt-1 pb-10">
                  <div id="main-header">
 
@@ -784,7 +784,7 @@
             
             <div id="content-page-wrapper" class="absolute top-40 bottom-0 left-0 right-0 overflow-y-auto px-6 pb-6 bg-white">
                 
-                <section id="game-list-page" class="hidden">
+                <section id="game-list-page" class="">
                     <div id="game-list-controls" class="space-y-4 mb-6">
                         
                         
@@ -3375,7 +3375,7 @@ window.applyRotation = function(deg) {
 
         function initializeState() {
             appState = { 
-                currentPage: 'game-list-page', 
+                currentPage: 'landing-page', 
                 selectedGameId: null, 
                 lastMapInteraction: 0,
 		currentGame: null, 
@@ -3619,80 +3619,105 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
-    const listContainer = document.getElementById('game-list');
-    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
-    let isContentVisible = false;
-
-    // 1. AZONNALI MEGJELENÍTÉS: Cache betöltése (Ha van)
-    // Ezt rögtön az elején csináljuk, nem várunk a Firebase-re!
-    const cachedList = localStorage.getItem(CACHE_KEY_LIST);
-    if (cachedList) {
-        try {
-            console.log("⚡ Cache azonnali megjelenítése...");
-            window.games = JSON.parse(cachedList);
-            processGameDataAndRender(); 
-            isContentVisible = true; // Jelezzük, hogy a user már lát valamit, nem kell loader
-        } catch(e) {
-            console.error("Hibás cache:", e);
-        }
-    }
-
-    // 2. Csak akkor rakunk ki homokórát, ha TÉNYLEG nincs semmi adat (pl. legelső indítás)
-    if (!isContentVisible && listContainer) {
-        listContainer.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-12 opacity-60">
+    // --- MÓDOSÍTÁS: Kivettük a showLoading(true)-t a blokkolás elkerülése végett ---
+    // showLoading(true); 
+    
+    // Helyette: Helyi töltésjelzőt rakunk a lista helyére, amíg tölt
+    const listEl = document.getElementById('game-list');
+    if (listEl && listEl.innerHTML.trim() === "") {
+        listEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 opacity-60">
                 <div class="animate-spin h-8 w-8 border-4 border-brand-orange border-t-transparent rounded-full mb-3"></div>
-                <p class="text-gray-500 text-xs font-bold animate-pulse">Kalandok betöltése...</p>
-            </div>`;
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Kalandok betöltése...</p>
+            </div>
+        `;
     }
 
-    // 3. Háttérben várunk a Firebase-re (már nem blokkolja a látványt, ha volt cache)
+    const statusText = document.getElementById('loading-status');
+
+    // ✅ Várakozás, ha a Firebase modul még nem töltött be (max 5 mp)
+    // Ez a rész maradhat, mert a háttérben fut (async), nem fagyasztja a UI-t
     let retryCount = 0;
-    while ((!window.db || !window.child) && retryCount < 100) {
-        await new Promise(r => setTimeout(r, 50)); // Gyorsabb csekkolás (50ms)
+    while ((!window.db || !window.child) && retryCount < 50) {
+        if(statusText) statusText.textContent = "Firebase motor indítása...";
+        await new Promise(r => setTimeout(r, 100));
         retryCount++;
     }
 
+    if(statusText) statusText.textContent = "Csatlakozás a szerverhez...";
+
+    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
+
+    // 1. ELLENŐRZÉS: Van-e Firebase motor?
     if (!window.db || !window.get) {
-        if (!isContentVisible) {
-             // Ha nincs cache ÉS nincs net -> Csak akkor írunk hibát
-             if(listContainer) listContainer.innerHTML = `<div class="text-center p-4 text-gray-400 text-xs">Nem sikerült kapcsolódni.<br>Indítsd újra internettel!</div>`;
-        }
+        console.warn("A Firebase motor nem elérhető. Offline mód indítása.");
+        loadFromCacheOrError("Offline mód");
         return;
     }
 
-    // 4. Friss adat letöltése a szerverről (Csendben, a háttérben)
     try {
         const dbRef = window.ref(window.db);
         const urlParams = new URLSearchParams(window.location.search);
         const pGameId = urlParams.get('game') || urlParams.get('id');
         
-        // 5mp időkorlát a frissítésre (hogy ne ragadjon be a háttérfolyamat)
-        const fetchPromise = pGameId 
-            ? window.get(window.child(dbRef, `games/public_games_list/${pGameId}`))
-            : window.get(window.child(dbRef, "games/public_games_list"));
-
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Network Timeout')), 15000)
+        );
+        
+        let fetchPromise;
+        if (pGameId) {
+            fetchPromise = window.get(window.child(dbRef, `games/public_games_list/${pGameId}`));
+        } else {
+            fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
+        }
 
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (snapshot.exists()) {
+            // --- SIKERES ONLINE LETÖLTÉS ---
+            if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
+
             const data = snapshot.val();
+            
             if (pGameId) {
                 window.games = { [pGameId]: data };
             } else {
                 window.games = data;
             }
-            
-            // Cache frissítése a következő indításra
+
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
-            console.log("✅ Lista frissítve a felhőből.");
+            console.log("✅ Játéklista sikeresen frissítve a szerverről.");
             
-            // UI észrevétlen frissítése az új adatokkal
+            if(statusText) statusText.textContent = "Sikeres frissítés!";
             processGameDataAndRender();
-        } 
+        } else {
+            loadFromCacheOrError("A kért adat nem található a szerveren.");
+        }
+
     } catch (error) {
-        console.log("⚠️ Háttérfrissítés kihagyva (Offline/Lassú net). A régi adat marad.");
+        console.warn("⚠️ Nem sikerült frissíteni (Offline vagy lassú net):", error);
+        loadFromCacheOrError("Offline mód");
+    }
+
+    function loadFromCacheOrError(reasonMsg) {
+        const cachedList = localStorage.getItem(CACHE_KEY_LIST);
+        
+        if (cachedList) {
+            console.log("📂 Mentett (Offline) lista betöltése...");
+            if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
+
+            try {
+                window.games = JSON.parse(cachedList);
+                processGameDataAndRender();
+            } catch(e) {
+                console.error("A mentett adatok sérültek:", e);
+                document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">A mentett adatok sérültek.<br>Internet szükséges a javításhoz!</div>`;
+                showLoading(false);
+            }
+        } else {
+            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500 font-bold text-sm">Hiba a kapcsolatban.<br><button onclick="location.reload()" class="mt-2 underline">Próbáld újra!</button></div>`;
+            showLoading(false);
+        }
     }
 
     function processGameDataAndRender() {
@@ -3708,9 +3733,25 @@ window.initializeGamesFromFirebase = async function() {
         }
         populateLocationFilter();
         handleInitialUrlFiltering(); 
+        
+        // --- MÓDOSÍTÁS: Nem hívjuk meg a showPage-t, mert már ott vagyunk, 
+        // csak frissítjük a UI állapotokat ha kell.
+        // showPage('game-list-page'); <--- EZT KIVETTÜK
+        
+        // Ezt viszont meghívjuk, hogy a layout (header padding stb.) biztosan jó legyen:
+        if (typeof showPage === 'function') {
+            // Csak "silent" módban igazítjuk a stílusokat, ha szükséges lenne
+            // De mivel a HTML-ben átírtuk a default classokat, ez már csak biztonsági háló.
+             const contentWrapperEl = document.getElementById('content-page-wrapper');
+             const headerEl = document.getElementById('header');
+             if(contentWrapperEl) contentWrapperEl.style.top = '160px';
+             if(headerEl) headerEl.style.paddingBottom = '';
+        }
+
         if (typeof autoSortGamesByDistance === 'function') {
             try { autoSortGamesByDistance(); } catch(e){} 
         }
+        showLoading(false); 
     }
 };
        
@@ -3934,17 +3975,17 @@ async function sharePdfViaEmail() {
             // ---------------------------------------------------------
 
             const landingPage = document.getElementById('landing-page');
-const contentWrapper = document.getElementById('content-wrapper');
-
-if (pageId === 'landing-page') {
-    landingPage.classList.remove('hidden');
-    contentWrapper.classList.add('hidden');
-} else {
-    landingPage.classList.add('hidden');
-    contentWrapper.classList.remove('hidden');
-    contentWrapper.classList.remove('translate-y-full'); // Azonnal ott van
-    showContentPage(pageId);
-}
+            const contentWrapper = document.getElementById('content-wrapper');
+            
+            if (pageId === 'landing-page') {
+                landingPage.classList.remove('hidden');
+                contentWrapper.classList.add('translate-y-full');
+            } else {
+                landingPage.classList.add('hidden');
+                contentWrapper.classList.remove('hidden');
+                setTimeout(() => contentWrapper.classList.remove('translate-y-full'), 10);
+                showContentPage(pageId);
+            }
         }
 
         function showContentPage(pageId) {
@@ -4068,32 +4109,40 @@ const isRegistered = !!(user && !user.isAnonymous);
             
 
   window.resetApp = function() {
-    console.log("🔄 Alkalmazás alaphelyzetbe állítása...");
-
-    // 1. Aktuális játékállapot törlése a memóriából
-    window.currentActiveGameId = null;
-    window.currentTaskIndex = 0;
-    
-    // 2. Mentett játékállapot törlése a telefonról
-    localStorage.removeItem('MystiGo_CurrentGameId');
-    localStorage.removeItem('MystiGo_CurrentTaskIndex');
-    localStorage.removeItem('MystiGo_FoundCodes');
-    localStorage.removeItem('MystiGo_StartTime');
-    
-    // 3. UI elemek elrejtése (JAVÍTVA)
-    const loader = document.getElementById('loading-overlay');
-    if (loader) loader.classList.add('hidden');
-    
-    // 4. VISSZATÉRÉS A JÁTÉKLISTÁHOZ
-    showPage('game-list-page');
-    
-    // 5. Biztosítjuk, hogy a lista friss legyen és látható
-    if (typeof window.initializeGamesFromFirebase === 'function') {
-        window.initializeGamesFromFirebase();
+    // 1. Térkép és markerek takarítása
+    if (appState.map) {
+        appState.map.remove();
+        appState.map = null;
     }
+    if (manualMarker) {
+        manualMarker.remove();
+        manualMarker = null;
+    }
+    if (appState.geoWatchId) {
+        stopAllGpsActivity();
+    }
+    if (appState.timerInterval) clearInterval(appState.timerInterval);
+
+    // 2. Változók alaphelyzetbe állítása
+    initializeState();
+
+    // 3. UI visszaállítása - MÓDOSÍTVA
+    // Nem rejtjük el a landing page-et, mert már el van rejtve alapból.
+    // Biztosítjuk, hogy a content wrapper látható legyen.
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('content-wrapper').classList.remove('hidden');
+    document.getElementById('content-wrapper').classList.remove('translate-y-full');
     
-    // 6. Felgörgetünk a tetejére
-    window.scrollTo(0, 0);
+    // UI elemek elrejtése a biztonság kedvéért (játék nézet elemei)
+    document.getElementById('task-interaction-area').classList.add('hidden');
+    document.getElementById('start-task-button-container').classList.add('hidden');
+    document.getElementById('game-status-bar').classList.add('hidden');
+    
+    // Visszatérés a lista nézethez
+    showPage('game-list-page');
+
+    // 4. Játéklista újratöltése
+    initializeGamesFromFirebase(); 
 };
 
         window.showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
@@ -7902,7 +7951,7 @@ async function validateAndUseCoupon() {
   
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
-
+		appState.currentPage = 'game-list-page';
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
 
@@ -8136,33 +8185,36 @@ const isIos = () => {
 
             // --- ÚJ RÉSZ VÉGE ---
 
-	   // --- UI INICIALIZÁLÁS ÉS AZONNALI MEGJELENÍTÉS ---
+	    initializeState();
             
-            initializeState();
+            // Itt indítjuk a betöltést a Firebase-ből
+            const startAppDownload = () => {
+                console.log("🚀 Firebase jel megérkezett, letöltés indítása...");
+                initializeGamesFromFirebase();
+            };
 
-            // 1. AZONNALI megjelenítés
-            showPage('game-list-page'); 
-            showLoading(false); 
-            document.getElementById('loading-overlay').classList.add('hidden');
+            if (window.isFirebaseReady) {
+                startAppDownload();
+            } else {
+                window.addEventListener('firebase-ready', startAppDownload, { once: true });
+            }
 
-            if (typeof window.updateAvatarPreview === 'function') window.updateAvatarPreview();
-            if (typeof window.updateInstantButtonEligibility === 'function') window.updateInstantButtonEligibility();
-
-            // 2. AZONNALI indítás (Nem várunk eseményre!)
-            // A függvényen belül van a védelem, ami kezeli, ha még nincs Firebase,
-            // de a cache-t már most betölti.
-            initializeGamesFromFirebase();
-            
-
-            // --- UI EVENT LISTENERS (Marad a régi) ---
+            // UI elemek
             const logoO = document.getElementById('logo-o'); 
+            // A manuális fájl változók (manualFileSelectLabel, manualFileInput) INNEN TÖRÖLVE LETTEK
+
+            // Fejlesztői eszközök (ha vannak a HTML-ben)
             const devOptions = document.getElementById('developer-options');
             const devToggle = document.getElementById('developer-tools-toggle');
+
+            // Modális ablak gombok kezelése
             const okBtn = document.getElementById('modal-ok-button');
             const cancelBtn = document.getElementById('modal-cancel-button');
             
             if (okBtn) okBtn.onclick = hideMessage;
             if (cancelBtn) cancelBtn.onclick = hideMessage;
+            
+            
             
             const mainHeaderLogoContainer = document.querySelector('#main-header .flex.justify-center');
             if (mainHeaderLogoContainer) {
@@ -8170,6 +8222,8 @@ const isIos = () => {
                 mainHeaderLogoContainer.addEventListener('click', () => { resetApp(); });
             }
 
+            // --- ITT TÖRÖLTÜK KI A FELESLEGET ---
+            
             const excelFileInput = document.getElementById('excel-file-input');
 
             document.body.addEventListener('click', (e) => {
@@ -8185,9 +8239,6 @@ const isIos = () => {
                     devToggle.querySelector('span').textContent = devOptions.classList.contains('hidden') ? '▼' : '▲';
                 });
             }
-
-
-
 
             document.getElementById('submit-answer-btn').addEventListener('click', () => {
     const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
