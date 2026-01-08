@@ -8161,12 +8161,6 @@ const isIos = () => {
             initializeGamesFromFirebase();
             
 
-            if (window.isFirebaseReady) {
-                startAppDownload();
-            } else {
-                window.addEventListener('firebase-ready', startAppDownload, { once: true });
-            }
-
             // --- UI EVENT LISTENERS (Marad a régi) ---
             const logoO = document.getElementById('logo-o'); 
             const devOptions = document.getElementById('developer-options');
