@@ -2928,10 +2928,11 @@ window.filterGlobalLeaderboard = function() {
 
 
 
+// --- JAVÍTOTT DICSŐSÉGFAL LOGIKA (CSAK REGISZTRÁLTAK + 0 PONT IS) ---
+
 window.openHallOfFame = async function(modeParam) {
-    // 1. HTML Elemek Lekérése (A helyes ID-kkal!)
     const modal = document.getElementById('hall-of-fame-modal');
-    const listBody = document.getElementById('hall-of-fame-body'); // Ez egy TBODY
+    const listBody = document.getElementById('hall-of-fame-body');
     const monthSelect = document.getElementById('hof-month-select'); 
     const monthContainer = document.getElementById('hof-month-selector-container');
     const btnMonthly = document.getElementById('btn-hof-monthly');
@@ -2942,8 +2943,7 @@ window.openHallOfFame = async function(modeParam) {
         return;
     }
 
-    // 2. Mód kezelése (monthly vagy all)
-    // Ha nincs paraméter, megnézzük, melyik gomb aktív, vagy default 'monthly'
+    // Mód kezelése
     let mode = modeParam;
     if (!mode) {
         mode = btnAll.classList.contains('text-brand-blue') ? 'all' : 'monthly';
@@ -2960,14 +2960,10 @@ window.openHallOfFame = async function(modeParam) {
         monthContainer.classList.add('hidden');
     }
 
-    // Modal megjelenítése és töltés jelzése
     modal.classList.remove('hidden');
-    // Mivel ez egy táblázat, TR/TD kell a töltéshez is
     listBody.innerHTML = '<tr><td colspan="3" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Adatok betöltése...</td></tr>';
 
     try {
-        // 3. Adatok lekérése a 'leaderboard' ágból (ahova a saveScoreToFirebase ment)
-        // Mivel összesített listát akarunk, le kell kérnünk a teljes leaderboard-ot
         const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
         const allGamesData = snapshot.val();
 
@@ -2976,38 +2972,29 @@ window.openHallOfFame = async function(modeParam) {
             return;
         }
 
-        // 4. Adatok feldolgozása (Aggregation)
-        // Össze kell gyűjtenünk a usereket az összes játékból
         const aggregatedUsers = {};
-        const monthSet = new Set(); // Hónapok gyűjtése a selecthez
+        const monthSet = new Set();
 
         Object.keys(allGamesData).forEach(gameId => {
             const gameEntries = allGamesData[gameId];
             if (!gameEntries) return;
 
             Object.values(gameEntries).forEach(entry => {
-                // Csak regisztrált vagy valid pontszámú játékosokat listázunk? 
-                // Itt most mindenkit, akinek van pontja.
-                if (!entry.score || entry.score <= 0) return;
+                // 1. SZŰRÉS: Ha nem regisztrált, azonnal kihagyjuk (vendégek nem kellenek)
+                if (!entry.isRegistered) return;
+
+                // Pontszám kezelése: Ha nincs, vagy 0, az is valid (nem return-ölünk)
+                const score = parseInt(entry.score) || 0;
 
                 const timestamp = entry.timestamp || Date.now();
                 const dateObj = new Date(timestamp);
                 const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
                 
-                // Hónap hozzáadása a listához
                 monthSet.add(JSON.stringify({
                     key: monthKey,
                     label: dateObj.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' })
                 }));
 
-                // Szűrés, ha havi nézetben vagyunk
-                if (mode === 'monthly') {
-                    const currentSelectedMonth = monthSelect.value;
-                    // Ha a select még üres (első futás), akkor a jelenlegi hónapot vesszük alapnak
-                    // De ezt később, a lista feltöltése után újra kell szűrni.
-                }
-
-                // Felhasználó kulcs (UID vagy Név)
                 const userKey = entry.uid || entry.teamName;
 
                 if (!aggregatedUsers[userKey]) {
@@ -3015,32 +3002,28 @@ window.openHallOfFame = async function(modeParam) {
                         name: entry.teamName || "Névtelen",
                         avatar: entry.teamAvatar || "cat",
                         score: 0,
-                        isRegistered: entry.isRegistered || false,
-                        history: {} // Hónapokra bontott pontok
+                        isRegistered: true, // Itt már biztosan true a fenti szűrés miatt
+                        history: {}
                     };
                 }
 
-                // Pont hozzáadása a userhez
-                aggregatedUsers[userKey].score += parseInt(entry.score);
+                // Pontok hozzáadása
+                aggregatedUsers[userKey].score += score;
                 
-                // Havi bontás mentése a szűréshez
                 if (!aggregatedUsers[userKey].history[monthKey]) aggregatedUsers[userKey].history[monthKey] = 0;
-                aggregatedUsers[userKey].history[monthKey] += parseInt(entry.score);
+                aggregatedUsers[userKey].history[monthKey] += score;
             });
         });
 
-        // 5. Hónap választó feltöltése (csak ha üres, vagy frissíteni kell)
+        // Hónap választó feltöltése
         if (monthSet.size > 0) {
             const sortedMonths = Array.from(monthSet).map(JSON.parse).sort((a, b) => b.key.localeCompare(a.key));
-            
-            // Megőrizzük a jelenlegi kiválasztást
             const currentVal = monthSelect.value;
             
             monthSelect.innerHTML = sortedMonths.map(m => 
                 `<option value="${m.key}">${m.label}</option>`
             ).join('');
 
-            // Ha volt kiválasztva és még létezik, visszaállítjuk, amúgy az első (legfrissebb)
             if (currentVal && sortedMonths.some(m => m.key === currentVal)) {
                 monthSelect.value = currentVal;
             } else if (sortedMonths.length > 0) {
@@ -3048,31 +3031,49 @@ window.openHallOfFame = async function(modeParam) {
             }
         }
 
-        // 6. Végleges lista összeállítása a mód alapján
+        // Végleges lista összeállítása
         let finalDisplayList = [];
         const selectedMonthKey = monthSelect.value;
 
         Object.values(aggregatedUsers).forEach(user => {
+            // MÉG EGYSZER ELLENŐRZÉS (Bár a loop elején szűrtünk, biztosra megyünk)
+            if (!user.isRegistered) return;
+
             let scoreDisplay = 0;
 
             if (mode === 'all') {
-                scoreDisplay = user.score; // Teljes összpontszám
+                scoreDisplay = user.score;
             } else {
-                // Csak a kiválasztott hónap pontjai
                 scoreDisplay = user.history[selectedMonthKey] || 0;
             }
 
-            if (scoreDisplay > 0) {
-                finalDisplayList.push({
+            // 2. MÓDOSÍTÁS: Mindenkit hozzáadunk, akkor is, ha 0 a pontja (nincs if score > 0 feltétel)
+            // Kivéve ha havi nézet van, és abban a hónapban nem játszott - azt esetleg kihagyhatjuk, 
+            // de a kérés szerint "minden regisztrált felhasználó megjelenhet".
+            // Ésszerű kompromisszum: 'all' nézetben mindenki látszik (0 ponttal is),
+            // 'monthly' nézetben csak az, akinek abban a hónapban volt aktivitása (akár 0 pontos).
+            
+            if (mode === 'all') {
+                 finalDisplayList.push({
                     name: user.name,
                     avatar: user.avatar,
                     isRegistered: user.isRegistered,
                     score: scoreDisplay
                 });
+            } else {
+                // Havi nézetnél csak akkor adjuk hozzá, ha létezik bejegyzése arra a hónapra
+                // (különben tele lenne a lista 0 pontos emberekkel akik abban a hónapban nem is játszottak)
+                if (user.history[selectedMonthKey] !== undefined) {
+                    finalDisplayList.push({
+                        name: user.name,
+                        avatar: user.avatar,
+                        isRegistered: user.isRegistered,
+                        score: scoreDisplay
+                    });
+                }
             }
         });
 
-        // 7. Renderelés
         renderHofTable(finalDisplayList, listBody);
 
     } catch (error) {
@@ -3081,28 +3082,24 @@ window.openHallOfFame = async function(modeParam) {
     }
 };
 
-// Segédfüggvény a táblázat sorok generálásához (TR/TD)
 window.renderHofTable = function(players, tbody) {
     // Rendezés pontszám szerint csökkenőbe
     players.sort((a, b) => b.score - a.score);
 
     if (players.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Ebben az időszakban nem született eredmény.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs megjeleníthető regisztrált felhasználó.</td></tr>';
         return;
     }
 
     let html = "";
-    // Top 100 limitálása, hogy ne fagyjon le a böngésző
     players.slice(0, 100).forEach((u, i) => {
         const emoji = AVATAR_ICONS[u.avatar] || '👤';
         
-        // Dobogós helyezések színezése
         let rankColor = "text-gray-500";
-        if (i === 0) rankColor = "text-yellow-500 text-lg"; // Arany
-        if (i === 1) rankColor = "text-gray-400 text-lg";   // Ezüst
-        if (i === 2) rankColor = "text-orange-400 text-lg"; // Bronz
+        if (i === 0) rankColor = "text-yellow-500 text-lg";
+        if (i === 1) rankColor = "text-gray-400 text-lg";
+        if (i === 2) rankColor = "text-orange-400 text-lg";
 
-        // Sor összeállítása
         html += `
             <tr class="hover:bg-cyan-50 transition border-b border-gray-100 last:border-0">
                 <td class="px-3 py-3 text-center font-bold ${rankColor}">${i + 1}.</td>
@@ -3110,12 +3107,11 @@ window.renderHofTable = function(players, tbody) {
                     <div class="flex items-center gap-2">
                         <div class="avatar-container relative" style="font-size: 1.2rem;">
                             ${emoji}
-                            ${u.isRegistered ? `
                             <div class="verified-badge verified-badge-sm active" style="width: 14px; height: 14px; top: -2px; right: -2px;">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4" style="width: 8px; height: 8px; color: white;">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
-                            </div>` : ''}
+                            </div>
                         </div>
                         <div class="font-bold text-brand-blue leading-tight truncate max-w-[140px]">${u.name}</div>
                     </div>
