@@ -2949,7 +2949,7 @@ window.openHallOfFame = async function(modeParam) {
         mode = btnAll.classList.contains('text-brand-blue') ? 'all' : 'monthly';
     }
 
-    // UI Gombok frissítése
+    // Gombok stílusának frissítése
     if (mode === 'monthly') {
         btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
         btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
@@ -2964,6 +2964,7 @@ window.openHallOfFame = async function(modeParam) {
     listBody.innerHTML = '<tr><td colspan="3" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Adatok betöltése...</td></tr>';
 
     try {
+        // Adatok lekérése a leaderboard ágból
         const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
         const allGamesData = snapshot.val();
 
@@ -2975,45 +2976,48 @@ window.openHallOfFame = async function(modeParam) {
         const aggregatedUsers = {};
         const monthSet = new Set();
 
-        Object.keys(allGamesData).forEach(gameId => {
-            const gameEntries = allGamesData[gameId];
-            if (!gameEntries) return;
+        // --- ITT VOLT A HIBA: A CIKLUS JAVÍTÁSA ---
+        // A te adatbázisodban az allGamesData kulcsai közvetlenül a játék bejegyzések (game_TIMESTAMP)
+        Object.values(allGamesData).forEach(entry => {
+            
+            // 1. SZŰRÉS: Csak regisztrált felhasználókat jelenítünk meg
+            // A saveGameData menti az 'isRegistered' mezőt, ezt figyeljük.
+            if (!entry.isRegistered) return;
 
-            Object.values(gameEntries).forEach(entry => {
-                // 1. SZŰRÉS: Ha nem regisztrált, azonnal kihagyjuk (vendégek nem kellenek)
-                if (!entry.isRegistered) return;
+            // Pontszám kezelése (0 is játszik)
+            const score = parseInt(entry.score) || 0;
 
-                // Pontszám kezelése: Ha nincs, vagy 0, az is valid (nem return-ölünk)
-                const score = parseInt(entry.score) || 0;
+            const timestamp = entry.timestamp || Date.now();
+            const dateObj = new Date(timestamp);
+            const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+            
+            monthSet.add(JSON.stringify({
+                key: monthKey,
+                label: dateObj.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' })
+            }));
 
-                const timestamp = entry.timestamp || Date.now();
-                const dateObj = new Date(timestamp);
-                const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-                
-                monthSet.add(JSON.stringify({
-                    key: monthKey,
-                    label: dateObj.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' })
-                }));
+            // Felhasználó azonosítása (UID vagy Név alapján)
+            // A saveGameData menti a 'uid'-t regisztráltaknál, ez a legbiztosabb.
+            const userKey = entry.uid || entry.teamName;
 
-                const userKey = entry.uid || entry.teamName;
+            if (!aggregatedUsers[userKey]) {
+                aggregatedUsers[userKey] = {
+                    name: entry.teamName || "Névtelen",
+                    avatar: entry.teamAvatar || "cat",
+                    score: 0,
+                    isRegistered: true, 
+                    history: {}
+                };
+            }
 
-                if (!aggregatedUsers[userKey]) {
-                    aggregatedUsers[userKey] = {
-                        name: entry.teamName || "Névtelen",
-                        avatar: entry.teamAvatar || "cat",
-                        score: 0,
-                        isRegistered: true, // Itt már biztosan true a fenti szűrés miatt
-                        history: {}
-                    };
-                }
-
-                // Pontok hozzáadása
-                aggregatedUsers[userKey].score += score;
-                
-                if (!aggregatedUsers[userKey].history[monthKey]) aggregatedUsers[userKey].history[monthKey] = 0;
-                aggregatedUsers[userKey].history[monthKey] += score;
-            });
+            // Pontok hozzáadása az összesítőhöz
+            aggregatedUsers[userKey].score += score;
+            
+            // Havi bontás
+            if (!aggregatedUsers[userKey].history[monthKey]) aggregatedUsers[userKey].history[monthKey] = 0;
+            aggregatedUsers[userKey].history[monthKey] += score;
         });
+        // --- CIKLUS VÉGE ---
 
         // Hónap választó feltöltése
         if (monthSet.size > 0) {
@@ -3036,9 +3040,6 @@ window.openHallOfFame = async function(modeParam) {
         const selectedMonthKey = monthSelect.value;
 
         Object.values(aggregatedUsers).forEach(user => {
-            // MÉG EGYSZER ELLENŐRZÉS (Bár a loop elején szűrtünk, biztosra megyünk)
-            if (!user.isRegistered) return;
-
             let scoreDisplay = 0;
 
             if (mode === 'all') {
@@ -3047,12 +3048,9 @@ window.openHallOfFame = async function(modeParam) {
                 scoreDisplay = user.history[selectedMonthKey] || 0;
             }
 
-            // 2. MÓDOSÍTÁS: Mindenkit hozzáadunk, akkor is, ha 0 a pontja (nincs if score > 0 feltétel)
-            // Kivéve ha havi nézet van, és abban a hónapban nem játszott - azt esetleg kihagyhatjuk, 
-            // de a kérés szerint "minden regisztrált felhasználó megjelenhet".
-            // Ésszerű kompromisszum: 'all' nézetben mindenki látszik (0 ponttal is),
-            // 'monthly' nézetben csak az, akinek abban a hónapban volt aktivitása (akár 0 pontos).
-            
+            // Megjelenítési logika:
+            // 'all' módban minden regisztrált látszik (akár 0 ponttal is).
+            // 'monthly' módban csak az, aki abban a hónapban játszott (tehát van history bejegyzése).
             if (mode === 'all') {
                  finalDisplayList.push({
                     name: user.name,
@@ -3061,8 +3059,6 @@ window.openHallOfFame = async function(modeParam) {
                     score: scoreDisplay
                 });
             } else {
-                // Havi nézetnél csak akkor adjuk hozzá, ha létezik bejegyzése arra a hónapra
-                // (különben tele lenne a lista 0 pontos emberekkel akik abban a hónapban nem is játszottak)
                 if (user.history[selectedMonthKey] !== undefined) {
                     finalDisplayList.push({
                         name: user.name,
@@ -3081,6 +3077,10 @@ window.openHallOfFame = async function(modeParam) {
         listBody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-red-400">Hiba: ${error.message}</td></tr>`;
     }
 };
+
+
+
+
 
 window.renderHofTable = function(players, tbody) {
     // Rendezés pontszám szerint csökkenőbe
