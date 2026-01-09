@@ -9397,7 +9397,7 @@ onAuthStateChanged(auth, (user) => {
         // Ha nincs, akkor a rendszer alapértelmezett (Vendég Játékos vagy Google név).
         let displayNameToUse = profile.teamName;
         if (!displayNameToUse) {
-             displayNameToUse = user.isAnonymous ? "Vendég" : (user.displayName || "Játékos");
+             displayNameToUse = user.isAnonymous ? "" : (user.displayName || "Játékos");
         }
         
         // Név kiírása a fejlécbe
