@@ -696,7 +696,7 @@
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="hidden flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
+        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
             
             <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
                 <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
@@ -712,12 +712,12 @@
             
             </main>
         
-        <div id="content-wrapper" class="absolute inset-0 transition-transform duration-500 top-0">
+        <div id="content-wrapper" class="hidden absolute inset-0 transition-transform duration-500 translate-y-full">
             <div id="header" class="relative text-text-heading text-center pt-1 pb-10">
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.55
+       v1.2.54
 
    </span>
 
@@ -784,7 +784,7 @@
             
             <div id="content-page-wrapper" class="absolute top-40 bottom-0 left-0 right-0 overflow-y-auto px-6 pb-6 bg-white">
                 
-                <section id="game-list-page" class="">
+                <section id="game-list-page" class="hidden">
                     <div id="game-list-controls" class="space-y-4 mb-6">
                         
                         
@@ -1923,6 +1923,15 @@
 
 
 
+// Segédfüggvény: Szöveg Hash-elése (SHA-256)
+    // Ezt hívjuk meg ellenőrzéskor és betöltéskor is
+    window.hashString = function(text) {
+        if (!text) return "";
+        const cleanText = String(text).trim().toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+            .replace(/[^a-z0-9]/g, ''); 
+        return CryptoJS.SHA256(cleanText).toString();
+    };
 
 
 // Offline jelző kapcsolója
@@ -2071,136 +2080,87 @@ window.getGameCurrentCount = async function(gameId) {
 
   // 2. Szinkronizáció végrehajtása (Feltöltés) - JAVÍTOTT VERZIÓ
   window.syncPendingUploads = async function() {
-    if (!navigator.onLine || !window.db || !window.auth.currentUser) return; 
+    if (!navigator.onLine) return; 
 
-    let pending = JSON.parse(localStorage.getItem('MystiGo_PendingUploads') || "[]");
-    if (pending.length === 0) return; 
-
-    console.log(`🔄 Offline eredmények szinkronizálása (${pending.length} db)...`);
-    
-    const newPending = [];
-    const user = window.auth.currentUser;
-
-    for (const data of pending) {
-        try {
-            // Meghatározzuk a célmappát (instant játékoknál közös)
-            let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
-            
-            // JAVÍTÁS: Nem push-t használunk, hanem a user UID-ja alá mentünk (mint online módban)
-            // Ezzel elkerüljük a duplikációt is.
-            const leaderboardEntryRef = window.ref(window.db, `leaderboard/${targetId}/${data.uid || user.uid}`);
-            
-            await window.set(leaderboardEntryRef, {
-                gameId: data.gameId,
-                teamName: data.teamName,
-                teamAvatar: data.teamAvatar,
-                score: data.score,
-                totalTime: data.totalTime,
-                geofenceTime: data.geofenceTime,
-                timestamp: data.timestamp, 
-                dateString: data.dateString,
-                uid: data.uid || user.uid,
-                isRegistered: data.isRegistered === undefined ? true : data.isRegistered // KRITIKUS JAVÍTÁS
-            });
-
-            // 2. Frissítjük a profil összpontszámát is (Dicsőségfal "Összesített" fül)
-            if (window.addPointsToUser && data.score > 0) {
-                await window.addPointsToUser(data.score);
-            }
-
-            if (window.incrementGameCompletion) {
-                await window.incrementGameCompletion(data.gameId);
-            }
-            
-            console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
-
-        } catch (error) {
-            console.error("Szinkronizációs hiba:", error);
-            newPending.push(data); // Ha hiba van, marad a listában
-        }
+    // ✅ JAVÍTÁS: Csak akkor fusson, ha a modul már betöltötte a Firebase-t
+    if (typeof window.push !== 'function' || !window.db) {
+        console.warn("⏳ Firebase modul betöltése folyamatban...");
+        return; 
     }
 
-    localStorage.setItem('MystiGo_PendingUploads', JSON.stringify(newPending));
-};
+    let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
+      if (pending.length === 0) return; 
 
+      console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
+      
+      const newPending = [];
+      let uploadCount = 0;
 
+      for (const data of pending) {
+          try {
+              // ✅ JAVÍTÁS: window.ref és window.db használata
+              const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
+              
+              // ✅ JAVÍTÁS: window.push használata
+              await window.push(leaderboardRef, {
+                  teamName: data.teamName,
+                  teamAvatar: data.teamAvatar,
+                  score: data.score,
+                  totalTime: data.totalTime,
+                  geofenceTime: data.geofenceTime,
+                  timestamp: data.timestamp, 
+                  dateString: data.dateString
+              });
 
+              if (window.incrementGameCompletion) {
+                  try {
+                      await window.incrementGameCompletion(data.gameId);
+                      console.log(`✅ ${data.teamName}: Számláló növelve.`);
+                  } catch (cntErr) {
+                      console.error(`⚠️ ${data.teamName}: Számláló hiba:`, cntErr);
+                  }
+              }
+              
+              uploadCount++;
+              console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
 
+          } catch (error) {
+              console.error("Szinkronizációs hiba:", error);
+              newPending.push(data);
+          }
+      }
 
-window.syncPendingRatings = async function() {
-    if (!navigator.onLine || !window.db) return;
-
-    const pendingRatingsJson = localStorage.getItem('MystiGo_PendingRatings');
-    if (!pendingRatingsJson) return;
-
-    let pendingRatings = JSON.parse(pendingRatingsJson);
-    if (pendingRatings.length === 0) return;
-
-    console.log(`🔄 ${pendingRatings.length} db offline értékelés szinkronizálása...`);
-    
-    const remainingRatings = [];
-
-    for (const item of pendingRatings) {
-        try {
-            const statsRef = window.ref(window.db, `game_stats/${item.gameId}/rating`);
-            await window.runTransaction(statsRef, (currentData) => {
-                if (currentData === null) {
-                    return { sum: item.rating, count: 1, average: item.rating };
-                } else {
-                    const newCount = (currentData.count || 0) + 1;
-                    const newSum = (currentData.sum || 0) + item.rating;
-                    return {
-                        sum: newSum,
-                        count: newCount,
-                        average: Math.round((newSum / newCount) * 10) / 10
-                    };
-                }
-            });
-            console.log(`✅ Értékelés feltöltve: ${item.gameId}`);
-        } catch (e) {
-            console.error("Hiba a szinkronizálásnál:", e);
-            remainingRatings.push(item); // Ha hiba volt, tartsuk meg későbbre
-        }
-    }
-
-    if (remainingRatings.length > 0) {
-        localStorage.setItem('MystiGo_PendingRatings', JSON.stringify(remainingRatings));
-    } else {
-        localStorage.removeItem('MystiGo_PendingRatings');
-        console.log("✅ Minden értékelés szinkronizálva.");
-    }
-};
-
+      localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
+      
+      if (uploadCount > 0) {
+          console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
+      }
+  };
 
 
 
 
   // 3. Eseményfigyelők indítása (Internet visszatérés figyelése)
   window.addEventListener('online', () => {
-    console.log("🌐 Internet kapcsolat helyreállt.");
-    
-    // A) Piros felirat azonnali eltüntetése
-    if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
-    
-    // B) Esetleges hibaüzenetek (Toast) eltüntetése
-    const statusText = document.getElementById('loading-status');
-    if(statusText && statusText.textContent.includes('Offline')) {
-        statusText.textContent = "";
-    }
+      console.log("🌐 Internet kapcsolat helyreállt.");
+      
+      // A) Piros felirat azonnali eltüntetése
+      if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
+      
+      // B) Esetleges hibaüzenetek (Toast) eltüntetése
+      const statusText = document.getElementById('loading-status');
+      if(statusText && statusText.textContent.includes('Offline')) {
+          statusText.textContent = "";
+      }
 
-    // C) Elmentett eredmények feltöltése (MEGLÉVŐ)
-    if(window.syncPendingUploads) window.syncPendingUploads();
-
-    // ÚJ: Elmentett értékelések feltöltése (EZ AZ ÚJ RÉSZ)
-    if(window.syncPendingRatings) window.syncPendingRatings();
-    
-    // D) Ha épp a főoldalon (játéklista) vagyunk, logolunk (MEGLÉVŐ)
-    if (!document.getElementById('game-list-page').classList.contains('hidden')) {
-        console.log("A lista nézet aktív, a következő interakció már online lesz.");
-    }
-});
-
-
+      // C) Elmentett eredmények feltöltése
+      if(window.syncPendingUploads) window.syncPendingUploads();
+      
+      // D) Ha épp a főoldalon (játéklista) vagyunk, logolunk
+      if (!document.getElementById('game-list-page').classList.contains('hidden')) {
+          console.log("A lista nézet aktív, a következő interakció már online lesz.");
+      }
+  });
 
   // Amikor elmegy a net (játék közben):
   window.addEventListener('offline', () => {
@@ -2214,54 +2174,50 @@ window.syncPendingRatings = async function() {
   setTimeout(() => { if(window.syncPendingUploads) window.syncPendingUploads(); }, 6000);
 
 
-
-
-
-
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
   // --- MENTÉS LOGIKA (0 PONT ELLENŐRZÉSSEL) ---
 window.saveScoreToFirebase = function(data) {
     if (!data.gameId) return;
+
     let safeScore = Number(data.score);
     if (isNaN(safeScore) || safeScore <= 0) return; 
 
+    const now = new Date();
+    const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
     const user = window.auth ? window.auth.currentUser : null;
-    if (!user) return;
+    if (!user) return; // Ha nincs user, nem tudunk menteni a szabályok miatt
 
     const scoreData = {
         gameId: data.gameId,
         teamName: String(data.teamName || "Névtelen").trim(),
         teamAvatar: data.teamAvatar || "cat",
         uid: user.uid,
-        isRegistered: !user.isAnonymous, 
+        isRegistered: !user.isAnonymous,
         score: safeScore,
         totalTime: data.totalTime || 0,
         geofenceTime: data.geofenceTime || 0,
         timestamp: Date.now(),
-        dateString: new Date().toLocaleString('hu-HU')
+        dateString: readableDate
     };
 
     if (navigator.onLine && window.db) {
         let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
         
-        // JAVÍTÁS: .push() használata a user.uid helyett, hogy ne írjuk felül a régit!
-        const leaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
+        // JAVÍTÁS: push() helyett konkrétan a user.uid alá mentünk!
+        const leaderboardEntryRef = window.ref(window.db, `leaderboard/${targetId}/${user.uid}`);
         
-        window.push(leaderboardRef, scoreData).then(() => {
-            console.log("✅ Eredmény rögzítve a dicsőségfalhoz.");
+        window.set(leaderboardEntryRef, scoreData).then(() => {
+            console.log("✅ Ranglista mentve (UID alapján).");
             if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
         }).catch((error) => {
+            console.error("❌ Mentési hiba (valószínűleg Rules hiba):", error);
             saveToPendingUploads(scoreData);
         });
     } else {
         saveToPendingUploads(scoreData);
     }
 };
-
-
-
-
-
 
 // --- ÉRTÉKELÉSI FUNKCIÓK ---
 window.closeRatingModal = function() {
@@ -2280,28 +2236,7 @@ window.submitGameRating = async function() {
     const ratingValue = parseInt(selectedStar.value);
     const gameId = window.currentGameId;
 
-    if (!gameId) return;
-
-    // --- OFFLINE KEZELÉS ---
-    if (!navigator.onLine || !window.db) {
-        try {
-            const pendingRatings = JSON.parse(localStorage.getItem('MystiGo_PendingRatings') || "[]");
-            // Hozzáadjuk az új értékelést
-            pendingRatings.push({
-                gameId: String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId,
-                rating: ratingValue,
-                timestamp: Date.now()
-            });
-            localStorage.setItem('MystiGo_PendingRatings', JSON.stringify(pendingRatings));
-            
-            window.closeRatingModal();
-            showMessage("Offline mód", "Az értékelésedet elmentettük, és internetkapcsolat esetén automatikusan beküldjük!");
-        } catch (e) {
-            console.error("Hiba az offline értékelés mentésekor:", e);
-        }
-        return;
-    }
-    // -----------------------
+    if (!gameId || !window.db || !window.runTransaction) return;
 
     let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
     showLoading(true);
@@ -2327,11 +2262,6 @@ window.submitGameRating = async function() {
         showMessage("Köszönjük!", "Az értékelésedet rögzítettük.");
     } catch (e) {
         console.error("Értékelési hiba:", e);
-        // Ha hiba van (pl. hirtelen elment a net), mentsük el offline-ra
-        const pendingRatings = JSON.parse(localStorage.getItem('MystiGo_PendingRatings') || "[]");
-        pendingRatings.push({ gameId: statsId, rating: ratingValue, timestamp: Date.now() });
-        localStorage.setItem('MystiGo_PendingRatings', JSON.stringify(pendingRatings));
-        window.closeRatingModal();
     } finally {
         showLoading(false);
     }
@@ -2618,55 +2548,18 @@ window.populateMonthSelector = function() {
     const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
     let data = [...window.currentLeaderboardData];
 
-const bestScores = {};
-data.forEach(entry => {
-    const key = entry.uid || entry.teamName;
-    if (!bestScores[key] || entry.score > bestScores[key].score) {
-        bestScores[key] = entry;
-    }
-});
-data = Object.values(bestScores);
-
-
-  // 1. NYERS SZŰRÉS (időpont alapján) - amit te küldtél
+    // SZŰRÉS
     if (mode === 'today') {
         const startOfToday = new Date().setHours(0, 0, 0, 0);
         data = data.filter(r => r.timestamp >= startOfToday);
     } else if (mode === 'monthly') {
-        const selectedMonth = document.getElementById('leaderboard-month-select').value;
+        const selectedMonth = document.getElementById('leaderboard-month-select').value; // Pl: "2024-05"
         data = data.filter(r => {
-            if (!r.timestamp) return false;
             const d = new Date(r.timestamp);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             return key === selectedMonth;
         });
     }
-
-    // 2. CSOPORTOSÍTÁS ÉS ÖSSZEGZÉS (hogy ne legyen névismétlés)
-    // Létrehozunk egy objektumot, ahol a kulcs a User ID (uid) lesz
-    const aggregatedData = {};
-
-    data.forEach(entry => {
-        // Ha nincs UID (pl. régi vendég), használjuk a csapatnevet kulcsnak
-        const key = entry.uid || entry.teamName;
-        
-        if (!aggregatedData[key]) {
-            // Első alkalommal lementjük az alap adatokat
-            aggregatedData[key] = { ...entry };
-        } else {
-            // Ha már benne van, hozzáadjuk az új pontszámot a meglévőhöz
-            aggregatedData[key].score += entry.score;
-            // A legfrissebb időbélyeget és nevet tartsuk meg
-            if (entry.timestamp > aggregatedData[key].timestamp) {
-                aggregatedData[key].timestamp = entry.timestamp;
-                aggregatedData[key].teamName = entry.teamName;
-                aggregatedData[key].teamAvatar = entry.teamAvatar;
-            }
-        }
-    });
-
-    // Visszaalakítjuk az objektumot tömbbé a megjelenítéshez
-    data = Object.values(aggregatedData);
 
     // RENDEZÉS (Pont -> Feladat idő -> Teljes idő)
     data.sort((a, b) => {
@@ -2928,153 +2821,124 @@ window.filterGlobalLeaderboard = function() {
 
 
 
-// --- JAVÍTOTT DICSŐSÉGFAL LOGIKA (CSAK REGISZTRÁLTAK + 0 PONT IS) ---
-
-window.openHallOfFame = async function(modeParam) {
+window.openHallOfFame = async function(mode = 'monthly') {
     const modal = document.getElementById('hall-of-fame-modal');
-    const listBody = document.getElementById('hall-of-fame-body');
-    const monthSelect = document.getElementById('hof-month-select'); 
-    const monthContainer = document.getElementById('hof-month-selector-container');
-    const btnMonthly = document.getElementById('btn-hof-monthly');
+    const tbody = document.getElementById('hall-of-fame-body');
     const btnAll = document.getElementById('btn-hof-all');
+    const btnMonthly = document.getElementById('btn-hof-monthly');
+    const monthContainer = document.getElementById('hof-month-selector-container');
+    const monthSelect = document.getElementById('hof-month-select');
+    
+    modal.classList.remove('hidden');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10"><div class="animate-spin h-6 w-6 border-2 border-brand-cyan border-t-transparent rounded-full mx-auto mb-2"></div>Adatok összesítése...</td></tr>';
 
-    if (!modal || !listBody || !monthSelect) {
-        console.error("Hiba: Valamelyik HTML elem nem található a Dicsőségfalhoz!");
-        return;
-    }
-
-    // Mód kezelése
-    let mode = modeParam;
-    if (!mode) {
-        mode = btnAll.classList.contains('text-brand-blue') ? 'all' : 'monthly';
-    }
-
-    // Gombok stílusának frissítése
-    if (mode === 'monthly') {
-        btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
-        btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
-        monthContainer.classList.remove('hidden');
-    } else {
+    if(mode === 'all') {
         btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
         btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
         monthContainer.classList.add('hidden');
+    } else {
+        btnMonthly.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm";
+        btnAll.className = "flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue";
+        monthContainer.classList.remove('hidden');
     }
 
-    modal.classList.remove('hidden');
-    listBody.innerHTML = '<tr><td colspan="3" class="text-center py-8"><div class="animate-spin h-6 w-6 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-2"></div>Adatok betöltése...</td></tr>';
+    if (!window.db || !window.get) return;
 
     try {
-        // Adatok lekérése a leaderboard ágból
-        const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
-        const allGamesData = snapshot.val();
+        if (mode === 'all') {
+            // ÖSSZESÍTETT: Csak a regisztrált profilok (marad a régi)
+            const snapshot = await window.get(window.ref(window.db, 'users'));
+            let players = [];
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const data = child.val().profile;
+                    if (data && data.teamName) {
+                        players.push({
+                            name: data.teamName,
+                            avatar: data.avatar || 'cat',
+                            score: parseInt(data.totalScore || 0),
+                            isRegistered: true
+                        });
+                    }
+                });
+            }
+            renderHofTable(players, tbody);
+        } else {
+            // HAVI NÉZET: Leaderboard aggregáció
+            const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
+            if (!snapshot.exists()) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs adat.</td></tr>';
+                return;
+            }
 
-        if (!allGamesData) {
-            listBody.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-400">Még nincsenek eredmények.</td></tr>';
-            return;
-        }
-
-        const aggregatedUsers = {};
-        const monthSet = new Set();
-
-        // --- ITT VOLT A HIBA: A CIKLUS JAVÍTÁSA ---
-        // A te adatbázisodban az allGamesData kulcsai közvetlenül a játék bejegyzések (game_TIMESTAMP)
-        Object.values(allGamesData).forEach(entry => {
+            const allGames = snapshot.val();
+            const monthMap = new Set();
+            const monthlyAggregator = {};
             
-            // 1. SZŰRÉS: Csak regisztrált felhasználókat jelenítünk meg
-            // A saveGameData menti az 'isRegistered' mezőt, ezt figyeljük.
-            if (!entry.isRegistered) return;
+            // 1. Hónapok kigyűjtése a legördülőhöz
+            Object.values(allGames).forEach(gameResults => {
+                Object.values(gameResults).forEach(entry => {
+                    if (entry.timestamp && entry.isRegistered === true) {
+                        const d = new Date(entry.timestamp);
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        monthMap.add(key);
+                    }
+                });
+            });
 
-            // Pontszám kezelése (0 is játszik)
-            const score = parseInt(entry.score) || 0;
+            // Hónapválasztó feltöltése, ha üres
+            if (monthSelect.options.length === 0) {
+                const sortedMonths = Array.from(monthMap).sort().reverse();
+                monthSelect.innerHTML = sortedMonths.map(m => {
+                    const [year, month] = m.split('-');
+                    const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
+                    return `<option value="${m}">${label}</option>`;
+                }).join('');
+            }
 
-            const timestamp = entry.timestamp || Date.now();
-            const dateObj = new Date(timestamp);
-            const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-            
-            monthSet.add(JSON.stringify({
-                key: monthKey,
-                label: dateObj.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' })
+            const targetMonthKey = monthSelect.value;
+
+            // 2. Pontok összegezése a választott hónapra (UID ALAPÚ AZONOSÍTÁSSAL)
+            Object.values(allGames).forEach(gameResults => {
+                Object.values(gameResults).forEach(entry => {
+                    if (entry.timestamp && entry.isRegistered === true) {
+                        const d = new Date(entry.timestamp);
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        
+                        if (key === targetMonthKey) {
+                            // ✅ KRITIKUS VÁLTOZÁS: UID-t használunk kulcsnak, ha van. 
+                            // Ha régi adat és nincs UID, akkor marad a név.
+                            const playerKey = entry.uid || entry.teamName; 
+                            
+                            if (!monthlyAggregator[playerKey]) {
+                                monthlyAggregator[playerKey] = { 
+                                    score: 0, 
+                                    name: entry.teamName, 
+                                    avatar: entry.teamAvatar, 
+                                    isRegistered: true 
+                                };
+                            }
+                            // Mindig a legfrissebb nevet/avatart tartsuk meg a kijelzéshez
+                            monthlyAggregator[playerKey].name = entry.teamName;
+                            monthlyAggregator[playerKey].avatar = entry.teamAvatar;
+                            monthlyAggregator[playerKey].score += parseInt(entry.score || 0);
+                        }
+                    }
+                });
+            });
+
+            const players = Object.values(monthlyAggregator).map((data) => ({
+    name: data.name, // Itt az objektumon belüli 'name' tulajdonságot használjuk (ami a teamName)
+    avatar: data.avatar,
+    score: data.score,
+    isRegistered: data.isRegistered
             }));
 
-            // Felhasználó azonosítása (UID vagy Név alapján)
-            // A saveGameData menti a 'uid'-t regisztráltaknál, ez a legbiztosabb.
-            const userKey = entry.uid || entry.teamName;
-
-            if (!aggregatedUsers[userKey]) {
-                aggregatedUsers[userKey] = {
-                    name: entry.teamName || "Névtelen",
-                    avatar: entry.teamAvatar || "cat",
-                    score: 0,
-                    isRegistered: true, 
-                    history: {}
-                };
-            }
-
-            // Pontok hozzáadása az összesítőhöz
-            aggregatedUsers[userKey].score += score;
-            
-            // Havi bontás
-            if (!aggregatedUsers[userKey].history[monthKey]) aggregatedUsers[userKey].history[monthKey] = 0;
-            aggregatedUsers[userKey].history[monthKey] += score;
-        });
-        // --- CIKLUS VÉGE ---
-
-        // Hónap választó feltöltése
-        if (monthSet.size > 0) {
-            const sortedMonths = Array.from(monthSet).map(JSON.parse).sort((a, b) => b.key.localeCompare(a.key));
-            const currentVal = monthSelect.value;
-            
-            monthSelect.innerHTML = sortedMonths.map(m => 
-                `<option value="${m.key}">${m.label}</option>`
-            ).join('');
-
-            if (currentVal && sortedMonths.some(m => m.key === currentVal)) {
-                monthSelect.value = currentVal;
-            } else if (sortedMonths.length > 0) {
-                monthSelect.value = sortedMonths[0].key;
-            }
+            renderHofTable(players, tbody);
         }
-
-        // Végleges lista összeállítása
-        let finalDisplayList = [];
-        const selectedMonthKey = monthSelect.value;
-
-        Object.values(aggregatedUsers).forEach(user => {
-            let scoreDisplay = 0;
-
-            if (mode === 'all') {
-                scoreDisplay = user.score;
-            } else {
-                scoreDisplay = user.history[selectedMonthKey] || 0;
-            }
-
-            // Megjelenítési logika:
-            // 'all' módban minden regisztrált látszik (akár 0 ponttal is).
-            // 'monthly' módban csak az, aki abban a hónapban játszott (tehát van history bejegyzése).
-            if (mode === 'all') {
-                 finalDisplayList.push({
-                    name: user.name,
-                    avatar: user.avatar,
-                    isRegistered: user.isRegistered,
-                    score: scoreDisplay
-                });
-            } else {
-                if (user.history[selectedMonthKey] !== undefined) {
-                    finalDisplayList.push({
-                        name: user.name,
-                        avatar: user.avatar,
-                        isRegistered: user.isRegistered,
-                        score: scoreDisplay
-                    });
-                }
-            }
-        });
-
-        renderHofTable(finalDisplayList, listBody);
-
-    } catch (error) {
-        console.error("Dicsőségfal hiba:", error);
-        listBody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-red-400">Hiba: ${error.message}</td></tr>`;
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-red-500">Hiba történt az adatok betöltésekor.</td></tr>';
     }
 };
 
@@ -3082,46 +2946,33 @@ window.openHallOfFame = async function(modeParam) {
 
 
 
-window.renderHofTable = function(players, tbody) {
-    // Rendezés pontszám szerint csökkenőbe
+// Segédfüggvény a táblázat kirajzolásához
+function renderHofTable(players, tbody) {
     players.sort((a, b) => b.score - a.score);
-
-    if (players.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs megjeleníthető regisztrált felhasználó.</td></tr>';
-        return;
-    }
-
     let html = "";
-    players.slice(0, 100).forEach((u, i) => {
-        const emoji = AVATAR_ICONS[u.avatar] || '👤';
-        
-        let rankColor = "text-gray-500";
-        if (i === 0) rankColor = "text-yellow-500 text-lg";
-        if (i === 1) rankColor = "text-gray-400 text-lg";
-        if (i === 2) rankColor = "text-orange-400 text-lg";
-
-        html += `
-            <tr class="hover:bg-cyan-50 transition border-b border-gray-100 last:border-0">
-                <td class="px-3 py-3 text-center font-bold ${rankColor}">${i + 1}.</td>
-                <td class="px-3 py-3">
-                    <div class="flex items-center gap-2">
-                        <div class="avatar-container relative" style="font-size: 1.2rem;">
-                            ${emoji}
-                            <div class="verified-badge verified-badge-sm active" style="width: 14px; height: 14px; top: -2px; right: -2px;">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4" style="width: 8px; height: 8px; color: white;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
+    if (players.length === 0) {
+        html = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Ebben az időszakban nem született eredmény.</td></tr>';
+    } else {
+        players.forEach((u, i) => {
+            const emoji = AVATAR_ICONS[u.avatar] || '👤';
+            html += `
+                <tr class="hover:bg-cyan-50 transition">
+                    <td class="px-3 py-3 text-center font-bold text-gray-400">${i + 1}.</td>
+                    <td class="px-3 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="avatar-container v-sm !w-8 !h-8 !text-base">
+                                ${emoji}
+                                ${u.isRegistered ? '<div class="verified-badge verified-badge-sm active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7" /></svg></div>' : ''}
                             </div>
+                            <div class="font-bold text-brand-blue leading-tight">${u.name}</div>
                         </div>
-                        <div class="font-bold text-brand-blue leading-tight truncate max-w-[140px]">${u.name}</div>
-                    </div>
-                </td>
-                <td class="px-3 py-3 text-right font-black text-brand-orange-500 text-sm">
-                    ${u.score.toLocaleString()}
-                </td>
-            </tr>`;
-    });
-
+                    </td>
+                    <td class="px-3 py-3 text-right font-black text-brand-cyan-500 text-sm">
+                        ${u.score.toLocaleString()} ⭐
+                    </td>
+                </tr>`;
+        });
+    }
     tbody.innerHTML = html;
 }
 
@@ -3138,26 +2989,7 @@ window.isFirebaseModuleLoaded = true;
 
        
 <script>
-        
-
-window.hashString = function(text) {
-        if (!text) return "";
-        const cleanText = String(text).trim().toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-            .replace(/[^a-z0-9]/g, ''); 
-        if (typeof CryptoJS !== 'undefined') {
-            return CryptoJS.SHA256(cleanText).toString();
-        } else {
-            console.error("CryptoJS nem található!");
-            return "";
-        }
-    };
-
-
-
-
-
-// --- GLOBAL STATE & CONSTANTS ---
+        // --- GLOBAL STATE & CONSTANTS ---
         window.games = {}; // A "let" törlése és window-ra rakása megoldja a láthatóságot
 	window.badWordsList = [];
 
@@ -3787,62 +3619,28 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
-    const listEl = document.getElementById('game-list');
+    showLoading(true);
     const statusText = document.getElementById('loading-status');
-    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
-    let hasRenderedFromCache = false;
 
-    // 1. AZONNALI CACHE BETÖLTÉS ÉS MEGJELENÍTÉS
-    const cachedList = localStorage.getItem(CACHE_KEY_LIST);
-    if (cachedList) {
-        try {
-            console.log("⚡ Gyorsítótár (Cache) azonnali betöltése...");
-            window.games = JSON.parse(cachedList);
-            
-            if (Object.keys(window.games).length > 0) {
-                // Adatok feldolgozása
-                processGameDataAndRender(); 
-                
-                // *** FONTOS JAVÍTÁS: Azonnal átváltunk a listára! ***
-                if(typeof showPage === 'function') showPage('game-list-page');
-                
-                hasRenderedFromCache = true;
-                if(statusText) statusText.textContent = "Adatok frissítése a háttérben...";
-            }
-        } catch(e) {
-            console.error("Cache hiba:", e);
-        }
-    }
-
-    // Ha NINCS cache, akkor tesszük ki a töltőikont és váltunk át
-    if (!hasRenderedFromCache) {
-        if (listEl) {
-            listEl.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-10 opacity-60">
-                    <div class="animate-spin h-8 w-8 border-4 border-brand-orange border-t-transparent rounded-full mb-3"></div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Kalandok betöltése...</p>
-                </div>
-            `;
-        }
-        // Ilyenkor is átváltunk, hogy lássa a pörgő ikont
-        if(typeof showPage === 'function') showPage('game-list-page');
-    }
-
-    // 2. VÁRAKOZÁS A FIREBASE-RE (Háttérben)
+    // ✅ ÚJ: Várakozás, ha a Firebase modul még nem töltött be (max 5 mp)
     let retryCount = 0;
     while ((!window.db || !window.child) && retryCount < 50) {
-        if(!hasRenderedFromCache && statusText) statusText.textContent = "Rendszer indítása...";
+        if(statusText) statusText.textContent = "Firebase motor indítása...";
         await new Promise(r => setTimeout(r, 100));
         retryCount++;
     }
 
+    if(statusText) statusText.textContent = "Csatlakozás a szerverhez...";
+
+    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
+
+    // 1. ELLENŐRZÉS: Van-e Firebase motor?
     if (!window.db || !window.get) {
-        console.warn("Nincs Firebase kapcsolat. Az offline verzió marad.");
-        if (!hasRenderedFromCache) loadFromCacheOrError("Offline mód");
+        console.warn("A Firebase motor nem elérhető. Offline mód indítása.");
+        loadFromCacheOrError("Offline mód");
         return;
     }
 
-    // 3. HÁLÓZATI FRISSÍTÉS
     try {
         const dbRef = window.ref(window.db);
         const urlParams = new URLSearchParams(window.location.search);
@@ -3862,57 +3660,63 @@ window.initializeGamesFromFirebase = async function() {
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (snapshot.exists()) {
+            // --- SIKERES ONLINE LETÖLTÉS ---
+            // 🟢 JELZŐ ELREJTÉSE
             if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
 
             const data = snapshot.val();
-            let finalData = pGameId ? { [pGameId]: data } : data;
-
-            // Csak akkor frissítjük a képernyőt, ha változott az adat
-            const newDataStr = JSON.stringify(finalData);
-            if (newDataStr !== cachedList || !hasRenderedFromCache) {
-                console.log("✅ Új adat érkezett, lista frissítése...");
-                window.games = finalData;
-                localStorage.setItem(CACHE_KEY_LIST, newDataStr);
-                
-                processGameDataAndRender();
-                if(typeof showPage === 'function') showPage('game-list-page'); // Biztos ami biztos
-                if(statusText) statusText.textContent = ""; 
+            
+            if (pGameId) {
+                window.games = { [pGameId]: data };
             } else {
-                console.log("✅ Az adatok naprakészek.");
-                if(statusText) statusText.textContent = "";
+                window.games = data;
             }
 
+            localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
+            console.log("✅ Játéklista sikeresen frissítve a szerverről.");
+            
+            if(statusText) statusText.textContent = "Sikeres frissítés!";
+            processGameDataAndRender();
         } else {
-            if (!hasRenderedFromCache) loadFromCacheOrError("A kért adat nem található.");
+            loadFromCacheOrError("A kért adat nem található a szerveren.");
         }
 
     } catch (error) {
-        console.warn("⚠️ Hálózati hiba/Timeout (Offline mód):", error);
-        if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
-        if (!hasRenderedFromCache) loadFromCacheOrError("Offline mód");
+        console.warn("⚠️ Nem sikerült frissíteni (Offline vagy lassú net):", error);
+        loadFromCacheOrError("Offline mód");
     }
-
-    // --- SEGÉDFÜGGVÉNYEK ---
 
     function loadFromCacheOrError(reasonMsg) {
         const cachedList = localStorage.getItem(CACHE_KEY_LIST);
+        
         if (cachedList) {
+            console.log("📂 Mentett (Offline) lista betöltése...");
+            
+            // 🔴 JELZŐ BEKAPCSOLÁSA (Mert cache-ből töltünk)
+            if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
+
             try {
                 window.games = JSON.parse(cachedList);
+                if(statusText) {
+                    statusText.innerHTML = `<span style='color:orange'>${reasonMsg}: Mentett adatok betöltése...</span>`;
+                }
                 processGameDataAndRender();
-                if(typeof showPage === 'function') showPage('game-list-page');
+                
+                setTimeout(() => {
+                    if(!document.getElementById('game-list-page').classList.contains('hidden')){
+                         // Opcionális toast üzenet
+                    }
+                }, 1000);
+
             } catch(e) {
-                renderErrorUI("Sérült adatbázis.");
+                console.error("A mentett adatok sérültek:", e);
+                document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">A mentett adatok sérültek.<br>Internet szükséges a javításhoz!</div>`;
+                showLoading(false);
             }
         } else {
-            renderErrorUI(reasonMsg);
+            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Nem sikerült kapcsolódni.<br>Az első indításhoz internet szükséges!</div>`;
+            showLoading(false);
         }
-        showLoading(false);
-    }
-
-    function renderErrorUI(msg) {
-        if(listEl) listEl.innerHTML = `<div class="text-center p-4 text-red-500 font-bold text-sm">${msg}<br><button onclick="location.reload()" class="mt-2 underline">Próbáld újra!</button></div>`;
-        if(typeof showPage === 'function') showPage('game-list-page');
     }
 
     function processGameDataAndRender() {
@@ -3926,22 +3730,16 @@ window.initializeGamesFromFirebase = async function() {
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
         }
-        
-        if (typeof populateLocationFilter === 'function') populateLocationFilter();
-        if (typeof handleInitialUrlFiltering === 'function') handleInitialUrlFiltering(); 
-        
-        // Layout igazítások
-        const contentWrapperEl = document.getElementById('content-page-wrapper');
-        const headerEl = document.getElementById('header');
-        if(contentWrapperEl) contentWrapperEl.style.top = '160px';
-        if(headerEl) headerEl.style.paddingBottom = '';
-
+        populateLocationFilter();
+handleInitialUrlFiltering(); // 1. Előbb szűrünk és beállítjuk a logót/címet
+showPage('game-list-page');  // 2. Csak utána mutatjuk az oldalt 
         if (typeof autoSortGamesByDistance === 'function') {
             try { autoSortGamesByDistance(); } catch(e){} 
         }
         showLoading(false); 
     }
-};       
+};
+       
 
 
 
@@ -3967,77 +3765,73 @@ window.initializeGamesFromFirebase = async function() {
 
  // --- PDF GENERATION (Avatarral kiegészítve) ---
        function downloadPDF() {
-    const element = document.getElementById('pdf-content');
-    if (!element) return;
-    
-    // Ellenőrizzük az offline állapotot a PDF generálás előtt
-    if (!navigator.onLine) {
-        alert("Offline módban vagy. A PDF generálása képek nélkül történhet, vagy sikertelen lehet.");
-    }
+            const element = document.getElementById('pdf-content');
+            if (!element) return;
+            
+            showLoading(true); 
+            document.getElementById('loading-status').textContent = "Eredménylap generálása...";
 
-    showLoading(true); 
-    document.getElementById('loading-status').textContent = "Eredménylap generálása...";
+            const originalStyle = element.style.cssText;
+            
+            // --- UNIVERZÁLIS JAVÍTÁS (Desktop + Mobil) ---
+            
+            // 1. Kényszerítjük a szélességet A4 méretre (kb. 800px)
+            // Így nem "csúszik el" semmilyen képernyőn.
+            element.style.width = '790px'; 
+            element.style.margin = '0 auto'; // Középre igazítás
+            element.style.padding = '20px'; 
+            element.style.backgroundColor = '#ffffff';
+            
+            // 2. Biztonságos betűtípus
+            element.style.fontFamily = 'Arial, Helvetica, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
+            element.style.lineHeight = '1.5';
+            // ---------------------------
 
-    const originalStyle = element.style.cssText;
-    
-    // Stílusok rögzítése a generáláshoz
-    element.style.width = '790px'; 
-    element.style.margin = '0 auto';
-    element.style.padding = '20px'; 
-    element.style.backgroundColor = '#ffffff';
-    element.style.fontFamily = 'Arial, Helvetica, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
-    element.style.lineHeight = '1.5';
-
-    const now = new Date();
-    const year = now.getFullYear();
+            const now = new Date();
+            const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
-            const second = String(now.getSeconds()).padStart(2, '0');
-    const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-    
-    const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
-    const gameId = window.currentGameId || 'Eredmény'; 
-    const fileName = `MystiGo_${gameId}_${safeTeamName}_${fileNameTimestamp}.pdf`;
+            const second = String(now.getSeconds()).padStart(2, '0'); 
 
-    // Konfiguráció beállítása az internetkapcsolat függvényében
-    // Ha offline, kikapcsoljuk a CORS-t, hogy ne akadjon el a külső képeken
-    const useCorsSetting = navigator.onLine;
+            const fileNameTimestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
+            
+            const safeTeamName = (appState && appState.teamName) ? appState.teamName : 'név';
+            const safeAvatar = (appState && appState.teamAvatar) ? appState.teamAvatar : 'nincs-avatar';
+            const gameId = window.currentGameId || 'Eredmény'; 
 
-    const opt = {
-        margin: 10, 
-        filename: fileName, 
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-            scale: 2, 
-            logging: false, 
-            useCORS: useCorsSetting, // Dinamikus beállítás
-            letterRendering: false, 
-            scrollY: 0,
-            windowWidth: 800,
-            width: 800,
-            x: 0
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+            const fileName = `MystiGo_${gameId}_${safeTeamName}_${safeAvatar}_${fileNameTimestamp}.pdf`;
 
-    // A generálást becsomagoljuk egy Promise-ba a biztonságos lezárásért
-    html2pdf().from(element).set(opt).save()
-        .then(() => {
-            console.log("PDF generálás kész.");
-        })
-        .catch(err => {
-            console.error("PDF generálási hiba:", err);
-            alert("Hiba történt a PDF generálása közben (lehet, hogy a hálózat hiánya okozza a képek betöltésénél).");
-        })
-        .finally(() => {
-            // EZT A RÉSZT MINDENKÉPP LEFUTTATJUK
-            element.style.cssText = originalStyle;
-            document.getElementById('loading-status').textContent = ""; 
-            showLoading(false);
-        });
-}
+            setTimeout(() => {
+                html2pdf().from(element).set({
+                    margin: 10, 
+                    filename: fileName, 
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2, 
+                        logging: false, 
+                        useCORS: true, 
+                        letterRendering: false, 
+                        scrollY: 0,
+                        // KULCSFONTOSSÁGÚ: A virtuális ablak szélessége egyezzen meg az elem szélességével!
+                        windowWidth: 800,
+                        width: 800,
+                        x: 0
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).save().then(() => {
+                    element.style.cssText = originalStyle;
+                    document.getElementById('loading-status').textContent = ""; 
+                    showLoading(false);
+                }).catch(err => {
+                    console.error("PDF generálási hiba:", err);
+                    element.style.cssText = originalStyle;
+                    document.getElementById('loading-status').textContent = "";
+                    showLoading(false);
+                });
+            }, 500); 
+        }
 
 
 async function sharePdfViaEmail() {
@@ -4300,41 +4094,40 @@ const isRegistered = !!(user && !user.isAnonymous);
             
 
   window.resetApp = function() {
-    // 1. Térkép és markerek takarítása
-    if (appState.map) {
-        appState.map.remove();
-        appState.map = null;
-    }
-    if (manualMarker) {
-        manualMarker.remove();
-        manualMarker = null;
-    }
-    if (appState.geoWatchId) {
-        stopAllGpsActivity();
-    }
-    if (appState.timerInterval) clearInterval(appState.timerInterval);
+            // 1. Térkép és markerek takarítása
+            if (appState.map) {
+                appState.map.remove();
+                appState.map = null;
+            }
+            if (manualMarker) {
+                manualMarker.remove();
+                manualMarker = null;
+            }
+            if (appState.geoWatchId) {
+                stopAllGpsActivity();
+            }
+            if (appState.timerInterval) clearInterval(appState.timerInterval);
 
-    // 2. Változók alaphelyzetbe állítása
-    initializeState();
+            // 2. Változók alaphelyzetbe állítása
+            initializeState();
 
-    // 3. UI visszaállítása - MÓDOSÍTVA
-    // Nem rejtjük el a landing page-et, mert már el van rejtve alapból.
-    // Biztosítjuk, hogy a content wrapper látható legyen.
-    document.getElementById('landing-page').classList.add('hidden');
-    document.getElementById('content-wrapper').classList.remove('hidden');
-    document.getElementById('content-wrapper').classList.remove('translate-y-full');
-    
-    // UI elemek elrejtése a biztonság kedvéért (játék nézet elemei)
-    document.getElementById('task-interaction-area').classList.add('hidden');
-    document.getElementById('start-task-button-container').classList.add('hidden');
-    document.getElementById('game-status-bar').classList.add('hidden');
-    
-    // Visszatérés a lista nézethez
-    showPage('game-list-page');
+            // 3. UI visszaállítása
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('content-wrapper').classList.remove('hidden');
+            document.getElementById('content-wrapper').classList.remove('translate-y-full');
+            
+            // UI elemek elrejtése a biztonság kedvéért
+            document.getElementById('task-interaction-area').classList.add('hidden');
+            document.getElementById('start-task-button-container').classList.add('hidden');
+            document.getElementById('game-status-bar').classList.add('hidden');
 
-    // 4. Játéklista újratöltése
-    initializeGamesFromFirebase(); 
-};
+            // 4. Játéklista betöltése Firebase-ből
+            initializeGamesFromFirebase(); 
+            
+            // 5. Oldalváltás a listára
+            // (A initializeGamesFromFirebase a végén úgyis meghívja a showPage-t, 
+            // de nem baj, ha itt is megvan, a betöltésjelző addig látszik)
+        };
 
         window.showLoading = (show) => document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         
@@ -8143,7 +7936,6 @@ async function validateAndUseCoupon() {
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
 
-		appState.currentPage = 'game-list-page';
             // --- ÚJ RÉSZ KEZDETE: Név és Avatar automatikus mentése/betöltése ---
             const nameInputEl = document.getElementById('team-name-input');
 
@@ -8336,57 +8128,43 @@ const isIos = () => {
 
 
             if (avatarSelectEl) {
-        // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
-        window.updateAvatarPreview = () => {
-            const previewContainer = document.getElementById('avatar-preview-container');
-            const badge = document.getElementById('preview-verified-badge');
-            const selectEl = document.getElementById('team-avatar-select'); // Lekérjük a rejtett mezőt
+    // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
+    window.updateAvatarPreview = () => {
+        const previewContainer = document.getElementById('avatar-preview-container');
+        const badge = document.getElementById('preview-verified-badge'); // <--- ÚJ: A pipa lekérése
+        
+        // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
+        const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
 
-            // Megnézzük, mi van a memóriában. Ha semmi, alapértelmezett 'cat'-re állunk.
-            const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar') || 'cat';
+        // 1. Avatar (Emoji) frissítése
+        if (previewContainer && savedAvatar) {
+            // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
+            previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
 
-            // --- JAVÍTÁS: A rejtett mező kényszerített szinkronizálása ---
-            // Ez biztosítja, hogy a "Válassz avatart" hiba ne jöjjön elő, 
-            // mert a programkód is látni fogja, hogy van választott karakter.
-            if (selectEl) {
-                // Ha üres, vagy eltér a mentettől, akkor beállítjuk
-                if (selectEl.value !== savedAvatar) {
-                    selectEl.innerHTML = `<option value="${savedAvatar}" selected>${savedAvatar}</option>`;
-                    selectEl.value = savedAvatar; // Biztos, ami biztos
-                }
+            // Kis vizuális visszajelzés
+            previewContainer.classList.add('scale-110');
+            setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
+        }
+
+        // 2. Kék pipa (Verified Badge) frissítése - EZ HIÁNYZOTT
+        if (badge) {
+            // Biztonságos ellenőrzés: létezik-e már az auth objektum?
+            const user = (window.auth) ? window.auth.currentUser : null;
+
+            if (user && !user.isAnonymous) {
+                badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
+            } else {
+                badge.classList.remove('active'); // Ha vendég, elrejtjük
             }
-            // -----------------------------------------------------------
+        }
+    };
 
-            // 1. Avatar (Emoji) vizuális frissítése
-            if (previewContainer) {
-                // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
-                previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+    // Eseményfigyelő hozzáadása
+    avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
 
-                // Kis vizuális visszajelzés
-                previewContainer.classList.add('scale-110');
-                setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
-            }
-
-            // 2. Kék pipa (Verified Badge) frissítése
-            if (badge) {
-                const user = (window.auth) ? window.auth.currentUser : null;
-                if (user && !user.isAnonymous) {
-                    badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
-                } else {
-                    badge.classList.remove('active'); // Ha vendég, elrejtjük
-                }
-            }
-
-            // Gomb állapotának frissítése (ha szükséges)
-            if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
-        };
-
-        // Eseményfigyelő hozzáadása
-        avatarSelectEl.addEventListener('change', window.updateAvatarPreview);
-
-        // Kezdeti betöltés (mentett adatok alapján)
-        setTimeout(window.updateAvatarPreview, 200);
-    }
+    // Kezdeti betöltés (mentett adatok alapján)
+    setTimeout(window.updateAvatarPreview, 200);
+}
 
 
             // --- ÚJ RÉSZ VÉGE ---
@@ -9574,28 +9352,12 @@ onAuthStateChanged(auth, (user) => {
                 
                 const finalName = profile.teamName || user.displayName || "Játékos";
                 if (nameDisplay) nameDisplay.textContent = finalName;
-                if (nameInput) {
-    nameInput.value = finalName;
-    // Opcionális: A localStorage-ot is frissítjük azonnal, hogy szinkronban legyen
-    localStorage.setItem('mystigo_pref_teamName', finalName);
-}
+                if (nameInput && !nameInput.value) nameInput.value = finalName;
 
                 if (profile.avatar) {
-    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-    
-    // --- JAVÍTÁS KEZDTE ---
-    // Szinkronizáljuk a rejtett select mezőt is, hogy a validáció átengedjen!
-    const avatarSelectEl = document.getElementById('team-avatar-select');
-    if (avatarSelectEl) {
-        avatarSelectEl.innerHTML = `<option value="${profile.avatar}" selected>${profile.avatar}</option>`;
-    }
-    // --- JAVÍTÁS VÉGE ---
-
-    if (window.updateAvatarPreview) window.updateAvatarPreview();
-    
-    // Frissítjük a gomb állapotát is (hogy zöld legyen az "Azonnali kaland" gomb, ha van)
-    if (window.updateInstantButtonEligibility) window.updateInstantButtonEligibility();
-}
+                    localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+                    if (window.updateAvatarPreview) window.updateAvatarPreview();
+                }
             });
 
         } else {
