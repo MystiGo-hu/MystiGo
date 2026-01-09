@@ -717,7 +717,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.54
+       v1.2.55
 
    </span>
 
@@ -1268,7 +1268,7 @@
 <div id="normal-finish-button-container" class="mt-4 hidden">
     <button onclick="finishExploreGameEarly()" 
             class="w-full py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-100 transition shadow-sm flex items-center justify-center gap-2 transform active:scale-95">
-        <span>🏁</span> Játék befejezése most
+        <span>🏁</span> Játék befejezése most!
     </button>
 </div>
 
@@ -2176,44 +2176,78 @@ window.getGameCurrentCount = async function(gameId) {
 
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
   // --- MENTÉS LOGIKA (0 PONT ELLENŐRZÉSSEL) ---
+
 window.saveScoreToFirebase = function(data) {
-    if (!data.gameId) return;
-
-    let safeScore = Number(data.score);
-    if (isNaN(safeScore) || safeScore <= 0) return; 
-
-    const now = new Date();
-    const readableDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
+    // 1. Felhasználó és Alapadatok előkészítése (EZ HIÁNYZOTT!)
     const user = window.auth ? window.auth.currentUser : null;
-    if (!user) return; // Ha nincs user, nem tudunk menteni a szabályok miatt
+    
+    // Ha nincs user (pl. hiba miatt), generálunk egy "vendég" azonosítót, de ez ritka
+    const uid = user ? user.uid : ('guest_' + Date.now());
+    const isRegistered = user && !user.isAnonymous;
 
     const scoreData = {
         gameId: data.gameId,
-        teamName: String(data.teamName || "Névtelen").trim(),
-        teamAvatar: data.teamAvatar || "cat",
-        uid: user.uid,
-        isRegistered: !user.isAnonymous,
-        score: safeScore,
-        totalTime: data.totalTime || 0,
-        geofenceTime: data.geofenceTime || 0,
+        teamName: data.teamName,
+        teamAvatar: data.teamAvatar,
+        score: data.score,
+        totalTime: data.totalTime,
+        geofenceTime: data.geofenceTime,
         timestamp: Date.now(),
-        dateString: readableDate
+        dateString: new Date().toLocaleString('hu-HU'),
+        isRegistered: isRegistered,
+        uid: uid
     };
 
+    // --- MENTÉS LOGIKA ---
     if (navigator.onLine && window.db) {
         let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
         
-        // JAVÍTÁS: push() helyett konkrétan a user.uid alá mentünk!
-        const leaderboardEntryRef = window.ref(window.db, `leaderboard/${targetId}/${user.uid}`);
-        
-        window.set(leaderboardEntryRef, scoreData).then(() => {
-            console.log("✅ Ranglista mentve (UID alapján).");
+        // --- 1. NORMÁL RANGLISTA MENTÉS (Minden játéknak külön sor) ---
+        // A user.uid helyett a push() generál egyedi kulcsot -> Történet megmarad
+        const gameLeaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
+        const newEntryRef = window.push(gameLeaderboardRef); 
+
+        window.set(newEntryRef, scoreData).then(() => {
+            console.log("✅ Játék ranglista sor beszúrva (History).");
             if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
         }).catch((error) => {
-            console.error("❌ Mentési hiba (valószínűleg Rules hiba):", error);
+            console.error("❌ Mentési hiba:", error);
             saveToPendingUploads(scoreData);
         });
+
+        // --- 2. HAVI DICSŐSÉGFAL (Csak regisztráltaknak, ÖSSZEADVA) ---
+        // Ez egy teljesen külön ág lesz, kifejezetten a Havi Ranglista számára optimalizálva
+        if (scoreData.isRegistered) {
+            const dateObj = new Date();
+            // Kulcs: Év-Hónap (pl: 2024-05)
+            const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+            
+            // Itt a kulcs továbbra is a USER ID, hiszen a havi listán egy ember csak egyszer szerepelhet
+            const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${uid}`);
+
+            window.runTransaction(monthlyRef, (currentData) => {
+                if (currentData === null) {
+                    // Ha ebben a hónapban ez az első játéka, létrehozzuk
+                    return {
+                        name: scoreData.teamName,
+                        avatar: scoreData.teamAvatar,
+                        score: scoreData.score, // Kezdő pontszám
+                        isRegistered: true,
+                        lastUpdate: Date.now()
+                    };
+                } else {
+                    // Ha már játszott, HOZZÁADJUK az új pontot a meglévőhöz
+                    return {
+                        ...currentData,
+                        name: scoreData.teamName, // Frissítjük a nevet, ha változott volna
+                        avatar: scoreData.teamAvatar,
+                        score: (currentData.score || 0) + scoreData.score, // <-- ITT AZ ÖSSZEADÁS LÉNYEGE
+                        lastUpdate: Date.now()
+                    };
+                }
+            }).then(() => console.log("✅ Havi pontszám növelve (Aggregálás)."));
+        }
+
     } else {
         saveToPendingUploads(scoreData);
     }
@@ -2846,7 +2880,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
     try {
         if (mode === 'all') {
-            // ÖSSZESÍTETT: Csak a regisztrált profilok (marad a régi)
+            // ÖSSZESÍTETT: Csak a regisztrált profilok (EZ A RÉSZ MARADT A RÉGI)
             const snapshot = await window.get(window.ref(window.db, 'users'));
             let players = [];
             if (snapshot.exists()) {
@@ -2864,75 +2898,53 @@ window.openHallOfFame = async function(mode = 'monthly') {
             }
             renderHofTable(players, tbody);
         } else {
-            // HAVI NÉZET: Leaderboard aggregáció
-            const snapshot = await window.get(window.ref(window.db, 'leaderboard'));
+            // HAVI NÉZET: ÚJ LOGIKA (monthly_leaderboard)
+            // Itt már az összeadott pontokat olvassuk ki
+            const snapshot = await window.get(window.ref(window.db, 'monthly_leaderboard'));
+            
             if (!snapshot.exists()) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Nincs adat.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Ebben a hónapban még nem született eredmény.</td></tr>';
+                monthSelect.innerHTML = ''; 
                 return;
             }
 
-            const allGames = snapshot.val();
-            const monthMap = new Set();
-            const monthlyAggregator = {};
-            
-            // 1. Hónapok kigyűjtése a legördülőhöz
-            Object.values(allGames).forEach(gameResults => {
-                Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && entry.isRegistered === true) {
-                        const d = new Date(entry.timestamp);
-                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        monthMap.add(key);
-                    }
-                });
-            });
+            const allMonthsData = snapshot.val();
+            // A hónapokat sorba rendezzük (legfrissebb elől)
+            const availableMonths = Object.keys(allMonthsData).sort().reverse();
 
-            // Hónapválasztó feltöltése, ha üres
-            if (monthSelect.options.length === 0) {
-                const sortedMonths = Array.from(monthMap).sort().reverse();
-                monthSelect.innerHTML = sortedMonths.map(m => {
+            // 1. Hónapválasztó feltöltése
+            // Ellenőrizzük, hogy a dropdown tartalma stimmel-e az adatbázissal
+            const currentOptions = Array.from(monthSelect.options).map(o => o.value);
+            const needsUpdate = availableMonths.some(m => !currentOptions.includes(m)) || availableMonths.length !== currentOptions.length;
+
+            if (needsUpdate || monthSelect.options.length === 0) {
+                monthSelect.innerHTML = availableMonths.map(m => {
                     const [year, month] = m.split('-');
                     const label = new Date(year, month - 1).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
                     return `<option value="${m}">${label}</option>`;
                 }).join('');
+                
+                // Ha a jelenlegi kiválasztás érvénytelen, váltsunk a legfrissebbre
+                if (!monthSelect.value || !allMonthsData[monthSelect.value]) {
+                    if(availableMonths.length > 0) monthSelect.value = availableMonths[0];
+                }
             }
 
             const targetMonthKey = monthSelect.value;
-
-            // 2. Pontok összegezése a választott hónapra (UID ALAPÚ AZONOSÍTÁSSAL)
-            Object.values(allGames).forEach(gameResults => {
-                Object.values(gameResults).forEach(entry => {
-                    if (entry.timestamp && entry.isRegistered === true) {
-                        const d = new Date(entry.timestamp);
-                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        
-                        if (key === targetMonthKey) {
-                            // ✅ KRITIKUS VÁLTOZÁS: UID-t használunk kulcsnak, ha van. 
-                            // Ha régi adat és nincs UID, akkor marad a név.
-                            const playerKey = entry.uid || entry.teamName; 
-                            
-                            if (!monthlyAggregator[playerKey]) {
-                                monthlyAggregator[playerKey] = { 
-                                    score: 0, 
-                                    name: entry.teamName, 
-                                    avatar: entry.teamAvatar, 
-                                    isRegistered: true 
-                                };
-                            }
-                            // Mindig a legfrissebb nevet/avatart tartsuk meg a kijelzéshez
-                            monthlyAggregator[playerKey].name = entry.teamName;
-                            monthlyAggregator[playerKey].avatar = entry.teamAvatar;
-                            monthlyAggregator[playerKey].score += parseInt(entry.score || 0);
-                        }
-                    }
-                });
-            });
-
-            const players = Object.values(monthlyAggregator).map((data) => ({
-    name: data.name, // Itt az objektumon belüli 'name' tulajdonságot használjuk (ami a teamName)
-    avatar: data.avatar,
-    score: data.score,
-    isRegistered: data.isRegistered
-            }));
+            
+            // 2. Adatok kinyerése a választott hónapból
+            let players = [];
+            if (targetMonthKey && allMonthsData[targetMonthKey]) {
+                const monthData = allMonthsData[targetMonthKey];
+                
+                // Az adatbázisban itt a kulcs a UserID, az érték az objektum (név, pont, avatar)
+                players = Object.values(monthData).map(data => ({
+                    name: data.name,
+                    avatar: data.avatar || 'cat',
+                    score: data.score, // Ez már a helyes, növekvő pontszám
+                    isRegistered: true 
+                }));
+            }
 
             renderHofTable(players, tbody);
         }
