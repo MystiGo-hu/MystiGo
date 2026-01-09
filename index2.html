@@ -9397,14 +9397,22 @@ onAuthStateChanged(auth, (user) => {
         // Ha nincs, akkor a rendszer alapértelmezett (Vendég Játékos vagy Google név).
         let displayNameToUse = profile.teamName;
         if (!displayNameToUse) {
-             displayNameToUse = user.isAnonymous ? "Vendég Játékos" : (user.displayName || "Játékos");
+             displayNameToUse = user.isAnonymous ? "Vendég" : (user.displayName || "Játékos");
         }
         
         // Név kiírása a fejlécbe
-        if (nameDisplay) nameDisplay.textContent = displayNameToUse;
-        
-        // Input mező kitöltése (ha üres)
-        if (nameInput && nameInput.value === "") nameInput.value = displayNameToUse;
+       if (nameDisplay) nameDisplay.textContent = displayNameToUse;
+
+// Input mező kezelése
+if (nameInput) {
+    // Ha regisztrált a felhasználó (!user.isAnonymous), akkor kényszerítjük a profilnevet (felülírjuk az anonymot)
+    // Ha csak vendég (anonym), akkor csak akkor írjuk be, ha még üres a mező
+    if (!user.isAnonymous) {
+        nameInput.value = displayNameToUse;
+    } else if (nameInput.value === "") {
+        nameInput.value = displayNameToUse;
+    }
+}
 
         // Avatar betöltése
         if (profile.avatar) {
@@ -9436,7 +9444,7 @@ onAuthStateChanged(auth, (user) => {
         
         if (logoutBtn) logoutBtn.classList.add('hidden');          // Nincs kilépés gomb
         if (btnGroup) btnGroup.classList.remove('hidden');         // Vannak belépés gombok
-        if (authStatusLabel) authStatusLabel.textContent = "Vendég mód";
+        if (authStatusLabel) authStatusLabel.textContent = "Vendég";
         
         // Megjegyzés: A 'nameDisplay'-t már nem írjuk felül itt fix szöveggel, 
         // mert a fenti 'onValue' listener szépen beállítja a választott nevet.
