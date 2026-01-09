@@ -717,7 +717,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.55
+       v1.2.56
 
    </span>
 
@@ -2177,11 +2177,12 @@ window.getGameCurrentCount = async function(gameId) {
   // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
   // --- MENTÉS LOGIKA (0 PONT ELLENŐRZÉSSEL) ---
 
-window.saveScoreToFirebase = function(data) {
-    // 1. Felhasználó és Alapadatok előkészítése (EZ HIÁNYZOTT!)
+// 2. MENTÉS ÉS NÉV SZINKRONIZÁLÁS (JAVÍTOTT VERZIÓ)
+window.saveScoreToFirebase = async function(data) {
+    // 1. Felhasználó és Alapadatok előkészítése
     const user = window.auth ? window.auth.currentUser : null;
     
-    // Ha nincs user (pl. hiba miatt), generálunk egy "vendég" azonosítót, de ez ritka
+    // Vendég kezelés
     const uid = user ? user.uid : ('guest_' + Date.now());
     const isRegistered = user && !user.isAnonymous;
 
@@ -2202,56 +2203,78 @@ window.saveScoreToFirebase = function(data) {
     if (navigator.onLine && window.db) {
         let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
         
-        // --- 1. NORMÁL RANGLISTA MENTÉS (Minden játéknak külön sor) ---
-        // A user.uid helyett a push() generál egyedi kulcsot -> Történet megmarad
+        // --- 1. ÚJ EREDMÉNY MENTÉSE (Push - új sor létrehozása) ---
         const gameLeaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
         const newEntryRef = window.push(gameLeaderboardRef); 
 
-        window.set(newEntryRef, scoreData).then(() => {
-            console.log("✅ Játék ranglista sor beszúrva (History).");
+        try {
+            await window.set(newEntryRef, scoreData);
+            console.log("✅ Jelenlegi játék elmentve.");
             if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
-        }).catch((error) => {
-            console.error("❌ Mentési hiba:", error);
-            saveToPendingUploads(scoreData);
-        });
 
-        // --- 2. HAVI DICSŐSÉGFAL (Csak regisztráltaknak, ÖSSZEADVA) ---
-        // Ez egy teljesen külön ág lesz, kifejezetten a Havi Ranglista számára optimalizálva
+            // --- 2. VISSZAMENŐLEGES NÉVFRISSÍTÉS (SZINKRONIZÁCIÓ) ---
+            // Ez a rész frissíti a korábbi "John" neveket "James"-re
+            if (isRegistered) {
+                const q = window.query(
+                    gameLeaderboardRef, 
+                    window.orderByChild('uid'), 
+                    window.equalTo(uid)
+                );
+
+                const snapshot = await window.get(q);
+                if (snapshot.exists()) {
+                    const updates = {};
+                    snapshot.forEach((child) => {
+                        // Minden korábbi bejegyzésnél átírjuk a nevet és avatart a mostanira
+                        updates[`leaderboard/${targetId}/${child.key}/teamName`] = data.teamName;
+                        updates[`leaderboard/${targetId}/${child.key}/teamAvatar`] = data.teamAvatar;
+                    });
+
+                    // Egyetlen kéréssel beküldjük az összes módosítást
+                    await window.update(window.ref(window.db), updates);
+                    console.log("✅ Korábbi ranglista nevek szinkronizálva az újjal.");
+                }
+            }
+
+        } catch (error) {
+            console.error("❌ Mentési/Szinkronizálási hiba:", error);
+            saveToPendingUploads(scoreData);
+        }
+
+        // --- 3. HAVI DICSŐSÉGFAL (Összesített) ---
         if (scoreData.isRegistered) {
             const dateObj = new Date();
-            // Kulcs: Év-Hónap (pl: 2024-05)
             const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-            
-            // Itt a kulcs továbbra is a USER ID, hiszen a havi listán egy ember csak egyszer szerepelhet
             const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${uid}`);
 
             window.runTransaction(monthlyRef, (currentData) => {
                 if (currentData === null) {
-                    // Ha ebben a hónapban ez az első játéka, létrehozzuk
                     return {
                         name: scoreData.teamName,
                         avatar: scoreData.teamAvatar,
-                        score: scoreData.score, // Kezdő pontszám
+                        score: scoreData.score,
                         isRegistered: true,
                         lastUpdate: Date.now()
                     };
                 } else {
-                    // Ha már játszott, HOZZÁADJUK az új pontot a meglévőhöz
                     return {
                         ...currentData,
-                        name: scoreData.teamName, // Frissítjük a nevet, ha változott volna
-                        avatar: scoreData.teamAvatar,
-                        score: (currentData.score || 0) + scoreData.score, // <-- ITT AZ ÖSSZEADÁS LÉNYEGE
+                        name: scoreData.teamName, // Itt is frissítjük a nevet!
+                        avatar: scoreData.teamAvatar, // És az avatart is!
+                        score: (currentData.score || 0) + scoreData.score,
                         lastUpdate: Date.now()
                     };
                 }
-            }).then(() => console.log("✅ Havi pontszám növelve (Aggregálás)."));
+            }).then(() => console.log("✅ Havi pontszám és név frissítve."));
         }
 
     } else {
         saveToPendingUploads(scoreData);
     }
 };
+
+
+
 
 // --- ÉRTÉKELÉSI FUNKCIÓK ---
 window.closeRatingModal = function() {
@@ -8917,7 +8940,7 @@ window.startInstantAdventure = async function() {
 <script type="module">
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue } 
+    import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue, orderByChild, equalTo } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail} 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -8940,6 +8963,8 @@ window.startInstantAdventure = async function() {
 
         // Globális elérés biztosítása a többi scriptnek
         window.db = db;
+	window.orderByChild = orderByChild;
+	window.equalTo = equalTo;
         window.auth = auth;
 	window.isPopupActive = false;
         window.ref = ref; 
