@@ -9364,7 +9364,7 @@ onAuthStateChanged(auth, (user) => {
                 
                 const finalName = profile.teamName || user.displayName || "Játékos";
                 if (nameDisplay) nameDisplay.textContent = finalName;
-                if (nameInput && !nameInput.value) nameInput.value = finalName;
+                if (nameInput) nameInput.value = finalName;
 
                 if (profile.avatar) {
                     localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
