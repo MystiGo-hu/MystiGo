@@ -6508,31 +6508,36 @@ window.generateBonusPoints = async function(count) {
         function updatePlayerMarker(lat, lng, heading) {
     if (!appState.map) return;
 
-// GPS ALAPÚ IRÁNYSZÁMÍTÁS (Ha mozogsz, ez stabilizál)
-    if (lastGpsLat !== null && lastGpsLng !== null) {
-        const dist = haversineDistance({lat: lastGpsLat, lng: lastGpsLng}, {lat: lat, lng: lng});
-        if (dist > 2) { // Csak 2 méternél nagyobb elmozdulásnál számolunk
-            movementHeading = calculateBearing(lastGpsLat, lastGpsLng, lat, lng);
+    // --- 1. GPS ALAPÚ IRÁNYSZÁMÍTÁS ---
+    if (window.lastGpsLat !== undefined && window.lastGpsLat !== null) {
+        const dist = haversineDistance({lat: window.lastGpsLat, lng: window.lastGpsLng}, {lat: lat, lng: lng});
+        if (dist > 2) { 
+            window.movementHeading = calculateBearing(window.lastGpsLat, window.lastGpsLng, lat, lng);
         }
     }
-    lastGpsLat = lat;
-    lastGpsLng = lng;
+    window.lastGpsLat = lat;
+    window.lastGpsLng = lng;
 
-    // 1. Pozíció mentése
+    // --- 2. POZÍCIÓ MENTÉSE ÉS JÁTÉKOS MARKER FRISSÍTÉS ---
     appState.userPosition = { lat: lat, lng: lng };
 
-    // Útvonal rögzítése
     if (appState.isTimerRunning) {
         appState.routeCoordinates.push([lat, lng]);
     }
 
     if (!appState.isTestModeEnabled && !appState.isManualMock) {
-    const latLng = new L.LatLng(lat, lng);
+        const latLng = new L.LatLng(lat, lng);
 
-    // 1. A kék pötty (marker) pozícióját MINDIG frissítjük
-    if (appState.playerMarker) {
+        if (appState.playerMarker) {
             appState.playerMarker.setLatLng(latLng);
+            
+            // Ha van elmentett irány, forgatjuk a nyilat
+            if (window.movementHeading !== undefined) {
+                const visual = appState.playerMarker.getElement()?.querySelector('.marker-visual');
+                if (visual) visual.style.setProperty('--rotation', `${window.movementHeading}deg`);
+            }
         } else {
+            // Marker létrehozása ha még nincs
             const playerIcon = L.divIcon({
                 className: 'player-marker',
                 html: '<div class="marker-visual"></div>',
@@ -6540,50 +6545,56 @@ window.generateBonusPoints = async function(count) {
                 iconAnchor: [10, 10],
                 popupAnchor: [0, -10]
             });
-            
             appState.playerMarker = L.marker(latLng, { 
-                icon: playerIcon,
+                icon: playerIcon, 
                 zIndexOffset: 1000 
             }).addTo(appState.map);
         }
 
-        // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT VERZIÓ
-       const now = Date.now();
+        // --- 3. TÉRKÉP IGAZÍTÁSA (AUTO-ZOOM LOGIKA) ---
+        const now = Date.now();
         const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
-        const INTERACTION_THRESHOLD = 3000; // 3 másodperc (ezt átírhatod 5000-re is ha többet szeretnél)
+        const INTERACTION_THRESHOLD = 3000; // 3 másodperc türelmi idő
 
-        // EXPLORE MÓD KEZELÉSE (Amikor minden pont látszik)
-       const isExploreSelection = (
+        // A) EXPLORE MÓD KEZELÉSE (Feladat választás a térképen)
+        const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
             !document.getElementById('explore-selection-container').classList.contains('hidden')
         );
 
         if (isExploreSelection) {
-            // ÚJ LOGIKA: Csak akkor igazítjuk a nézetet, ha letelt a 3 másodperc!
-            if (timeSinceLastInteraction > INTERACTION_THRESHOLD) {
-                // Megkeressük az összes aktív task markert és rájuk igazítjuk a térképet
+            // Figyeljük, történt-e új interakció (tapicskolás) az utolsó igazítás óta
+            // Ha igen, akkor töröljük a "már igazítottam" jelzőt
+            if (appState.lastMapInteraction !== appState.lastProcessedInteraction) {
+                appState.exploreViewResetDone = false;
+                appState.lastProcessedInteraction = appState.lastMapInteraction;
+            }
+
+            // JAVÍTOTT LOGIKA:
+            // Csak akkor igazítunk (fitBounds), ha:
+            // 1. Letelt a 3 másodperc inaktivitás
+            // 2. ÉS még NEM igazítottuk vissza az utolsó érintés óta (ez a kulcs!)
+            if (timeSinceLastInteraction > INTERACTION_THRESHOLD && !appState.exploreViewResetDone) {
                 const markers = Object.values(appState.taskMarkers || {});
                 if (markers.length > 0) {
-                    // Létrehozunk egy csoportot a markerekből, hogy megkapjuk a befoglaló keretet
                     const group = new L.featureGroup(markers);
-                    // Hozzáadjuk a játékos pozícióját is, hogy ő is látszódjon
                     if (appState.playerMarker) {
                         group.addLayer(appState.playerMarker);
                     }
-                    // Finom igazítás animációval
+                    // Finom igazítás animációval - EZ CSAK EGYSZER FUT LE
                     appState.map.fitBounds(group.getBounds().pad(0.1), { animate: true });
+                    
+                    // Megjelöljük, hogy kész, ne csináld újra amíg a user hozzá nem ér
+                    appState.exploreViewResetDone = true;
                 }
-            } else {
-                // Ha még nem telt le a 3 mp (mert a user épp mozgatja), akkor NEM csinálunk semmit.
-                // Így szabadon nézelődhet.
             }
             
             checkGeofence();
-            return; // Kilépünk, hogy a lenti "Normál" logika ne fusson le
+            return; // Kilépünk, hogy a lenti "Normál" logika ne zavarjon be
         }
 
-        // NORMÁL JÁTÉKMENET LOGIKÁJA (Amikor a célpontot követed)
+        // B) NORMÁL JÁTÉKMENET (Amikor egy konkrét célpontot követsz)
         if (timeSinceLastInteraction > INTERACTION_THRESHOLD) {
             if (appState.geofenceCircle && appState.playerMarker) { 
                 const targetLatLng = appState.geofenceCircle.getLatLng();
@@ -6599,12 +6610,9 @@ window.generateBonusPoints = async function(count) {
             } else {
                 appState.map.setView(latLng, 19);
             }
-        } else {
-            console.log("Normál mód: Kézi vezérlés, nézet rögzítve...");
         }
     }
     
-    // A geofence ellenőrzést a végén mindig lefuttatjuk, hogy az üzenetek feljöjjenek
     checkGeofence();
 }
 
