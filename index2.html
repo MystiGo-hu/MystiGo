@@ -6486,10 +6486,9 @@ window.generateBonusPoints = async function(count) {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
-    appState.map.on('movestart zoomstart dragstart touchstart mousedown drag', () => {
-        appState.lastMapInteraction = Date.now();
-        
-    });
+    appState.map.on('movestart zoomstart dragstart touchstart', () => {
+    appState.lastMapInteraction = Date.now();
+});
 
     // Mock click handler visszakapcsolása, ha szükséges
     if (appState.isManualMock) {
@@ -6508,36 +6507,31 @@ window.generateBonusPoints = async function(count) {
         function updatePlayerMarker(lat, lng, heading) {
     if (!appState.map) return;
 
-    // --- 1. GPS ALAPÚ IRÁNYSZÁMÍTÁS ---
-    if (window.lastGpsLat !== undefined && window.lastGpsLat !== null) {
-        const dist = haversineDistance({lat: window.lastGpsLat, lng: window.lastGpsLng}, {lat: lat, lng: lng});
-        if (dist > 2) { 
-            window.movementHeading = calculateBearing(window.lastGpsLat, window.lastGpsLng, lat, lng);
+// GPS ALAPÚ IRÁNYSZÁMÍTÁS (Ha mozogsz, ez stabilizál)
+    if (lastGpsLat !== null && lastGpsLng !== null) {
+        const dist = haversineDistance({lat: lastGpsLat, lng: lastGpsLng}, {lat: lat, lng: lng});
+        if (dist > 2) { // Csak 2 méternél nagyobb elmozdulásnál számolunk
+            movementHeading = calculateBearing(lastGpsLat, lastGpsLng, lat, lng);
         }
     }
-    window.lastGpsLat = lat;
-    window.lastGpsLng = lng;
+    lastGpsLat = lat;
+    lastGpsLng = lng;
 
-    // --- 2. POZÍCIÓ MENTÉSE ÉS JÁTÉKOS MARKER FRISSÍTÉS ---
+    // 1. Pozíció mentése
     appState.userPosition = { lat: lat, lng: lng };
 
+    // Útvonal rögzítése
     if (appState.isTimerRunning) {
         appState.routeCoordinates.push([lat, lng]);
     }
 
     if (!appState.isTestModeEnabled && !appState.isManualMock) {
-        const latLng = new L.LatLng(lat, lng);
+    const latLng = new L.LatLng(lat, lng);
 
-        if (appState.playerMarker) {
+    // 1. A kék pötty (marker) pozícióját MINDIG frissítjük
+    if (appState.playerMarker) {
             appState.playerMarker.setLatLng(latLng);
-            
-            // Ha van elmentett irány, forgatjuk a nyilat
-            if (window.movementHeading !== undefined) {
-                const visual = appState.playerMarker.getElement()?.querySelector('.marker-visual');
-                if (visual) visual.style.setProperty('--rotation', `${window.movementHeading}deg`);
-            }
         } else {
-            // Marker létrehozása ha még nincs
             const playerIcon = L.divIcon({
                 className: 'player-marker',
                 html: '<div class="marker-visual"></div>',
@@ -6545,18 +6539,19 @@ window.generateBonusPoints = async function(count) {
                 iconAnchor: [10, 10],
                 popupAnchor: [0, -10]
             });
+            
             appState.playerMarker = L.marker(latLng, { 
-                icon: playerIcon, 
+                icon: playerIcon,
                 zIndexOffset: 1000 
             }).addTo(appState.map);
         }
 
-        // --- 3. TÉRKÉP IGAZÍTÁSA (AUTO-ZOOM LOGIKA) ---
-        const now = Date.now();
+        // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT VERZIÓ
+       const now = Date.now();
         const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
-        const INTERACTION_THRESHOLD = 3000; // 3 másodperc türelmi idő
+        const INTERACTION_THRESHOLD = 3000; // 3 másodperc (ezt átírhatod 5000-re is ha többet szeretnél)
 
-       // A) EXPLORE MÓD KEZELÉSE (Feladat választás a térképen)
+        // EXPLORE MÓD KEZELÉSE (Amikor minden pont látszik)
         const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
@@ -6564,38 +6559,28 @@ window.generateBonusPoints = async function(count) {
         );
 
         if (isExploreSelection) {
-            // JAVÍTÁS: Itt TÖRÖLTÜK ki az időzítős zoom logikát.
-            // Explore módban a GPS frissítés csak a geofence-t ellenőrzi,
-            // de SOHA nem nyúl a térkép nézethez (zoom/pan).
-            
-            checkGeofence();
-            return; // Kilépünk, hogy a lenti "Normál" követő mód se fusson le
-        }
-
-            // JAVÍTOTT LOGIKA:
-            // Csak akkor igazítunk (fitBounds), ha:
-            // 1. Letelt a 3 másodperc inaktivitás
-            // 2. ÉS még NEM igazítottuk vissza az utolsó érintés óta (ez a kulcs!)
-            if (timeSinceLastInteraction > INTERACTION_THRESHOLD && !appState.exploreViewResetDone) {
-                const markers = Object.values(appState.taskMarkers || {});
-                if (markers.length > 0) {
-                    const group = new L.featureGroup(markers);
-                    if (appState.playerMarker) {
-                        group.addLayer(appState.playerMarker);
-                    }
-                    // Finom igazítás animációval - EZ CSAK EGYSZER FUT LE
-                    appState.map.fitBounds(group.getBounds().pad(0.1), { animate: true });
-                    
-                    // Megjelöljük, hogy kész, ne csináld újra amíg a user hozzá nem ér
-                    appState.exploreViewResetDone = true;
-                }
+            // HA NEMRÉG NYÚLTÁL HOZZÁ: Csak geofence-t nézünk, de a térképnézetet TILOS bántani
+            if (timeSinceLastInteraction < INTERACTION_THRESHOLD) { 
+                console.log("Explore mód: Kézi vezérlés, nézet rögzítve...");
+                checkGeofence();
+                return; 
             }
-            
+
+            // HA ELTELT A 3 MP: Akkor visszahúzzuk a nézetet, hogy minden pont és a játékos is látsszon
+            const markerKeys = Object.keys(appState.taskMarkers);
+            if (markerKeys.length > 0) {
+                const bounds = [];
+                markerKeys.forEach(key => {
+                    if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
+                });
+                bounds.push(latLng);
+                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
+            }
             checkGeofence();
-            return; // Kilépünk, hogy a lenti "Normál" logika ne zavarjon be
+            return; 
         }
 
-        // B) NORMÁL JÁTÉKMENET (Amikor egy konkrét célpontot követsz)
+        // NORMÁL JÁTÉKMENET LOGIKÁJA (Amikor a célpontot követed)
         if (timeSinceLastInteraction > INTERACTION_THRESHOLD) {
             if (appState.geofenceCircle && appState.playerMarker) { 
                 const targetLatLng = appState.geofenceCircle.getLatLng();
@@ -6611,9 +6596,12 @@ window.generateBonusPoints = async function(count) {
             } else {
                 appState.map.setView(latLng, 19);
             }
+        } else {
+            console.log("Normál mód: Kézi vezérlés, nézet rögzítve...");
         }
     }
     
+    // A geofence ellenőrzést a végén mindig lefuttatjuk, hogy az üzenetek feljöjjenek
     checkGeofence();
 }
 
@@ -7174,22 +7162,20 @@ window.renderBonusMarkers = function() {
             else if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
             
             if (bounds.length > 0) {
-                 // --- JAVÍTOTT LOGIKA KEZDETE ---
-                 // A régi "timeSinceLastInteraction > 3000" feltétel helyett:
-                 // Csak akkor zoomolunk automatikusan, ha ebben a menetben még nem tettük meg!
-                 
+                 const now = Date.now();
+                 const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
+
                  if (appState.isTimerRunning) {
-                     if (!appState.exploreMapInitialized) { 
+                     // CSAK AKKOR IGAZÍTJUK A NÉZETET, HA LEGALÁBB 3 MÁSODPERCE NEM NYÚLTÁL A TÉRKÉPHEZ
+                     if (timeSinceLastInteraction > 3000) {
                          setTimeout(() => {
                              appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
                              appState.map.invalidateSize();
-                             
-                             // Megjegyezzük, hogy kész, többet nem zoomolunk magunktól!
-                             appState.exploreMapInitialized = true; 
                          }, 100);
+                     } else {
+                         console.log("Nézet frissítés kihagyva az Explore módban interakció miatt.");
                      }
                  } else {
-                     // (Ez az ág maradhat a start pozícióhoz)
                      const startTask = appState.currentGame.tasks.find(t => t.index === 0);
                      let startLat = startTask?.location?.lat || startTask?.locationLat;
                      let startLng = startTask?.location?.lng || startTask?.locationLng;
@@ -7205,31 +7191,28 @@ window.renderBonusMarkers = function() {
 
 
         function showTaskSelectionMap() {
-    if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
-    if (appState.geofenceCircle) appState.geofenceCircle.remove();
-    document.getElementById('task-interaction-area').classList.add('hidden');
-    document.getElementById('start-task-button-container').classList.add('hidden');
-    const backBtn = document.getElementById('back-to-map-btn');
-    if (backBtn) backBtn.classList.add('hidden');
-    document.getElementById('explore-selection-container').classList.remove('hidden');
-    
-    document.getElementById('google-maps-btn').classList.add('hidden');
-    document.getElementById('report-error-btn').classList.add('hidden');
+            if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
+            if (appState.geofenceCircle) appState.geofenceCircle.remove();
+            document.getElementById('task-interaction-area').classList.add('hidden');
+            document.getElementById('start-task-button-container').classList.add('hidden');
+            const backBtn = document.getElementById('back-to-map-btn');
+            if (backBtn) backBtn.classList.add('hidden');
+            document.getElementById('explore-selection-container').classList.remove('hidden');
+            
+	document.getElementById('google-maps-btn').classList.add('hidden');
+    			document.getElementById('report-error-btn').classList.add('hidden');
 
-    // --- ÚJ RÉSZ: Távolság infó törlése ---
-    const distEl = document.getElementById('distance-info');
-    if (distEl) {
-        distEl.textContent = '';
-        distEl.className = ''; 
-    }
-    appState.lastMapInteraction = 0;
-    
-    // --- JAVÍTÁS: Itt reseteljük a zoom jelzőt ---
-    appState.exploreMapInitialized = false; 
-    // ---------------------------------------------
-    
-    renderTaskMarkers();
-}
+
+            // --- ÚJ RÉSZ: Távolság infó törlése ---
+            const distEl = document.getElementById('distance-info');
+            if (distEl) {
+                distEl.textContent = '';
+                distEl.className = ''; // A stílust is leszedjük, hogy biztosan eltűnjön
+            }
+            appState.lastMapInteraction = 0;
+            
+            renderTaskMarkers();
+        }
 
         function startNavigation() {
     if (!appState.currentGame) return showMessage('Hiba', 'Nincs aktuális kaland elindítva.');
