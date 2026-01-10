@@ -6556,7 +6556,7 @@ window.generateBonusPoints = async function(count) {
         const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
         const INTERACTION_THRESHOLD = 3000; // 3 másodperc türelmi idő
 
-        // A) EXPLORE MÓD KEZELÉSE (Feladat választás a térképen)
+       // A) EXPLORE MÓD KEZELÉSE (Feladat választás a térképen)
         const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
@@ -6564,10 +6564,13 @@ window.generateBonusPoints = async function(count) {
         );
 
         if (isExploreSelection) {
-            // Figyeljük, történt-e új interakció (tapicskolás) az utolsó igazítás óta
-            // Ha igen, akkor töröljük a "már igazítottam" jelzőt
+            // Figyeljük, történt-e új interakció
             if (appState.lastMapInteraction !== appState.lastProcessedInteraction) {
-                appState.exploreViewResetDone = false;
+                // JAVÍTÁS: Ha a felhasználó mozgatja a térképet, NEM akarjuk, hogy visszaugorjon.
+                // Ezért kikommenteljük vagy töröljük a resetelést:
+                // appState.exploreViewResetDone = false;  <-- EZT TÖRÖLD VAGY KOMMENTELD KI!
+                
+                appState.exploreViewResetDone = true; // Biztosítjuk, hogy NE zoomoljon
                 appState.lastProcessedInteraction = appState.lastMapInteraction;
             }
 
@@ -7173,20 +7176,20 @@ window.renderBonusMarkers = function() {
             else if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
             
             if (bounds.length > 0) {
-                 const now = Date.now();
-                 const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
-
+                 // --- JAVÍTOTT LOGIKA KEZDETE ---
+                 // A régi "timeSinceLastInteraction > 3000" feltétel helyett:
+                 // Csak akkor zoomolunk automatikusan, ha ebben a menetben még nem tettük meg!
+                 
                  if (appState.isTimerRunning) {
-                     // CSAK AKKOR IGAZÍTJUK A NÉZETET, HA LEGALÁBB 3 MÁSODPERCE NEM NYÚLTÁL A TÉRKÉPHEZ
-                     if (timeSinceLastInteraction > 3000) {
+                     if (!appState.exploreMapInitialized) {
                          setTimeout(() => {
                              appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
                              appState.map.invalidateSize();
+                             appState.exploreMapInitialized = true; // Megjegyezzük, hogy kész
                          }, 100);
-                     } else {
-                         console.log("Nézet frissítés kihagyva az Explore módban interakció miatt.");
                      }
                  } else {
+                     // Ha nem megy az idő (Start előtt), akkor simán a start pontra fókuszálunk
                      const startTask = appState.currentGame.tasks.find(t => t.index === 0);
                      let startLat = startTask?.location?.lat || startTask?.locationLat;
                      let startLng = startTask?.location?.lng || startTask?.locationLng;
@@ -7202,28 +7205,31 @@ window.renderBonusMarkers = function() {
 
 
         function showTaskSelectionMap() {
-            if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
-            if (appState.geofenceCircle) appState.geofenceCircle.remove();
-            document.getElementById('task-interaction-area').classList.add('hidden');
-            document.getElementById('start-task-button-container').classList.add('hidden');
-            const backBtn = document.getElementById('back-to-map-btn');
-            if (backBtn) backBtn.classList.add('hidden');
-            document.getElementById('explore-selection-container').classList.remove('hidden');
-            
-	document.getElementById('google-maps-btn').classList.add('hidden');
-    			document.getElementById('report-error-btn').classList.add('hidden');
+    if (appState.currentGame.taskOrder !== 'explore' || !appState.map) return;
+    if (appState.geofenceCircle) appState.geofenceCircle.remove();
+    document.getElementById('task-interaction-area').classList.add('hidden');
+    document.getElementById('start-task-button-container').classList.add('hidden');
+    const backBtn = document.getElementById('back-to-map-btn');
+    if (backBtn) backBtn.classList.add('hidden');
+    document.getElementById('explore-selection-container').classList.remove('hidden');
+    
+    document.getElementById('google-maps-btn').classList.add('hidden');
+    document.getElementById('report-error-btn').classList.add('hidden');
 
-
-            // --- ÚJ RÉSZ: Távolság infó törlése ---
-            const distEl = document.getElementById('distance-info');
-            if (distEl) {
-                distEl.textContent = '';
-                distEl.className = ''; // A stílust is leszedjük, hogy biztosan eltűnjön
-            }
-            appState.lastMapInteraction = 0;
-            
-            renderTaskMarkers();
-        }
+    // --- ÚJ RÉSZ: Távolság infó törlése ---
+    const distEl = document.getElementById('distance-info');
+    if (distEl) {
+        distEl.textContent = '';
+        distEl.className = ''; 
+    }
+    appState.lastMapInteraction = 0;
+    
+    // --- JAVÍTÁS: Itt reseteljük a zoom jelzőt ---
+    appState.exploreMapInitialized = false; 
+    // ---------------------------------------------
+    
+    renderTaskMarkers();
+}
 
         function startNavigation() {
     if (!appState.currentGame) return showMessage('Hiba', 'Nincs aktuális kaland elindítva.');
