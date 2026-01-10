@@ -8204,6 +8204,7 @@ const isIos = () => {
     window.updateAvatarPreview = () => {
         const previewContainer = document.getElementById('avatar-preview-container');
         const badge = document.getElementById('preview-verified-badge'); // <--- ÚJ: A pipa lekérése
+	const selectEl = document.getElementById('team-avatar-select');
         
         // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
         const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
@@ -8212,6 +8213,10 @@ const isIos = () => {
         if (previewContainer && savedAvatar) {
             // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
             previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+
+if (selectEl) {
+            selectEl.innerHTML = `<option value="${savedAvatar}" selected>${savedAvatar}</option>`;
+        }
 
             // Kis vizuális visszajelzés
             previewContainer.classList.add('scale-110');
