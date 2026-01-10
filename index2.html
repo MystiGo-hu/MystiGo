@@ -6486,10 +6486,10 @@ window.generateBonusPoints = async function(count) {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
-    appState.map.on('movestart zoomstart dragstart touchstart mousedown', () => {
-    appState.lastMapInteraction = Date.now();
-    console.log("📍 Térkép interakció észlelve, automata követés szüneteltetve...");
-});
+    appState.map.on('movestart zoomstart dragstart touchstart mousedown drag', () => {
+        appState.lastMapInteraction = Date.now();
+        // console.log("📍 Térkép interakció..."); // Opcionális: kikommentelheted a log-spam elkerülése végett
+    });
 
     // Mock click handler visszakapcsolása, ha szükséges
     if (appState.isManualMock) {
