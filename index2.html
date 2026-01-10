@@ -2109,7 +2109,8 @@ window.getGameCurrentCount = async function(gameId) {
     if (!navigator.onLine) return; 
 
     if (typeof window.push !== 'function' || !window.db) {
-        console.warn("⏳ Firebase modul betöltése folyamatban a szinkronizációhoz...");
+        console.warn("⏳ Firebase még nem töltött be, újrapróbálkozás 2mp múlva...");
+        setTimeout(window.syncPendingUploads, 2000);
         return; 
     }
 
@@ -2162,7 +2163,7 @@ window.getGameCurrentCount = async function(gameId) {
   // 3. Eseményfigyelők indítása (Internet visszatérés figyelése)
   window.addEventListener('online', () => {
       console.log("🌐 Internet kapcsolat helyreállt.");
-      
+      window.syncPendingUploads();
       // A) Piros felirat azonnali eltüntetése
       if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
       
@@ -9380,6 +9381,14 @@ onAuthStateChanged(auth, (user) => {
     // --- FELHASZNÁLÓ VAN (Közös rész) ---
     isAuthProcessActive = false;
     isExplicitLogout = false;
+if (typeof window.syncPendingUploads === 'function') {
+        console.log("🔍 Offline mentések ellenőrzése indításkor...");
+        setTimeout(() => {
+            window.syncPendingUploads();
+        }, 2000); // 2 másodpercet várunk, hogy minden modul (db, auth) biztosan készen álljon
+    }
+
+
 
     // 1. Dinamikus útvonal meghatározása
     // Itt döntjük el, melyik mappát kell figyelni: users/anonym VAGY users/registered
