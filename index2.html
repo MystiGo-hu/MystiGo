@@ -10,8 +10,17 @@
 
     <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0D2B45">
-<link rel="apple-touch-icon" href="logo/icon-192_v3.png">
+
+<link rel="icon" type="image/png" sizes="16x16" href="logo/favicon-16x16.png">
+
+<link rel="icon" type="image/png" sizes="32x32" href="logo/favicon-32x32.png">
+
+<link rel="icon" type="image/png" sizes="48x48" href="logo/favicon-48x48.png">
+
 <link rel="icon" type="image/png" href="logo/MystiGo_logo2.png">
+<link rel="apple-touch-icon" href="logo/icon-192_v3.png">
+
+
     <title>MystiGo - Városi Kalandjáték Platform</title>
     
 
@@ -696,7 +705,7 @@
 
     <div id="app-container" class="max-w-md mx-auto h-[100dvh] flex flex-col relative transition-all duration-500">
 
-        <main id="landing-page" class="flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
+        <main id="landing-page" class="hidden flex flex-col items-center justify-between text-center text-brand-blue h-full p-8">
             
             <div class="w-full h-[15vh] flex flex-col items-center justify-start pt-2">
                 <h1 id="landing-title" class="text-6xl font-extrabold tracking-tight" style="text-shadow: 0 4px 15px rgba(0,0,0,0.1);"><span id="logo-o" class="text-brand-orange-500 cursor-pointer"></span></h1>
@@ -704,7 +713,7 @@
             </div>
             
             <div class="w-full flex flex-col justify-start flex-grow"> 
-                <p id="loading-status" class="text-gray-600 my-4 h-5">Adatbázis automatikus betöltése...</p>
+                <p id="loading-status" class="text-gray-600 my-4 h-5"></p>
                 
                 
                 <div id="game-order-setup" class="my-4 p-4 bg-gray-50 rounded-xl hidden"></div> 
@@ -717,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.56
+       v1.2.57
 
    </span>
 
@@ -3671,109 +3680,92 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
-    showLoading(true);
     const statusText = document.getElementById('loading-status');
+    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
+    const listContainer = document.getElementById('game-list');
+    
+    // 1. Azonnali Cache betöltés, hogy ne legyen üres a képernyő
+    const cachedList = localStorage.getItem(CACHE_KEY_LIST);
+    if (cachedList) {
+        try {
+            window.games = JSON.parse(cachedList);
+            processGameDataAndRender(true); 
+            console.log("🚀 Cache betöltve.");
+        } catch(e) {
+            localStorage.removeItem(CACHE_KEY_LIST);
+        }
+    }
 
-    // ✅ ÚJ: Várakozás, ha a Firebase modul még nem töltött be (max 5 mp)
+    // Ha nincs net, vagy már tudjuk, hogy offline vagyunk, ne is próbálkozzunk tovább a hálózattal
+    if (!navigator.onLine && cachedList) {
+        if(statusText) statusText.textContent = "Offline mód (gyorsítótárból)";
+        return;
+    }
+
+    // 2. Várakozás a Firebase-re (megemelt retry és fallback)
     let retryCount = 0;
-    while ((!window.db || !window.child) && retryCount < 50) {
-        if(statusText) statusText.textContent = "Firebase motor indítása...";
+    const maxRetries = 100; // 10 másodpercre emelve
+
+    while ((!window.db || !window.get) && retryCount < maxRetries) {
         await new Promise(r => setTimeout(r, 100));
         retryCount++;
     }
 
-    if(statusText) statusText.textContent = "Csatlakozás a szerverhez...";
+console.log("🔥 Firebase modul kész, hálózati lekérés indítása...");
 
-    const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
-
-    // 1. ELLENŐRZÉS: Van-e Firebase motor?
+    // Ha még mindig nincs Firebase, leállítjuk a pörgést hibaüzenettel
     if (!window.db || !window.get) {
-        console.warn("A Firebase motor nem elérhető. Offline mód indítása.");
-        loadFromCacheOrError("Offline mód");
+        console.error("❌ Firebase nem töltődött be időben.");
+        if (!cachedList) {
+            listContainer.innerHTML = `<div class="text-center p-4 text-red-500">A kiszolgáló nem érhető el. Ellenőrizd az internetkapcsolatot!</div>`;
+        }
         return;
     }
 
     try {
-        const dbRef = window.ref(window.db);
-        const urlParams = new URLSearchParams(window.location.search);
-        const pGameId = urlParams.get('game') || urlParams.get('id');
+        if(statusText) statusText.textContent = "Kalandok frissítése...";
         
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Network Timeout')), 15000)
-        );
+        // Timeout kényszerítése a hálózati kérésre
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000));
         
-        let fetchPromise;
-        if (pGameId) {
-            fetchPromise = window.get(window.child(dbRef, `games/public_games_list/${pGameId}`));
-        } else {
-            fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
-        }
+        const dbRef = window.ref(window.db, "games/public_games_list");
+        const fetchPromise = window.get(dbRef);
+
+console.log("📡 Lekérés folyamatban a következő útvonalról: games/public_games_list");
 
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (snapshot.exists()) {
-            // --- SIKERES ONLINE LETÖLTÉS ---
-            // 🟢 JELZŐ ELREJTÉSE
-            if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
-
-            const data = snapshot.val();
-            
-            if (pGameId) {
-                window.games = { [pGameId]: data };
-            } else {
-                window.games = data;
-            }
-
+console.log("✅ Friss adatok megérkeztek a Firebase-ről!");
+const data = snapshot.val();
+console.log("🎮 Betöltött játékok száma:", Object.keys(data).length);
+            window.games = snapshot.val();
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
-            console.log("✅ Játéklista sikeresen frissítve a szerverről.");
-            
-            if(statusText) statusText.textContent = "Sikeres frissítés!";
-            processGameDataAndRender();
-        } else {
-            loadFromCacheOrError("A kért adat nem található a szerveren.");
+            processGameDataAndRender(false);
+            if(statusText) statusText.textContent = "";
+        }
+
+else {
+            console.warn("⚠️ A kérés sikeres volt, de az adatbázis ezen része üres.");
         }
 
     } catch (error) {
-        console.warn("⚠️ Nem sikerült frissíteni (Offline vagy lassú net):", error);
-        loadFromCacheOrError("Offline mód");
+        console.warn("⚠️ Hálózati hiba vagy lassú elérés, marad a cache:", error);
+        if(statusText) statusText.textContent = cachedList ? "" : "Hálózati hiba.";
+        // Ha a hálózati kérés elbukott, de van cache, akkor legalább a pörgést tüntessük el
+        if (cachedList) processGameDataAndRender(true);
+        else listContainer.innerHTML = `<div class="text-center p-4">A tartalom betöltése sikertelen.</div>`;
     }
 
-    function loadFromCacheOrError(reasonMsg) {
-        const cachedList = localStorage.getItem(CACHE_KEY_LIST);
-        
-        if (cachedList) {
-            console.log("📂 Mentett (Offline) lista betöltése...");
-            
-            // 🔴 JELZŐ BEKAPCSOLÁSA (Mert cache-ből töltünk)
-            if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
 
-            try {
-                window.games = JSON.parse(cachedList);
-                if(statusText) {
-                    statusText.innerHTML = `<span style='color:orange'>${reasonMsg}: Mentett adatok betöltése...</span>`;
-                }
-                processGameDataAndRender();
-                
-                setTimeout(() => {
-                    if(!document.getElementById('game-list-page').classList.contains('hidden')){
-                         // Opcionális toast üzenet
-                    }
-                }, 1000);
 
-            } catch(e) {
-                console.error("A mentett adatok sérültek:", e);
-                document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">A mentett adatok sérültek.<br>Internet szükséges a javításhoz!</div>`;
-                showLoading(false);
-            }
-        } else {
-            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Nem sikerült kapcsolódni.<br>Az első indításhoz internet szükséges!</div>`;
-            showLoading(false);
-        }
-    }
 
-    function processGameDataAndRender() {
+
+    // Segédfüggvény a rendereléshez
+    function processGameDataAndRender(isFromCache) {
         if(window.games) {
             Object.values(window.games).forEach(g => {
+                // Adatstruktúra javítások
                 if (g.tasks && !Array.isArray(g.tasks)) g.tasks = Object.values(g.tasks).filter(Boolean);
                 if (!g.tasks) g.tasks = [];
                 if (g.price) g.price = parseInt(g.price);
@@ -3782,15 +3774,45 @@ window.initializeGamesFromFirebase = async function() {
                 if (g.startLocationLng) g.startLocation.lng = parseFloat(g.startLocationLng);
             });
         }
+        
+        // UI elemek inicializálása
         populateLocationFilter();
-handleInitialUrlFiltering(); // 1. Előbb szűrünk és beállítjuk a logót/címet
-showPage('game-list-page');  // 2. Csak utána mutatjuk az oldalt 
+        handleInitialUrlFiltering(); 
+        
+        // Csak akkor váltunk oldalt, ha ez az első renderelés (Cache vagy első Load)
+        // Ha már a felhasználó ott van, nem akarjuk újratölteni/ugráltatni az oldalt, csak a listát frissíteni.
+        const listPage = document.getElementById('game-list-page');
+        if (listPage && listPage.classList.contains('hidden')) {
+            showPage('game-list-page');
+        } else {
+            // Ha már látható az oldal, csak a listát frissítjük a háttérben
+            if (!isFromCache) {
+                // Ha ez a "friss" adat, újrarendereljük a listát
+                if (typeof applyFilters === 'function') applyFilters();
+                else renderGameList();
+            }
+        }
+        
+        // Csapat beállítások megjelenítése (Név, Avatar)
+        const teamSetup = document.getElementById('team-setup');
+        if (teamSetup) teamSetup.classList.remove('hidden');
+
         if (typeof autoSortGamesByDistance === 'function') {
             try { autoSortGamesByDistance(); } catch(e){} 
         }
-        showLoading(false); 
     }
 };
+
+
+
+
+
+
+
+
+  
+
+   
        
 
 
@@ -8222,15 +8244,21 @@ const isIos = () => {
 	    initializeState();
             
             // Itt indítjuk a betöltést a Firebase-ből
-            const startAppDownload = () => {
-                console.log("🚀 Firebase jel megérkezett, letöltés indítása...");
-                initializeGamesFromFirebase();
-            };
+            console.log("🚀 Alkalmazás UI indítása azonnal...");
+            
+            // Elrejtjük a splash screent manuálisan is, a biztonság kedvéért
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('content-wrapper').classList.remove('hidden');
+            document.getElementById('content-wrapper').classList.remove('translate-y-full');
+            
+            // Elindítjuk az adatbetöltést (Cache -> Render -> Net -> Refresh)
+            initializeGamesFromFirebase();
 
-            if (window.isFirebaseReady) {
-                startAppDownload();
-            } else {
-                window.addEventListener('firebase-ready', startAppDownload, { once: true });
+            // 3. Firebase Listener (Csak naplózásra vagy extra logikára marad, de nem blokkol)
+            if (!window.isFirebaseReady) {
+                 window.addEventListener('firebase-ready', () => {
+                     console.log("📡 Firebase kapcsolat aktív (háttérben).");
+                 }, { once: true });
             }
 
             // UI elemek
