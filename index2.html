@@ -6488,7 +6488,7 @@ window.generateBonusPoints = async function(count) {
 
     appState.map.on('movestart zoomstart dragstart touchstart mousedown drag', () => {
         appState.lastMapInteraction = Date.now();
-        // console.log("📍 Térkép interakció..."); // Opcionális: kikommentelheted a log-spam elkerülése végett
+        
     });
 
     // Mock click handler visszakapcsolása, ha szükséges
@@ -6553,32 +6553,34 @@ window.generateBonusPoints = async function(count) {
         const INTERACTION_THRESHOLD = 3000; // 3 másodperc (ezt átírhatod 5000-re is ha többet szeretnél)
 
         // EXPLORE MÓD KEZELÉSE (Amikor minden pont látszik)
-        const isExploreSelection = (
+       const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
             !document.getElementById('explore-selection-container').classList.contains('hidden')
         );
 
         if (isExploreSelection) {
-            // HA NEMRÉG NYÚLTÁL HOZZÁ: Csak geofence-t nézünk, de a térképnézetet TILOS bántani
-            if (timeSinceLastInteraction < INTERACTION_THRESHOLD) { 
-                console.log("Explore mód: Kézi vezérlés, nézet rögzítve...");
-                checkGeofence();
-                return; 
+            // ÚJ LOGIKA: Csak akkor igazítjuk a nézetet, ha letelt a 3 másodperc!
+            if (timeSinceLastInteraction > INTERACTION_THRESHOLD) {
+                // Megkeressük az összes aktív task markert és rájuk igazítjuk a térképet
+                const markers = Object.values(appState.taskMarkers || {});
+                if (markers.length > 0) {
+                    // Létrehozunk egy csoportot a markerekből, hogy megkapjuk a befoglaló keretet
+                    const group = new L.featureGroup(markers);
+                    // Hozzáadjuk a játékos pozícióját is, hogy ő is látszódjon
+                    if (appState.playerMarker) {
+                        group.addLayer(appState.playerMarker);
+                    }
+                    // Finom igazítás animációval
+                    appState.map.fitBounds(group.getBounds().pad(0.1), { animate: true });
+                }
+            } else {
+                // Ha még nem telt le a 3 mp (mert a user épp mozgatja), akkor NEM csinálunk semmit.
+                // Így szabadon nézelődhet.
             }
-
-            // HA ELTELT A 3 MP: Akkor visszahúzzuk a nézetet, hogy minden pont és a játékos is látsszon
-            const markerKeys = Object.keys(appState.taskMarkers);
-            if (markerKeys.length > 0) {
-                const bounds = [];
-                markerKeys.forEach(key => {
-                    if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
-                });
-                bounds.push(latLng);
-                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
-            }
+            
             checkGeofence();
-            return; 
+            return; // Kilépünk, hogy a lenti "Normál" logika ne fusson le
         }
 
         // NORMÁL JÁTÉKMENET LOGIKÁJA (Amikor a célpontot követed)
