@@ -6564,15 +6564,13 @@ window.generateBonusPoints = async function(count) {
         );
 
         if (isExploreSelection) {
-            // Figyeljük, történt-e új interakció
-            if (appState.lastMapInteraction !== appState.lastProcessedInteraction) {
-                // JAVÍTÁS: Ha a felhasználó mozgatja a térképet, NEM akarjuk, hogy visszaugorjon.
-                // Ezért kikommenteljük vagy töröljük a resetelést:
-                // appState.exploreViewResetDone = false;  <-- EZT TÖRÖLD VAGY KOMMENTELD KI!
-                
-                appState.exploreViewResetDone = true; // Biztosítjuk, hogy NE zoomoljon
-                appState.lastProcessedInteraction = appState.lastMapInteraction;
-            }
+            // JAVÍTÁS: Itt TÖRÖLTÜK ki az időzítős zoom logikát.
+            // Explore módban a GPS frissítés csak a geofence-t ellenőrzi,
+            // de SOHA nem nyúl a térkép nézethez (zoom/pan).
+            
+            checkGeofence();
+            return; // Kilépünk, hogy a lenti "Normál" követő mód se fusson le
+        }
 
             // JAVÍTOTT LOGIKA:
             // Csak akkor igazítunk (fitBounds), ha:
@@ -7181,15 +7179,17 @@ window.renderBonusMarkers = function() {
                  // Csak akkor zoomolunk automatikusan, ha ebben a menetben még nem tettük meg!
                  
                  if (appState.isTimerRunning) {
-                     if (!appState.exploreMapInitialized) {
+                     if (!appState.exploreMapInitialized) { 
                          setTimeout(() => {
                              appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
                              appState.map.invalidateSize();
-                             appState.exploreMapInitialized = true; // Megjegyezzük, hogy kész
+                             
+                             // Megjegyezzük, hogy kész, többet nem zoomolunk magunktól!
+                             appState.exploreMapInitialized = true; 
                          }, 100);
                      }
                  } else {
-                     // Ha nem megy az idő (Start előtt), akkor simán a start pontra fókuszálunk
+                     // (Ez az ág maradhat a start pozícióhoz)
                      const startTask = appState.currentGame.tasks.find(t => t.index === 0);
                      let startLat = startTask?.location?.lat || startTask?.locationLat;
                      let startLng = startTask?.location?.lng || startTask?.locationLng;
