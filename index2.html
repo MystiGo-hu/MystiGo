@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.58
+       v1.2.57
 
    </span>
 
@@ -2104,65 +2104,63 @@ window.getGameCurrentCount = async function(gameId) {
   }
 
   // 2. Szinkronizáció végrehajtása (Feltöltés) - JAVÍTOTT VERZIÓ
- window.syncPendingUploads = async function() {
-    if (!navigator.onLine || !window.db) return; 
+  window.syncPendingUploads = async function() {
+    if (!navigator.onLine) return; 
+
+    // ✅ JAVÍTÁS: Csak akkor fusson, ha a modul már betöltötte a Firebase-t
+    if (typeof window.push !== 'function' || !window.db) {
+        console.warn("⏳ Firebase modul betöltése folyamatban...");
+        return; 
+    }
 
     let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
-    if (pending.length === 0) return; 
+      if (pending.length === 0) return; 
 
-    const newPending = [];
+      console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
+      
+      const newPending = [];
+      let uploadCount = 0;
 
-    for (const data of pending) {
-        try {
-            const statsId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
+      for (const data of pending) {
+          try {
+              // ✅ JAVÍTÁS: window.ref és window.db használata
+              const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
+              
+              // ✅ JAVÍTÁS: window.push használata
+              await window.push(leaderboardRef, {
+                  teamName: data.teamName,
+                  teamAvatar: data.teamAvatar,
+                  score: data.score,
+                  totalTime: data.totalTime,
+                  geofenceTime: data.geofenceTime,
+                  timestamp: data.timestamp, 
+                  dateString: data.dateString
+              });
 
-            // 1. Összpontszám pótlása
-            if (data.isRegistered && data.score > 0 && !data.pointsSynced) {
-                const refS = window.ref(window.db, `users/registered/${data.uid}/profile/totalScore`);
-                await window.runTransaction(refS, (c) => (c || 0) + data.score);
-                data.pointsSynced = true;
-            }
+              if (window.incrementGameCompletion) {
+                  try {
+                      await window.incrementGameCompletion(data.gameId);
+                      console.log(`✅ ${data.teamName}: Számláló növelve.`);
+                  } catch (cntErr) {
+                      console.error(`⚠️ ${data.teamName}: Számláló hiba:`, cntErr);
+                  }
+              }
+              
+              uploadCount++;
+              console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
 
-            // 2. Havi pontszám (Hall of Fame) pótlása
-            if (data.isRegistered && data.score > 0 && !data.monthlySynced) {
-                const mRef = window.ref(window.db, `users/registered/${data.uid}/profile/monthlyScore/${data.yearMonth}`);
-                await window.runTransaction(mRef, (c) => (c || 0) + data.score);
-                data.monthlySynced = true;
-            }
+          } catch (error) {
+              console.error("Szinkronizációs hiba:", error);
+              newPending.push(data);
+          }
+      }
 
-            // 3. Ranglista bejegyzés
-            if (!data.onlyRating && !data.leaderboardSynced) {
-                const lbRef = window.ref(window.db, `leaderboard/${statsId}`);
-                await window.set(window.push(lbRef), data);
-                data.leaderboardSynced = true;
-            }
-
-            // 4. Befejezési számláló
-            if (data.shouldIncrementCompletion && !data.completionSynced) {
-                const cRef = window.ref(window.db, `game_stats/${statsId}/completed`);
-                await window.runTransaction(cRef, (c) => (c || 0) + 1);
-                data.completionSynced = true;
-            }
-
-            // 5. Rating (Értékelés)
-            if (data.rating && !data.ratingSynced) {
-                const rRef = window.ref(window.db, `game_stats/${statsId}/rating`);
-                await window.runTransaction(rRef, (curr) => {
-                    const val = data.rating;
-                    if (!curr) return { sum: val, count: 1, average: val };
-                    const nC = (curr.count || 0) + 1;
-                    const nS = (curr.sum || 0) + val;
-                    return { sum: nS, count: nC, average: Math.round((nS / nC) * 10) / 10 };
-                });
-                data.ratingSynced = true;
-            }
-        } catch (error) {
-            console.error("Szinkronizálási hiba:", error);
-            newPending.push(data);
-        }
-    }
-    localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
-};
+      localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
+      
+      if (uploadCount > 0) {
+          console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
+      }
+  };
 
 
 
@@ -2170,7 +2168,7 @@ window.getGameCurrentCount = async function(gameId) {
   // 3. Eseményfigyelők indítása (Internet visszatérés figyelése)
   window.addEventListener('online', () => {
       console.log("🌐 Internet kapcsolat helyreállt.");
-      window.syncPendingUploads();
+      
       // A) Piros felirat azonnali eltüntetése
       if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
       
@@ -2206,11 +2204,13 @@ window.getGameCurrentCount = async function(gameId) {
 
 // 2. MENTÉS ÉS NÉV SZINKRONIZÁLÁS (JAVÍTOTT VERZIÓ)
 window.saveScoreToFirebase = async function(data) {
+    // 1. Felhasználó és Alapadatok előkészítése
     const user = window.auth ? window.auth.currentUser : null;
+    
+    // Vendég kezelés
     const uid = user ? user.uid : ('guest_' + Date.now());
     const isRegistered = user && !user.isAnonymous;
 
-    // 1. Adatcsomag összeállítása minden szükséges mezővel
     const scoreData = {
         gameId: data.gameId,
         teamName: data.teamName,
@@ -2219,52 +2219,85 @@ window.saveScoreToFirebase = async function(data) {
         totalTime: data.totalTime,
         geofenceTime: data.geofenceTime,
         timestamp: Date.now(),
-        dateString: now.toLocaleString('hu-HU'),
-        yearMonth: yearMonth, // Ezt használjuk a havi toplistához
+        dateString: new Date().toLocaleString('hu-HU'),
         isRegistered: isRegistered,
-        uid: uid,
-        pointsSynced: false,
-        monthlySynced: false, // Új jelző a havi ponthoz
-        leaderboardSynced: false,
-        rating: null,
-        ratingSynced: false,
-        shouldIncrementCompletion: true,
-        completionSynced: false 
+        uid: uid
     };
 
-window.lastSavedGameId = data.gameId;
+    // --- MENTÉS LOGIKA ---
+    if (navigator.onLine && window.db) {
+        let targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
+        
+        // --- 1. ÚJ EREDMÉNY MENTÉSE (Push - új sor létrehozása) ---
+        const gameLeaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
+        const newEntryRef = window.push(gameLeaderboardRef); 
 
-    // 2. REGISZTRÁLT PONTOK: Ha ONLINE vagyunk, megpróbáljuk a pontokat azonnal lekönyvelni (meglévő funkció)
-   if (navigator.onLine && window.db && isRegistered && data.score > 0) {
         try {
-            // Összpontszám
-            const totalRef = window.ref(window.db, `users/registered/${uid}/profile/totalScore`);
-            await window.runTransaction(totalRef, (curr) => (curr || 0) + data.score);
-            scoreData.pointsSynced = true;
+            await window.set(newEntryRef, scoreData);
+            console.log("✅ Jelenlegi játék elmentve.");
+            if (window.incrementGameCompletion) window.incrementGameCompletion(data.gameId);
 
-            // Havi pontszám (Hall of Fame)
-            const monthlyRef = window.ref(window.db, `users/registered/${uid}/profile/monthlyScore/${yearMonth}`);
-            await window.runTransaction(monthlyRef, (curr) => (curr || 0) + data.score);
-            scoreData.monthlySynced = true;
-            
-            console.log("✅ Pontok (összes + havi) azonnal szinkronizálva.");
-        } catch (e) {
-            console.warn("⚠️ Online mentés részben sikertelen, az offline sor majd pótolja.");
+            // --- 2. VISSZAMENŐLEGES NÉVFRISSÍTÉS (SZINKRONIZÁCIÓ) ---
+            // Ez a rész frissíti a korábbi "John" neveket "James"-re
+            if (isRegistered) {
+                const q = window.query(
+                    gameLeaderboardRef, 
+                    window.orderByChild('uid'), 
+                    window.equalTo(uid)
+                );
+
+                const snapshot = await window.get(q);
+                if (snapshot.exists()) {
+                    const updates = {};
+                    snapshot.forEach((child) => {
+                        // Minden korábbi bejegyzésnél átírjuk a nevet és avatart a mostanira
+                        updates[`leaderboard/${targetId}/${child.key}/teamName`] = data.teamName;
+                        updates[`leaderboard/${targetId}/${child.key}/teamAvatar`] = data.teamAvatar;
+                    });
+
+                    // Egyetlen kéréssel beküldjük az összes módosítást
+                    await window.update(window.ref(window.db), updates);
+                    console.log("✅ Korábbi ranglista nevek szinkronizálva az újjal.");
+                }
+            }
+
+        } catch (error) {
+            console.error("❌ Mentési/Szinkronizálási hiba:", error);
+            saveToPendingUploads(scoreData);
         }
-    }
 
-    // 3. Mentés a várólistára (Offline sor)
-    if (typeof saveToPendingUploads === 'function') {
+        // --- 3. HAVI DICSŐSÉGFAL (Összesített) ---
+        if (scoreData.isRegistered) {
+            const dateObj = new Date();
+            const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+            const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${uid}`);
+
+            window.runTransaction(monthlyRef, (currentData) => {
+                if (currentData === null) {
+                    return {
+                        name: scoreData.teamName,
+                        avatar: scoreData.teamAvatar,
+                        score: scoreData.score,
+                        isRegistered: true,
+                        lastUpdate: Date.now()
+                    };
+                } else {
+                    return {
+                        ...currentData,
+                        name: scoreData.teamName, // Itt is frissítjük a nevet!
+                        avatar: scoreData.teamAvatar, // És az avatart is!
+                        score: (currentData.score || 0) + scoreData.score,
+                        lastUpdate: Date.now()
+                    };
+                }
+            }).then(() => console.log("✅ Havi pontszám és név frissítve."));
+        }
+
+    } else {
         saveToPendingUploads(scoreData);
     }
-
-    // 4. Szinkronizálás indítása, ha van net
-    if (navigator.onLine) {
-        window.syncPendingUploads();
-    } else {
-        console.log("Offline mód: Eredmény elmentve a várólistára.");
-    }
 };
+
 
 
 
@@ -2283,48 +2316,39 @@ window.submitGameRating = async function() {
     }
 
     const ratingValue = parseInt(selectedStar.value);
-    // Próbáljuk több forrásból kideríteni, melyik játékot értékeltük
-    const gameId = window.lastSavedGameId || (appState.currentGame ? appState.currentGame.id : null);
+    const gameId = window.currentGameId;
 
-    if (!gameId) {
-        console.error("Nem található Game ID az értékeléshez.");
-        window.closeRatingModal();
-        return;
-    }
+    if (!gameId || !window.db || !window.runTransaction) return;
 
-    let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
-    let updated = false;
+    let statsId = String(gameId).startsWith('instant_') ? 'instant_kozos' : gameId;
+    showLoading(true);
+    
+    const statsRef = window.ref(window.db, `game_stats/${statsId}/rating`);
 
-    // Megkeressük az utolsó bejegyzést ehhez a játékhoz, hogy hozzáadjuk a ratinget
-    for (let i = pending.length - 1; i >= 0; i--) {
-        if (pending[i].gameId === gameId && !pending[i].ratingSynced) {
-            pending[i].rating = ratingValue;
-            updated = true;
-            break;
-        }
-    }
-
-    // Ha már nincs a sorban (mert felszinkronizálta), létrehozunk egy tiszta rating rekordot
-    if (!updated) {
-        pending.push({
-            gameId: gameId,
-            rating: ratingValue,
-            onlyRating: true,
-            ratingSynced: false,
-            timestamp: Date.now()
+    try {
+        await window.runTransaction(statsRef, (currentData) => {
+            if (currentData === null) {
+                return { sum: ratingValue, count: 1, average: ratingValue };
+            } else {
+                const newCount = (currentData.count || 0) + 1;
+                const newSum = (currentData.sum || 0) + ratingValue;
+                return {
+                    sum: newSum,
+                    count: newCount,
+                    average: Math.round((newSum / newCount) * 10) / 10
+                };
+            }
         });
-    }
-
-    localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(pending));
-    window.closeRatingModal();
-
-    if (navigator.onLine) {
-        window.syncPendingUploads();
-        showMessage("Köszönjük!", "Értékelésedet rögzítettük.");
-    } else {
-        showMessage("Offline mentés", "Amint lesz interneted, az értékelésed beküldjük!");
+        
+        window.closeRatingModal();
+        showMessage("Köszönjük!", "Az értékelésedet rögzítettük.");
+    } catch (e) {
+        console.error("Értékelési hiba:", e);
+    } finally {
+        showLoading(false);
     }
 };
+
 
 
  // --- ÚJ FEJLETT RANGLISTA LOGIKA
@@ -6011,12 +6035,14 @@ function endGame() {
             geofenceTime: finalTaskTime
         });
         
-        
+        if (window.incrementGameCompletion) {
+            window.incrementGameCompletion(appState.currentGame.id);
+        }
     }
 }
 
     // --- ÖSSZPONTSZÁM NÖVELÉSE (CSAK ÉLES ÉS >0 PONTNÁL) ---
-/*    if (!appState.isTestModeEnabled && appState.score > 0) {
+    if (!appState.isTestModeEnabled && appState.score > 0) {
         if (window.auth && window.auth.currentUser) { 
             const finalScoreValue = parseInt(appState.score) || 0;
             window.addPointsToUser(finalScoreValue)
@@ -6024,10 +6050,6 @@ function endGame() {
                 .catch(e => console.error("❌ Profil hiba:", e));
         }
     }
-*/
-
-
-
 
     // --- UI KITÖLTÉSE ÉS LOGÓK ---
     const endTime = new Date();
@@ -8240,10 +8262,6 @@ if (selectEl) {
             // 3. Firebase Listener (Csak naplózásra vagy extra logikára marad, de nem blokkol)
             if (!window.isFirebaseReady) {
                  window.addEventListener('firebase-ready', () => {
-			setTimeout(() => {
-       							 if(navigator.onLine) window.syncPendingUploads();
-    							}, 3000);
-
                      console.log("📡 Firebase kapcsolat aktív (háttérben).");
                  }, { once: true });
             }
@@ -9399,14 +9417,6 @@ onAuthStateChanged(auth, (user) => {
     // --- FELHASZNÁLÓ VAN (Közös rész) ---
     isAuthProcessActive = false;
     isExplicitLogout = false;
-if (typeof window.syncPendingUploads === 'function') {
-        console.log("🔍 Offline mentések ellenőrzése indításkor...");
-        setTimeout(() => {
-            window.syncPendingUploads();
-        }, 2000); // 2 másodpercet várunk, hogy minden modul (db, auth) biztosan készen álljon
-    }
-
-
 
     // 1. Dinamikus útvonal meghatározása
     // Itt döntjük el, melyik mappát kell figyelni: users/anonym VAGY users/registered
