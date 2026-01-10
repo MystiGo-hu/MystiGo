@@ -6508,7 +6508,7 @@ window.generateBonusPoints = async function(count) {
         function updatePlayerMarker(lat, lng, heading) {
     if (!appState.map) return;
 
-    // GPS ALAPÚ IRÁNYSZÁMÍTÁS (Ha mozogsz, ez stabilizál)
+// GPS ALAPÚ IRÁNYSZÁMÍTÁS (Ha mozogsz, ez stabilizál)
     if (lastGpsLat !== null && lastGpsLng !== null) {
         const dist = haversineDistance({lat: lastGpsLat, lng: lastGpsLng}, {lat: lat, lng: lng});
         if (dist > 2) { // Csak 2 méternél nagyobb elmozdulásnál számolunk
@@ -6521,16 +6521,16 @@ window.generateBonusPoints = async function(count) {
     // 1. Pozíció mentése
     appState.userPosition = { lat: lat, lng: lng };
 
-    // 2. Útvonal rögzítése
+    // Útvonal rögzítése
     if (appState.isTimerRunning) {
         appState.routeCoordinates.push([lat, lng]);
     }
 
     if (!appState.isTestModeEnabled && !appState.isManualMock) {
-        const latLng = new L.LatLng(lat, lng);
+    const latLng = new L.LatLng(lat, lng);
 
-        // A kék pötty (marker) pozícióját MINDIG frissítjük
-        if (appState.playerMarker) {
+    // 1. A kék pötty (marker) pozícióját MINDIG frissítjük
+    if (appState.playerMarker) {
             appState.playerMarker.setLatLng(latLng);
         } else {
             const playerIcon = L.divIcon({
@@ -6540,18 +6540,19 @@ window.generateBonusPoints = async function(count) {
                 iconAnchor: [10, 10],
                 popupAnchor: [0, -10]
             });
+            
             appState.playerMarker = L.marker(latLng, { 
                 icon: playerIcon,
                 zIndexOffset: 1000 
             }).addTo(appState.map);
         }
 
-        // 3. Térkép igazítása (Zoom logika)
-        const now = Date.now();
+        // 3. Térkép igazítása (Zoom logika) - JAVÍTOTT VERZIÓ
+       const now = Date.now();
         const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
-        const INTERACTION_THRESHOLD = 3000; // 3 másodperc
+        const INTERACTION_THRESHOLD = 3000; // 3 másodperc (ezt átírhatod 5000-re is ha többet szeretnél)
 
-        // EXPLORE MÓD KEZELÉSE
+        // EXPLORE MÓD KEZELÉSE (Amikor minden pont látszik)
         const isExploreSelection = (
             appState.currentGame &&
             appState.currentGame.taskOrder === 'explore' &&
@@ -6559,12 +6560,14 @@ window.generateBonusPoints = async function(count) {
         );
 
         if (isExploreSelection) {
+            // HA NEMRÉG NYÚLTÁL HOZZÁ: Csak geofence-t nézünk, de a térképnézetet TILOS bántani
             if (timeSinceLastInteraction < INTERACTION_THRESHOLD) { 
                 console.log("Explore mód: Kézi vezérlés, nézet rögzítve...");
                 checkGeofence();
                 return; 
             }
 
+            // HA ELTELT A 3 MP: Akkor visszahúzzuk a nézetet, hogy minden pont és a játékos is látsszon
             const markerKeys = Object.keys(appState.taskMarkers);
             if (markerKeys.length > 0) {
                 const bounds = [];
@@ -6575,10 +6578,10 @@ window.generateBonusPoints = async function(count) {
                 appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
             }
             checkGeofence();
-            return;
+            return; 
         }
 
-        // NORMÁL JÁTÉKMENET LOGIKÁJA
+        // NORMÁL JÁTÉKMENET LOGIKÁJA (Amikor a célpontot követed)
         if (timeSinceLastInteraction > INTERACTION_THRESHOLD) {
             if (appState.geofenceCircle && appState.playerMarker) { 
                 const targetLatLng = appState.geofenceCircle.getLatLng();
@@ -6592,11 +6595,14 @@ window.generateBonusPoints = async function(count) {
                     appState.map.fitBounds(bounds.pad(0.1), { maxZoom: 19, animate: true }); 
                 }
             } else {
-                appState.map.setView(latLng, 19, { animate: true });
+                appState.map.setView(latLng, 19);
             }
+        } else {
+            console.log("Normál mód: Kézi vezérlés, nézet rögzítve...");
         }
     }
     
+    // A geofence ellenőrzést a végén mindig lefuttatjuk, hogy az üzenetek feljöjjenek
     checkGeofence();
 }
 
