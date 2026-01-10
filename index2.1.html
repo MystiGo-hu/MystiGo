@@ -3671,104 +3671,86 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         
         // Ezt a függvényt másold be a loadLocalXlsx helyett/mellé
 window.initializeGamesFromFirebase = async function() {
-    // 1. NEM kapcsoljuk be a teljes képernyős homokórát (showLoading(true) TÖRÖLVE),
-    // helyette csak a státusz szöveget írjuk át, ha van.
     const statusText = document.getElementById('loading-status');
     const CACHE_KEY_LIST = 'MystiGo_Cached_GameList';
+    const listContainer = document.getElementById('game-list');
     
-    // --- A. AZONNALI CACHE BETÖLTÉS (Ha van) ---
+    // 1. Azonnali Cache betöltés, hogy ne legyen üres a képernyő
     const cachedList = localStorage.getItem(CACHE_KEY_LIST);
-    let cacheLoaded = false;
-
     if (cachedList) {
         try {
-            console.log("📂 Cache-elt játéklista betöltése azonnal...");
             window.games = JSON.parse(cachedList);
-            
-            // Ha van cache, azonnal renderelünk
             processGameDataAndRender(true); 
-            cacheLoaded = true;
-            
-            // Offline jelző kezelése
-            if (!navigator.onLine && window.updateOfflineIndicator) {
-                window.updateOfflineIndicator(true);
-            }
+            console.log("🚀 Cache betöltve.");
         } catch(e) {
-            console.warn("Sérült cache adat, törlés...", e);
             localStorage.removeItem(CACHE_KEY_LIST);
         }
     }
 
-    // --- B. CSATLAKOZÁS ÉS FRISSÍTÉS A HÁTTÉRBEN ---
-    if(statusText) statusText.textContent = "Csatlakozás a szerverhez...";
+    // Ha nincs net, vagy már tudjuk, hogy offline vagyunk, ne is próbálkozzunk tovább a hálózattal
+    if (!navigator.onLine && cachedList) {
+        if(statusText) statusText.textContent = "Offline mód (gyorsítótárból)";
+        return;
+    }
 
-    // Várakozás a Firebase-re (de már látható a felület ha volt cache)
+    // 2. Várakozás a Firebase-re (megemelt retry és fallback)
     let retryCount = 0;
-    while ((!window.db || !window.child) && retryCount < 50) {
+    const maxRetries = 100; // 10 másodpercre emelve
+
+    while ((!window.db || !window.get) && retryCount < maxRetries) {
         await new Promise(r => setTimeout(r, 100));
         retryCount++;
     }
 
+console.log("🔥 Firebase modul kész, hálózati lekérés indítása...");
+
+    // Ha még mindig nincs Firebase, leállítjuk a pörgést hibaüzenettel
     if (!window.db || !window.get) {
-        console.warn("Nincs Firebase kapcsolat.");
-        if (!cacheLoaded) {
-             // Csak akkor írunk hibát, ha cache se volt
-             document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Offline mód, és nincs mentett adat.</div>`;
+        console.error("❌ Firebase nem töltődött be időben.");
+        if (!cachedList) {
+            listContainer.innerHTML = `<div class="text-center p-4 text-red-500">A kiszolgáló nem érhető el. Ellenőrizd az internetkapcsolatot!</div>`;
         }
         return;
     }
 
     try {
-        const dbRef = window.ref(window.db);
-        const urlParams = new URLSearchParams(window.location.search);
-        const pGameId = urlParams.get('game') || urlParams.get('id');
+        if(statusText) statusText.textContent = "Kalandok frissítése...";
         
-        // 15 mp timeout a hálózathoz
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Network Timeout')), 15000)
-        );
+        // Timeout kényszerítése a hálózati kérésre
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000));
         
-        let fetchPromise;
-        if (pGameId) {
-            fetchPromise = window.get(window.child(dbRef, `games/public_games_list/${pGameId}`));
-        } else {
-            fetchPromise = window.get(window.child(dbRef, "games/public_games_list"));
-        }
+        const dbRef = window.ref(window.db, "games/public_games_list");
+        const fetchPromise = window.get(dbRef);
 
-        // Versenyeztetjük a letöltést az időkorláttal
+console.log("📡 Lekérés folyamatban a következő útvonalról: games/public_games_list");
+
         const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (snapshot.exists()) {
-            // --- C. SIKERES ONLINE FRISSÍTÉS ---
-            if(window.updateOfflineIndicator) window.updateOfflineIndicator(false);
-
-            const data = snapshot.val();
-            
-            // Adatok mentése
-            if (pGameId) {
-                window.games = { [pGameId]: data };
-            } else {
-                window.games = data;
-            }
-
-            // Cache frissítése a friss adatokkal
+console.log("✅ Friss adatok megérkeztek a Firebase-ről!");
+const data = snapshot.val();
+console.log("🎮 Betöltött játékok száma:", Object.keys(data).length);
+            window.games = snapshot.val();
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
-            console.log("✅ Játéklista frissítve a szerverről.");
-            
-            if(statusText) statusText.textContent = ""; // Töröljük a töltés szöveget
-            
-            // Újrarenderelés a friss adatokkal
             processGameDataAndRender(false);
-        } 
+            if(statusText) statusText.textContent = "";
+        }
+
+else {
+            console.warn("⚠️ A kérés sikeres volt, de az adatbázis ezen része üres.");
+        }
 
     } catch (error) {
-        console.warn("⚠️ Háttér frissítés nem sikerült (Offline vagy lassú net):", error);
-        if (!cacheLoaded) {
-            document.getElementById('game-list').innerHTML = `<div class="text-center p-4 text-red-500">Nem sikerült kapcsolódni az internethez.</div>`;
-        } else {
-            if(statusText) statusText.textContent = "Offline mód (Mentett adatok)";
-        }
+        console.warn("⚠️ Hálózati hiba vagy lassú elérés, marad a cache:", error);
+        if(statusText) statusText.textContent = cachedList ? "" : "Hálózati hiba.";
+        // Ha a hálózati kérés elbukott, de van cache, akkor legalább a pörgést tüntessük el
+        if (cachedList) processGameDataAndRender(true);
+        else listContainer.innerHTML = `<div class="text-center p-4">A tartalom betöltése sikertelen.</div>`;
     }
+
+
+
+
 
     // Segédfüggvény a rendereléshez
     function processGameDataAndRender(isFromCache) {
