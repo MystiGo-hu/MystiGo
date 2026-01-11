@@ -6486,9 +6486,9 @@ window.generateBonusPoints = async function(count) {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
-    appState.map.on('movestart zoomstart dragstart touchstart', () => {
-    appState.lastMapInteraction = Date.now();
-});
+    appState.map.on('movestart zoomstart dragstart touchstart move click', () => {
+        appState.lastMapInteraction = Date.now();
+    });
 
     // Mock click handler visszakapcsolása, ha szükséges
     if (appState.isManualMock) {
