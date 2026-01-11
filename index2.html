@@ -3785,9 +3785,8 @@ else {
         if (listPage && listPage.classList.contains('hidden')) {
             showPage('game-list-page');
         } else {
-            // Ha már látható az oldal, csak a listát frissítjük a háttérben
-            if (!isFromCache) {
-                // Ha ez a "friss" adat, újrarendereljük a listát
+            // JAVÍTÁS: Csak akkor futtatjuk az applyFilters-t, ha az URL szűrés NEM talált semmit
+            if (!isFromCache && !appState.currentFilteredGames) {
                 if (typeof applyFilters === 'function') applyFilters();
                 else renderGameList();
             }
@@ -4991,48 +4990,27 @@ window.autoSortGamesByDistance = function() {
         // Segédfüggvény a Dropdown-ok beállításához (Csak vizuális!)
         function updateFilterUI(locParam, typeParam, gameIdParam) {
             const filterContainer = document.getElementById('filter-container');
-            // ✅ ÚJ: Azonnali Kaland doboz kiválasztása
             const instantContainer = document.getElementById('instant-adventure-container');
-            
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
 
-            // --- MÓDOSÍTÁS: Ha bármilyen URL paraméter van, ELREJTJÜK a dobozokat ---
+            // Ha van bármilyen URL paraméter, elrejtjük a modulokat
             if (gameIdParam || locParam || typeParam) {
-                if (filterContainer) {
-                    filterContainer.classList.add('hidden'); // Szűrő doboz elrejtése
-                }
-                // ✅ ÚJ: Azonnali Kaland doboz elrejtése is
-                if (instantContainer) {
-                    instantContainer.classList.add('hidden');
-                }
-                
-                // Mivel elrejtettük, nem kell tovább állítgatni a select-eket
+                if (filterContainer) filterContainer.classList.add('hidden');
+                if (instantContainer) instantContainer.classList.add('hidden');
                 return;
             }
             
-            // Ha NINCS paraméter, biztosítjuk, hogy láthatóak legyenek
-            if (filterContainer) {
-                filterContainer.classList.remove('hidden');
-            }
-            // ✅ ÚJ: Azonnali Kaland megjelenítése is
-            if (instantContainer) {
-                instantContainer.classList.remove('hidden');
-            }
+            // Alaphelyzetben láthatóak legyenek
+            if (filterContainer) filterContainer.classList.remove('hidden');
+            if (instantContainer) instantContainer.classList.remove('hidden');
 
-            // --- INNENTŐL A RÉGI LOGIKA (Csak akkor fut le, ha nincs URL szűrés) ---
-            
-            // Helyszín beállítása
             if (locParam && locSelect) {
                 const option = Array.from(locSelect.options).find(opt => 
                     opt.value.toLowerCase().includes(locParam.toLowerCase())
                 );
-                if (option) {
-                    locSelect.value = option.value;
-                }
+                if (option) locSelect.value = option.value;
             }
-
-            // Típus beállítása
             if (typeParam && typeSelect) {
                 typeSelect.value = typeParam.toLowerCase();
             }
