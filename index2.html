@@ -7180,13 +7180,14 @@ window.renderBonusMarkers = function() {
                  const now = Date.now();
                  const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
 
-                 if (appState.isTimerRunning) {
-                     // CSAK AKKOR IGAZÍTJUK A NÉZETET, HA LEGALÁBB 3 MÁSODPERCE NEM NYÚLTÁL A TÉRKÉPHEZ
-                     if (timeSinceLastInteraction > 3000) {
-                         setTimeout(() => {
-                             appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
-                             appState.map.invalidateSize();
-                         }, 100);
+                 if (appState.isTimerRunning && timeSinceLastInteraction > 5000) { 
+    // Csak akkor zoomolunk, ha még nem tettük meg mostanában 
+    // (opcionális: adjunk hozzá egy appState.lastAutoZoom időbélyeget is)
+    setTimeout(() => {
+        if (appState.map && bounds.length > 0) {
+            appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: true });
+        }
+    }, 100);
                      } else {
                          console.log("Nézet frissítés kihagyva az Explore módban interakció miatt.");
                      }
@@ -7200,7 +7201,7 @@ window.renderBonusMarkers = function() {
                      }
                  }
             }
-        }
+        
 
 
 
