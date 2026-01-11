@@ -6249,14 +6249,11 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         }
 
         if (appState.currentGame) {
-            localStorage.removeItem(getStorageKey(appState.currentGame.id));
-            localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
-        }
-        if (typeof window.resetAllInstantCustomization === 'function') {
-            window.resetAllInstantCustomization();
-        }
-        appState.currentGame = null; 
-    }, 1500);
+        localStorage.removeItem(getStorageKey(appState.currentGame.id));
+        localStorage.removeItem(`MystiGo_GameData_${appState.currentGame.id}`);
+    }
+    appState.currentGame = null;
+}, 1500);
 }     
 
 
