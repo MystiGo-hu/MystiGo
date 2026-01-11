@@ -6560,39 +6560,36 @@ window.generateBonusPoints = async function(count) {
 
         if (isExploreSelection) {
             const now = Date.now();
-            
-            // BIZTONSÁGI FRISSÍTÉS: Ha a számláló még 0 (induláskor), állítsuk be mostanra,
-            // nehogy azonnal visszarántsa a térképet.
             if (!appState.lastMapInteraction) appState.lastMapInteraction = now;
-
             const timeSinceLastInteraction = now - appState.lastMapInteraction;
-            
-            // JAVÍTOTT FELTÉTEL:
-            // 1. Ha 5 másodpercen belül történt interakció (INTERACTION_THRESHOLD növelve 5000-re)
-            // 2. VAGY ha a Leaflet szerint éppen "húzás" (drag) folyamatban van
-            // ...akkor NEM nyúlunk a térképhez, csak a geofence-t ellenőrizzük.
+
+            // Ha 5 másodpercen belül történt interakció, vagy épp húzzuk a térképet, ne nyúljunk hozzá
             const isDragging = (appState.map.dragging && appState.map.dragging.enabled() && appState.map.dragging._draggable && appState.map.dragging._draggable._moving);
 
-            if (timeSinceLastInteraction < 5000 || isDragging) { 
-                // Kézi vezérlés aktív: Hagyjuk a játékost nézelődni
+            if (timeSinceLastInteraction < 5000 || isDragging) {
                 checkGeofence();
-                return; 
+                return;
             }
 
-            // HA LEJÁRT AZ IDŐ (és nincs húzás): Visszahúzzuk a nézetet, hogy minden látszódjon
-            const markerKeys = Object.keys(appState.taskMarkers);
+            // --- JAVÍTÁS: CSAK 10 MÁSODPERCENKÉNT ZOOMOLUNK AUTOMATIKUSAN ---
+            const lastAutoZoom = appState.lastAutoZoomTime || 0;
+            if (now - lastAutoZoom < 10000) {
+                checkGeofence();
+                return;
+            }
+
+            const markerKeys = Object.keys(appState.taskMarkers || {});
             if (markerKeys.length > 0) {
                 const bounds = [];
-                markerKeys.forEach(key => {
-                    if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
-                });
-                bounds.push(latLng); // A játékos pozíciója is kell
+                markerKeys.forEach(k => bounds.push(appState.taskMarkers[k].getLatLng()));
+                if (appState.playerMarker) bounds.push(appState.playerMarker.getLatLng());
                 
-                // Finomabb animációval térünk vissza (duration: 1.5s)
-                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true, duration: 1.5 });
+                // Finomabb animáció és időpont elmentése
+                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: true });
+                appState.lastAutoZoomTime = now; 
             }
             checkGeofence();
-            return; 
+            return;
         }
 
         // NORMÁL JÁTÉKMENET LOGIKÁJA (Amikor a célpontot követed)
@@ -7177,29 +7174,29 @@ window.renderBonusMarkers = function() {
             else if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
             
             if (bounds.length > 0) {
-                 const now = Date.now();
-                 const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
+                const now = Date.now();
+                // Megnézzük, mennyi idő telt el az utolsó kézi interakció óta
+                const timeSinceLastInteraction = now - (appState.lastMapInteraction || 0);
+                // Megnézzük, mikor volt az utolsó automatikus zoom
+                const timeSinceLastAutoZoom = now - (appState.lastAutoZoomTime || 0);
 
-                 if (appState.isTimerRunning && timeSinceLastInteraction > 5000) { 
-    // Csak akkor zoomolunk, ha még nem tettük meg mostanában 
-    // (opcionális: adjunk hozzá egy appState.lastAutoZoom időbélyeget is)
-    setTimeout(() => {
-        if (appState.map && bounds.length > 0) {
-            appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: true });
-        }
-    }, 100);
-                     } else {
-                         console.log("Nézet frissítés kihagyva az Explore módban interakció miatt.");
-                     }
-                 } else {
-                     const startTask = appState.currentGame.tasks.find(t => t.index === 0);
-                     let startLat = startTask?.location?.lat || startTask?.locationLat;
-                     let startLng = startTask?.location?.lng || startTask?.locationLng;
-                     
-                     if(startLat && startLng) {
-                         appState.map.setView([startLat, startLng], 16);
-                     }
-                 }
+                // Csak akkor ugrunk vissza a teljes nézetre, ha:
+                // 1. Megy a játék (isTimerRunning)
+                // 2. Legalább 5 másodperce nem nyúltak a térképhez (interakció küszöb)
+                // 3. Legalább 10 másodperce nem volt automatikus igazítás (ne ugráljon másodpercenként)
+                if (appState.isTimerRunning && timeSinceLastInteraction > 5000 && timeSinceLastAutoZoom > 10000) { 
+                    setTimeout(() => {
+                        // Ellenőrizzük, hogy még mindig érvényes-e a feltétel az időzítő lefutásakor
+                        if (appState.map && bounds.length > 0 && !appState.map.dragging?._moving) {
+                            appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: true });
+                            appState.lastAutoZoomTime = Date.now(); // Mentjük az időpontot
+                        }
+                    }, 100);
+                } else if (!appState.isTimerRunning) {
+                    // Ha nem megy az óra (még nem indult el a játék), akkor egyszeri fix igazítás
+                    appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2));
+                    appState.map.invalidateSize();
+                }
             }
         
 
