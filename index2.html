@@ -6486,7 +6486,7 @@ window.generateBonusPoints = async function(count) {
     appState.map.on('moveend', updateZoomDisplay);
     updateZoomDisplay();
 
-    appState.map.on('movestart zoomstart dragstart touchstart move click', () => {
+    appState.map.on('mousedown mouseup mousemove touchstart touchend touchmove dragstart drag dragend move zoomstart zoomend click', () => {
         appState.lastMapInteraction = Date.now();
     });
 
@@ -6559,22 +6559,37 @@ window.generateBonusPoints = async function(count) {
         );
 
         if (isExploreSelection) {
-            // HA NEMRÉG NYÚLTÁL HOZZÁ: Csak geofence-t nézünk, de a térképnézetet TILOS bántani
-            if (timeSinceLastInteraction < INTERACTION_THRESHOLD) { 
-                console.log("Explore mód: Kézi vezérlés, nézet rögzítve...");
+            const now = Date.now();
+            
+            // BIZTONSÁGI FRISSÍTÉS: Ha a számláló még 0 (induláskor), állítsuk be mostanra,
+            // nehogy azonnal visszarántsa a térképet.
+            if (!appState.lastMapInteraction) appState.lastMapInteraction = now;
+
+            const timeSinceLastInteraction = now - appState.lastMapInteraction;
+            
+            // JAVÍTOTT FELTÉTEL:
+            // 1. Ha 5 másodpercen belül történt interakció (INTERACTION_THRESHOLD növelve 5000-re)
+            // 2. VAGY ha a Leaflet szerint éppen "húzás" (drag) folyamatban van
+            // ...akkor NEM nyúlunk a térképhez, csak a geofence-t ellenőrizzük.
+            const isDragging = (appState.map.dragging && appState.map.dragging.enabled() && appState.map.dragging._draggable && appState.map.dragging._draggable._moving);
+
+            if (timeSinceLastInteraction < 5000 || isDragging) { 
+                // Kézi vezérlés aktív: Hagyjuk a játékost nézelődni
                 checkGeofence();
                 return; 
             }
 
-            // HA ELTELT A 3 MP: Akkor visszahúzzuk a nézetet, hogy minden pont és a játékos is látsszon
+            // HA LEJÁRT AZ IDŐ (és nincs húzás): Visszahúzzuk a nézetet, hogy minden látszódjon
             const markerKeys = Object.keys(appState.taskMarkers);
             if (markerKeys.length > 0) {
                 const bounds = [];
                 markerKeys.forEach(key => {
                     if(appState.taskMarkers[key]) bounds.push(appState.taskMarkers[key].getLatLng());
                 });
-                bounds.push(latLng);
-                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true });
+                bounds.push(latLng); // A játékos pozíciója is kell
+                
+                // Finomabb animációval térünk vissza (duration: 1.5s)
+                appState.map.fitBounds(L.latLngBounds(bounds).pad(0.1), { animate: true, duration: 1.5 });
             }
             checkGeofence();
             return; 
