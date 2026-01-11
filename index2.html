@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.57
+       v1.2.58
 
    </span>
 
@@ -6570,7 +6570,7 @@ window.generateBonusPoints = async function(count) {
 
             // --- JAVÍTÁS: CSAK 10 MÁSODPERCENKÉNT ZOOMOLUNK AUTOMATIKUSAN ---
             const lastAutoZoom = appState.lastAutoZoomTime || 0;
-            if (now - lastAutoZoom < 10000) {
+            if (now - lastAutoZoom < 15000) {
                 checkGeofence();
                 return;
             }
@@ -7176,7 +7176,7 @@ window.renderBonusMarkers = function() {
                 const timeSinceLastAutoZoom = now - (appState.lastAutoZoomTime || 0);
 
                 // Megakadályozzuk az ugrálást: 5mp interakció után és 10mp auto-zoom közökkel
-                if (appState.isTimerRunning && timeSinceLastInteraction > 5000 && timeSinceLastAutoZoom > 10000) { 
+                if (appState.isTimerRunning && timeSinceLastInteraction > 5000 && timeSinceLastAutoZoom > 15000) { 
                     setTimeout(() => {
                         if (appState.map && bounds.length > 0 && !appState.map.dragging?._moving) {
                             appState.map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: true });
