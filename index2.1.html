@@ -9655,37 +9655,63 @@ window.updateInstantButtonEligibility();
 let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
 
-window.openQrScanner = function() {
-    // Ellenőrizzük, hogy a feladat aktív-e (zónában van-e a játékos)
+window.openQrScanner = function(isUnlockMode = false) {
+    // 1. Ellenőrizzük, hogy a feladat aktív-e (zónában van-e a játékos)
     const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
     if (!task || (!task.isTaskTimerActive && !appState.isTestModeEnabled)) {
         return showMessage('Még messze vagy', 'A QR olvasó csak akkor használható, ha már a célterületen vagy!');
     }
 
     const modal = document.getElementById('qr-scanner-modal');
+    if (!modal) return;
+    
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    // Inicializáljuk az olvasót
-    html5QrCode = new Html5Qrcode("qr-reader");
+    // 2. Olvasó inicializálása
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+    }
     
     const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-    // Kamera indítása (hátsó kamera preferálása)
+    // 3. Kamera indítása
     html5QrCode.start(
         { facingMode: "environment" }, 
         qrConfig, 
         (decodedText) => {
-            // SIKERES OLVASÁS
-            document.getElementById('answer-input').value = decodedText;
-            playArrivalNotification(); // Hangjelzés
-            closeQrScanner();
+            // SIKERES OLVASÁS UTÁNI LOGIKA
             
-            // Opcionális: Azonnali beküldés beolvasás után
-            setTimeout(() => { document.getElementById('submit-answer-btn').click(); }, 500);
+            if (isUnlockMode) {
+                // --- ÚJ: FELOLDÁS LOGIKA ---
+                // Összehasonlítjuk a beolvasott szöveget az elvárt unlockCode-dal
+                const scanned = decodedText.trim().toLowerCase();
+                const target = (task.unlockCode || "").trim().toLowerCase();
+
+                if (scanned === target) {
+                    task.isUnlocked = true; // Jelöljük a feloldást az állapotban
+                    if (typeof playArrivalNotification === 'function') playArrivalNotification();
+                    closeQrScanner();
+                    loadTask(task.index); // Újratöltjük a feladatot a tartalom megjelenítéséhez
+                    if (typeof saveGameState === 'function') saveGameState();
+                } else {
+                    showMessage("Hiba", "Ez nem a megfelelő kód a feladat feloldásához!");
+                }
+            } else {
+                // --- EREDETI MEGOLDÁS LOGIKA ---
+                document.getElementById('answer-input').value = decodedText;
+                if (typeof playArrivalNotification === 'function') playArrivalNotification();
+                closeQrScanner();
+                
+                // Automatikus beküldés beolvasás után
+                setTimeout(() => { 
+                    const submitBtn = document.getElementById('submit-answer-btn');
+                    if (submitBtn) submitBtn.click(); 
+                }, 500);
+            }
         },
         (errorMessage) => {
-            // Itt nem dobunk hibát, mert az olvasó folyamatosan próbálkozik
+            // Folyamatos próbálkozás közbeni hibaüzeneteket elnyomjuk
         }
     ).catch((err) => {
         console.error("Kamera indítási hiba:", err);
@@ -9693,6 +9719,8 @@ window.openQrScanner = function() {
         closeQrScanner();
     });
 };
+
+
 
 window.closeQrScanner = function() {
     const modal = document.getElementById('qr-scanner-modal');
