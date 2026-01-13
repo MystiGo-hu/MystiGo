@@ -5630,14 +5630,31 @@ if (window.auth && window.auth.currentUser) {
     appState.routeCoordinates = [];
 
     // 8. Kezdőpont (Start feladat) létrehozása
-    const startTaskTemplate = {
+    
+
+let startStoryHtml = "";
+    
+    if (appState.currentGame.type === "Instant") {
+        startStoryHtml = `<strong>Üdvözlünk az Azonnali Kalandban!</strong>`;
+    } 
+    // Itt ellenőrizzük, hogy Explore mód-e (a finalOrder változót használva, amit feljebb már kiszámolt a kód)
+    else if (finalOrder === 'explore') {
+        startStoryHtml = `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br><strong>A Kaland indítható bárhol!</strong><br>Nyomd meg a Kaland Indítása gombot a kezdéshez.`;
+    } 
+    else {
+        // Minden más esetben (Normal, Team, Kids) marad a GPS-es utasítás
+        startStoryHtml = `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre!`;
+    }
+
+
+
+const startTaskTemplate = {
         index: 0,
         isStartTask: true,
         location: appState.currentGame.startLocation || {lat: 47.4979, lng: 19.0402},
         geofenceRadius: (typeof GEOFENCE_DEFAULT_RADIUS !== 'undefined') ? GEOFENCE_DEFAULT_RADIUS : 50,
-        story: appState.currentGame.type === "Instant" 
-            ? `<strong>Üdvözlünk az Azonnali Kalandban!</strong>` 
-            : `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre!`,
+        story: startStoryHtml,
+
         prompt: '',
         hints: [],
         solution: '',
