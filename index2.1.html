@@ -5221,9 +5221,11 @@ window.triggerVictoryUI = function(points) {
     setTimeout(() => toast.classList.add('active'), 100);
     setTimeout(() => {
         toast.classList.remove('active');
-        setTimeout(() => { toast.remove(); handleCorrectAnswer(); }, 500);
+        setTimeout(() => {
+            toast.remove();
+            handleCorrectAnswer(); // EZ A SOR HIÁNYZOTT!
+        }, 500);
     }, 3000);
-};
 
 window.triggerErrorUI = function(pointsRemaining) {
     // 1. Hangjelzés és rázkódás elindítása
@@ -5883,16 +5885,16 @@ if (typeof task.taskScore === 'undefined') {
 
         function handleCorrectAnswer() {
     if (speechSynth.speaking) speechSynth.cancel();
-
-
-const currentTaskScore = parseInt(currentTask.taskScore) || 0;
-if (currentTaskScore > 0 && !currentTask.isStartTask) {
-    appState.score = (parseInt(appState.score) || 0) + currentTaskScore;
-}
-
+    
+    // 1. ELŐBB keressük meg az aktuális feladatot
     const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
-
     if (!currentTask || currentTask.completed) return;
+
+    // 2. UTÁNA adjuk hozzá a pontot (csak ha nem a Start feladat)
+    const currentTaskScore = parseInt(currentTask.taskScore) || 0;
+    if (currentTaskScore > 0 && !currentTask.isStartTask) {
+        appState.score = (parseInt(appState.score) || 0) + currentTaskScore;
+    }
 
     currentTask.completed = true;
 
