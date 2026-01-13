@@ -5226,6 +5226,8 @@ window.triggerVictoryUI = function(points) {
             handleCorrectAnswer(); // EZ A SOR HIÁNYZOTT!
         }, 500);
     }, 3000);
+};
+
 
 window.triggerErrorUI = function(pointsRemaining) {
     // 1. Hangjelzés és rázkódás elindítása
@@ -5886,11 +5888,11 @@ if (typeof task.taskScore === 'undefined') {
         function handleCorrectAnswer() {
     if (speechSynth.speaking) speechSynth.cancel();
     
-    // 1. ELŐBB keressük meg az aktuális feladatot
+    // 1. Megkeressük az aktuális feladatot
     const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
     if (!currentTask || currentTask.completed) return;
 
-    // 2. UTÁNA adjuk hozzá a pontot (csak ha nem a Start feladat)
+    // 2. Pontszám hozzáadása (CSAK EGYSZER!)
     const currentTaskScore = parseInt(currentTask.taskScore) || 0;
     if (currentTaskScore > 0 && !currentTask.isStartTask) {
         appState.score = (parseInt(appState.score) || 0) + currentTaskScore;
@@ -8659,8 +8661,6 @@ window.updateInstantButtonEligibility();
 window.loadMoreGames = function() {
             // Növeljük a limitet
             appState.visibleGamesLimit += 5;
-            
-            // ÚJ: Azt a listát rajzoljuk újra, ami éppen aktív (szűrt vagy eredeti)
             renderGameList(appState.currentFilteredGames);
         };
 
