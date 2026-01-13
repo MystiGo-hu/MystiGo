@@ -5770,7 +5770,14 @@ function updateHintButtons(task) {
 
     // --- 🛠️ ALAPADATOK JAVÍTÁSA (Marad az eredeti logika) --- [cite: 5-16]
     if (!task.location) { task.location = {}; }
-    if (typeof task.location.lat === 'undefined') {
+   
+if (typeof task.taskScore === 'undefined') {
+    // Ha van megadva 'points' az excelben/adatbázisban, azt használjuk, 
+    // különben az alapértelmezett 50-et.
+    task.taskScore = task.points ? parseInt(task.points) : DEFAULT_SCORE_PER_TASK;
+}
+
+ if (typeof task.location.lat === 'undefined') {
         task.location.lat = parseFloat(task.lat || task.locationLat || 0);
     }
     if (typeof task.location.lng === 'undefined') {
@@ -5876,6 +5883,12 @@ function updateHintButtons(task) {
 
         function handleCorrectAnswer() {
     if (speechSynth.speaking) speechSynth.cancel();
+
+
+const currentTaskScore = parseInt(currentTask.taskScore) || 0;
+if (currentTaskScore > 0 && !currentTask.isStartTask) {
+    appState.score = (parseInt(appState.score) || 0) + currentTaskScore;
+}
 
     const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
 
