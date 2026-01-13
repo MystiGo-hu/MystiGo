@@ -1297,7 +1297,7 @@
     
     <button onclick="finishExploreGameEarly()" 
             class="mt-2 px-6 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-full font-bold text-xs hover:bg-red-100 transition shadow-sm flex items-center justify-center gap-2 mx-auto">
-        <span>🏁</span> Játék befejezése most
+        <span>🏁</span> Játék befejezése most!
     </button>
     </div>
                         </div>
@@ -9683,7 +9683,6 @@ window.openQrScanner = function(target) {
                 } else {
                     // HIBÁS QR KÓD
                     closeQrScanner();
-                    showMessage("Helytelen kód", `Sajnos ez nem a megfelelő QR kód a feloldáshoz.\n\nBeolvasva: "${decodedText}"\nElvárt kód: "${expected}"`);
                 }
             } else {
                 // NORMÁL MÓD (Válaszbeírás)
