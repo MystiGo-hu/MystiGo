@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.58
+       v1.2.59
 
    </span>
 
@@ -9452,7 +9452,9 @@ if (nameInput) {
         // Avatar betöltése
         if (profile.avatar) {
             localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-            if (window.updateAvatarPreview) window.updateAvatarPreview();
+            if (typeof window.updateAvatarPreview === 'function') {
+                window.updateAvatarPreview();
+            }
         }
 
 if (typeof window.updateInstantButtonEligibility === 'function') {
