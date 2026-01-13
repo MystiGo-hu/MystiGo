@@ -9606,7 +9606,6 @@ let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
 
 window.openQrScanner = function(isUnlockMode = false) {
-    // 1. Ellenőrizzük a távolságot
     const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
     if (!task || (!task.isTaskTimerActive && !appState.isTestModeEnabled)) {
         return showMessage('Még messze vagy', 'A QR olvasó csak akkor használható, ha már a célterületen vagy!');
@@ -9628,22 +9627,19 @@ window.openQrScanner = function(isUnlockMode = false) {
         { facingMode: "environment" }, 
         qrConfig, 
         (decodedText) => {
-            console.log("QR Beolvasva:", decodedText); // Debughoz
-            
-            // Haptikus visszajelzés (ha a telefon támogatja)
+            // SIKERES BEOLVASÁS - AZONNAL MEGÁLLÍTJUK, hogy ne rezegjen többször
             if (navigator.vibrate) navigator.vibrate(100);
-
+            
             if (isUnlockMode) {
                 const scanned = decodedText.trim().toLowerCase();
                 const target = (task.unlockCode || "").trim().toLowerCase();
 
-                // Ellenőrizzük az egyezést (pontos vagy tartalmazza)
+                // Itt dől el a feloldás
                 if (scanned === target || scanned.includes(target)) {
                     task.isUnlocked = true;
                     if (typeof playArrivalNotification === 'function') playArrivalNotification();
                     closeQrScanner();
                     
-                    // Rövid késleltetés a siker élményhez
                     const toast = document.createElement('div');
                     toast.className = 'success-toast active';
                     toast.style.borderColor = '#00CED1';
@@ -9656,9 +9652,9 @@ window.openQrScanner = function(isUnlockMode = false) {
                         if (typeof saveGameState === 'function') saveGameState();
                     }, 2000);
                 } else {
-                    // FONTOS: Előbb bezárjuk a szkennert, hogy látszódjon a hibaüzenet!
+                    // EZ HIÁNYZOTT: Ha rossz a kód, leállítjuk a kamerát és hibaüzenetet adunk
                     closeQrScanner();
-                    showMessage("Hiba", `Ez a kód nem megfelelő!\n\nBeolvasva: "${decodedText}"\nElvárt kód: "${target}"`);
+                    showMessage("Helytelen kód", `Sajnos ez nem a megfelelő QR kód a feloldáshoz.\n\nBeolvasva: "${decodedText}"\nElvárt kód: "${target}"`);
                 }
             } else {
                 // Normál válaszbeküldés mód
@@ -9672,11 +9668,10 @@ window.openQrScanner = function(isUnlockMode = false) {
                 }, 500);
             }
         },
-        (errorMessage) => { /* folyamatos olvasási kísérlet, nem hiba */ }
+        (errorMessage) => { /* folyamatos olvasás... */ }
     ).catch((err) => {
-        console.error("Kamera indítási hiba:", err);
+        console.error("Hiba:", err);
         closeQrScanner();
-        showMessage("Hiba", "Nem sikerült elérni a kamerát. Engedélyezd a böngészőnek a hozzáférést!");
     });
 };
 
