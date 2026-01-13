@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.60
+       v1.2.61
 
    </span>
 
@@ -2570,7 +2570,9 @@ window.populateMonthSelector = function() {
                 val.score = 0; 
                 val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
             }
-            results.push(val);
+            if (parseInt(val.score) > 0) {
+		results.push(val);
+		}
         });
 
         // 1. Az összes adat elmentése a globális változóba
@@ -5792,7 +5794,7 @@ const answerInput = document.getElementById('answer-input');
         return;
     }
 
-    // --- 🛠️ ADAT JAVÍTÁSOK (Eredeti 1.2.60 logikája) ---
+    // --- 🛠️ ADAT JAVÍTÁSOK  ---
     if (!task.location) { task.location = {}; }
     if (typeof task.location.lat === 'undefined') {
         task.location.lat = parseFloat(task.lat || task.locationLat);
@@ -5901,7 +5903,7 @@ const inputContainer = document.getElementById('answer-input-container');
         updateHintButtons(task);
     }
 
-    // --- TÉRKÉP ÉS MARKER KEZELÉS (Eredeti 1.2.60) ---
+    // --- TÉRKÉP ÉS MARKER KEZELÉS  ---
     if (appState.map) {
         if (task.location?.lat && !(appState.currentGame.taskOrder === 'explore' && isStartTask)) {
             updateTaskMarker(task.location);
