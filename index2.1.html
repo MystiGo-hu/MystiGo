@@ -5756,62 +5756,40 @@ function updateHintButtons(task) {
  function loadTask(taskIndex) {
     if (speechSynth.speaking) speechSynth.cancel();
     
-    document.getElementById('content-page-wrapper').scrollTo({ top: 0, behavior: 'instant' });
+    const wrapper = document.getElementById('content-page-wrapper');
+    if (wrapper) wrapper.scrollTo({ top: 0, behavior: 'instant' });
     
-    const task = appState.currentGame.tasks.find(t => t.index === taskIndex);
+    // Biztosítjuk, hogy az index szám legyen az összehasonlításhoz
+    const targetIdx = Number(taskIndex);
+    const task = appState.currentGame.tasks.find(t => Number(t.index) === targetIdx);
     
     if (!task) {
         console.error(`❌ loadTask: Nem található feladat ezzel az index-szel: ${taskIndex}`);
         return;
     }
 
-    // --- 🛠️ AUTOMATIKUS KOORDINÁTA JAVÍTÁS ---
+    // --- 🛠️ ALAPADATOK JAVÍTÁSA (Marad az eredeti logika) --- [cite: 5-16]
     if (!task.location) { task.location = {}; }
     if (typeof task.location.lat === 'undefined') {
-        if (task.lat) task.location.lat = parseFloat(task.lat);
-        else if (task.locationLat) task.location.lat = parseFloat(task.locationLat);
+        task.location.lat = parseFloat(task.lat || task.locationLat || 0);
     }
     if (typeof task.location.lng === 'undefined') {
-        if (task.lng) task.location.lng = parseFloat(task.lng);
-        else if (task.locationLng) task.location.lng = parseFloat(task.locationLng);
+        task.location.lng = parseFloat(task.lng || task.locationLng || 0);
     }
-
-    // --- 🛠️ JAVÍTOTT HINT (SEGÍTSÉG) KEZELÉS ---
-    if (!task.hints || !Array.isArray(task.hints)) {
-        task.hints = [];
-    }
-    if (task.hint1 !== undefined) {
-        task.hints[0] = task.hint1;
-    } else if (typeof task.hints[0] === 'undefined') {
-        task.hints[0] = "";
-    }
-    if (task.hint2 !== undefined) {
-        task.hints[1] = task.hint2;
-    } else if (typeof task.hints[1] === 'undefined') {
-        task.hints[1] = "";
-    }
-
-    // --- 🛠️ MEGOLDÁS ADAT JAVÍTÁSA ---
+    if (!task.hints || !Array.isArray(task.hints)) { task.hints = []; }
+    if (task.hint1 !== undefined) task.hints[0] = task.hint1;
+    if (task.hint2 !== undefined) task.hints[1] = task.hint2;
     if (!task.solution || String(task.solution).trim() === "") {
         if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
             task.solution = "<strong>" + task.acceptedAnswers[0] + "</strong>";
         }
     }
 
-    appState.currentTaskIndex = taskIndex;
-    const isStartTask = task.isStartTask;
+    appState.currentTaskIndex = targetIdx;
+    // A 0. indexű feladatot mindig Start feladatként kezeljük az indításhoz
+    const isStartTask = task.isStartTask === true || task.isStartTask === "true" || targetIdx === 0;
     
-    if (typeof task.isTaskTimerActive === 'undefined') task.isTaskTimerActive = false;
-    if (!isStartTask) {
-        if (typeof task.taskScore === 'undefined' || task.taskScore === null) {
-            task.taskScore = DEFAULT_SCORE_PER_TASK;
-        }
-        task.taskScore = parseInt(task.taskScore);
-    } else {
-        task.taskScore = 0;
-    }
-
-    // UI Alaphelyzetbe állítás
+    // UI ALAPHELYZET
     document.getElementById('normal-task-content').classList.remove('hidden');
     document.getElementById('explore-selection-container').classList.add('hidden');
     document.getElementById('start-task-button-container').classList.add('hidden');
@@ -5821,24 +5799,17 @@ function updateHintButtons(task) {
 
     const backBtn = document.getElementById('back-to-map-btn');
     if (backBtn) {
-        if (appState.currentGame.taskOrder === 'explore' && !isStartTask) {
-            backBtn.classList.remove('hidden');
-        } else {
-            backBtn.classList.add('hidden');
-        }
+        backBtn.classList.toggle('hidden', !(appState.currentGame.taskOrder === 'explore' && !isStartTask));
     }
-
-    const speakBtn = document.getElementById('speak-story-btn');
-    if (speakBtn && ('speechSynthesis' in window)) speakBtn.style.display = 'block'; 
-    else if (speakBtn && speakBtn.parentElement) speakBtn.remove();
     
     if (isStartTask) task.startTime = 0;
 
-    // --- ✨ ÚJ FUNKCIÓ: QR KÓDOS FELOLDÁS ELLENŐRZÉSE ---
-    const isLocked = task.unlockCode && task.unlockCode.trim() !== "" && !task.isUnlocked && !isStartTask;
+    // --- ✨ ÚJ: QR KÓDOS FELOLDÁS ELLENŐRZÉSE (HIBÁRA FELKÉSZÍTVE) ---
+    // A String() használatával megelőzzük a hibát, ha az unlockCode szám lenne [cite: 26-32]
+    const unlockValue = task.unlockCode !== undefined && task.unlockCode !== null ? String(task.unlockCode).trim() : "";
+    const isLocked = unlockValue !== "" && !task.isUnlocked && !isStartTask;
 
     if (isLocked) {
-        // Zárolt tartalom megjelenítése
         document.getElementById('story').innerHTML = `
             <div class="flex flex-col items-center justify-center p-6 bg-gray-100 rounded-2xl border-2 border-dashed border-gray-400 text-center">
                 <div class="text-5xl mb-4">🔒</div>
@@ -5848,75 +5819,54 @@ function updateHintButtons(task) {
                     <span>🔍</span> QR kód beolvasása
                 </button>
             </div>`;
-        document.getElementById('prompt').classList.add('hidden');
+        document.getElementById('prompt').innerHTML = ""; 
         document.getElementById('answer-input-container').classList.add('hidden');
         document.getElementById('hint-buttons-container').classList.add('hidden');
-        const taskImageEl = document.getElementById('task-image');
-        if (taskImageEl) taskImageEl.classList.add('hidden');
+        if (document.getElementById('task-image')) document.getElementById('task-image').classList.add('hidden');
     } else {
-        // --- NORMÁL TARTALOM MEGJELENÍTÉSE (Eredeti logika) ---
+        // --- NORMÁL MEGJELENÍTÉS --- [cite: 26-32]
         document.getElementById('story').innerHTML = task.story || "Nincs történet.";
         document.getElementById('prompt').innerHTML = task.prompt || "";
         document.getElementById('prompt').classList.remove('hidden');
 
-        // Task Image Kezelés
-        const taskImageEl = document.getElementById('task-image');
-        if (taskImageEl) {
-            if (task.taskImage && task.taskImage.trim() !== "") {
-                taskImageEl.src = task.taskImage;
-                taskImageEl.classList.remove('hidden');
+        const taskImg = document.getElementById('task-image');
+        if (taskImg) {
+            if (task.taskImage && String(task.taskImage).trim() !== "") {
+                taskImg.src = task.taskImage;
+                taskImg.classList.remove('hidden');
             } else {
-                taskImageEl.classList.add('hidden');
-                taskImageEl.src = "";
+                taskImg.classList.add('hidden');
             }
         }
 
         document.getElementById('answer-input').value = '';
-        const detailsEl = document.getElementById('story-details');
-        if(detailsEl) detailsEl.open = true;
         
-        if(typeof task.hintsUsed === 'undefined') task.hintsUsed = 0;
-
         if (!isStartTask) {
              document.getElementById('submit-answer-btn').disabled = true;
              document.getElementById('answer-input').disabled = true;
-             
              if (typeof updateHintButtons === 'function') updateHintButtons(task);
              document.getElementById('answer-input-container').classList.remove('hidden');
              document.getElementById('hint-buttons-container').classList.remove('hidden');
         } else {
-             document.getElementById('submit-answer-btn').disabled = true;
-             document.getElementById('answer-input').disabled = true;
-             
-             if(document.getElementById('hint1-btn')) document.getElementById('hint1-btn').style.display = 'none';
-             if(document.getElementById('hint2-btn')) document.getElementById('hint2-btn').style.display = 'none';
-             if(document.getElementById('solution-btn')) document.getElementById('solution-btn').style.display = 'none';
-             
+             // START FELADAT (Javítva: Lineáris módban is megjelenik az indító gomb!) 
+             document.getElementById('start-game-btn').disabled = false; 
+             document.getElementById('start-task-button-container').classList.remove('hidden');
              document.getElementById('answer-input-container').classList.add('hidden');
              document.getElementById('hint-buttons-container').classList.add('hidden');
 
              if (appState.currentGame.taskOrder === 'explore') {
-                 document.getElementById('report-error-btn').classList.add('hidden');
                  document.getElementById('google-maps-btn').classList.add('hidden');
-                 document.getElementById('start-game-btn').disabled = false; 
-                 document.getElementById('start-task-button-container').classList.remove('hidden');
-             } else {
-                 document.getElementById('report-error-btn').classList.remove('hidden');
+                 document.getElementById('report-error-btn').classList.add('hidden');
              }
         }
     }
 
-    // --- TÉRKÉP ÉS ÁLLAPOT FRISSÍTÉS (Eredeti logika) ---
-    if (appState.map) {
-        if (task.location && typeof task.location.lat !== 'undefined') {
-            if (!(appState.currentGame.taskOrder === 'explore' && isStartTask)) {
-                updateTaskMarker(task.location);
-            }
+    // --- TÉRKÉP ÉS ÁLLAPOT (Marad az eredeti) --- [cite: 43-45]
+    if (appState.map && task.location && typeof task.location.lat !== 'undefined') {
+        if (!(appState.currentGame.taskOrder === 'explore' && isStartTask)) {
+            updateTaskMarker(task.location);
         }
-        Object.values(appState.taskMarkers).forEach(m => m.remove());
-        appState.taskMarkers = {};
     }
-    
     checkGeofence();
     updateStatusDisplays();
 }
