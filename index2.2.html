@@ -5683,6 +5683,10 @@ if (window.auth && window.auth.currentUser) {
 }
 
 function updateHintButtons(task) {
+	if (task.index === 0) {
+        document.getElementById('hint-buttons-container').classList.add('hidden');
+        return; 
+    }
     const hint1Btn = document.getElementById('hint1-btn');
     const hint2Btn = document.getElementById('hint2-btn');
     const solutionBtn = document.getElementById('solution-btn');
@@ -5756,6 +5760,9 @@ function updateHintButtons(task) {
         function loadTask(taskIndex) {
     if (speechSynth.speaking) speechSynth.cancel();
     
+const answerInput = document.getElementById('answer-input');
+    if (answerInput) answerInput.value = '';
+
     const wrapper = document.getElementById('content-page-wrapper');
     if (wrapper) wrapper.scrollTo({ top: 0, behavior: 'instant' });
     
@@ -5790,6 +5797,21 @@ function updateHintButtons(task) {
 
     appState.currentTaskIndex = targetIdx;
     const isStartTask = task.isStartTask === true || targetIdx === 0;
+
+
+const inputContainer = document.getElementById('answer-input-container');
+    const hintContainer = document.getElementById('hint-buttons-container');
+
+    if (isStartTask) {
+        // START FELADAT: Csak a gombokat és bevitelt rejtjük el
+        if (inputContainer) inputContainer.classList.add('hidden');
+        if (hintContainer) hintContainer.classList.add('hidden');
+    } else {
+        // NORMÁL FELADAT: Visszakapcsoljuk őket
+        if (inputContainer) inputContainer.classList.remove('hidden');
+        if (hintContainer) hintContainer.classList.remove('hidden');
+    }
+
     if (typeof task.isTaskTimerActive === 'undefined') task.isTaskTimerActive = false;
 
     // Pontszám beállítása
@@ -5843,7 +5865,9 @@ function updateHintButtons(task) {
         // NORMÁL MEGJELENÍTÉS
         document.getElementById('story').innerHTML = task.story || "Nincs történet.";
         document.getElementById('prompt').innerHTML = task.prompt || "";
-        document.getElementById('answer-input-container').classList.remove('hidden');
+        if (appState.currentTaskIndex !== 0) {
+                document.getElementById('answer-input-container').classList.remove('hidden');
+            }
         document.getElementById('hint-buttons-container').classList.remove('hidden');
         
         const taskImageEl = document.getElementById('task-image');
@@ -6905,6 +6929,9 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
             startButtonContainer.classList.add('hidden');
             exploreSelectionContainer.classList.add('hidden'); 
             
+
+
+
             if (appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.isInZone = true;
 		        playArrivalNotification();                
@@ -6957,21 +6984,27 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
                 }
                 
                 if (appState.isInZone) {
-                    distEl.textContent = t('in_zone');
-                    distEl.className='text-center text-xs font-bold mt-2 text-green-600';
-                    appState.geofenceCircle.setRadius(currentRadius);
-                    appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
-                    document.getElementById('submit-answer-btn').disabled = false;
-                    document.getElementById('answer-input').disabled = false;
-                    taskInteractionArea.classList.remove('hidden'); 
-                    if (isStartTask) {
-                        startButtonContainer.classList.remove('hidden');
-                        document.getElementById('submit-answer-btn').disabled = true; 
-                        document.getElementById('answer-input').disabled = true;
-                        taskInteractionArea.classList.remove('hidden'); 
-                        document.getElementById('prompt').classList.add('hidden');
-                    }
-                } else {
+    distEl.textContent = t('in_zone');
+    distEl.className='text-center text-xs font-bold mt-2 text-green-600';
+    appState.geofenceCircle.setRadius(currentRadius);
+    appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
+    document.getElementById('submit-answer-btn').disabled = false;
+    document.getElementById('answer-input').disabled = false;
+    taskInteractionArea.classList.remove('hidden'); 
+    
+    if (isStartTask) {
+        startButtonContainer.classList.remove('hidden');
+        document.getElementById('submit-answer-btn').disabled = true; 
+        document.getElementById('answer-input').disabled = true;
+        taskInteractionArea.classList.remove('hidden'); 
+        document.getElementById('prompt').classList.add('hidden');
+    } 
+    // --- ÚJ RÉSZ: Normál feladatnál jelenítsük meg a kérdést ---
+    else {
+        document.getElementById('prompt').classList.remove('hidden');
+    }
+    // ---------------------------------------------------------
+} else {
                     distEl.textContent = t('out_zone', Math.round(distance));
                     distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
                     appState.geofenceCircle.setRadius(currentRadius);
