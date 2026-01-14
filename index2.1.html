@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.60
+       v1.2.63
 
    </span>
 
@@ -940,107 +940,77 @@
 
 
 
-                        <div id="team-setup" class="p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 shadow-inner mb-6">
+
+                        <div id="team-setup" class="bg-blue-50 rounded-2xl border-2 border-blue-100 shadow-sm mb-6 overflow-hidden transition-all duration-300 flex flex-col">
     
-    <div class="flex justify-between items-center mb-3 px-1">
-        <h2 class="text-sm font-bold text-brand-blue uppercase tracking-wider">Játékos<span class="text-red-500">*</span></h2>
-        <label class="flex items-center cursor-pointer gap-2 select-none bg-yellow-100 px-2.5 py-1 rounded-full border border-yellow-200 hover:bg-yellow-200 transition">
-            <span class="text-[10px] font-extrabold text-yellow-800 uppercase">Kids 🐈</span>
-            <input type="checkbox" id="kids-mode-checkbox" class="w-3.5 h-3.5 text-brand-orange border-gray-300 rounded accent-orange-500">
-        </label>
-    </div>
-
-    <div class="flex items-center justify-between mb-1 bg-white/80 p-1 rounded-xl border border-white shadow-sm">
-        <div class="flex items-center gap-2">
-            <div id="auth-buttons-group" class="flex gap-2">
-                <button id="google-login-btn" onclick="loginWithGoogle()" 
-                        class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95"
-                        title="Google">
-                    <img src="logo/google_logo.svg" class="w-6 h-6">
-                </button>
-
-                <button id="email-auth-btn" onclick="openEmailAuthModal()" 
-                        class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95" 
-                        title="Email bejelentkezés">
-                    <svg class="w-6 h-6 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div id="email-auth-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 10000;">
-                <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-                    <h2 id="email-modal-title" class="text-xl font-bold text-brand-blue mb-4 text-center">Bejelentkezés</h2>
-                    <div class="space-y-3">
-                        <input type="email" id="auth-email" placeholder="Email cím" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
-                        <input type="password" id="auth-password" placeholder="Jelszó" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
-                        <div id="email-auth-error" class="text-red-500 text-xs hidden font-bold"></div>
-                    </div>
-                    <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
-                    
-<button id="forgot-password-btn" onclick="handleForgotPassword()" class="w-full mt-2 text-[11px] text-gray-500 hover:text-brand-cyan-500 underline text-center">
-    Elfelejtettem a jelszavamat
-</button>
-
-		    <div class="mt-4 text-center">
-                        <button id="email-toggle-mode" onclick="toggleEmailAuthMode()" class="text-xs text-brand-cyan-500 font-semibold hover:underline">Nincs még fiókod? Regisztráció</button>
-                    </div>
-                    <button onclick="closeEmailAuthModal()" class="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1">Mégse</button>
-                </div>
-            </div>
-
-            <button id="logout-btn" onclick="logout()" 
-                    class="hidden w-9 h-9 flex items-center justify-center bg-white border border-red-100 text-red-500 rounded-xl shadow-sm hover:bg-red-50 transition-all active:scale-95">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
-                </svg>
-            </button>
-
-            <div id="user-info-display" class="flex flex-col overflow-hidden">
-                <p id="auth-status-label" class="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Státusz</p>
-                <p id="auth-user-name" class="text-xs font-bold text-brand-blue truncate max-w-[120px] leading-tight"></p>
-            </div>
-        </div>
-
-        <div id="total-score-display" class="hidden flex items-center gap-2">
-            <div class="text-right">
-                <p class="text-[9px] font-bold text-gray-400 uppercase leading-none">Összpont</p>
-                <p class="text-sm font-black text-brand-blue tracking-tight leading-none"><span id="user-total-score">0</span> ⭐</p>
-            </div>
-            <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-cyan-100 text-brand-cyan rounded-lg shadow-sm">
-                <span class="text-sm">✨</span>
-            </button>
-        </div>
-    </div>
-
-    <input type="text" id="team-name-input" maxlength="20" placeholder="Pl.: Villám-Macskák 2024" 
-           class="w-full px-4 py-3 border-2 border-blue-100 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue outline-none shadow-sm mb-4">
-
-<div class="flex justify-between items-start mt-1 mb-3">
-        <p class="text-[10px] text-gray-500 italic">
-            💡 Tipp: Válassz egyedi nevet és avatart, hogy könnyen megtaláld magad a ranglistán!
-        </p>
-        
-    </div>
-
-
-
-    <div class="flex flex-col items-center gap-2 mt-2 mb-6">
-        <div class="relative cursor-pointer group" onclick="openAvatarSelector()">
-            <div id="avatar-preview-container" 
-                 class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center text-5xl transition-all duration-300 group-hover:scale-105 ring-4 ring-brand-cyan/10">
+    <div class="p-4 flex items-center justify-between select-none">
+        <div onclick="toggleUserProfile()" class="flex items-center gap-3 cursor-pointer group">
+            <div id="summary-avatar-display" class="w-10 h-10 rounded-full bg-white border border-blue-200 flex items-center justify-center text-xl shadow-sm group-hover:scale-105 transition-transform">
                 ❓
             </div>
-            <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
-                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+            <div class="flex flex-col text-left">
+                <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[100px]">Játékos</span>
+                <span id="summary-auth-status" class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Profil szerkesztése</span>
             </div>
         </div>
-        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Avatar választása</p>
+        
+        <div class="flex items-center gap-1.5">
+            <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-blue-100 text-brand-cyan rounded-lg shadow-sm hover:bg-cyan-50 active:scale-90 transition-all">
+                <span class="text-sm">✨</span>
+            </button>
+            <div id="summary-score-container" class="hidden flex flex-col items-end px-2 border-r border-blue-200">
+                <span class="text-[7px] font-black text-gray-400 uppercase leading-none">Pontok</span>
+                <span class="text-xs font-black text-brand-blue leading-none"><span id="user-total-score-summary">0</span>⭐</span>
+            </div>
+            <button onclick="toggleUserProfile()" id="profile-toggle-icon" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-brand-cyan-500 text-xl font-bold shadow-sm hover:bg-blue-100 transition-all">
+                +
+            </button>
+        </div>
     </div>
 
-    <select id="team-avatar-select" class="hidden"></select>
+    <div id="user-profile-content" class="hidden border-t border-blue-100/30 p-5 space-y-5 bg-white/20">
+        <div class="flex items-center gap-3 bg-white/60 p-3 rounded-xl border border-blue-100">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider flex-1">Fiók:</span>
+            <div class="flex gap-2">
+                <button id="google-login-btn" onclick="loginWithGoogle()" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm"><img src="logo/google_logo.svg" class="w-5 h-5"></button>
+                <button id="email-auth-btn" onclick="openEmailAuthModal()" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm"><svg class="w-5 h-5 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>
+                <button id="logout-btn" onclick="logout()" class="hidden w-9 h-9 flex items-center justify-center bg-red-50 border border-red-100 text-red-500 rounded-lg shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg></button>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="relative cursor-pointer" onclick="openAvatarSelector()">
+                <div id="avatar-preview-container" class="w-16 h-16 rounded-full bg-white border-4 border-white shadow-md flex items-center justify-center text-3xl">❓</div>
+                <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7" /></svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Csapatnév</label>
+                <input type="text" id="team-name-input" maxlength="20" placeholder="Hogy hívnak?" oninput="document.getElementById('summary-user-name').textContent = this.value || 'Játékos'" class="w-full px-3 py-2 border-2 border-white rounded-lg text-sm outline-none bg-white/80 shadow-inner focus:border-brand-cyan transition-all">
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 pt-2 border-t border-blue-100/50 flex flex-col gap-3">
+        <div class="flex gap-2">
+            <button id="gps-test-btn" onclick="testGpsConnection()" class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-blue-100 text-gray-500 rounded-xl text-[9px] font-bold uppercase active:scale-95 transition-all shadow-sm">
+                <span>🛰️</span> GPS Teszt
+            </button>
+            <button onclick="startSpecificTestGame()" class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-blue-100 text-gray-500 rounded-xl text-[9px] font-bold uppercase active:scale-95 transition-all shadow-sm">
+                <span>🎮</span> Próba
+            </button>
+        </div>
+
+        <div id="gps-test-container" class="hidden bg-white/60 p-3 rounded-xl border border-blue-100 relative">
+            <button onclick="closeGpsTest()" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <p id="gps-test-status" class="text-[11px] font-bold text-center text-brand-blue mb-2">📡 Jel keresése...</p>
+            <div id="gps-test-map" class="w-full h-32 rounded-lg border border-blue-100 mb-2"></div>
+            <div id="gps-result-message" class="hidden p-2 rounded-lg text-[11px] font-bold text-center"></div>
+            <div class="text-[9px] text-gray-400 text-center">Pontosság: <span id="gps-accuracy-value">-</span> m</div>
+        </div>
+    </div>
 
     <div id="avatar-selector-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-[9999]">
         <div class="bg-white rounded-3xl w-full max-w-sm max-h-[75vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1053,29 +1023,24 @@
             <div id="avatar-grid" class="p-6 overflow-y-auto grid grid-cols-4 gap-4 bg-white"></div>
         </div>
     </div>
-
-   <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-blue-100">
-    <button id="gps-test-btn" onclick="testGpsConnection()" 
-            class="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
-        <span class="text-base mb-0.5">🛰️</span> <span class="text-[10px] font-bold uppercase">GPS Teszt</span>
-    </button>
-
-    <button onclick="startSpecificTestGame()" 
-            class="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
-        <span class="text-base mb-0.5">🎮</span> <span class="text-[10px] font-bold uppercase">Próba Játék (GPS nélkül)</span>
-    </button>
-</div>
-
-    <div id="gps-test-container" class="hidden mt-4 bg-white/60 p-3 rounded-xl border border-blue-100 relative">
-        <button onclick="closeGpsTest()" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-        <p id="gps-test-status" class="text-[11px] font-bold text-center text-brand-blue mb-2">📡 Jel keresése...</p>
-        <div id="gps-test-map" class="w-full h-32 rounded-lg border border-blue-100 mb-2"></div>
-        <div id="gps-result-message" class="hidden p-2 rounded-lg text-[11px] font-bold text-center"></div>
-        <div class="text-[9px] text-gray-400 text-center">Pontosság: <span id="gps-accuracy-value">-</span> m</div>
+    <select id="team-avatar-select" class="hidden"></select>
+    <div id="email-auth-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 10000;">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h2 id="email-modal-title" class="text-xl font-bold text-brand-blue mb-4 text-center">Bejelentkezés</h2>
+            <div class="space-y-3">
+                <input type="email" id="auth-email" placeholder="Email cím" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
+                <input type="password" id="auth-password" placeholder="Jelszó" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
+                <div id="email-auth-error" class="text-red-500 text-xs hidden font-bold"></div>
+            </div>
+            <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
+            <button onclick="closeEmailAuthModal()" class="w-full mt-2 text-xs text-gray-400 font-bold uppercase">Mégse</button>
+        </div>
     </div>
 </div>
+
+
+
+
           
 
           
@@ -1297,7 +1262,7 @@
     
     <button onclick="finishExploreGameEarly()" 
             class="mt-2 px-6 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-full font-bold text-xs hover:bg-red-100 transition shadow-sm flex items-center justify-center gap-2 mx-auto">
-        <span>🏁</span> Játék befejezése most
+        <span>🏁</span> Játék befejezése most!
     </button>
     </div>
                         </div>
@@ -1762,42 +1727,45 @@
 
 
 <div id="hall-of-fame-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9999;">
-    <div class="bg-brand-cyan p-4 flex justify-between items-center shrink-0 rounded-t-2xl">
-    <div class="flex flex-col">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2 leading-tight">
-            ✨ MystiGo Dicsőségfal
-        </h3>
-        <span class="text-[10px] text-white/70 font-medium ml-7 leading-tight">
-            Csak a regisztrált játékosoknak
-        </span>
-    </div>
-    
-    <button onclick="document.getElementById('hall-of-fame-modal').classList.add('hidden');" class="text-white/70 hover:text-white transition p-1">
-        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-    </button>
-</div>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        
+        <div class="bg-brand-cyan p-4 flex justify-between items-center shrink-0">
+            <div class="flex flex-col">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2 leading-tight">
+                    ✨ MystiGo Dicsőségfal
+                </h3>
+                <span class="text-[10px] text-white/70 font-medium ml-7 leading-tight">
+                    Csak a regisztrált játékosoknak
+                </span>
+            </div>
+            
+            <button onclick="document.getElementById('hall-of-fame-modal').classList.add('hidden');" class="text-white/70 hover:text-white transition p-1">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
 
-        <div class="bg-gray-50 p-3 border-b border-gray-200">
-    <div class="flex rounded-lg bg-gray-200 p-1 mb-2">
-        <button onclick="openHallOfFame('monthly')" id="btn-hof-monthly" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm">
-            🗓️ Havi Ranglista
-        </button>
-        <button onclick="openHallOfFame('all')" id="btn-hof-all" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue">
-            🏆 Összesített
-        </button>
-    </div>
+        <div class="bg-gray-50 p-3 border-b border-gray-200 shrink-0">
+            <div class="flex rounded-lg bg-gray-200 p-1 mb-2">
+                <button onclick="openHallOfFame('monthly')" id="btn-hof-monthly" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all bg-white text-brand-blue shadow-sm">
+                    🗓️ Havi Ranglista
+                </button>
+                <button onclick="openHallOfFame('all')" id="btn-hof-all" class="flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all text-gray-500 hover:text-brand-blue">
+                    🏆 Összesített
+                </button>
+            </div>
 
-    <div id="hof-month-selector-container" class="hidden animate-fade-in">
-        <label class="text-[9px] font-bold text-gray-400 uppercase ml-1">Időszak választása:</label>
-        <select id="hof-month-select" onchange="openHallOfFame('monthly')" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-brand-blue outline-none focus:ring-2 focus:ring-brand-cyan">
-            </select>
-    </div>
-</div>
+            <div id="hof-month-selector-container" class="hidden animate-fade-in">
+                <label class="text-[9px] font-bold text-gray-400 uppercase ml-1">Időszak választása:</label>
+                <select id="hof-month-select" onchange="openHallOfFame('monthly')" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-brand-blue outline-none focus:ring-2 focus:ring-brand-cyan">
+                </select>
+            </div>
+        </div>
+
         <div class="overflow-y-auto p-0 flex-grow bg-gray-50">
             <table class="min-w-full text-xs text-left">
-                <thead class="bg-gray-100 border-b sticky top-0 z-10">
+                <thead class="bg-gray-100 border-b sticky top-0 z-50">
                     <tr>
                         <th class="px-3 py-2 text-center text-gray-500 w-8">#</th>
                         <th class="px-3 py-2 text-gray-500">Játékos</th>
@@ -1805,16 +1773,17 @@
                     </tr>
                 </thead>
                 <tbody id="hall-of-fame-body" class="divide-y divide-gray-100 bg-white">
-                    </tbody>
+                </tbody>
             </table>
         </div>
-        <div class="p-4 border-t border-gray-100 bg-white rounded-b-2xl">
+
+        <div class="p-4 border-t border-gray-100 bg-white shrink-0">
             <button onclick="document.getElementById('hall-of-fame-modal').classList.add('hidden');" class="main-button w-full !text-sm !py-2 !bg-gray-500 hover:!bg-gray-600">
                 Bezárás
             </button>
         </div>
-    </div>
-</div>
+
+    </div> </div>
 
 
 
@@ -2570,7 +2539,9 @@ window.populateMonthSelector = function() {
                 val.score = 0; 
                 val.teamName = (val.teamName || "Hibás adat") + " (Nincs pont)";
             }
-            results.push(val);
+            if (parseInt(val.score) > 0) {
+		results.push(val);
+		}
         });
 
         // 1. Az összes adat elmentése a globális változóba
@@ -5221,13 +5192,9 @@ window.triggerVictoryUI = function(points) {
     setTimeout(() => toast.classList.add('active'), 100);
     setTimeout(() => {
         toast.classList.remove('active');
-        setTimeout(() => {
-            toast.remove();
-            handleCorrectAnswer(); // EZ A SOR HIÁNYZOTT!
-        }, 500);
+        setTimeout(() => { toast.remove(); handleCorrectAnswer(); }, 500);
     }, 3000);
 };
-
 
 window.triggerErrorUI = function(pointsRemaining) {
     // 1. Hangjelzés és rázkódás elindítása
@@ -5634,14 +5601,31 @@ if (window.auth && window.auth.currentUser) {
     appState.routeCoordinates = [];
 
     // 8. Kezdőpont (Start feladat) létrehozása
-    const startTaskTemplate = {
+    
+
+let startStoryHtml = "";
+    
+    if (appState.currentGame.type === "Instant") {
+        startStoryHtml = `<strong>Üdvözlünk az Azonnali Kalandban!</strong>`;
+    } 
+    // Itt ellenőrizzük, hogy Explore mód-e (a finalOrder változót használva, amit feljebb már kiszámolt a kód)
+    else if (finalOrder === 'explore') {
+        startStoryHtml = `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br><strong>A Kaland indítható bárhol!</strong><br>Nyomd meg a Kaland Indítása gombot a kezdéshez.`;
+    } 
+    else {
+        // Minden más esetben (Normal, Team, Kids) marad a GPS-es utasítás
+        startStoryHtml = `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br><strong>Indulj el a megjelölt Start Helyszínre!</strong>`;
+    }
+
+
+
+const startTaskTemplate = {
         index: 0,
         isStartTask: true,
         location: appState.currentGame.startLocation || {lat: 47.4979, lng: 19.0402},
         geofenceRadius: (typeof GEOFENCE_DEFAULT_RADIUS !== 'undefined') ? GEOFENCE_DEFAULT_RADIUS : 50,
-        story: appState.currentGame.type === "Instant" 
-            ? `<strong>Üdvözlünk az Azonnali Kalandban!</strong>` 
-            : `<span class="text-lg font-bold text-brand-blue">${appState.currentGame.title}</span><br><br>${appState.currentGame.description || ''}<br><br>Indulj el a megjelölt Start Helyszínre!`,
+        story: startStoryHtml,
+
         prompt: '',
         hints: [],
         solution: '',
@@ -5687,6 +5671,10 @@ if (window.auth && window.auth.currentUser) {
 }
 
 function updateHintButtons(task) {
+	if (task.index === 0) {
+        document.getElementById('hint-buttons-container').classList.add('hidden');
+        return; 
+    }
     const hint1Btn = document.getElementById('hint1-btn');
     const hint2Btn = document.getElementById('hint2-btn');
     const solutionBtn = document.getElementById('solution-btn');
@@ -5757,13 +5745,16 @@ function updateHintButtons(task) {
 
                  
 
- function loadTask(taskIndex) {
+        function loadTask(taskIndex) {
     if (speechSynth.speaking) speechSynth.cancel();
     
+const answerInput = document.getElementById('answer-input');
+    if (answerInput) answerInput.value = '';
+
     const wrapper = document.getElementById('content-page-wrapper');
     if (wrapper) wrapper.scrollTo({ top: 0, behavior: 'instant' });
     
-    // Biztosítjuk, hogy az index szám legyen az összehasonlításhoz
+    // Biztosítjuk, hogy az index szám legyen
     const targetIdx = Number(taskIndex);
     const task = appState.currentGame.tasks.find(t => Number(t.index) === targetIdx);
     
@@ -5772,24 +5763,20 @@ function updateHintButtons(task) {
         return;
     }
 
-    // --- 🛠️ ALAPADATOK JAVÍTÁSA (Marad az eredeti logika) --- [cite: 5-16]
+    // --- 🛠️ ADAT JAVÍTÁSOK  ---
     if (!task.location) { task.location = {}; }
-   
-if (typeof task.taskScore === 'undefined') {
-    // Ha van megadva 'points' az excelben/adatbázisban, azt használjuk, 
-    // különben az alapértelmezett 50-et.
-    task.taskScore = task.points ? parseInt(task.points) : DEFAULT_SCORE_PER_TASK;
-}
+    if (typeof task.location.lat === 'undefined') {
+        task.location.lat = parseFloat(task.lat || task.locationLat);
+        task.location.lng = parseFloat(task.lng || task.locationLng);
+    }
 
- if (typeof task.location.lat === 'undefined') {
-        task.location.lat = parseFloat(task.lat || task.locationLat || 0);
-    }
-    if (typeof task.location.lng === 'undefined') {
-        task.location.lng = parseFloat(task.lng || task.locationLng || 0);
-    }
-    if (!task.hints || !Array.isArray(task.hints)) { task.hints = []; }
+    if (!task.hints || !Array.isArray(task.hints)) { task.hints = ["", ""]; }
     if (task.hint1 !== undefined) task.hints[0] = task.hint1;
     if (task.hint2 !== undefined) task.hints[1] = task.hint2;
+    
+    // FONTOS: Segítség számláló inicializálása (ez fixálja a pontlevonás hibát)
+    if (typeof task.hintsUsed === 'undefined') task.hintsUsed = 0;
+
     if (!task.solution || String(task.solution).trim() === "") {
         if (task.acceptedAnswers && task.acceptedAnswers.length > 0) {
             task.solution = "<strong>" + task.acceptedAnswers[0] + "</strong>";
@@ -5797,10 +5784,36 @@ if (typeof task.taskScore === 'undefined') {
     }
 
     appState.currentTaskIndex = targetIdx;
-    // A 0. indexű feladatot mindig Start feladatként kezeljük az indításhoz
-    const isStartTask = task.isStartTask === true || task.isStartTask === "true" || targetIdx === 0;
-    
-    // UI ALAPHELYZET
+    const isStartTask = task.isStartTask === true || targetIdx === 0;
+
+
+const inputContainer = document.getElementById('answer-input-container');
+    const hintContainer = document.getElementById('hint-buttons-container');
+
+    if (isStartTask) {
+        // START FELADAT: Csak a gombokat és bevitelt rejtjük el
+        if (inputContainer) inputContainer.classList.add('hidden');
+        if (hintContainer) hintContainer.classList.add('hidden');
+    } else {
+        // NORMÁL FELADAT: Visszakapcsoljuk őket
+        if (inputContainer) inputContainer.classList.remove('hidden');
+        if (hintContainer) hintContainer.classList.remove('hidden');
+    }
+
+    if (typeof task.isTaskTimerActive === 'undefined') task.isTaskTimerActive = false;
+
+    // Pontszám beállítása
+    if (!isStartTask) {
+        if (typeof task.taskScore === 'undefined' || task.taskScore === null) {
+            task.taskScore = (typeof DEFAULT_SCORE_PER_TASK !== 'undefined') ? DEFAULT_SCORE_PER_TASK : 50;
+        }
+        task.taskScore = parseInt(task.taskScore);
+    } else {
+        task.taskScore = 0;
+        task.startTime = 0;
+    }
+
+    // Alap UI alaphelyzetbe állítása
     document.getElementById('normal-task-content').classList.remove('hidden');
     document.getElementById('explore-selection-container').classList.add('hidden');
     document.getElementById('start-task-button-container').classList.add('hidden');
@@ -5808,76 +5821,69 @@ if (typeof task.taskScore === 'undefined') {
     document.getElementById('report-error-btn').classList.remove('hidden');
     document.getElementById('normal-finish-button-container').classList.add('hidden');
 
+    // Explore mód specifikus gomb
     const backBtn = document.getElementById('back-to-map-btn');
     if (backBtn) {
         backBtn.classList.toggle('hidden', !(appState.currentGame.taskOrder === 'explore' && !isStartTask));
     }
-    
-    if (isStartTask) task.startTime = 0;
 
-    // --- ✨ ÚJ: QR KÓDOS FELOLDÁS ELLENŐRZÉSE (HIBÁRA FELKÉSZÍTVE) ---
-    // A String() használatával megelőzzük a hibát, ha az unlockCode szám lenne [cite: 26-32]
+    // Felolvasó gomb kezelése
+    const speakBtn = document.getElementById('speak-story-btn');
+    if (speakBtn && ('speechSynthesis' in window)) speakBtn.style.display = 'block';
+
+    // --- ✨ QR KÓDOS FELOLDÁS (LAKAT) BEILLESZTÉSE ---
     const unlockValue = task.unlockCode !== undefined && task.unlockCode !== null ? String(task.unlockCode).trim() : "";
     const isLocked = unlockValue !== "" && !task.isUnlocked && !isStartTask;
 
     if (isLocked) {
         document.getElementById('story').innerHTML = `
-            <div class="flex flex-col items-center justify-center p-6 bg-gray-100 rounded-2xl border-2 border-dashed border-gray-400 text-center">
-                <div class="text-5xl mb-4">🔒</div>
-                <h3 class="text-lg font-bold text-gray-800">A feladat tartalma zárolva van!</h3>
-                <p class="text-sm text-gray-600 mb-6">A folytatáshoz keresd meg és olvasd be a helyszínen található QR-kódot.</p>
-                <button onclick="window.openQrScanner(true)" class="main-button !bg-blue-600 w-full flex items-center justify-center gap-2">
-                    <span>🔍</span> QR kód beolvasása
-                </button>
-            </div>`;
-        document.getElementById('prompt').innerHTML = ""; 
+        <div class="flex flex-col items-center justify-center p-6 bg-gray-100 rounded-2xl border-2 border-dashed border-gray-400 text-center">
+            <div class="text-5xl mb-4">🔒</div>
+            <h3 class="text-lg font-bold text-gray-800">A feladat tartalma zárolva van!</h3>
+            <p class="text-sm text-gray-600 mb-6">A folytatáshoz olvasd be a helyszínen lévő QR-kódot.</p>
+            <button onclick="window.openQrScanner(true)" class="main-button !bg-blue-600 w-full flex items-center justify-center gap-2">
+                <span>🔍</span> QR kód beolvasása
+            </button>
+        </div>`;
+        document.getElementById('prompt').innerHTML = "";
         document.getElementById('answer-input-container').classList.add('hidden');
         document.getElementById('hint-buttons-container').classList.add('hidden');
         if (document.getElementById('task-image')) document.getElementById('task-image').classList.add('hidden');
     } else {
-        // --- NORMÁL MEGJELENÍTÉS --- [cite: 26-32]
+        // NORMÁL MEGJELENÍTÉS
         document.getElementById('story').innerHTML = task.story || "Nincs történet.";
         document.getElementById('prompt').innerHTML = task.prompt || "";
-        document.getElementById('prompt').classList.remove('hidden');
-
-        const taskImg = document.getElementById('task-image');
-        if (taskImg) {
-            if (task.taskImage && String(task.taskImage).trim() !== "") {
-                taskImg.src = task.taskImage;
-                taskImg.classList.remove('hidden');
+        if (appState.currentTaskIndex !== 0) {
+                document.getElementById('answer-input-container').classList.remove('hidden');
+            }
+        document.getElementById('hint-buttons-container').classList.remove('hidden');
+        
+        const taskImageEl = document.getElementById('task-image');
+        if (taskImageEl) {
+            if (task.taskImage && task.taskImage.trim() !== "") {
+                taskImageEl.src = task.taskImage;
+                taskImageEl.classList.remove('hidden');
             } else {
-                taskImg.classList.add('hidden');
+                taskImageEl.classList.add('hidden');
+                taskImageEl.src = "";
             }
         }
-
-        document.getElementById('answer-input').value = '';
-        
-        if (!isStartTask) {
-             document.getElementById('submit-answer-btn').disabled = true;
-             document.getElementById('answer-input').disabled = true;
-             if (typeof updateHintButtons === 'function') updateHintButtons(task);
-             document.getElementById('answer-input-container').classList.remove('hidden');
-             document.getElementById('hint-buttons-container').classList.remove('hidden');
-        } else {
-             // START FELADAT (Javítva: Lineáris módban is megjelenik az indító gomb!) 
-             document.getElementById('start-game-btn').disabled = false; 
-             document.getElementById('start-task-button-container').classList.remove('hidden');
-             document.getElementById('answer-input-container').classList.add('hidden');
-             document.getElementById('hint-buttons-container').classList.add('hidden');
-
-             if (appState.currentGame.taskOrder === 'explore') {
-                 document.getElementById('google-maps-btn').classList.add('hidden');
-                 document.getElementById('report-error-btn').classList.add('hidden');
-             }
-        }
+        // Gombok frissítése (Eredeti funkció)
+        updateHintButtons(task);
     }
 
-    // --- TÉRKÉP ÉS ÁLLAPOT (Marad az eredeti) --- [cite: 43-45]
-    if (appState.map && task.location && typeof task.location.lat !== 'undefined') {
-        if (!(appState.currentGame.taskOrder === 'explore' && isStartTask)) {
+    // --- TÉRKÉP ÉS MARKER KEZELÉS  ---
+    if (appState.map) {
+        if (task.location?.lat && !(appState.currentGame.taskOrder === 'explore' && isStartTask)) {
             updateTaskMarker(task.location);
         }
+        // Régi markerek takarítása
+        if (appState.taskMarkers) {
+            Object.values(appState.taskMarkers).forEach(m => m.remove());
+            appState.taskMarkers = {};
+        }
     }
+
     checkGeofence();
     updateStatusDisplays();
 }
@@ -5887,16 +5893,10 @@ if (typeof task.taskScore === 'undefined') {
 
         function handleCorrectAnswer() {
     if (speechSynth.speaking) speechSynth.cancel();
-    
-    // 1. Megkeressük az aktuális feladatot
-    const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
-    if (!currentTask || currentTask.completed) return;
 
-    // 2. Pontszám hozzáadása (CSAK EGYSZER!)
-    const currentTaskScore = parseInt(currentTask.taskScore) || 0;
-    if (currentTaskScore > 0 && !currentTask.isStartTask) {
-        appState.score = (parseInt(appState.score) || 0) + currentTaskScore;
-    }
+    const currentTask = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
+
+    if (!currentTask || currentTask.completed) return;
 
     currentTask.completed = true;
 
@@ -6917,6 +6917,9 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
             startButtonContainer.classList.add('hidden');
             exploreSelectionContainer.classList.add('hidden'); 
             
+
+
+
             if (appState.isTestModeEnabled && !appState.isManualMock) {
                 appState.isInZone = true;
 		        playArrivalNotification();                
@@ -6969,21 +6972,27 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
                 }
                 
                 if (appState.isInZone) {
-                    distEl.textContent = t('in_zone');
-                    distEl.className='text-center text-xs font-bold mt-2 text-green-600';
-                    appState.geofenceCircle.setRadius(currentRadius);
-                    appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
-                    document.getElementById('submit-answer-btn').disabled = false;
-                    document.getElementById('answer-input').disabled = false;
-                    taskInteractionArea.classList.remove('hidden'); 
-                    if (isStartTask) {
-                        startButtonContainer.classList.remove('hidden');
-                        document.getElementById('submit-answer-btn').disabled = true; 
-                        document.getElementById('answer-input').disabled = true;
-                        taskInteractionArea.classList.remove('hidden'); 
-                        document.getElementById('prompt').classList.add('hidden');
-                    }
-                } else {
+    distEl.textContent = t('in_zone');
+    distEl.className='text-center text-xs font-bold mt-2 text-green-600';
+    appState.geofenceCircle.setRadius(currentRadius);
+    appState.geofenceCircle.setStyle({ color: '#04b36c', fillColor: '#04b36c', fillOpacity: 0.1 }); 
+    document.getElementById('submit-answer-btn').disabled = false;
+    document.getElementById('answer-input').disabled = false;
+    taskInteractionArea.classList.remove('hidden'); 
+    
+    if (isStartTask) {
+        startButtonContainer.classList.remove('hidden');
+        document.getElementById('submit-answer-btn').disabled = true; 
+        document.getElementById('answer-input').disabled = true;
+        taskInteractionArea.classList.remove('hidden'); 
+        document.getElementById('prompt').classList.add('hidden');
+    } 
+    // --- ÚJ RÉSZ: Normál feladatnál jelenítsük meg a kérdést ---
+    else {
+        document.getElementById('prompt').classList.remove('hidden');
+    }
+    // ---------------------------------------------------------
+} else {
                     distEl.textContent = t('out_zone', Math.round(distance));
                     distEl.className='text-center text-xs font-bold mt-2 text-brand-orange-500';
                     appState.geofenceCircle.setRadius(currentRadius);
@@ -7509,7 +7518,7 @@ function finishGpsTest(forceError = false, errorMsg = "") {
             });
 
             // 2. Lista újrarajzolása (ez automatikusan sorba rendezi a _calculatedDistance alapján)
-            renderGameList();
+            renderGameList(appState.currentFilteredGames);
 
             // 3. Visszajelzés
             successText += `<br><span class="text-[10px] uppercase font-bold mt-1 block">📍 Játéklista frissítve!</span>`;
@@ -8239,47 +8248,68 @@ const isIos = () => {
             // -----
 
 
+
+
+// ÚJ: Ez a függvény kezeli a lenyitást és becsukást
+window.toggleUserProfile = function() {
+    const content = document.getElementById('user-profile-content');
+    const icon = document.getElementById('profile-toggle-icon');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden'); // Kinyit
+        icon.textContent = '–'; // Kicseréli a + jelet - jelre
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        content.classList.add('hidden'); // Becsuk
+        icon.textContent = '+';
+        icon.style.transform = 'rotate(0deg)';
+    }
+};
+
+
+
+
+
             if (avatarSelectEl) {
     // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
     window.updateAvatarPreview = () => {
-        const previewContainer = document.getElementById('avatar-preview-container');
-        const badge = document.getElementById('preview-verified-badge'); // <--- ÚJ: A pipa lekérése
-	const selectEl = document.getElementById('team-avatar-select');
-        
-        // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
-        const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    const previewContainer = document.getElementById('avatar-preview-container');
+    const summaryAvatar = document.getElementById('summary-avatar-display');
+    const summaryName = document.getElementById('summary-user-name');
+    const nameInput = document.getElementById('team-name-input');
+    const badge = document.getElementById('preview-verified-badge');
+    
+    // Értékek betöltése
+    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    const currentName = nameInput ? nameInput.value.trim() : "";
+    const emoji = AVATAR_ICONS[savedAvatar] || '❓';
 
-        // 1. Avatar (Emoji) frissítése
-        if (previewContainer && savedAvatar) {
-            // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
-            previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
-
-if (selectEl) {
-            selectEl.innerHTML = `<option value="${savedAvatar}" selected>${savedAvatar}</option>`;
-        }
-
-            // Kis vizuális visszajelzés
-            previewContainer.classList.add('scale-110');
-            setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
-        }
-
-        // 2. Kék pipa (Verified Badge) frissítése - EZ HIÁNYZOTT
-        if (badge) {
-            // Biztonságos ellenőrzés: létezik-e már az auth objektum?
-            const user = (window.auth) ? window.auth.currentUser : null;
-
-            if (user && !user.isAnonymous) {
-                badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
-            } else {
-                badge.classList.remove('active'); // Ha vendég, elrejtjük
-            }
-        }
-
-if (typeof window.updateInstantButtonEligibility === 'function') {
-        window.updateInstantButtonEligibility();
+    // 1. Avatarok frissítése mindkét helyen
+    if (previewContainer) previewContainer.textContent = emoji;
+    if (summaryAvatar) summaryAvatar.textContent = emoji;
+    
+    // 2. Név frissítése a fejlécben
+    if (summaryName) {
+        summaryName.textContent = currentName || "Játékos beállítása";
     }
 
-    };
+    // 3. Kék pipa (hitelesített profil) kezelése
+    const user = (window.auth) ? window.auth.currentUser : null;
+    if (badge) {
+        if (user && !user.isAnonymous) {
+            badge.classList.add('active');
+            if (document.getElementById('summary-auth-status')) {
+                document.getElementById('summary-auth-status').textContent = "Profil szinkronizálva";
+            }
+        } else {
+            badge.classList.remove('active');
+        }
+    }
+
+    if (typeof window.updateInstantButtonEligibility === 'function') {
+        window.updateInstantButtonEligibility();
+    }
+};
 
 
 
@@ -8435,37 +8465,35 @@ document.getElementById('answer-input').addEventListener('keydown', (e) => {
 
 
             document.getElementById('hint1-btn').addEventListener('click', (e) => {
-    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-    if (!task) return;
-    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body')); 
-    if (task.isStartTask) return; 
+    const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
+    if (!task || task.isStartTask) return;
+    if (!task.isTaskTimerActive) return showMessage(t('far_title'), t('far_body'));
 
-    const hints = task.hints || [];
-    const hintText = hints[0] ? decryptHintText(hints[0]) : "Nincs segítség.";
+    const currentUsed = parseInt(task.hintsUsed || 0); // Biztonságos parse
+    const hintText = task.hints && task.hints[0] ? decryptHintText(task.hints[0]) : "Nincs segítség.";
 
-    if (task.hintsUsed < 1) { 
-        // LEBEGŐ CSILAG ANIMÁCIÓ
+    if (currentUsed < 1) {
+        // Pontlevonás
+        const penalty = (typeof HINT1_PENALTY !== 'undefined') ? HINT1_PENALTY : 10;
+        task.taskScore = Math.max(0, parseInt(task.taskScore || 0) - penalty);
+        task.hintsUsed = 1;
+        
+        // Lebegő animáció
         const float = document.createElement('div');
         float.className = 'score-float';
         float.style.color = '#ef4444';
-        float.innerHTML = `-${HINT1_PENALTY} ⭐`;
-        float.style.left = '50%';
-        float.style.top = '50%';
-        float.style.transform = 'translate(-50%, -50%)';
+        float.innerHTML = `-${penalty} ⭐`;
+        float.style.left = '50%'; float.style.top = '50%'; float.style.transform = 'translate(-50%, -50%)';
         document.body.appendChild(float);
         setTimeout(() => float.remove(), 3000);
-        MystiSounds.error(); // Hangeffekt a levonáshoz
-
-        task.taskScore = Math.max(0, parseInt(task.taskScore || 0) - HINT1_PENALTY); 
-        task.hintsUsed = 1; 
-        updateStatusDisplays(); 
-        saveGameState(); 
-        // Első lekérésnél itt már helyesen 4 paraméter van:
-        window.triggerHintUI(hintText, HINT1_PENALTY, task.taskScore, () => { updateHintButtons(task); });
-    } else {
-        // JAVÍTÁS: Itt is meg kell adni a task.taskScore-t (3. paraméter), hogy ne tolódjanak el az adatok
-        window.triggerHintUI(hintText, 0, task.taskScore, () => { updateHintButtons(task); });
+        
+        updateStatusDisplays();
+        saveGameState();
     }
+
+    window.triggerHintUI(hintText, 0, task.taskScore, () => {
+        updateHintButtons(task);
+    });
 });
 
 
@@ -8661,6 +8689,8 @@ window.updateInstantButtonEligibility();
 window.loadMoreGames = function() {
             // Növeljük a limitet
             appState.visibleGamesLimit += 5;
+            
+            // ÚJ: Azt a listát rajzoljuk újra, ami éppen aktív (szűrt vagy eredeti)
             renderGameList(appState.currentFilteredGames);
         };
 
@@ -9620,41 +9650,34 @@ window.updateInstantButtonEligibility();
 let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
 
-window.openQrScanner = function(isUnlockMode = false) {
-    const task = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
-    if (!task || (!task.isTaskTimerActive && !appState.isTestModeEnabled)) {
-        return showMessage('Még messze vagy', 'A QR olvasó csak akkor használható, ha már a célterületen vagy!');
-    }
 
+window.openQrScanner = function(target) {
     const modal = document.getElementById('qr-scanner-modal');
-    if (!modal) return;
-    
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
     }
-    
+
     const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     html5QrCode.start(
         { facingMode: "environment" }, 
         qrConfig, 
         (decodedText) => {
-            // SIKERES BEOLVASÁS - AZONNAL MEGÁLLÍTJUK, hogy ne rezegjen többször
-            if (navigator.vibrate) navigator.vibrate(100);
-            
-            if (isUnlockMode) {
+            if (target === true) {
+                // UNLOCK MÓD: Az aktuális feladat kódjával vetjük össze
+                const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
+                const expected = String(task.unlockCode).trim().toLowerCase();
                 const scanned = decodedText.trim().toLowerCase();
-                const target = (task.unlockCode || "").trim().toLowerCase();
 
-                // Itt dől el a feloldás
-                if (scanned === target || scanned.includes(target)) {
+                if (scanned === expected) {
+                    // SIKERES FELOLDÁS
                     task.isUnlocked = true;
-                    if (typeof playArrivalNotification === 'function') playArrivalNotification();
                     closeQrScanner();
                     
+                    // Siker visszajelzés (Toast)
                     const toast = document.createElement('div');
                     toast.className = 'success-toast active';
                     toast.style.borderColor = '#00CED1';
@@ -9663,20 +9686,18 @@ window.openQrScanner = function(isUnlockMode = false) {
                     
                     setTimeout(() => {
                         toast.remove();
-                        loadTask(task.index); 
+                        loadTask(task.index); // Feladat újratöltése immár feloldva
                         if (typeof saveGameState === 'function') saveGameState();
                     }, 2000);
                 } else {
-                    // EZ HIÁNYZOTT: Ha rossz a kód, leállítjuk a kamerát és hibaüzenetet adunk
+                    // HIBÁS QR KÓD
                     closeQrScanner();
-                    showMessage("Helytelen kód", `Sajnos ez nem a megfelelő QR kód a feloldáshoz.\n\nBeolvasva: "${decodedText}"\nElvárt kód: "${target}"`);
                 }
             } else {
-                // Normál válaszbeküldés mód
+                // NORMÁL MÓD (Válaszbeírás)
                 document.getElementById('answer-input').value = decodedText;
                 if (typeof playArrivalNotification === 'function') playArrivalNotification();
                 closeQrScanner();
-                
                 setTimeout(() => { 
                     const submitBtn = document.getElementById('submit-answer-btn');
                     if (submitBtn) submitBtn.click(); 
@@ -9689,6 +9710,8 @@ window.openQrScanner = function(isUnlockMode = false) {
         closeQrScanner();
     });
 };
+
+
 
 
 
