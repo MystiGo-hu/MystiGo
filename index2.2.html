@@ -9488,36 +9488,32 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 };
 
 
-window.logout = async () => {
-    if(confirm("Biztosan ki szeretnél jelentkezni?")) {
-        try {
-            // 1. Mezők ürítése a felületen
-            const nameInput = document.getElementById('team-name-input');
-            if (nameInput) nameInput.value = '';
-
-            // 2. LocalStorage ürítése (így nem jegyzi meg a regisztrált nevet vendégként)
+window.logout = function() {
+    // 1. Firebase kijelentkezés meghívása a globális auth objektumon keresztül
+    if (window.auth && typeof window.firebaseSignOut === 'function') {
+        window.firebaseSignOut(window.auth).then(() => {
+            console.log("Sikeres kijelentkezés.");
+            
+            // 2. Adatok törlése a helyi tárolóból
             localStorage.removeItem('mystigo_pref_teamName');
-            localStorage.setItem('mystigo_pref_teamAvatar'); 
+            localStorage.removeItem('mystigo_pref_teamAvatar'); // Avatar törlése a ? jelhez
 
-            // 3. Avatar vizuális visszaállítása
-            if (typeof window.selectAvatar === 'function') {
-                window.selectAvatar(); 
-            }
-	isExplicitLogout = true;
-            // 4. Firebase kijelentkezés
-            await signOut(auth);
-
-            // 5. Gomb állapotának frissítése (letiltja az indítást név nélkül)
-            if (typeof window.updateInstantButtonEligibility === 'function') {
-                window.updateInstantButtonEligibility();
+            // 3. UI frissítése (Ez leveszi a pipát és visszaállítja a kérdőjelet)
+            if (typeof window.updateAvatarPreview === 'function') {
+                window.updateAvatarPreview();
             }
 
+            // 4. Mezők ürítése a felületen
+            const nameInput = document.getElementById('team-name-input');
+            if (nameInput) nameInput.value = "";
+            
             showMessage("Kijelentkezés", "Sikeresen kijelentkeztél.");
-
-        } catch (e) { 
-            console.error("Kijelentkezési hiba:", e);
-            showMessage("Hiba", "Nem sikerült kijelentkezni.");
-        }
+        }).catch((error) => {
+            console.error("Kijelentkezési hiba:", error);
+            alert("Nem sikerült kijelentkezni: " + error.message);
+        });
+    } else {
+        console.error("Firebase auth vagy signOut nem található.");
     }
 };
 
