@@ -9138,6 +9138,9 @@ window.startInstantAdventure = async function() {
         const db = getDatabase(app);
         const auth = getAuth(app);
 
+window.auth = auth;          
+window.firebaseSignOut = signOut;
+
         // Globális elérés biztosítása a többi scriptnek
         window.db = db;
 	window.orderByChild = orderByChild;
@@ -9489,31 +9492,36 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 window.logout = function() {
-    // 1. Firebase kijelentkezés meghívása a globális auth objektumon keresztül
+    console.log("Kijelentkezés indítása...");
+
+    // Ellenőrizzük, hogy elérhetőek-e a szükséges globális változók
     if (window.auth && typeof window.firebaseSignOut === 'function') {
         window.firebaseSignOut(window.auth).then(() => {
             console.log("Sikeres kijelentkezés.");
             
-            // 2. Adatok törlése a helyi tárolóból
+            // Adatok törlése
             localStorage.removeItem('mystigo_pref_teamName');
-            localStorage.removeItem('mystigo_pref_teamAvatar'); // Avatar törlése a ? jelhez
+            localStorage.removeItem('mystigo_pref_teamAvatar');
 
-            // 3. UI frissítése (Ez leveszi a pipát és visszaállítja a kérdőjelet)
+            // UI Frissítése (Kérdőjelre állítja és leveszi a pipát)
             if (typeof window.updateAvatarPreview === 'function') {
                 window.updateAvatarPreview();
             }
 
-            // 4. Mezők ürítése a felületen
+            // Mező ürítése
             const nameInput = document.getElementById('team-name-input');
             if (nameInput) nameInput.value = "";
             
             showMessage("Kijelentkezés", "Sikeresen kijelentkeztél.");
         }).catch((error) => {
-            console.error("Kijelentkezési hiba:", error);
-            alert("Nem sikerült kijelentkezni: " + error.message);
+            console.error("Firebase hiba kijelentkezéskor:", error);
+            alert("Hiba: " + error.message);
         });
     } else {
-        console.error("Firebase auth vagy signOut nem található.");
+        // Ez a rész futott le neked
+        console.error("HIBA: A window.auth vagy window.firebaseSignOut hiányzik!");
+        // Ha a globálisak nincsenek meg, megpróbálhatjuk a sima signOut-ot ha véletlen globális lenne
+        alert("A kijelentkezési funkció nem töltődött be megfelelően. Kérlek frissítsd az oldalt!");
     }
 };
 
