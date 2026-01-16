@@ -945,26 +945,33 @@
     
     <div class="p-4 flex items-center justify-between select-none">
         <div onclick="toggleUserProfile()" class="flex items-center gap-3 cursor-pointer group">
-            <div id="summary-avatar-display" class="w-10 h-10 rounded-full bg-white border border-blue-200 flex items-center justify-center text-xl shadow-sm group-hover:scale-105 transition-transform">
-                ❓
-            </div>
+            <div id="summary-avatar-display" class="avatar-container w-10 h-10 rounded-full bg-white border border-blue-200 flex items-center justify-center text-xl shadow-sm relative">
+    <span class="emoji-part">❓</span>
+    <div class="verified-badge verified-badge-sm">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+    </div>
+</div>
             <div class="flex flex-col text-left">
-                <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[100px]">Játékos</span>
+                <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[180px]">Játékos</span>
                 <span id="summary-auth-status" class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Profil szerkesztése</span>
             </div>
         </div>
         
-        <div class="flex items-center gap-1.5">
-    <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-blue-100 text-brand-cyan rounded-lg shadow-sm hover:bg-cyan-50 active:scale-90 transition-all">
-        <span class="text-sm">✨</span>
-    </button>
 
-    <div id="summary-score-container" class="hidden flex flex-col items-end px-2 border-r border-blue-200">
+<div id="summary-score-container" class="flex flex-col items-end px-2 border-r border-blue-200">
         <span class="text-[7px] font-black text-gray-400 uppercase leading-none">Összpont</span>
         <span class="text-xs font-black text-brand-blue leading-none">
             <span id="user-total-score-summary">0</span>⭐
         </span>
     </div>
+
+
+        <div class="flex items-center gap-1.5">
+    <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-blue-100 text-brand-cyan rounded-lg shadow-sm hover:bg-cyan-50 active:scale-90 transition-all">
+        <span class="text-sm">✨</span>
+    </button>
+
+    
 
     <button onclick="toggleUserProfile()" id="profile-toggle-icon" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-brand-cyan-500 text-xl font-bold shadow-sm hover:bg-blue-100 transition-all">
         +
