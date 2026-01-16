@@ -9497,7 +9497,7 @@ window.logout = async () => {
 
             // 2. LocalStorage ürítése (így nem jegyzi meg a regisztrált nevet vendégként)
             localStorage.removeItem('mystigo_pref_teamName');
-            localStorage.setItem('mystigo_pref_teamAvatar'); 
+            localStorage.setItem('mystigo_pref_teamAvatar', 'cat'); // Visszaállás cicára
 
             // 3. Avatar vizuális visszaállítása
             if (typeof window.selectAvatar === 'function') {
@@ -9641,13 +9641,6 @@ if (typeof window.updateInstantButtonEligibility === 'function') {
         console.warn("Kapcsolat megszakadt...");
         return; 
     }
-
-
-if (typeof window.updateAvatarPreview === 'function') {
-            window.updateAvatarPreview();
-        }
-
-
     if (!isAuthProcessActive) {
         setTimeout(() => {
             if (!auth.currentUser && !isAuthProcessActive) {
