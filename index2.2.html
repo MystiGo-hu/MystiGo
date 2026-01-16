@@ -9310,7 +9310,13 @@ window.handleEmailAuth = async function() {
 
             closeEmailAuthModal();
             showLoading(false);
+
+const profileContent = document.getElementById('user-profile-content');
+        if (profileContent && !profileContent.classList.contains('hidden')) {
+            window.toggleUserProfile();
         }
+    }
+        
         
     } catch (error) {
 	isAuthProcessActive = false;
@@ -9482,6 +9488,14 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         });
 
         if (user) console.log("✅ Sikeres Google belépés:", user.displayName);
+
+const profileContent = document.getElementById('user-profile-content');
+            if (profileContent && !profileContent.classList.contains('hidden')) {
+                window.toggleUserProfile();
+            }
+        }
+
+
     } catch (error) {
         console.error("❌ Bejelentkezési hiba:", error);
     }
