@@ -8302,41 +8302,51 @@ window.toggleUserProfile = function() {
             if (avatarSelectEl) {
     // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
     window.updateAvatarPreview = () => {
-    const previewContainer = document.getElementById('avatar-preview-container');
-    const summaryAvatar = document.getElementById('summary-avatar-display');
-    const summaryName = document.getElementById('summary-user-name');
-    const nameInput = document.getElementById('team-name-input');
-    const badge = document.getElementById('preview-verified-badge');
-    
-    // Értékek betöltése
+    // Adatok lekérése
     const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
-    const currentName = nameInput ? nameInput.value.trim() : "";
     const emoji = AVATAR_ICONS[savedAvatar] || '❓';
-
-    // 1. Avatarok frissítése mindkét helyen
-    if (previewContainer) previewContainer.textContent = emoji;
-    if (summaryAvatar) summaryAvatar.textContent = emoji;
-    
-    // 2. Név frissítése a fejlécben
-    if (summaryName) {
-        summaryName.textContent = currentName || "Játékos beállítása";
-    }
-
-    // 3. Kék pipa (hitelesített profil) kezelése
     const user = (window.auth) ? window.auth.currentUser : null;
-    if (badge) {
-        if (user && !user.isAnonymous) {
-            badge.classList.add('active');
-            if (document.getElementById('summary-auth-status')) {
-                document.getElementById('summary-auth-status').textContent = "Profil szinkronizálva";
-            }
-        } else {
-            badge.classList.remove('active');
-        }
-    }
+    const isRegistered = !!(user && !user.isAnonymous);
 
-    if (typeof window.updateInstantButtonEligibility === 'function') {
-        window.updateInstantButtonEligibility();
+    // Az összes olyan hely, ahol avatar van (Szerkesztő, Kezdőbox, Fejléc)
+    const avatarContainers = [
+        document.getElementById('avatar-preview-container'), // Szerkesztő (lehet, hogy ez maga a nagy emoji)
+        document.getElementById('summary-avatar-display'),    // Kezdőbox
+        document.getElementById('game-team-avatar-icon')     // Játék fejléc
+    ];
+
+    avatarContainers.forEach(container => {
+        if (!container) return;
+
+        // 1. Az emoji frissítése
+        // Megkeressük a konténeren belül az emoji részt, vagy ha nincs, magát a konténert frissítjük
+        const emojiPart = container.querySelector('.emoji-part');
+        if (emojiPart) {
+            emojiPart.textContent = emoji;
+        } else {
+            // Ha nincs külön .emoji-part (pl. a nagy szerkesztőben), akkor csak simán beírjuk
+            // De vigyázzunk, ne írjuk felül a pipát!
+            if (container.id === 'avatar-preview-container') {
+                container.childNodes[0].textContent = emoji; 
+            }
+        }
+
+        // 2. A pipa (badge) kapcsolása
+        const badge = container.querySelector('.verified-badge');
+        if (badge) {
+            if (isRegistered) {
+                badge.classList.add('active');
+            } else {
+                badge.classList.remove('active');
+            }
+        }
+    });
+
+    // Név frissítése (ha van ilyen elem)
+    const nameInput = document.getElementById('team-name-input');
+    const summaryName = document.getElementById('summary-user-name');
+    if (summaryName && nameInput) {
+        summaryName.textContent = nameInput.value.trim() || "Játékos";
     }
 };
 
