@@ -9138,9 +9138,6 @@ window.startInstantAdventure = async function() {
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-window.auth = auth;          
-window.firebaseSignOut = signOut;
-
         // Globális elérés biztosítása a többi scriptnek
         window.db = db;
 	window.orderByChild = orderByChild;
@@ -9491,37 +9488,36 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 };
 
 
-window.logout = function() {
-    console.log("Kijelentkezés indítása...");
+window.logout = async () => {
+    if(confirm("Biztosan ki szeretnél jelentkezni?")) {
+        try {
+            // 1. Mezők ürítése a felületen
+            const nameInput = document.getElementById('team-name-input');
+            if (nameInput) nameInput.value = '';
 
-    // Ellenőrizzük, hogy elérhetőek-e a szükséges globális változók
-    if (window.auth && typeof window.firebaseSignOut === 'function') {
-        window.firebaseSignOut(window.auth).then(() => {
-            console.log("Sikeres kijelentkezés.");
-            
-            // Adatok törlése
+            // 2. LocalStorage ürítése (így nem jegyzi meg a regisztrált nevet vendégként)
             localStorage.removeItem('mystigo_pref_teamName');
-            localStorage.removeItem('mystigo_pref_teamAvatar');
+            localStorage.setItem('mystigo_pref_teamAvatar'); 
 
-            // UI Frissítése (Kérdőjelre állítja és leveszi a pipát)
-            if (typeof window.updateAvatarPreview === 'function') {
-                window.updateAvatarPreview();
+            // 3. Avatar vizuális visszaállítása
+            if (typeof window.selectAvatar === 'function') {
+                window.selectAvatar('cat'); 
+            }
+	isExplicitLogout = true;
+            // 4. Firebase kijelentkezés
+            await signOut(auth);
+
+            // 5. Gomb állapotának frissítése (letiltja az indítást név nélkül)
+            if (typeof window.updateInstantButtonEligibility === 'function') {
+                window.updateInstantButtonEligibility();
             }
 
-            // Mező ürítése
-            const nameInput = document.getElementById('team-name-input');
-            if (nameInput) nameInput.value = "";
-            
             showMessage("Kijelentkezés", "Sikeresen kijelentkeztél.");
-        }).catch((error) => {
-            console.error("Firebase hiba kijelentkezéskor:", error);
-            alert("Hiba: " + error.message);
-        });
-    } else {
-        // Ez a rész futott le neked
-        console.error("HIBA: A window.auth vagy window.firebaseSignOut hiányzik!");
-        // Ha a globálisak nincsenek meg, megpróbálhatjuk a sima signOut-ot ha véletlen globális lenne
-        alert("A kijelentkezési funkció nem töltődött be megfelelően. Kérlek frissítsd az oldalt!");
+
+        } catch (e) { 
+            console.error("Kijelentkezési hiba:", e);
+            showMessage("Hiba", "Nem sikerült kijelentkezni.");
+        }
     }
 };
 
