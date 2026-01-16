@@ -952,7 +952,7 @@
     </div>
 </div>
             <div class="flex flex-col text-left">
-                <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[180px]">Játékos</span>
+                <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[180px]">Adj meg egy nevet</span>
                 <span id="summary-auth-status" class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Profil szerkesztése</span>
             </div>
         </div>
@@ -980,10 +980,10 @@
     </div>
 
     <div id="user-profile-content" class="hidden border-t border-blue-100/30 p-5 space-y-5 bg-white/20">
-        <div class="flex items-center gap-3 bg-white/60 p-3 rounded-xl border border-blue-100">
+        <div class="flex items-center gap-3 bg-white/60 p-1 rounded-xl border border-blue-100">
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider flex-1">Bejelentkezés:</span>
             <div class="flex gap-2">
-                <button id="google-login-btn" onclick="loginWithGoogle()" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm"><img src="logo/google_logo.svg" class="w-5 h-5"></button>
+                <button id="google-login-btn" onclick="loginWithGoogle()" class="w-10 h-10 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm"><img src="logo/google_logo.svg" class="w-7 h-7"></button>
                 <button id="email-auth-btn" onclick="openEmailAuthModal()" 
                         class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95" 
                         title="Email bejelentkezés">
@@ -1003,9 +1003,20 @@
             </div>
             <div class="flex-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Játékosnév</label>
-                <input type="text" id="team-name-input" maxlength="20" placeholder="Hogy hívnak?" oninput="document.getElementById('summary-user-name').textContent = this.value || 'Játékos'" class="w-full px-3 py-2 border-2 border-white rounded-lg text-sm outline-none bg-white/80 shadow-inner focus:border-brand-cyan transition-all">
+                <input type="text" id="team-name-input" maxlength="20" placeholder="Pl.: Villám-Macskák 2024" oninput="document.getElementById('summary-user-name').textContent = this.value || ''" class="w-full px-3 py-2 border-2 border-white rounded-lg text-sm outline-none bg-white/80 shadow-inner focus:border-brand-cyan transition-all">
             </div>
+
+
         </div>
+
+<div class="flex justify-between items-start mt-1 mb-3">
+        <p class="text-[10px] text-gray-500 italic">
+            💡 Tipp: Válassz egyedi nevet és avatart, hogy könnyen megtaláld magad a ranglistán!
+        </p>
+    </div>
+
+
+
     </div>
 
     <div class="p-4 pt-2 border-t border-blue-100/50 flex flex-col gap-3">
@@ -8346,7 +8357,7 @@ window.toggleUserProfile = function() {
     const nameInput = document.getElementById('team-name-input');
     const summaryName = document.getElementById('summary-user-name');
     if (summaryName && nameInput) {
-        summaryName.textContent = nameInput.value.trim() || "Játékos";
+        summaryName.textContent = nameInput.value.trim() || "Adj meg egy nevet";
     }
 };
 
