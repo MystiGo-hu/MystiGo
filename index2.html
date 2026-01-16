@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.61
+       v1.2.63
 
    </span>
 
@@ -940,22 +940,48 @@
 
 
 
-                        <div id="team-setup" class="p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 shadow-inner mb-6">
+
+                        <div id="team-setup" class="bg-blue-50 rounded-2xl border-2 border-blue-100 shadow-sm mb-6 overflow-hidden transition-all duration-300 flex flex-col">
     
-    <div class="flex justify-between items-center mb-3 px-1">
-        <h2 class="text-sm font-bold text-brand-blue uppercase tracking-wider">Játékos<span class="text-red-500">*</span></h2>
+    <div class="p-4 flex items-center justify-between select-none">
+        <div onclick="toggleUserProfile()" class="flex items-center gap-3 cursor-pointer group">
+            <div id="summary-avatar-display" class="avatar-container w-10 h-10 rounded-full bg-white border border-blue-200 flex items-center justify-center text-xl shadow-sm relative">
+    <span class="emoji-part">❓</span>
+    <div class="verified-badge verified-badge-sm">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+    </div>
+</div>
+            <div class="flex flex-col text-left">
+                <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[150px]">Adj meg egy nevet</span>
+                <span id="summary-auth-status" class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Profil szerkesztése</span>
+            </div>
+        </div>
         
+
+<div id="total-score-display" class="flex flex-col items-end px-2 border-r border-blue-200">
+        <span class="text-[7px] font-black text-gray-400 uppercase leading-none">Összpont</span>
+        <span class="text-xs font-black text-brand-blue leading-none">
+            <span id="user-total-score">0</span>⭐
+        </span>
     </div>
 
-    <div class="flex items-center justify-between mb-1 bg-white/80 p-1 rounded-xl border border-white shadow-sm">
-        <div class="flex items-center gap-2">
-            <div id="auth-buttons-group" class="flex gap-2">
-                <button id="google-login-btn" onclick="loginWithGoogle()" 
-                        class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95"
-                        title="Google">
-                    <img src="logo/google_logo.svg" class="w-6 h-6">
-                </button>
 
+        <div class="flex items-center gap-1.5">
+    <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-blue-100 text-brand-cyan rounded-lg shadow-sm hover:bg-cyan-50 active:scale-90 transition-all">
+        <span class="text-sm">✨</span>
+    </button>
+
+    
+
+    
+</div>
+    </div>
+
+    <div id="user-profile-content" class="hidden border-t border-blue-100/30 p-5 space-y-5 bg-white/20">
+        <div class="flex items-center gap-3 bg-white/60 p-1 rounded-xl border border-blue-100">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider flex-1">Bejelentkezés:</span>
+            <div class="flex gap-2">
+                <button id="google-login-btn" onclick="loginWithGoogle()" class="w-10 h-10 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm"><img src="logo/google_logo.svg" class="w-7 h-7"></button>
                 <button id="email-auth-btn" onclick="openEmailAuthModal()" 
                         class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95" 
                         title="Email bejelentkezés">
@@ -963,81 +989,60 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
                 </button>
+                <button id="logout-btn" onclick="logout()" class="hidden w-9 h-9 flex items-center justify-center bg-red-50 border border-red-100 text-red-500 rounded-lg shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg></button>
+            </div>
+        </div>
+        
+
+
+<div class="flex-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Játékosnév</label>
+                <input type="text" id="team-name-input" maxlength="20" placeholder="Pl.: Villám-Macskák 2024" oninput="document.getElementById('summary-user-name').textContent = this.value || ''" class="w-full px-3 py-2 border-2 border-white rounded-lg text-sm outline-none bg-white/80 shadow-inner focus:border-brand-cyan transition-all">
             </div>
 
-            <div id="email-auth-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 10000;">
-                <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-                    <h2 id="email-modal-title" class="text-xl font-bold text-brand-blue mb-4 text-center">Bejelentkezés</h2>
-                    <div class="space-y-3">
-                        <input type="email" id="auth-email" placeholder="Email cím" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
-                        <input type="password" id="auth-password" placeholder="Jelszó" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
-                        <div id="email-auth-error" class="text-red-500 text-xs hidden font-bold"></div>
-                    </div>
-                    <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
-                    
-<button id="forgot-password-btn" onclick="handleForgotPassword()" class="w-full mt-2 text-[11px] text-gray-500 hover:text-brand-cyan-500 underline text-center">
-    Elfelejtettem a jelszavamat
-</button>
 
-		    <div class="mt-4 text-center">
-                        <button id="email-toggle-mode" onclick="toggleEmailAuthMode()" class="text-xs text-brand-cyan-500 font-semibold hover:underline">Nincs még fiókod? Regisztráció</button>
-                    </div>
-                    <button onclick="closeEmailAuthModal()" class="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1">Mégse</button>
+<div class="flex items-center justify-center gap-4">
+            <div class="relative cursor-pointer" onclick="openAvatarSelector()">
+                <div id="avatar-preview-container" class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-md flex items-center justify-center text-5xl">❓</div>
+                <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7" /></svg>
                 </div>
             </div>
+            
 
-            <button id="logout-btn" onclick="logout()" 
-                    class="hidden w-9 h-9 flex items-center justify-center bg-white border border-red-100 text-red-500 rounded-xl shadow-sm hover:bg-red-50 transition-all active:scale-95">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
-                </svg>
-            </button>
 
-            <div id="user-info-display" class="flex flex-col overflow-hidden">
-                <p id="auth-status-label" class="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Státusz</p>
-                <p id="auth-user-name" class="text-xs font-bold text-brand-blue truncate max-w-[120px] leading-tight"></p>
-            </div>
         </div>
-
-        <div id="total-score-display" class="hidden flex items-center gap-2">
-            <div class="text-right">
-                <p class="text-[9px] font-bold text-gray-400 uppercase leading-none">Összpont</p>
-                <p class="text-sm font-black text-brand-blue tracking-tight leading-none"><span id="user-total-score">0</span> ⭐</p>
-            </div>
-            <button onclick="openHallOfFame()" class="w-8 h-8 flex items-center justify-center bg-white border border-cyan-100 text-brand-cyan rounded-lg shadow-sm">
-                <span class="text-sm">✨</span>
-            </button>
-        </div>
-    </div>
-
-    <input type="text" id="team-name-input" maxlength="20" placeholder="Pl.: Villám-Macskák 2024" 
-           class="w-full px-4 py-3 border-2 border-blue-100 rounded-xl text-sm focus:ring-2 focus:ring-brand-blue outline-none shadow-sm mb-4">
 
 <div class="flex justify-between items-start mt-1 mb-3">
         <p class="text-[10px] text-gray-500 italic">
             💡 Tipp: Válassz egyedi nevet és avatart, hogy könnyen megtaláld magad a ranglistán!
         </p>
-        
     </div>
 
 
 
-    <div class="flex flex-col items-center gap-2 mt-2 mb-6">
-        <div class="relative cursor-pointer group" onclick="openAvatarSelector()">
-            <div id="avatar-preview-container" 
-                 class="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center text-5xl transition-all duration-300 group-hover:scale-105 ring-4 ring-brand-cyan/10">
-                ❓
-            </div>
-            <div id="preview-verified-badge" class="verified-badge verified-badge-lg">
-                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
+    </div>
+
+    <div class="p-4 pt-2 border-t border-blue-100/50 flex flex-col gap-3">
+        <div class="flex gap-2">
+            <button id="gps-test-btn" onclick="testGpsConnection()" class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-blue-100 text-gray-500 rounded-xl text-[9px] font-bold uppercase active:scale-95 transition-all shadow-sm">
+                <span>🛰️</span> GPS Teszt
+            </button>
+            <button onclick="startSpecificTestGame()" class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-blue-100 text-gray-500 rounded-xl text-[9px] font-bold uppercase active:scale-95 transition-all shadow-sm">
+                <span>🎮</span> Próba
+            </button>
         </div>
-        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Avatar választása</p>
-    </div>
 
-    <select id="team-avatar-select" class="hidden"></select>
+        <div id="gps-test-container" class="hidden bg-white/60 p-3 rounded-xl border border-blue-100 relative">
+            <button onclick="closeGpsTest()" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <p id="gps-test-status" class="text-[11px] font-bold text-center text-brand-blue mb-2">📡 Jel keresése...</p>
+            <div id="gps-test-map" class="w-full h-32 rounded-lg border border-blue-100 mb-2"></div>
+            <div id="gps-result-message" class="hidden p-2 rounded-lg text-[11px] font-bold text-center"></div>
+            <div class="text-[9px] text-gray-400 text-center">Pontosság: <span id="gps-accuracy-value">-</span> m</div>
+        </div>
+    </div>
 
     <div id="avatar-selector-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-[9999]">
         <div class="bg-white rounded-3xl w-full max-w-sm max-h-[75vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1050,29 +1055,36 @@
             <div id="avatar-grid" class="p-6 overflow-y-auto grid grid-cols-4 gap-4 bg-white"></div>
         </div>
     </div>
+    <select id="team-avatar-select" class="hidden"></select>
+    <div id="email-auth-modal" class="modal-overlay fixed inset-0 bg-black/60 hidden items-center justify-center p-4" style="z-index: 10000;">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+        <h2 id="email-modal-title" class="text-xl font-bold text-brand-blue mb-4 text-center">Bejelentkezés</h2>
+        
+        <div class="space-y-3">
+            <input type="email" id="auth-email" placeholder="Email cím" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
+            <input type="password" id="auth-password" placeholder="Jelszó" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan">
+            
+            <div id="email-auth-error" class="text-red-500 text-xs hidden font-bold"></div>
+        </div>
 
-   <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-blue-100">
-    <button id="gps-test-btn" onclick="testGpsConnection()" 
-            class="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
-        <span class="text-base mb-0.5">🛰️</span> <span class="text-[10px] font-bold uppercase">GPS Teszt</span>
-    </button>
-
-    <button onclick="startSpecificTestGame()" 
-            class="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl transition-all shadow-sm active:scale-95">
-        <span class="text-base mb-0.5">🎮</span> <span class="text-[10px] font-bold uppercase">Próba Játék (GPS nélkül)</span>
-    </button>
-</div>
-
-    <div id="gps-test-container" class="hidden mt-4 bg-white/60 p-3 rounded-xl border border-blue-100 relative">
-        <button onclick="closeGpsTest()" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <button id="email-primary-btn" onclick="handleEmailAuth()" class="main-button w-full mt-4 !py-2 !text-sm">Bejelentkezés</button>
+        
+        <button id="forgot-password-btn" onclick="handleForgotPassword()" class="w-full mt-3 text-xs text-brand-cyan-500 font-bold hover:underline">
+            Elfelejtettem a jelszavamat
         </button>
-        <p id="gps-test-status" class="text-[11px] font-bold text-center text-brand-blue mb-2">📡 Jel keresése...</p>
-        <div id="gps-test-map" class="w-full h-32 rounded-lg border border-blue-100 mb-2"></div>
-        <div id="gps-result-message" class="hidden p-2 rounded-lg text-[11px] font-bold text-center"></div>
-        <div class="text-[9px] text-gray-400 text-center">Pontosság: <span id="gps-accuracy-value">-</span> m</div>
+
+        <button id="email-toggle-mode" onclick="toggleEmailAuthMode()" class="w-full mt-4 text-[10px] text-gray-500 font-bold uppercase tracking-widest hover:text-brand-blue">
+            Nincs még fiókod? Regisztráció
+        </button>
+
+        <button onclick="closeEmailAuthModal()" class="w-full mt-2 text-xs text-gray-400 font-bold uppercase">Mégse</button>
     </div>
 </div>
+</div>
+
+
+
+
           
 
           
@@ -7550,7 +7562,7 @@ function finishGpsTest(forceError = false, errorMsg = "") {
             });
 
             // 2. Lista újrarajzolása (ez automatikusan sorba rendezi a _calculatedDistance alapján)
-            renderGameList();
+            renderGameList(appState.currentFilteredGames);
 
             // 3. Visszajelzés
             successText += `<br><span class="text-[10px] uppercase font-bold mt-1 block">📍 Játéklista frissítve!</span>`;
@@ -8280,47 +8292,78 @@ const isIos = () => {
             // -----
 
 
+
+
+// ÚJ: Ez a függvény kezeli a lenyitást és becsukást
+window.toggleUserProfile = function() {
+    const content = document.getElementById('user-profile-content');
+    const icon = document.getElementById('profile-toggle-icon');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden'); // Kinyit
+        icon.textContent = '–'; // Kicseréli a + jelet - jelre
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        content.classList.add('hidden'); // Becsuk
+        icon.textContent = '+';
+        icon.style.transform = 'rotate(0deg)';
+    }
+};
+
+
+
+
+
             if (avatarSelectEl) {
     // Globálissá tesszük a függvényt, hogy a Firebase modul is elérje
     window.updateAvatarPreview = () => {
-        const previewContainer = document.getElementById('avatar-preview-container');
-        const badge = document.getElementById('preview-verified-badge'); // <--- ÚJ: A pipa lekérése
-	const selectEl = document.getElementById('team-avatar-select');
-        
-        // Megnézzük, mi van a memóriában (amit a Firebase is frissít belépéskor)
-        const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    // Adatok lekérése
+    const savedAvatar = localStorage.getItem('mystigo_pref_teamAvatar');
+    const emoji = AVATAR_ICONS[savedAvatar] || '❓';
+    const user = (window.auth) ? window.auth.currentUser : null;
+    const isRegistered = !!(user && !user.isAnonymous);
 
-        // 1. Avatar (Emoji) frissítése
-        if (previewContainer && savedAvatar) {
-            // Az AVATAR_ICONS globális objektumból olvassuk ki az emojit
-            previewContainer.textContent = AVATAR_ICONS[savedAvatar] || '❓';
+    // Az összes olyan hely, ahol avatar van (Szerkesztő, Kezdőbox, Fejléc)
+    const avatarContainers = [
+        document.getElementById('avatar-preview-container'), // Szerkesztő (lehet, hogy ez maga a nagy emoji)
+        document.getElementById('summary-avatar-display'),    // Kezdőbox
+        document.getElementById('game-team-avatar-icon')     // Játék fejléc
+    ];
 
-if (selectEl) {
-            selectEl.innerHTML = `<option value="${savedAvatar}" selected>${savedAvatar}</option>`;
-        }
+    avatarContainers.forEach(container => {
+        if (!container) return;
 
-            // Kis vizuális visszajelzés
-            previewContainer.classList.add('scale-110');
-            setTimeout(() => previewContainer.classList.remove('scale-110'), 150);
-        }
-
-        // 2. Kék pipa (Verified Badge) frissítése - EZ HIÁNYZOTT
-        if (badge) {
-            // Biztonságos ellenőrzés: létezik-e már az auth objektum?
-            const user = (window.auth) ? window.auth.currentUser : null;
-
-            if (user && !user.isAnonymous) {
-                badge.classList.add('active'); // Ha regisztrált user, mutatjuk a pipát
-            } else {
-                badge.classList.remove('active'); // Ha vendég, elrejtjük
+        // 1. Az emoji frissítése
+        // Megkeressük a konténeren belül az emoji részt, vagy ha nincs, magát a konténert frissítjük
+        const emojiPart = container.querySelector('.emoji-part');
+        if (emojiPart) {
+            emojiPart.textContent = emoji;
+        } else {
+            // Ha nincs külön .emoji-part (pl. a nagy szerkesztőben), akkor csak simán beírjuk
+            // De vigyázzunk, ne írjuk felül a pipát!
+            if (container.id === 'avatar-preview-container') {
+                container.childNodes[0].textContent = emoji; 
             }
         }
 
-if (typeof window.updateInstantButtonEligibility === 'function') {
-        window.updateInstantButtonEligibility();
-    }
+        // 2. A pipa (badge) kapcsolása
+        const badge = container.querySelector('.verified-badge');
+        if (badge) {
+            if (isRegistered) {
+                badge.classList.add('active');
+            } else {
+                badge.classList.remove('active');
+            }
+        }
+    });
 
-    };
+    // Név frissítése (ha van ilyen elem)
+    const nameInput = document.getElementById('team-name-input');
+    const summaryName = document.getElementById('summary-user-name');
+    if (summaryName && nameInput) {
+        summaryName.textContent = nameInput.value.trim() || "Adj meg egy nevet";
+    }
+};
 
 
 
@@ -9267,7 +9310,13 @@ window.handleEmailAuth = async function() {
 
             closeEmailAuthModal();
             showLoading(false);
+
+const profileContent = document.getElementById('user-profile-content');
+        if (profileContent && !profileContent.classList.contains('hidden')) {
+            window.toggleUserProfile();
         }
+    }
+   }     
         
     } catch (error) {
 	isAuthProcessActive = false;
@@ -9439,6 +9488,14 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         });
 
         if (user) console.log("✅ Sikeres Google belépés:", user.displayName);
+
+const profileContent = document.getElementById('user-profile-content');
+            if (profileContent && !profileContent.classList.contains('hidden')) {
+                window.toggleUserProfile();
+            }
+        }
+
+
     } catch (error) {
         console.error("❌ Bejelentkezési hiba:", error);
     }
@@ -9503,6 +9560,12 @@ onAuthStateChanged(auth, (user) => {
     // --- FELHASZNÁLÓ VAN (Közös rész) ---
     isAuthProcessActive = false;
     isExplicitLogout = false;
+
+
+if (typeof window.updateAvatarPreview === 'function') {
+            window.updateAvatarPreview();
+        }
+
 
     // 1. Dinamikus útvonal meghatározása
     // Itt döntjük el, melyik mappát kell figyelni: users/anonym VAGY users/registered
@@ -9572,6 +9635,7 @@ if (typeof window.updateInstantButtonEligibility === 'function') {
         
         if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
         
+
         // FONTOS: Most már a vendégnek is mutatjuk a pontszámot, ha gyűjtött!
         if (scoreDisplay) scoreDisplay.classList.remove('hidden'); 
         
