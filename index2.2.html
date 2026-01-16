@@ -9497,11 +9497,11 @@ window.logout = async () => {
 
             // 2. LocalStorage ürítése (így nem jegyzi meg a regisztrált nevet vendégként)
             localStorage.removeItem('mystigo_pref_teamName');
-            localStorage.setItem('mystigo_pref_teamAvatar', 'cat'); // Visszaállás cicára
+            localStorage.setItem('mystigo_pref_teamAvatar'); 
 
             // 3. Avatar vizuális visszaállítása
             if (typeof window.selectAvatar === 'function') {
-                window.selectAvatar('cat'); 
+                window.selectAvatar(); 
             }
 	isExplicitLogout = true;
             // 4. Firebase kijelentkezés
