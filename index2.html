@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.63
+       v1.2.64
 
    </span>
 
@@ -9259,45 +9259,50 @@ window.handleEmailAuth = async function() {
     }
 
     try {
-        isAuthProcessActive = true; 
+        isAuthProcessActive = true; // <--- 1. ÚJ SOR: Jelezzük a folyamat kezdetét
         errorEl.classList.add('hidden');
         showLoading(true);
         
-        let user; 
+        let user; // Deklaráljuk a változót kívül, hogy minden ág elérje
         if (isRegistrationMode) {
             // --- REGISZTRÁCIÓ ---
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            user = userCredential.user;
+            user = userCredential.user; // JAVÍTÁS: a kinti 'user' változót használjuk, nem hozunk létre újat const-al
 
+            // KRITIKUS JAVÍTÁS: Rövid várakozás (setTimeout), hogy a Firebase Auth token 
+            // érvényessé váljon az adatbázis számára is.
             setTimeout(async () => {
                 try {
                     await set(ref(db, 'private_user_data/' + user.uid), {
-                        email: email,
-                        authMethod: 'email',
-                        registeredAt: Date.now()
-                    });
+    						email: email,
+   						 authMethod: 'email',
+    						registeredAt: Date.now()
+			});
                     console.log("✅ Private data mentése sikeres.");
                 } catch (dbErr) {
                     console.error("❌ Adatbázis mentési hiba (Permission Denied lehet):", dbErr);
                 }
-            }, 500);
+            }, 500); // 500ms késleltetés
             
             await sendEmailVerification(user);
+            
             showLoading(false);
             closeEmailAuthModal();
             showMessage("Sikeres regisztráció!", "Kiküldtünk egy megerősítő e-mailt a(z) " + email + " címre. Kérjük, aktiváld a fiókod! (nézd meg a SPAM mappádat is)");
+            
         } else {
             // --- BEJELENTKEZÉS ---
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             user = userCredential.user;
 
+            // JAVÍTÁS: Bejelentkezéskor is érdemes frissíteni/menteni, ha korábban elmaradt volna
             setTimeout(async () => {
                 try {
                     await update(ref(db, 'private_user_data/' + user.uid), {
-                        email: email,
-                        authMethod: 'email',
-                        lastLogin: Date.now()
-                    });
+    email: email,
+    authMethod: 'email',
+    lastLogin: Date.now()
+});
                 } catch (e) {
                     console.error("Adat frissítési hiba bejelentkezéskor:", e);
                 }
@@ -9306,15 +9311,11 @@ window.handleEmailAuth = async function() {
             closeEmailAuthModal();
             showLoading(false);
 
-            const profileContent = document.getElementById('user-profile-content');
-            if (profileContent && !profileContent.classList.contains('hidden')) {
-                window.toggleUserProfile();
-            }
-        } // 1. Itt zárul az else ág
-
-
-    } catch (error) { // 2. Itt zárul a try ÉS kezdődik a catch
-        isAuthProcessActive = false;
+    }
+        
+        
+    } catch (error) {
+	isAuthProcessActive = false;
         showLoading(false);
         console.error("Firebase Auth/Database hiba:", error.code, error.message);
         errorEl.classList.remove('hidden');
@@ -9328,12 +9329,8 @@ window.handleEmailAuth = async function() {
             case 'auth/invalid-credential': errorEl.textContent = "Hibás email cím vagy jelszó!"; break;
             default: errorEl.textContent = "Hiba történt: " + error.message;
         }
-    } // 3. Itt zárul a catch ág
-}; // 4. Itt zárul a teljes függvény
-
-
-
-
+    }
+};
 
 
 // 1. Név tisztítása az összehasonlításhoz
@@ -9488,10 +9485,6 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
         if (user) console.log("✅ Sikeres Google belépés:", user.displayName);
 
-const profileContent = document.getElementById('user-profile-content');
-            if (profileContent && !profileContent.classList.contains('hidden')) {
-                window.toggleUserProfile();
-            }
         
 
 
