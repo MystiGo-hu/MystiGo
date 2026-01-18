@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.64
+       v1.2.65
 
    </span>
 
@@ -5173,7 +5173,13 @@ window.autoSortGamesByDistance = function() {
     if (skipConfirmation) {
         proceedToStart();
     } else {
-        showMessage('Kaland Indítása', `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?`, () => proceedToStart(), true);
+        showMessage(
+    'Kaland Indítása', 
+    `Biztosan elindítod a(z) <strong>${title}</strong> kalandot?<br><br>` +
+    `<span class="text-[9px] text-gray-400 font-bold">⚠️ Figyelem: A játék saját felelősségre, a szabályok betartásával játszható. Kérjük, ügyeljen saját és mások testi épségére!</span>`, 
+    () => proceedToStart(), 
+    true
+);
     }
 };
 
