@@ -6412,15 +6412,13 @@ window.generateBonusPoints = async function(count) {
 
 
     // Hatékonyabb Overpass lekérdezés: Egyetlen nagy terület, kevesebb szűrővel
-    const query = `[out:json][timeout:15];
-(
-  node(around:1000,${startLat},${startLng})["historic"~"monument|memorial|statue|castle"];
-  node(around:1000,${startLat},${startLng})["tourism"~"viewpoint|artwork|museum|information"];
-  node(around:800,${startLat},${startLng})["amenity"~"fountain|bench|waste_basket"];
-  node(around:800,${startLat},${startLng})["leisure"~"park|playground"];
-  node(around:1000,${startLat},${startLng})["highway"~"bus_stop"];
-);
-out body 50;`;
+    const query = `[out:json][timeout:15]; ( 
+        node(around:1000,${centerLat},${centerLng})["historic"~"monument|memorial|statue|castle"];
+        node(around:1000,${centerLat},${centerLng})["tourism"~"viewpoint|artwork|museum|information"];
+        node(around:800,${centerLat},${centerLng})["amenity"~"fountain|bench|waste_basket"];
+        node(around:800,${centerLat},${centerLng})["leisure"~"park|playground"];
+        node(around:1000,${centerLat},${centerLng})["highway"~"bus_stop"];
+    ); out body 50;`;
 
 const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
@@ -6439,15 +6437,15 @@ try {
 
     // --- JAVÍTÁS: Ha nincs elég valódi POI, kiegészítjük véletlenszerűekkel ---
     if (candidates.length < count) {
-        console.warn(`Csak ${candidates.length} valós POI van, a többit véletlenszerűen generáljuk.`);
-        while (candidates.length < count) {
-            candidates.push({
-                lat: startLat + (Math.random() - 0.5) * 0.01,
-                lon: startLng + (Math.random() - 0.5) * 0.01,
-                id: `random_${Math.random()}`
-            });
+            console.warn(`Csak ${candidates.length} valós POI van, a többit véletlenszerűen generáljuk.`);
+            while (candidates.length < count) {
+                candidates.push({ 
+                    lat: centerLat + (Math.random() - 0.5) * 0.01, 
+                    lon: centerLng + (Math.random() - 0.5) * 0.01, 
+                    id: `random_${Math.random()}` 
+                });
+            }
         }
-    }
 
     // Pontok kiosztása a játék állapotába
     for (let i = 0; i < count; i++) {
@@ -6457,27 +6455,25 @@ try {
             lat: el.lat + jitter(),
             lng: el.lon + jitter(),
             collected: false,
-            score: 50,
+            score: 10,
             name: "Bónusz pont"
         });
     }
 
 } catch (e) {
-    console.error("Nem sikerült bónuszpontokat lekérni, tartalék megoldás...", e);
-    
-    // --- FALLBACK: Teljesen véletlenszerű pontok generálása, ha az API meghal ---
-    for (let i = 0; i < count; i++) {
-        appState.bonusPoints.push({
-            id: `fallback_bonus_${i}`,
-            lat: startLat + (Math.random() - 0.5) * 0.008,
-            lng: startLng + (Math.random() - 0.5) * 0.008,
-            collected: false,
-            score: 50,
-            name: "Bónusz pont"
-        });
+        console.error("Nem sikerült bónuszpontokat lekérni, tartalék megoldás...", e);
+        // JAVÍTÁS a tartalék (fallback) megoldásnál is:
+        for (let i = 0; i < count; i++) {
+            appState.bonusPoints.push({ 
+                id: `fallback_bonus_${i}`, 
+                lat: centerLat + (Math.random() - 0.5) * 0.008, 
+                lng: centerLng + (Math.random() - 0.5) * 0.008, 
+                collected: false, 
+                score: 10, 
+                name: "Bónusz pont" 
+            });
+        }
     }
-}
-    
     renderBonusMarkers();
     if (appState.map && appState.bonusPoints.length > 0) {
         const bounds = appState.bonusPoints.map(bp => [bp.lat, bp.lng]);
