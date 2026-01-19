@@ -954,6 +954,7 @@
             <div class="flex flex-col text-left">
                 <span id="summary-user-name" class="text-sm font-bold text-brand-blue truncate max-w-[150px]">Adj meg egy nevet</span>
                 <span id="summary-auth-status" class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Profil szerkesztése</span>
+		
             </div>
         </div>
         
@@ -6422,7 +6423,7 @@ window.generateBonusPoints = async function(count) {
     try {
         // Gyorsabb időkorlát (AbortController), hogy ne várjunk 1 percet a hibaüzenetre
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 mp után feladjuk
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 8 mp után feladjuk
 
         const response = await fetch(osmUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -8303,16 +8304,14 @@ const isIos = () => {
 // ÚJ: Ez a függvény kezeli a lenyitást és becsukást
 window.toggleUserProfile = function() {
     const content = document.getElementById('user-profile-content');
-    const icon = document.getElementById('profile-toggle-icon');
-    
+        
     if (content.classList.contains('hidden')) {
         content.classList.remove('hidden'); // Kinyit
-        icon.textContent = '–'; // Kicseréli a + jelet - jelre
-        icon.style.transform = 'rotate(180deg)';
-    } else {
+        
+            } else {
         content.classList.add('hidden'); // Becsuk
-        icon.textContent = '+';
-        icon.style.transform = 'rotate(0deg)';
+        
+        
     }
 };
 
@@ -8949,7 +8948,7 @@ window.startInstantAdventure = async function() {
         });
 
         // 2. POI-k lekérése (Útvonaltervezés)
-        const fetchRadius = 2500;
+        const fetchRadius = 1500;
         const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${fetchRadius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure|man_made|information)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain|place_of_worship|wayside_cross|wayside_shrine|museum|playground|tree|board|map|castle|ruins|city_gate|boundary_stone|tower|water_tower|fitness_station|public_bookcase|clock|binoculars)$"];out;`;
 
         let pool = [];
