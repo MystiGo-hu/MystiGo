@@ -6409,65 +6409,74 @@ window.generateBonusPoints = async function(count) {
     let centerLat = sampleTasks.reduce((sum, t) => sum + t.location.lat, 0) / sampleTasks.length;
     let centerLng = sampleTasks.reduce((sum, t) => sum + t.location.lng, 0) / sampleTasks.length;
 
+
+
     // Hatékonyabb Overpass lekérdezés: Egyetlen nagy terület, kevesebb szűrővel
     const query = `[out:json][timeout:15];
-    (
-      node(around:1000,${centerLat},${centerLng})["highway"~"crossing|bus_stop|traffic_signals"];
-      node(around:800,${centerLat},${centerLng})["amenity"~"waste_basket|bench|fountain"];
-      node(around:1200,${centerLat},${centerLng})["tourism"~"information|artwork"];
-    );
-    out body 50;`; // Limitáljuk a válaszokat 50-re a gyorsaságért
+(
+  node(around:1000,${startLat},${startLng})["historic"~"monument|memorial|statue|castle"];
+  node(around:1000,${startLat},${startLng})["tourism"~"viewpoint|artwork|museum|information"];
+  node(around:800,${startLat},${startLng})["amenity"~"fountain|bench|waste_basket"];
+  node(around:800,${startLat},${startLng})["leisure"~"park|playground"];
+  node(around:1000,${startLat},${startLng})["highway"~"bus_stop"];
+);
+out body 50;`;
 
-    const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
-    try {
-        // Gyorsabb időkorlát (AbortController), hogy ne várjunk 1 percet a hibaüzenetre
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 8 mp után feladjuk
+try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 mp timeout
 
-        const response = await fetch(osmUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
+    const response = await fetch(osmUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
 
-        if (!response.ok) throw new Error("OSM szerver hiba: " + response.status);
-        const data = await response.json();
-        
-        let candidates = data.elements || [];
-        const usedOsmIds = new Set();
-        const jitter = () => (Math.random() - 0.5) * 0.0001;
+    if (!response.ok) throw new Error("OSM hiba");
+    const data = await response.json();
+    
+    let candidates = data.elements || [];
+    const jitter = () => (Math.random() - 0.5) * 0.0002; // Kicsit nagyobb szórás
 
-        if (candidates.length < count) throw new Error("Kevés a POI találat.");
-
-        for (let i = 0; i < count; i++) {
-            let filteredCandidates = candidates.filter(el => !usedOsmIds.has(el.id));
-            if (filteredCandidates.length > 0) {
-                let el = filteredCandidates[Math.floor(Math.random() * filteredCandidates.length)];
-                usedOsmIds.add(el.id);
-                appState.bonusPoints.push({
-                    id: `bonus_${Date.now()}_${i}`,
-                    lat: el.lat + jitter(),
-                    lng: el.lon + jitter(),
-                    collected: false,
-                    score: 10 
-                });
-            }
-        }
-    } catch (e) { 
-        console.warn("⚠️ OSM hiba (504 vagy lassú net), azonnali fallback generálás...", e.message);
-        
-        // --- MATEMATIKAI FALLBACK (Ha az API nem válaszol) ---
-        for (let i = 0; i < count; i++) {
-            const anchor = tasks[i % tasks.length];
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 0.002 + (Math.random() * 0.002); // Kb. 200-400 méter
-            appState.bonusPoints.push({
-                id: `bonus_fallback_${Date.now()}_${i}`,
-                lat: anchor.location.lat + Math.cos(angle) * radius,
-                lng: anchor.location.lng + Math.sin(angle) * radius,
-                collected: false,
-                score: 10
+    // --- JAVÍTÁS: Ha nincs elég valódi POI, kiegészítjük véletlenszerűekkel ---
+    if (candidates.length < count) {
+        console.warn(`Csak ${candidates.length} valós POI van, a többit véletlenszerűen generáljuk.`);
+        while (candidates.length < count) {
+            candidates.push({
+                lat: startLat + (Math.random() - 0.5) * 0.01,
+                lon: startLng + (Math.random() - 0.5) * 0.01,
+                id: `random_${Math.random()}`
             });
         }
     }
+
+    // Pontok kiosztása a játék állapotába
+    for (let i = 0; i < count; i++) {
+        let el = candidates[i];
+        appState.bonusPoints.push({
+            id: `bonus_${Date.now()}_${i}`,
+            lat: el.lat + jitter(),
+            lng: el.lon + jitter(),
+            collected: false,
+            score: 50,
+            name: "Bónusz pont"
+        });
+    }
+
+} catch (e) {
+    console.error("Nem sikerült bónuszpontokat lekérni, tartalék megoldás...", e);
+    
+    // --- FALLBACK: Teljesen véletlenszerű pontok generálása, ha az API meghal ---
+    for (let i = 0; i < count; i++) {
+        appState.bonusPoints.push({
+            id: `fallback_bonus_${i}`,
+            lat: startLat + (Math.random() - 0.5) * 0.008,
+            lng: startLng + (Math.random() - 0.5) * 0.008,
+            collected: false,
+            score: 50,
+            name: "Bónusz pont"
+        });
+    }
+}
     
     renderBonusMarkers();
     if (appState.map && appState.bonusPoints.length > 0) {
@@ -8948,15 +8957,43 @@ window.startInstantAdventure = async function() {
         });
 
         // 2. POI-k lekérése (Útvonaltervezés)
-        const fetchRadius = 1500;
-        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:${fetchRadius},${startLat},${startLng})[~"^(tourism|historic|amenity|leisure|man_made|information)$"~"^(viewpoint|monument|memorial|statue|artwork|bench|park|fountain|place_of_worship|wayside_cross|wayside_shrine|museum|playground|tree|board|map|castle|ruins|city_gate|boundary_stone|tower|water_tower|fitness_station|public_bookcase|clock|binoculars)$"];out;`;
+        const query = `[out:json][timeout:15];
+            (
+              node(around:1000,${startLat},${startLng})["highway"~"crossing|bus_stop|traffic_signals"];
+              node(around:800,${startLat},${startLng})["amenity"~"waste_basket|bench|fountain"];
+              node(around:1200,${startLat},${startLng})["tourism"~"information|artwork|viewpoint|monument"];
+              node(around:1200,${startLat},${startLng})["historic"~"monument|memorial|statue"];
+            );
+            out body 50;`;
+
+        const osmUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
         let pool = [];
         try {
-            const response = await fetch(overpassUrl);
+            // Kliensoldali időkorlát (12 másodperc), hogy a böngésző ne várjon örökké
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+            const response = await fetch(osmUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) throw new Error("Szerver hiba (HTTP " + response.status + ")");
+            
             const osmData = await response.json();
-            pool = osmData.elements.map(el => ({ lat: el.lat, lng: el.lon, name: el.tags.name || "Érdekes pont" }));
-        } catch (e) { console.warn("Hiba az OSM adatok lekérésekor."); }
+            
+            if (osmData && osmData.elements) {
+                pool = osmData.elements.map(el => ({ 
+                    lat: el.lat, 
+                    lng: el.lon, 
+                    name: el.tags.name || "Érdekes pont" 
+                }));
+            }
+            console.log(`OSM POI pool kész: ${pool.length} pont találva.`);
+
+        } catch (e) { 
+            console.warn("Hiba vagy Timeout az OSM adatok lekérésekor. Tartalék útvonal generálása...", e);
+            // Ha hiba történik, a pool üres marad, a 3. lépés pedig automatikusan generál pontokat.
+        }
 
         // 3. Útvonal generálása
         let routePoints = [];
