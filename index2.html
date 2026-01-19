@@ -9599,6 +9599,14 @@ if (nameInput) {
     } else if (nameInput.value === "") {
         nameInput.value = displayNameToUse;
     }
+
+nameInput.dispatchEvent(new Event('input'));
+    
+    // VAGY hívhatod közvetlenül a már létező frissítő függvényedet is:
+    if (typeof window.updateAvatarPreview === 'function') {
+        window.updateAvatarPreview();
+    }
+
 }
 
         // Avatar betöltése
