@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.65
+       v1.2.66
 
    </span>
 
@@ -4523,7 +4523,7 @@ window.closeImageModal = function() {
 
                 const leaderboardBtnHtml = `
                     <button onclick="event.stopPropagation(); openLeaderboardModal('${game.id}');" 
-                            class="absolute bottom-4 right-4 bg-white text-brand-blue border border-gray-200 p-2 rounded-full shadow-lg hover:bg-brand-orange hover:text-white hover:scale-110 transition-all z-30"
+                            class="absolute bottom-2 right-2 bg-white text-brand-blue border border-gray-200 p-2 rounded-full shadow-lg hover:bg-brand-orange hover:text-white hover:scale-110 transition-all z-30"
                             title="Ranglista megtekintése">
                         🏆
                     </button>
@@ -9603,11 +9603,16 @@ if (nameInput) {
 
         // Avatar betöltése
         if (profile.avatar) {
-            localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-            if (typeof window.updateAvatarPreview === 'function') {
-                window.updateAvatarPreview();
-            }
-        }
+    // A sima updateAvatarPreview helyett a selectAvatar-t hívjuk, 
+    // mert az a rejtett <select> mezőt is feltölti!
+    if (typeof window.selectAvatar === 'function') {
+        window.selectAvatar(profile.avatar);
+    } else {
+        // Fallback, ha a modul még nem érné el a globális függvényt
+        localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
+        window.updateAvatarPreview();
+    }
+}
 
 if (typeof window.updateInstantButtonEligibility === 'function') {
         window.updateInstantButtonEligibility();
