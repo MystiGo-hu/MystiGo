@@ -6504,7 +6504,7 @@ window.generateBonusPoints = async function(count) {
                 lat: (el.lat || 0) + jitter(),
                 lng: (el.lon || 0) + jitter(), // Itt váltunk: lon -> lng!
                 collected: false,
-                score: priority <= 2 ? 15 : 10,
+                score: 10,
                 name: pName
             });
         }
