@@ -6187,7 +6187,7 @@ const list = document.getElementById('end-task-list');
         const user = window.auth ? window.auth.currentUser : null;
 const isRegistered = !!(user && !user.isAnonymous);
         finalAvatarEl.className = "avatar-container"; 
-        finalAvatarEl.innerHTML = `${AVATAR_ICONS[appState.teamAvatar] || ''}${isRegistered ? '<div class="verified-badge verified-badge-lg active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>' : ''}`;
+        finalAvatarEl.innerHTML = `${AVATAR_ICONS[appState.teamAvatar] || ''}${isRegistered ? '<div class="verified-badge verified-badge-sm active"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>' : ''}`;
     }
 
     // Értékelés és PDF gombok
@@ -9569,7 +9569,7 @@ window.loginWithFacebook = async function() {
         }
     } catch (error) {
         console.error("Facebook Login hiba:", error);
-        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés: " + error.message);
+        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés, mert ezzel az e-mail címmel már történt regisztráció: " + error.message);
     } finally {
         showLoading(false);
     }
