@@ -31,6 +31,59 @@
             flex-direction: column;
         }
 
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    margin-left: 5px;
+    cursor: help;
+    color: var(--primary);
+    font-weight: bold;
+}
+
+/* A tényleges felugró szöveg */
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #334155; /* Sötét kékesszürke */
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 12px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%; /* A szöveg felett jelenik meg */
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    text-transform: none; /* Kikapcsolja a label nagybetűsítését */
+    font-weight: normal;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Nyíl a tooltip alján */
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #334155 transparent transparent transparent;
+}
+
+/* Megjelenítés hover esetén */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+
+
         /* Nézet választó stílusa */
         .view-selector {
             display: flex;
@@ -228,15 +281,33 @@
             <h3>🌍 Játék Alapadatok</h3>
             <div class="input-grid">
                 <div class="field-group">
-                    <label>Játék címe*</label>
+                    <label>Játék címe*
+
+
+<span class="tooltip">ⓘ
+            <span class="tooltiptext">Adj meg egy vonzó nevet! Ez fog megjelenni a játéklistában.</span>
+        </span>
+
+</label>
                     <input type="text" id="title" oninput="generateId(this.value)">
                 </div>
                 <div class="field-group advanced-only">
-                    <label>Azonosító (ID)</label>
+                    <label>Azonosító (ID)
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">A játék egyedi azonosítója, a rendszer automatikusan generálja a játék nevéből.</span>
+                    </span>
+
+</label>
                     <input type="text" id="generated-id" readonly style="background:#f1f5f9;">
                 </div>
                 <div class="field-group">
-                    <label>Típus*</label>
+                    <label>Típus*
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Itt tudjuk beállítani, hogy mi legyen a játék típusa. Normal: a feladatok adott fix sorrendben egymás után következnek. Explore: minden feladat látható a térképen és a játékos dönti el melyiket milyen sorrendben teljesíti. Team: a kezdőpont és az utolsó pont fix és az összes többi köztes pontot véletlenszerűen dobja. Kids: kimondottan gyerekeknek szól, mesés történettel</span>
+                    </span>
+
+</label>
                     <select id="type">
                         <option value="normal">normal</option>
                         <option value="kids">kids</option>
@@ -247,11 +318,35 @@
             </div>
 
             <div class="input-grid">
-                <div class="field-group"><label>Helyszín</label><input type="text" id="location"></div>
-                <div class="field-group"><label>Életkor</label><input type="text" id="age"></div>
-                <div class="field-group"><label>Ár</label><input type="text" id="price"></div>
+                <div class="field-group"><label>Helyszín
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Itt fel tudjuk sorolni, hogy milyen szűrési paraméterekkel lehessen megtalálni a játékot, pl. Budapest, XIX kerület, Erdő, stb.</span>
+                    </span>
+
+</label><input type="text" id="location"></div>
+                <div class="field-group"><label>Életkor
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Itt tudjuk megadni, hogy milyen korosztálynak szól a játék.</span>
+                    </span>
+
+</label><input type="text" id="age"></div>
+                <div class="field-group"><label>Ár
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Itt tudjuk megadni, hogy az adott játék mennyibe kerül.</span>
+                    </span>
+
+</label><input type="text" id="price"></div>
                 <div class="field-group advanced-only">
-                    <label>Rejtett?</label>
+                    <label>Rejtett?
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a paraméter állítja be, hogy alapból látható legyen e a játék mindenkinek a játékválasztó oldalon vagy sem.</span>
+                    </span>
+
+</label>
                     <select id="isHidden">
                         <option value="">Nem</option>
                         <option value="1">Igen (1)</option>
@@ -261,7 +356,13 @@
 
             <div class="input-grid">
                 <div class="field-group">
-                    <label>Indulási pont Koordinátái*</label>
+                    <label>Indulási pont Koordinátái*
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a koordináta lesz a játék kezdő pontja, itt lehet majd elindítani a játékot.</span>
+                    </span>
+
+</label>
                     <div class="gps-container">
                         <input type="text" id="start-coords" placeholder="Lat, Lng">
                         <div class="gps-btn-group">
@@ -270,20 +371,74 @@
                         </div>
                     </div>
                 </div>
-                <div class="field-group"><label>Sugár (m)</label><input type="number" id="game-radius" value="15"></div>
-                <div class="field-group advanced-only"><label>Max Játék/Fő</label><input type="number" id="maxPlayCount"></div>
-                <div class="field-group advanced-only"><label>Globális Limit</label><input type="number" id="globalLimit"></div>
-                <div class="field-group"><label>Bónusz Pontok száma</label><input type="number" id="bonuspoint" placeholder="0"></div>
+                <div class="field-group"><label>Sugár (m)
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">A játék kezdő pontja ebben a sugaró körben lesz elindítható.</span>
+                    </span>
+
+</label><input type="number" id="game-radius" value="15"></div>
+                <div class="field-group advanced-only"><label>Max Játék/Fő
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a paraméter adja meg, hogy egy telefonról hányszor játszhatják végig az adott játékot.</span>
+                    </span>
+
+</label><input type="number" id="maxPlayCount"></div>
+                <div class="field-group advanced-only"><label>Globális Limit
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a paraméter adja meg, hogy összesen mennyien játszhatják le az adott játékot.</span>
+                    </span>
+
+</label><input type="number" id="globalLimit"></div>
+                <div class="field-group"><label>Bónusz Pontok száma
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Amennyiben szeretnénk véletlenszerű bonusz pontokat dobálni az adott játékhoz itt lehet megadni mennyi darabot szeretnénk. (minden pont +10 pont)</span>
+                    </span>
+
+</label><input type="number" id="bonuspoint" placeholder="0"></div>
             </div>
 
             <div class="input-grid advanced-only">
-                <div class="field-group"><label>Borítókép URL</label><input type="text" id="imageUrl"></div>
-                <div class="field-group"><label>Header Logo</label><input type="text" id="headerLogo"></div>
-                <div class="field-group"><label>Értékelés URL</label><input type="text" id="reviewUrl"></div>
+                <div class="field-group"><label>Borítókép URL
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Itt tudjuk megadni az adott játék borítóképének a file nevét. A képet külön csatolmányként kell elküldeni.</span>
+                    </span>
+
+</label><input type="text" id="imageUrl"></div>
+                <div class="field-group"><label>Header Logo
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Amennyiben egyedi céges logót szeretnénk a fejlécben, annak a file nevét kell megadni és külön csatolmányként elküldeni.</span>
+                    </span>
+
+</label><input type="text" id="headerLogo"></div>
+                <div class="field-group"><label>Értékelés URL
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Amennyiben szeretnénk egyedi értékelő lap URL-t megadni pl. google forms vagy microsoft amit a játék végeztével van lehetősége kitölteni a játékosnak itt lehet megadni.</span>
+                    </span>
+
+</label><input type="text" id="reviewUrl"></div>
             </div>
 
-            <div class="field-group" style="margin-top:10px;"><label>Kezdő Történet*</label><textarea id="description" rows="4"></textarea></div>
-            <div class="field-group"><label>Záró Történet*</label><textarea id="endStory" rows="4"></textarea></div>
+            <div class="field-group" style="margin-top:10px;"><label>Kezdő Történet*
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a történet fog megjelenni a játékválasztó lapon illetve a játék kezdésekor.</span>
+                    </span>
+
+</label><textarea id="description" rows="4"></textarea></div>
+            <div class="field-group"><label>Záró Történet*
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a történet fog megjelenni a játék végén.</span>
+                    </span>
+
+</label><textarea id="endStory" rows="4"></textarea></div>
         </div>
 
         <div id="task-groups-container"></div>
@@ -356,7 +511,13 @@
             
             <div class="input-grid">
                 <div class="field-group">
-                    <label>Pozíció (Lat, Lng)</label>
+                    <label>Pozíció (Lat, Lng)
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Itt kell megadni az adott feladathoz tartozó GPS koordinátákat az adott formátumban. A "Pozícióm gomb megnyomásával az éppen aktuális pozíciónk koordinátáját tudjuk berakni vagy a "Térkép" gomb megnyomásával manuálisan választhatunk egy pontot a térképen.</span>
+                    </span>
+
+</label>
                     <div class="gps-container">
                         <input type="text" id="t-coords-${id}" placeholder="Lat, Lng">
                         <div class="gps-btn-group">
@@ -365,25 +526,73 @@
                         </div>
                     </div>
                 </div>
-                <div class="field-group"><label>Sugár (m)</label><input type="number" id="t-radius-${id}" value="15"></div>
-                <div class="field-group"><label>Feladat Kép</label><input type="text" id="t-image-${id}" placeholder="img/task.png"></div>
+                <div class="field-group"><label>Sugár (m)
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Az adott feladat ebben a sugarú körben fog aktiválódni.</span>
+                    </span>
+
+</label><input type="number" id="t-radius-${id}" value="15"></div>
+                <div class="field-group"><label>Feladat Kép
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Az itt megadott kép fog megjelenni az adott feladatnál. Ide a kép nevét írd be és külön csatolmányként küldd el nekünk.</span>
+                    </span>
+
+</label><input type="text" id="t-image-${id}" placeholder="img/task.png"></div>
             </div>
 
-            <div class="field-group"><label>Helyszín Sztori</label><textarea id="t-story-${id}" rows="3"></textarea></div>
-            <div class="field-group"><label>Konkrét Feladat / Kérdés*</label><textarea id="t-prompt-${id}" rows="2"></textarea></div>
+            <div class="field-group"><label>Helyszín Sztori
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez a történet fog megjelenni az adot feladatpontnál.</span>
+                    </span>
+
+</label><textarea id="t-story-${id}" rows="3"></textarea></div>
+            <div class="field-group"><label>Konkrét Feladat / Kérdés*
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez az a kérdés, amit a felhasználónak meg kell válaszolnia a helyszínen.</span>
+                    </span>
+
+</label><textarea id="t-prompt-${id}" rows="2"></textarea></div>
             
             <div class="input-grid">
-                <div class="field-group"><label>Segítség 1</label><input type="text" id="t-h1-${id}"></div>
-                <div class="field-group"><label>Segítség 2</label><input type="text" id="t-h2-${id}"></div>
+                <div class="field-group"><label>Segítség 1
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez az 1. számú segítség amit a játékos ki tud kérni. Ha nem töltöd ki akkor nem lesz kikérhető segítség.</span>
+                    </span>
+
+</label><input type="text" id="t-h1-${id}"></div>
+                <div class="field-group"><label>Segítség 2
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez az 2. számú segítség amit a játékos ki tud kérni. Ha nem töltöd ki akkor nem lesz kikérhető segítség.</span>
+                    </span>
+
+</label><input type="text" id="t-h2-${id}"></div>
             </div>
 
             <div class="solution-zone">
                 <div class="field-group">
-                    <label style="color:var(--primary);">Megoldás*</label>
+                    <label style="color:var(--primary);">Megoldás*
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ez lesz a feladat megoldása. Amennyiben több jó megoldást is elfogadunk akkor ; elválasztva soroljuk fel a jó megoldásokat. Ezt fogja elfogadni a rendszer helyes válaszként.</span>
+                    </span>
+
+</label>
                     <input type="text" id="t-sol-${id}" placeholder="Helyes válasz...">
                 </div>
                 <div class="field-group">
-                    <label>Megoldás Átugrása</label>
+                    <label>Megoldás Átugrása
+
+<span class="tooltip">ⓘ
+                        <span class="tooltiptext">Ezzel a beállítással lehet megadni, hogy az adott feladathoz legyen e kikérhető megoldás vagy sem.</span>
+                    </span>
+
+
+</label>
                     <div class="radio-group">
                         <div class="radio-option"><input type="radio" name="t-dis-${id}" id="dis-n-${id}" value="" checked><label for="dis-n-${id}">🔓 Kikérhető</label></div>
                         <div class="radio-option"><input type="radio" name="t-dis-${id}" id="dis-y-${id}" value="1"><label for="dis-y-${id}">🔒 Tiltva</label></div>
