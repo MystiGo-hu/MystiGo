@@ -3,57 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MystiGo - Adatvédelem</title>
+    <title>MystiGo - Adatkezelési Tájékoztató</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Poppins', sans-serif; background: linear-gradient(180deg, #E0F7FA 0%, #FFFFFF 100%); }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(180deg, #E0F7FA 0%, #FFFFFF 100%); min-height: 100vh; }
         .content-card { background: white; border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.07); }
+        h2 { border-bottom: 2px solid #E0F7FA; padding-bottom: 0.5rem; margin-top: 1.5rem; }
     </style>
 </head>
 <body class="p-6 text-slate-800">
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-3xl mx-auto">
         <header class="text-center mb-8">
-            <img src="logo/MystiGo_logo.png" alt="MystiGo" class="h-12 mx-auto mb-4">
-            <h1 class="text-2xl font-bold text-[#0D2B45]">Adatkezelési Tájékoztató</h1>
+            <img src="logo/MystiGo_logo.png" alt="MystiGo" class="h-14 mx-auto mb-4">
+            <h1 class="text-3xl font-bold text-[#0D2B45]">Adatkezelési Tájékoztató</h1>
+            <p class="text-sm text-slate-500 mt-2">Utoljára frissítve: 2026. január</p>
         </header>
 
         <main class="content-card p-8 leading-relaxed space-y-6">
             <section>
-                <h2 class="text-lg font-bold text-[#0D2B45] mb-2">1. Az Adatkezelő adatai</h2>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">1. Az Adatkezelő adatai</h2>
                 <p><strong>Név:</strong> Topler Krisztián (magánszemély)<br>
                 <strong>E-mail:</strong> mystigo.hu@gmail.com</p>
             </section>
 
             <section>
-                <h2 class="text-lg font-bold text-[#0D2B45] mb-2">2. Kezelt adatok köre</h2>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li><strong>E-mail cím:</strong> Csak regisztrált felhasználók esetén a játékmenet mentéséhez.</li>
-                    <li><strong>Csapatnév és Avatar:</strong> A játékos azonosításához és a ranglistához.</li>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">2. Kezelt adatok köre és az adatfeldolgozás módja</h2>
+                <p class="mb-4 font-semibold text-[#008B8B]">Fontos biztonsági alapelv: Minden számítási és ellenőrzési folyamat elsődlegesen a játékos készülékén történik.</p>
+                
+                <p>A központi adatbázisban kizárólag a játékmenet folytonossága és a ranglista biztosítása érdekében tároljuk az alábbi adatokat:</p>
+                <ul class="list-disc pl-5 mt-2 space-y-2">
+                    <li><strong>E-mail cím:</strong> A felhasználó egyedi azonosítására és a profil mentésére szolgál.</li>
+                    <li><strong>Játékos név / Csapatnév:</strong> A felhasználó azonosításához és a ranglistán való megjelenítéshez.</li>
+                    <li><strong>Avatar:</strong> A profil testreszabásához és vizuális megjelenítéséhez a játékban.</li>
+                    <li><strong>Szerzett pontszám:</strong> A globális rangsor és a játékbeli haladás rögzítéséhez.</li>
                 </ul>
-                <p class="mt-4 p-3 bg-blue-50 border-l-4 border-[#00CED1] text-sm italic">
-                    <strong>GPS adatkezelés:</strong> A játék használja a készülék GPS pozícióját, de ezt az adatot az adatbázisban NEM tároljuk el, kizárólag a feladatok helyszíni ellenőrzésére használjuk valós időben.
-                </p>
+
+                <div class="mt-6 p-4 bg-blue-50 border-l-4 border-[#00CED1] rounded-r-lg">
+                    <h3 class="font-bold text-[#0D2B45] mb-1">GPS és lokáció adatok védelme:</h3>
+                    <p class="text-sm italic">
+                        A játék küldetéseihez szükséges GPS-alapú helyszínellenőrzés <strong>teljes egészében a játékos készülékén (kliensoldalon) történik</strong>. A pontos GPS koordináták <strong>semmilyen esetben sem kerülnek továbbításra a távoli szerverre</strong>, azokat nem látjuk, nem gyűjtjük és nem tároljuk el. A rendszer felé csak az ellenőrzés sikerességének ténye (pl. "feladat teljesítve") kerül mentésre.
+                    </p>
+                </div>
             </section>
 
             <section>
-                <h2 class="text-lg font-bold text-[#0D2B45] mb-2">3. Az adatkezelés célja és jogalapja</h2>
-                <p>Az adatkezelés célja a szolgáltatás biztosítása. Jogalapja a Felhasználó önkéntes hozzájárulása a regisztráció során.</p>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">3. Helyi adattárolás (LocalStorage)</h2>
+                <p>A játék a felhasználói élmény javítása érdekében a böngésző <strong>LocalStorage</strong> funkcióját használja. Ez lehetővé teszi, hogy az eszköz emlékezzen a bejelentkezett profilra és a játék aktuális állapotára, így az oldal frissítése vagy a böngésző bezárása után sem vész el a haladás. Ezek az adatok nem hagyják el az Ön készülékét.</p>
             </section>
 
             <section>
-                <h2 class="text-lg font-bold text-[#0D2B45] mb-2">4. Adatok tárolása és törlése</h2>
-                <p>Az adatokat a Google Firebase biztonságos szerverein tároljuk. A Felhasználó bármikor kérheti adatai törlését az Üzemeltetőnek küldött e-mail útján.</p>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">4. Az adatkezelés célja és jogalapja</h2>
+                <p>Az adatkezelés célja a MystiGo interaktív játék szolgáltatásának biztosítása (felhasználói profil kezelése, eredmények mentése, ranglista). Jogalapja a Felhasználó önkéntes, kifejezett hozzájárulása, melyet a regisztrációval vagy a játék megkezdésével ad meg.</p>
             </section>
 
             <section>
-                <h2 class="text-lg font-bold text-[#0D2B45] mb-2">5. Felhasználói jogok</h2>
-                <p>Önnek joga van tájékoztatást kérni adatai kezeléséről, kérheti azok helyesbítését vagy törlését.</p>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">5. Adatok tárolása és technikai szolgáltatók</h2>
+                <p>Az adatokat biztonságos környezetben kezeljük, technikai partnereink bevonásával:</p>
+                <ul class="list-disc pl-5 mt-2 space-y-2">
+                    <li><strong>Google Firebase:</strong> A felhasználói hitelesítést és az adatbázis felhőalapú tárolását végzi.</li>
+                    <li><strong>Google Fonts / Tailwind:</strong> A játék megjelenítéséhez szükséges grafikai elemek és betűtípusok betöltését biztosítják.</li>
+                </ul>
+                <p class="mt-2 italic">Az adatokat addig tároljuk, amíg a felhasználó nem kéri azok törlését.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">6. Felhasználói jogok és törlés</h2>
+                <p>Önnek joga van:</p>
+                <ul class="list-disc pl-5 mt-2">
+                    <li>Tájékoztatást kérni kezelt adatairól.</li>
+                    <li>Kérni adatai helyesbítését vagy módosítását.</li>
+                    <li><strong>Kérni adatai végleges törlését</strong> az Adatkezelőnek küldött e-mail útján.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-[#0D2B45] mb-3">7. Gyermekek védelme</h2>
+                <p>A játék használata 14 éven aluliak számára szülői felügyelet vagy hozzájárulás mellett ajánlott. Amennyiben tudomást szerzünk arról, hogy megfelelő hozzájárulás nélkül gyűjtöttünk adatot kiskorútól, azt haladéktalanul töröljük.</p>
             </section>
         </main>
 
-        <footer class="mt-8 text-center">
-            <a href="index2.html" class="inline-block bg-[#00CED1] text-white font-bold py-3 px-8 rounded-full shadow-lg">Vissza a játékhoz</a>
+        <footer class="mt-8 mb-12 text-center">
+            <a href="index2.html" class="inline-block bg-[#00CED1] hover:bg-[#00B4B4] text-white font-bold py-3 px-10 rounded-full shadow-lg transition-all transform hover:scale-105">
+                Vissza a játékhoz
+            </a>
         </footer>
     </div>
 </body>
