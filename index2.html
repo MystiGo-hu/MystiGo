@@ -983,7 +983,14 @@
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider flex-1">Bejelentkezés:</span>
             <div class="flex gap-2">
                 <button id="google-login-btn" onclick="loginWithGoogle()" class="w-10 h-10 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm"><img src="logo/google_logo.svg" class="w-7 h-7"></button>
-                <button id="email-auth-btn" onclick="openEmailAuthModal()" 
+                
+<button id="facebook-login-btn" onclick="loginWithFacebook()" 
+            class="w-10 h-10 flex items-center justify-center bg-white border border-gray-100 rounded-lg shadow-sm">
+        <img src="logo/facebook_logo.png" class="w-7 h-7">
+    </button>
+
+
+<button id="email-auth-btn" onclick="openEmailAuthModal()" 
                         class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all active:scale-95" 
                         title="Email bejelentkezés">
                     <svg class="w-6 h-6 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -9535,6 +9542,38 @@ window.saveUserProfile = async (newName, avatarIndex) => {
         }
     }
 };
+
+
+
+
+window.loginWithFacebook = async function() {
+    // Ellenőrizzük, hogy a Firebase Auth betöltött-e
+    if (!window.auth || !window.FacebookAuthProvider) {
+        console.error("Firebase Auth modul nem található.");
+        return;
+    }
+
+    const provider = new window.FacebookAuthProvider();
+    
+    try {
+        showLoading(true);
+        const result = await window.signInWithPopup(window.auth, provider);
+        console.log("Sikeres Facebook belépés:", result.user);
+        
+        // Frissítjük a UI-t, ahogy a Google belépésnél is tennéd
+        if (typeof window.handleSuccessfulLogin === 'function') {
+            window.handleSuccessfulLogin(result.user);
+        }
+    } catch (error) {
+        console.error("Facebook Login hiba:", error);
+        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés: " + error.message);
+    } finally {
+        showLoading(false);
+    }
+};
+
+
+
 
         // --- GOOGLE BEJELENTKEZÉS (Globálissá tétel a window-val) ---
         window.loginWithGoogle = async () => {
