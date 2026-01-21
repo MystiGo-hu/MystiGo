@@ -9569,7 +9569,7 @@ window.loginWithFacebook = async function() {
         }
     } catch (error) {
         console.error("Facebook Login hiba:", error);
-        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés: " + error.message);
+        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés. Próbáld meg Google, vagy az e-mail cím alapú regisztrációt: " + error.message);
     } finally {
         showLoading(false);
     }
@@ -9778,7 +9778,7 @@ if (typeof window.updateInstantButtonEligibility === 'function') {
                 signInAnonymously(auth).catch(console.error);
                 wasRegisteredUser = false; 
             }
-        }, 5000);
+        }, 500);
     }
 }
 });
