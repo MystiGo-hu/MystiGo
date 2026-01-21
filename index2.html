@@ -9552,35 +9552,25 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 window.loginWithFacebook = async function() {
-    if (!window.auth || !window.FacebookAuthProvider) {
-        console.error("Firebase Auth modul nem található.");
-        return;
-    }
+    if (!window.auth) return;
     const provider = new window.FacebookAuthProvider();
-    
-    // Mobil eszköz detektálása (iPhone, Android telefonok)
-    const isMobilePhone = /iPhone|Android/i.test(navigator.userAgent) && !/iPad/i.test(navigator.userAgent);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && !/iPad/i.test(navigator.userAgent);
 
     try {
         showLoading(true);
-        if (isMobilePhone) {
-            // MOBILON: Átirányítást használunk a popup helyett
+        if (isMobile) {
             await window.signInWithRedirect(window.auth, provider);
         } else {
-            // ASZTALIN / IPADEN: Marad a megszokott felugró ablak
-            const result = await window.signInWithPopup(window.auth, provider);
-            console.log("Sikeres Facebook belépés:", result.user);
-            if (typeof window.handleSuccessfulLogin === 'function') {
-                window.handleSuccessfulLogin(result.user);
-            }
+            await window.signInWithPopup(window.auth, provider);
+            // Asztali böngészőben a popup után NEM hívunk showLoading(false)-t, 
+            // mert az onAuthStateChanged automatikusan lefut és megteszi.
         }
     } catch (error) {
-        console.error("Facebook Login hiba:", error);
+        console.error("Facebook login hiba:", error);
         showLoading(false);
-        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés: " + error.message);
+        alert("Facebook hiba: " + error.message);
     }
 };
-
 
 
 
@@ -9655,16 +9645,17 @@ window.logout = async () => {
 
 // Átirányításból való visszatérés kezelése
 getRedirectResult(auth).then((result) => {
-    if (result && result.user) {
-        console.log("Sikeres belépés átirányítás után:", result.user);
+    if (result) {
+        console.log("Sikeres redirect login.");
     }
+    // Nem hívunk itt showLoading(false)-t, mert az onAuthStateChanged meg fogja tenni.
 }).catch((error) => {
     console.error("Redirect hiba:", error);
-    if (error.code === 'auth/account-exists-with-different-credential') {
-        showMessage("Hiba", "Ezzel az e-mail címmel már regisztráltál egy másik módszerrel (pl. Google).");
+    showLoading(false);
+    if (error.code !== 'auth/cancelled-query') {
+        alert("Hiba a belépés során: " + error.message);
     }
 });
-
 
 onAuthStateChanged(auth, (user) => {
     const previewVerifiedBadge = document.getElementById('preview-verified-badge');
@@ -9679,128 +9670,87 @@ onAuthStateChanged(auth, (user) => {
     if (profileUnsubscribe) { profileUnsubscribe(); profileUnsubscribe = null; }
 
     if (user) {
-    // --- FELHASZNÁLÓ VAN (Közös rész) ---
-    isAuthProcessActive = false;
-    isExplicitLogout = false;
+        // --- FELHASZNÁLÓ VAN (Közös rész) ---
+        isAuthProcessActive = false;
+        isExplicitLogout = false;
+        wasRegisteredUser = true; // Jelöljük, hogy volt sikeres bejelentkezés
 
-
-if (typeof window.updateAvatarPreview === 'function') {
+        if (typeof window.updateAvatarPreview === 'function') {
             window.updateAvatarPreview();
         }
 
-
-    // 1. Dinamikus útvonal meghatározása
-    // Itt döntjük el, melyik mappát kell figyelni: users/anonym VAGY users/registered
-    const typeFolder = user.isAnonymous ? 'anonym' : 'registered';
-    
-    // 2. Profil figyelése MINDENKINEK (Vendégnek is!)
-    // Így ha a vendég szerzett pontot vagy nevet választott, az itt is megjelenik
-    const profileRef = ref(db, `users/${typeFolder}/${user.uid}/profile`);
-    
-    profileUnsubscribe = onValue(profileRef, (snapshot) => {
-        const profile = snapshot.val() || {};
+        // 1. Dinamikus útvonal meghatározása
+        const typeFolder = user.isAnonymous ? 'anonym' : 'registered';
         
-        // Pontszám frissítése
-        const scoreVal = document.getElementById('user-total-score');
-        if (scoreVal) scoreVal.textContent = profile.totalScore || 0;
-        
-        // Név kezelése: Ha van mentett "teamName", azt használjuk.
-        // Ha nincs, akkor a rendszer alapértelmezett (Vendég Játékos vagy Google név).
-        let displayNameToUse = profile.teamName;
-        if (!displayNameToUse) {
-             displayNameToUse = user.isAnonymous ? "" : (user.displayName || "Játékos");
-        }
-        
-        // Név kiírása a fejlécbe
-       if (nameDisplay) nameDisplay.textContent = displayNameToUse;
+        // 2. Profil figyelése
+        const profileRef = ref(db, `users/${typeFolder}/${user.uid}/profile`);
+        profileUnsubscribe = onValue(profileRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            
+            // UI Frissítése az adatbázisból
+            if (nameDisplay) nameDisplay.textContent = data.name || (user.isAnonymous ? "Vendég" : "Játékos");
+            if (nameInput) nameInput.value = data.name || "";
+            
+            const scoreVal = data.totalScore || 0;
+            const scoreElement = document.getElementById('user-score-val');
+            if (scoreElement) scoreElement.textContent = scoreVal;
 
-// Input mező kezelése
-if (nameInput) {
-    // Ha regisztrált a felhasználó (!user.isAnonymous), akkor kényszerítjük a profilnevet (felülírjuk az anonymot)
-    // Ha csak vendég (anonym), akkor csak akkor írjuk be, ha még üres a mező
-    if (!user.isAnonymous) {
-        nameInput.value = displayNameToUse;
-    } else if (nameInput.value === "") {
-        nameInput.value = displayNameToUse;
-    }
-
-nameInput.dispatchEvent(new Event('input'));
-    
-    // VAGY hívhatod közvetlenül a már létező frissítő függvényedet is:
-    if (typeof window.updateAvatarPreview === 'function') {
-        window.updateAvatarPreview();
-    }
-
-}
-
-        // Avatar betöltése
-        if (profile.avatar) {
-    // A sima updateAvatarPreview helyett a selectAvatar-t hívjuk, 
-    // mert az a rejtett <select> mezőt is feltölti!
-    if (typeof window.selectAvatar === 'function') {
-        window.selectAvatar(profile.avatar);
-    } else {
-        // Fallback, ha a modul még nem érné el a globális függvényt
-        localStorage.setItem('mystigo_pref_teamAvatar', profile.avatar);
-        window.updateAvatarPreview();
-    }
-}
-
-if (typeof window.updateInstantButtonEligibility === 'function') {
-        window.updateInstantButtonEligibility();
-    }
-
-    });
-
-    // 3. UI Különbségek (Gombok, Badgek)
-    if (!user.isAnonymous) {
-        // --- REGISZTRÁLT SPECIFIKUS UI ---
-        wasRegisteredUser = true; 
-        console.log("Regisztrált user aktív:", user.email);
-
-        if (previewVerifiedBadge) previewVerifiedBadge.classList.add('active');
-        if (scoreDisplay) scoreDisplay.classList.remove('hidden'); // Pontszám látszik
-        if (logoutBtn) logoutBtn.classList.remove('hidden');       // Kilépés gomb látszik
-        if (btnGroup) btnGroup.classList.add('hidden');            // Belépés gombok rejtve
-        if (authStatusLabel) authStatusLabel.textContent = "Belépve:";
-        
-    } else {
-        // --- VENDÉG SPECIFIKUS UI ---
-        console.log("Vendég mód aktív.");
-        
-        if (previewVerifiedBadge) previewVerifiedBadge.classList.remove('active');
-        
-
-        // FONTOS: Most már a vendégnek is mutatjuk a pontszámot, ha gyűjtött!
-        if (scoreDisplay) scoreDisplay.classList.remove('hidden'); 
-        
-        if (logoutBtn) logoutBtn.classList.add('hidden');          // Nincs kilépés gomb
-        if (btnGroup) btnGroup.classList.remove('hidden');         // Vannak belépés gombok
-        if (authStatusLabel) authStatusLabel.textContent = "Vendég";
-        
-        // Megjegyzés: A 'nameDisplay'-t már nem írjuk felül itt fix szöveggel, 
-        // mert a fenti 'onValue' listener szépen beállítja a választott nevet.
-    }
-
-} else {
-    // --- NINCS FELHASZNÁLÓ (Ez a rész változatlan marad a kódodban) ---
-    // Ide másold vissza a te eredeti else ágad tartalmát (wasRegisteredUser ellenőrzés, stb.)
-    // ...
-    if (wasRegisteredUser && !isExplicitLogout) {
-        console.warn("Kapcsolat megszakadt...");
-        return; 
-    }
-    if (!isAuthProcessActive) {
-        setTimeout(() => {
-            if (!auth.currentUser && !isAuthProcessActive) {
-                if (wasRegisteredUser && !isExplicitLogout) return;
-                console.log("Belépés vendégként...");
-                signInAnonymously(auth).catch(console.error);
-                wasRegisteredUser = false; 
+            // Badge kezelés
+            if (previewVerifiedBadge) {
+                if (!user.isAnonymous) {
+                    previewVerifiedBadge.classList.add('active');
+                } else {
+                    previewVerifiedBadge.classList.remove('active');
+                }
             }
-        }, 500);
+
+            // Töltés leállítása, ha az adatok megérkeztek
+            showLoading(false);
+        });
+
+        // UI elemek átváltása
+        document.getElementById('auth-section')?.classList.add('hidden');
+        document.getElementById('game-section')?.classList.remove('hidden');
+
+        if (user.isAnonymous) {
+            // VENDÉG SPECIFIKUS UI
+            console.log("Vendég mód aktív.");
+            if (scoreDisplay) scoreDisplay.classList.remove('hidden'); 
+            if (logoutBtn) logoutBtn.classList.add('hidden');
+            if (btnGroup) btnGroup.classList.remove('hidden');
+            if (authStatusLabel) authStatusLabel.textContent = "Vendég";
+        } else {
+            // REGISZTRÁLT SPECIFIKUS UI
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+            if (btnGroup) btnGroup.classList.add('hidden');
+            if (authStatusLabel) authStatusLabel.textContent = "Profil";
+        }
+
+    } else {
+        // --- NINCS FELHASZNÁLÓ ---
+        
+        // Ha nem szándékos kijelentkezés történt, ne ugorjon rögtön a loginra (szakadás védelem)
+        if (wasRegisteredUser && !isExplicitLogout) {
+            console.warn("Kapcsolat megszakadt, várakozás...");
+            // Itt ne állítsuk le a homokórát, mert lehet hogy visszacsatlakozik
+            return; 
+        }
+
+        // Tényleges kijelentkezés vagy alapállapot
+        document.getElementById('auth-section')?.classList.remove('hidden');
+        document.getElementById('game-section')?.classList.add('hidden');
+        
+        if (nameDisplay) nameDisplay.textContent = "Vendég";
+        if (scoreDisplay) scoreDisplay.classList.add('hidden');
+        
+        // Homokóra leállítása kijelentkezéskor
+        showLoading(false);
     }
-}
+
+    // BIZTONSÁGI IDŐZÍTŐ: Ha 5 másodperc után még mindig kint lenne a homokóra, tüntessük el
+    setTimeout(() => {
+        if (typeof showLoading === 'function') showLoading(false);
+    }, 5000);
 });
 
                
