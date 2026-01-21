@@ -726,7 +726,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.68
+       v1.2.69
 
    </span>
 
@@ -9194,7 +9194,7 @@ window.startInstantAdventure = async function() {
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue, orderByChild, equalTo } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail} 
+    import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signInWithRedirect, getRedirectResult, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail} 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     // ✅ FONTOS: Ide a SAJÁT konfigurációdat másold be!
@@ -9221,6 +9221,8 @@ window.startInstantAdventure = async function() {
 	window.FacebookAuthProvider = FacebookAuthProvider;
 	window.GoogleAuthProvider = GoogleAuthProvider;
 	window.signInWithPopup = signInWithPopup;
+	window.signInWithRedirect = signInWithRedirect;
+	window.getRedirectResult = getRedirectResult;
 	window.isPopupActive = false;
         window.ref = ref; 
         window.get = get; 
@@ -9550,28 +9552,32 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 window.loginWithFacebook = async function() {
-    // Ellenőrizzük, hogy a Firebase Auth betöltött-e
     if (!window.auth || !window.FacebookAuthProvider) {
         console.error("Firebase Auth modul nem található.");
         return;
     }
-
     const provider = new window.FacebookAuthProvider();
     
+    // Mobil eszköz detektálása (iPhone, Android telefonok)
+    const isMobilePhone = /iPhone|Android/i.test(navigator.userAgent) && !/iPad/i.test(navigator.userAgent);
+
     try {
         showLoading(true);
-        const result = await window.signInWithPopup(window.auth, provider);
-        console.log("Sikeres Facebook belépés:", result.user);
-        
-        // Frissítjük a UI-t, ahogy a Google belépésnél is tennéd
-        if (typeof window.handleSuccessfulLogin === 'function') {
-            window.handleSuccessfulLogin(result.user);
+        if (isMobilePhone) {
+            // MOBILON: Átirányítást használunk a popup helyett
+            await window.signInWithRedirect(window.auth, provider);
+        } else {
+            // ASZTALIN / IPADEN: Marad a megszokott felugró ablak
+            const result = await window.signInWithPopup(window.auth, provider);
+            console.log("Sikeres Facebook belépés:", result.user);
+            if (typeof window.handleSuccessfulLogin === 'function') {
+                window.handleSuccessfulLogin(result.user);
+            }
         }
     } catch (error) {
         console.error("Facebook Login hiba:", error);
-        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés, mert ezzel az e-mail címmel már történt regisztráció: " + error.message);
-    } finally {
         showLoading(false);
+        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés: " + error.message);
     }
 };
 
@@ -9645,6 +9651,20 @@ window.logout = async () => {
 	let profileUnsubscribe = null;  // ÚJ: segít leállítani a régi adatfigyelőt
 	let isExplicitLogout = false;   // Jelezzük, ha a felhasználó AKART kilépni
 	let wasRegisteredUser = false;  // Megjegyezzük, ha regisztrált fiókban voltunk
+
+
+// Átirányításból való visszatérés kezelése
+getRedirectResult(auth).then((result) => {
+    if (result && result.user) {
+        console.log("Sikeres belépés átirányítás után:", result.user);
+    }
+}).catch((error) => {
+    console.error("Redirect hiba:", error);
+    if (error.code === 'auth/account-exists-with-different-credential') {
+        showMessage("Hiba", "Ezzel az e-mail címmel már regisztráltál egy másik módszerrel (pl. Google).");
+    }
+});
+
 
 onAuthStateChanged(auth, (user) => {
     const previewVerifiedBadge = document.getElementById('preview-verified-badge');
