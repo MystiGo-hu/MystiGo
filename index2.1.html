@@ -9552,43 +9552,48 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 window.loginWithFacebook = function() {
-    // Ellenőrizzük, hogy létezik-e az auth objektum
-    if (!window.auth) {
-        console.error("Firebase Auth nincs inicializálva!");
-        return;
-    }
+        const provider = new FacebookAuthProvider();
+        
+        // Mobil eszköz detektálása
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    const provider = new FacebookAuthProvider();
-    
-    // Mobil eszköz detektálása (egyszerű, de hatékony módszer)
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        console.log("Facebook login indítása. Mobil eszköz?", isMobile);
 
-    if (isMobile) {
-        console.log("Mobil érzékelve: Átirányításos bejelentkezés (Redirect)...");
-        // Mobilon átirányítást használunk, ami stabilabb
-        signInWithRedirect(window.auth, provider);
-    } else {
-        console.log("Asztali gép érzékelve: Felugró ablakos bejelentkezés (Popup)...");
-        // Desktopon marad a popup, mert kényelmesebb
-        signInWithPopup(window.auth, provider)
-            .then((result) => {
-                console.log("Sikeres Facebook login (Popup):", result.user);
-                // Itt hívd meg a profil mentését, ha szükséges
-                // window.saveUserProfile(..., ...);
-                alert("Sikeres bejelentkezés!");
-                location.reload(); // Opcionális: oldal frissítése a profil betöltéséhez
-            })
-            .catch((error) => {
-                console.error("Hiba a Facebook belépésnél:", error);
-                if (error.code === 'auth/popup-closed-by-user') {
-                    alert("A bejelentkezési ablak be lett zárva. Kérlek, próbáld újra!");
-                } else {
-                    alert("Hiba történt: " + error.message);
-                }
-            });
-    }
-};
+        if (isMobile) {
+            // Mobilon ÁTIRÁNYÍTÁS (Redirect)
+            // Ez újratölti az oldalt, ezért kell a lenti getRedirectResult
+            signInWithRedirect(auth, provider);
+        } else {
+            // Asztali gépen POPUP
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    console.log("Sikeres asztali login:", result.user);
+                    // Itt nem kell reload, az onAuthStateChanged majd kezeli
+                })
+                .catch((error) => {
+                    console.error("Popup hiba:", error);
+                    alert("Hiba: " + error.message);
+                });
+        }
+    };
 
+    // --- VISSZATÉRÉS KEZELÉSE (MOBILON) ---
+    // Ez a kód AZONNAL lefut, amint az oldal betöltődik
+    getRedirectResult(auth)
+        .then((result) => {
+            if (result) {
+                // Ez csak akkor fut le, ha épp most jöttünk vissza a Facebookról
+                console.log("Sikeres visszatérés Facebook redirectből:", result.user);
+                // Nem kell csinálni semmit, mert az onAuthStateChanged lejjebb úgyis beállítja a UI-t
+            }
+        })
+        .catch((error) => {
+            console.error("Redirect hiba:", error);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                 // Ha konkrét hiba van (pl. domain tiltás), kiírjuk
+                 alert("Facebook hiba: " + error.message);
+            }
+        });
 
 
         // --- GOOGLE BEJELENTKEZÉS (Globálissá tétel a window-val) ---
