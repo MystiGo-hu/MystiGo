@@ -6413,13 +6413,13 @@ window.generateBonusPoints = async function(count) {
     // A lekérdezés ugyanaz marad
    const query = `[out:json][timeout:15]; (
     // PRÉMIUM PONTOK (ezeket akarjuk leginkább)
-    node(around:1200,${centerLat},${centerLng})["historic"~"monument|memorial|statue|castle|ruins"];
-    node(around:1200,${centerLat},${centerLng})["tourism"~"viewpoint|artwork|museum|attraction"];
-    node(around:1000,${centerLat},${centerLng})["amenity"~"fountain|theatre"];
+    node(around:500,${centerLat},${centerLng})["historic"~"monument|memorial|statue|castle|ruins"];
+    node(around:500,${centerLat},${centerLng})["tourism"~"viewpoint|artwork|museum|attraction"];
+    node(around:500,${centerLat},${centerLng})["amenity"~"fountain|theatre"];
 
     // TARTALÉK PONTOK (csak ha nincs más)
-    node(around:800,${centerLat},${centerLng})["amenity"="bench"];
-    node(around:800,${centerLat},${centerLng})["highway"="crossing"];
+    node(around:500,${centerLat},${centerLng})["amenity"="bench"];
+    node(around:500,${centerLat},${centerLng})["highway"="crossing"];
 ); out body 100;`;
     
     // Tükörszerverek listája
@@ -6483,8 +6483,8 @@ window.generateBonusPoints = async function(count) {
         if (candidates.length < count) {
             while (candidates.length < count) {
                 candidates.push({
-                    lat: centerLat + (Math.random() - 0.5) * 0.01,
-                    lon: centerLng + (Math.random() - 0.5) * 0.01, // OSM formátum: lon
+                    lat: centerLat + (Math.random() - 0.5) * 0.0045,
+                    lon: centerLng + (Math.random() - 0.5) * 0.0045, // OSM formátum: lon
                     id: `random_${Math.random()}`,
                     tags: {}
                 });
@@ -6519,8 +6519,8 @@ window.generateBonusPoints = async function(count) {
         for (let i = 0; i < count; i++) {
             appState.bonusPoints.push({
                 id: `fallback_bonus_${i}`,
-                lat: centerLat + (Math.random() - 0.5) * 0.008,
-                lng: centerLng + (Math.random() - 0.5) * 0.008, // Itt lng-t használunk
+                lat: centerLat + (Math.random() - 0.5) * 0.0045,
+                lng: centerLng + (Math.random() - 0.5) * 0.0045, // Itt lng-t használunk
                 collected: false,
                 score: 10,
                 name: "Bónusz pont"
