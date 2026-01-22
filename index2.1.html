@@ -9618,19 +9618,23 @@ window.loginWithFacebook = async function() {
  * Ez a függvény figyeli, hogy épp most tértünk-e vissza a Facebookról
  */
 window.handleFirebaseRedirectResult = async function() {
-    if (!window.auth) return;
+    if (!window.auth || !window.getRedirectResult) return;
 
     try {
-        const result = await getRedirectResult(window.auth);
+        const result = await window.getRedirectResult(window.auth);
         if (result && result.user) {
-            console.log("Sikeres visszatérés a Facebookról:", result.user);
-            window.handleSuccessfulLogin(result.user);
+            console.log("Sikeres belépés:", result.user);
+            if (typeof window.handleSuccessfulLogin === 'function') {
+                window.handleSuccessfulLogin(result.user);
+            }
         }
     } catch (error) {
-        console.error("Redirect feldolgozási hiba:", error);
-        // Ha nem csak a felhasználó zárta be, jelezzük
-        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-            alert("Hiba a visszatéréskor: " + error.message);
+        // EZ FONTOS: Mobilon így fogjuk látni, mi a baj!
+        console.error("Redirect hiba:", error);
+        
+        // Bizonyos hibákat (pl. ha csak simán betölt az oldal de nem volt login) ignorálunk
+        if (error.code && error.code !== 'auth/popup-closed-by-user') {
+            alert("Facebook hiba üzenet: " + error.message + " (Kód: " + error.code + ")");
         }
     }
 };
