@@ -9578,67 +9578,67 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 window.loginWithFacebook = async function() {
-    // Ellenőrizzük, hogy a Firebase Auth betöltött-e
     if (!window.auth || !window.FacebookAuthProvider) {
-        console.error("Firebase Auth modul nem található.");
+        showMessage("Hiba", "A bejelentkezési modul még nem töltődött be. Várj egy pillanatot!");
         return;
     }
 
     const provider = new window.FacebookAuthProvider();
-    
-    // Mobil eszközök detektálása (iPhone, iPad, Android)
+    // Fontos: Engedélyezzük az email lekérést
+    provider.addScope('email');
+    provider.addScope('public_profile');
+
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     try {
         showLoading(true);
-
         if (isMobile) {
-            // MOBILON: Átirányítás (ez nem akad el a popup blokkolón)
-            console.log("Mobil Facebook belépés indítása (Redirect)...");
+            console.log("Mobil Redirect indítása...");
+            // Mobilon ELŐSZÖR beállítjuk a perzisztenciát, hogy ne vesszen el a munkamenet
             await window.signInWithRedirect(window.auth, provider);
         } else {
-            // ASZTALI GÉPEN: Marad a jelenlegi popup mód
+            console.log("Asztali Popup indítása...");
             const result = await window.signInWithPopup(window.auth, provider);
-            console.log("Sikeres Facebook belépés:", result.user);
-            
-            if (typeof window.handleSuccessfulLogin === 'function') {
+            if (result && result.user) {
                 window.handleSuccessfulLogin(result.user);
             }
             showLoading(false);
         }
     } catch (error) {
-        console.error("Facebook Login hiba:", error);
+        console.error("FB Login error:", error);
         showLoading(false);
-        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés. Próbáld meg Google, vagy az e-mail cím alapú regisztrációt: " + error.message);
+        // Mobilon is látható hibaüzenet
+        alert("Facebook hiba: " + error.message);
     }
 };
 
-
-
+// Visszatérés kezelése - EZT AZONNAL MEG KELL HÍVNI
 window.handleFirebaseRedirectResult = async function() {
-    if (!window.auth || !window.getRedirectResult) return;
-
+    if (!window.auth) return;
+    
     try {
         const result = await window.getRedirectResult(window.auth);
         if (result && result.user) {
-            console.log("Sikeres visszatérés az átirányításból:", result.user);
-            if (typeof window.handleSuccessfulLogin === 'function') {
-                window.handleSuccessfulLogin(result.user);
-            }
+            console.log("Sikeres Redirect login:", result.user);
+            window.handleSuccessfulLogin(result.user);
         }
     } catch (error) {
-        console.error("Redirect feldolgozási hiba:", error);
+        console.error("Redirect processing error:", error);
+        // Itt ne adjunk alertet minden megnyitáskor, csak ha tényleg hiba volt a loginban
+        if (error.code !== 'auth/popup-closed-by-user') {
+             console.log("Nem történt bejelentkezés vagy hiba történt.");
+        }
     }
 };
 
-
-
-setTimeout(() => {
-    if (window.isFirebaseModuleLoaded) {
+// Azonnali indítás a modul betöltésekor (A setTimeout helyett)
+// Ez figyeli, amint az 'auth' objektum elérhetővé válik
+const initRedirectCheck = setInterval(() => {
+    if (window.auth) {
+        clearInterval(initRedirectCheck);
         window.handleFirebaseRedirectResult();
     }
-}, 1000);
-
+}, 100);
 
 
         // --- GOOGLE BEJELENTKEZÉS (Globálissá tétel a window-val) ---
