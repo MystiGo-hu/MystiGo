@@ -605,8 +605,9 @@
                 
         /* Középső logó méretének kicsinyítése a Kalandválasztó oldalon */
         #main-header-logo {
-            max-width: 90px; /* Elegendő helyet hagy az oldalsó képeknek és az alatta lévő tartalomnak */
-            height: auto;
+            max-height: 90px;
+	    width: auto; /* Elegendő helyet hagy az oldalsó képeknek és az alatta lévő tartalomnak */
+            
         }
         
         /* --- LANDING PAGE (INDÍTÓ OLDAL) VISSZAÁLLÍTOTT STÍLUSAI --- */
@@ -726,7 +727,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.68
+       v1.2.69_dev
 
    </span>
 
@@ -1211,10 +1212,7 @@
         <p id="target-address-display" class="text-[9px] text-gray-500 italic text-center hidden"></p>
     </div>
 
-    <button id="instant-adventure-btn" 
-        onclick="startInstantAdventure()" 
-        disabled 
-        class="w-full py-3 bg-white border-2 border-brand-orange text-brand-orange hover:bg-orange-500 hover:text-white font-extrabold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
+    <button id="instant-adventure-btn" onclick="startInstantAdventure()" class="w-full py-3 bg-white border-2 border-brand-orange text-brand-orange hover:bg-orange-500 hover:text-white font-extrabold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
         🎲 Kaland Generálása
     </button>
 
@@ -3121,7 +3119,7 @@ window.updateInstantButtonEligibility = function() {
     // Feltétel: név legalább 2 karakter ÉS van választott avatar
     const isValid = name.length >= 2 && avatar !== "" && avatar !== null;
     
-    btn.disabled = !isValid;
+    
 };
 
 
@@ -8965,11 +8963,39 @@ function getPointPriority(poi) {
  * AZONNALI KALAND GENERÁTOR (JSON struktúrához igazítva)
  */
 window.startInstantAdventure = async function() {
+    
     const btn = document.getElementById('instant-adventure-btn');
     const diffSelect = document.getElementById('instant-difficulty-select');
     const catSelect = document.getElementById('instant-category-select');
     const countSelect = document.getElementById('instant-task-count-select');
+    const nameInput = document.getElementById('team-name-input');
+      const avatarSelect = document.getElementById('team-avatar-select');
     if (!btn) return;
+
+const val = nameInput.value.trim();
+
+
+// 1. Név ellenőrzése (ugyanazzal a logikával, mint a normál játéknál)
+    const validation = window.validateTeamName(val);
+    if (!validation.valid) {
+        showMessage('Figyelem', validation.error, () => {
+            nameInput.focus();
+        });
+        return; // Itt megáll a folyamat, nem generál kalandot
+    }
+
+    // 2. Avatar ellenőrzése
+    if (!avatarSelect.value || avatarSelect.value === "") {
+        showMessage('Figyelem', "A kaland indításához kérlek válassz egy karaktert (avatart) is!", () => {
+             // Megnyitjuk a profil szerkesztőt, ha nincs kiválasztva avatar
+             const profileContent = document.getElementById('user-profile-content');
+             if (profileContent && profileContent.classList.contains('hidden')) {
+                 toggleUserProfile();
+             }
+        });
+        return; // Itt is megáll
+    }
+
 
     // Folyamatban lévő mentés ellenőrzése
     const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
@@ -9221,8 +9247,8 @@ window.startInstantAdventure = async function() {
 	window.FacebookAuthProvider = FacebookAuthProvider;
 	window.GoogleAuthProvider = GoogleAuthProvider;
 	window.signInWithPopup = signInWithPopup;
-	window.signInWithRedirect = signInWithRedirect; // Fontos!
-	window.getRedirectResult = getRedirectResult;   // Fontos!
+	window.signInWithRedirect = signInWithRedirect;
+	window.getRedirectResult = getRedirectResult;
 	window.isPopupActive = false;
         window.ref = ref; 
         window.get = get; 
@@ -9551,49 +9577,68 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 
-window.loginWithFacebook = function() {
-        const provider = new FacebookAuthProvider();
-        
-        // Mobil eszköz detektálása
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+window.loginWithFacebook = async function() {
+    // Ellenőrizzük, hogy a Firebase Auth betöltött-e
+    if (!window.auth || !window.FacebookAuthProvider) {
+        console.error("Firebase Auth modul nem található.");
+        return;
+    }
 
-        console.log("Facebook login indítása. Mobil eszköz?", isMobile);
+    const provider = new window.FacebookAuthProvider();
+    
+    // Mobil eszközök detektálása (iPhone, iPad, Android)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    try {
+        showLoading(true);
 
         if (isMobile) {
-            // Mobilon ÁTIRÁNYÍTÁS (Redirect)
-            // Ez újratölti az oldalt, ezért kell a lenti getRedirectResult
-            signInWithRedirect(auth, provider);
+            // MOBILON: Átirányítás (ez nem akad el a popup blokkolón)
+            console.log("Mobil Facebook belépés indítása (Redirect)...");
+            await window.signInWithRedirect(window.auth, provider);
         } else {
-            // Asztali gépen POPUP
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    console.log("Sikeres asztali login:", result.user);
-                    // Itt nem kell reload, az onAuthStateChanged majd kezeli
-                })
-                .catch((error) => {
-                    console.error("Popup hiba:", error);
-                    alert("Hiba: " + error.message);
-                });
+            // ASZTALI GÉPEN: Marad a jelenlegi popup mód
+            const result = await window.signInWithPopup(window.auth, provider);
+            console.log("Sikeres Facebook belépés:", result.user);
+            
+            if (typeof window.handleSuccessfulLogin === 'function') {
+                window.handleSuccessfulLogin(result.user);
+            }
+            showLoading(false);
         }
-    };
+    } catch (error) {
+        console.error("Facebook Login hiba:", error);
+        showLoading(false);
+        showMessage("Bejelentkezési hiba", "Nem sikerült a Facebook bejelentkezés. Próbáld meg Google, vagy az e-mail cím alapú regisztrációt: " + error.message);
+    }
+};
 
-    // --- VISSZATÉRÉS KEZELÉSE (MOBILON) ---
-    // Ez a kód AZONNAL lefut, amint az oldal betöltődik
-    getRedirectResult(auth)
-        .then((result) => {
-            if (result) {
-                // Ez csak akkor fut le, ha épp most jöttünk vissza a Facebookról
-                console.log("Sikeres visszatérés Facebook redirectből:", result.user);
-                // Nem kell csinálni semmit, mert az onAuthStateChanged lejjebb úgyis beállítja a UI-t
+
+
+window.handleFirebaseRedirectResult = async function() {
+    if (!window.auth || !window.getRedirectResult) return;
+
+    try {
+        const result = await window.getRedirectResult(window.auth);
+        if (result && result.user) {
+            console.log("Sikeres visszatérés az átirányításból:", result.user);
+            if (typeof window.handleSuccessfulLogin === 'function') {
+                window.handleSuccessfulLogin(result.user);
             }
-        })
-        .catch((error) => {
-            console.error("Redirect hiba:", error);
-            if (error.code !== 'auth/popup-closed-by-user') {
-                 // Ha konkrét hiba van (pl. domain tiltás), kiírjuk
-                 alert("Facebook hiba: " + error.message);
-            }
-        });
+        }
+    } catch (error) {
+        console.error("Redirect feldolgozási hiba:", error);
+    }
+};
+
+
+
+setTimeout(() => {
+    if (window.isFirebaseModuleLoaded) {
+        window.handleFirebaseRedirectResult();
+    }
+}, 1000);
+
 
 
         // --- GOOGLE BEJELENTKEZÉS (Globálissá tétel a window-val) ---
@@ -9796,7 +9841,7 @@ if (typeof window.updateInstantButtonEligibility === 'function') {
                 signInAnonymously(auth).catch(console.error);
                 wasRegisteredUser = false; 
             }
-        }, 5000);
+        }, 500);
     }
 }
 });
@@ -9939,36 +9984,6 @@ window.closeQrScanner = function() {
         modal.classList.remove('flex');
     }
 };
-
-
-
-// --- 3. Ezt a részt tedd a fájl végére vagy az init() függvénybe ---
-// Ez kezeli le azt, amikor a felhasználó VISSZATÉR a Facebookról mobilon
-if (window.auth) {
-    getRedirectResult(window.auth)
-        .then((result) => {
-            if (result) {
-                // Ez a kód csak akkor fut le, ha épp most jöttünk vissza a Facebookról
-                const user = result.user;
-                console.log("Sikeres Facebook login (Redirect után):", user);
-                
-                // Visszajelzés a felhasználónak
-                // showMessage("Siker", "Sikeresen bejelentkeztél Facebookkal!"); // Ha van showMessage függvényed
-                
-                // Mivel az oldal újratöltődött, érdemes lehet elmenteni a profilt
-                // window.saveUserProfile(...);
-            }
-        })
-        .catch((error) => {
-            console.error("Hiba a redirect visszatérésnél:", error);
-            if (error.code !== 'auth/popup-closed-by-user') { 
-                // A popup-closed hiba redirectnél nem releváns, csak egyéb hibákat írunk ki
-                alert("Sikertelen bejelentkezés: " + error.message);
-            }
-        });
-}
-
-
 
 
 
