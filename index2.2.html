@@ -5150,27 +5150,27 @@ window.autoSortGamesByDistance = function() {
         }
     }
 
-    const proceedToStart = async () => {
-        if (gameConfig.price > 0) {
-            window.openCouponModal(gameId, title);
-            return;
-        }
+    cconst proceedToStart = async () => {
+    if (gameConfig.price > 0) {
+        window.openCouponModal(gameId, title);
+        return;
+    }
 
-        // --- MÓDOSÍTÁS ITT TÖRTÉNT ---
-        // Kivettük a !window.auth.currentUser.isAnonymous feltételt.
-        // Így minden bejelentkezett user (vendég is) mentésre kerül.
-        if (!window.auth.currentUser) {
+    // --- JAVÍTOTT RÉSZ: Bejelentkezés kényszerítése, ha még nincs user ---
+    if (window.auth && !window.auth.currentUser) {
         try {
             console.log("Nincs bejelentkezett felhasználó, anonim fiók létrehozása...");
-            await window.signInAnonymously(window.auth);
+            // MEGJEGYZÉS: Győződj meg róla, hogy a window.signInAnonymously exportálva van a modulodból!
+            await window.signInAnonymously(window.auth); 
         } catch (error) {
             console.error("Hiba az anonim bejelentkezésnél:", error);
-            showMessage("Hiba", "Nem sikerült elindítani a munkamenetet. Ellenőrizd az internetet!");
-            return;
+            // Itt érdemes megállítani a folyamatot, mert user nélkül nem lesz hova menteni
+            alert("Hiba a munkamenet indításakor. Ellenőrizd az internetkapcsolatot!");
+            return; 
         }
     }
 
-    // Itt már biztosan van auth.currentUser (vagy régi regisztrált, vagy friss anonim)
+    // Itt már biztosan van auth.currentUser (vagy a friss anonim, vagy egy korábbi login)
     if (window.auth && window.auth.currentUser) {
         try {
             showLoading(true);
