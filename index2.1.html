@@ -9577,6 +9577,32 @@ window.saveUserProfile = async (newName, avatarIndex) => {
 
 
 
+window.handleSuccessfulLogin = function(user) {
+    console.log("Sikeres bejelentkezés kezelése:", user.email);
+
+    // 1. A betöltő pörgés leállítása
+    if (typeof window.showLoading === 'function') {
+        window.showLoading(false);
+    }
+
+    // 2. A profil szerkesztő ablak bezárása (a te kódodban ez a user-profile-content)
+    const profileContent = document.getElementById('user-profile-content');
+    if (profileContent) {
+        profileContent.classList.add('hidden');
+    }
+
+    // 3. Játék állapot mentése
+    if (typeof window.saveGameState === 'function') {
+        window.saveGameState();
+    }
+    
+    console.log("Bejelentkezési folyamat sikeresen lezárult.");
+};
+
+
+
+
+
 window.loginWithFacebook = async function() {
     if (!window.auth) {
         alert("A rendszer még töltődik, várj egy másodpercet!");
@@ -9586,58 +9612,50 @@ window.loginWithFacebook = async function() {
     const provider = new FacebookAuthProvider();
     provider.addScope('email');
     provider.addScope('public_profile');
-    
+
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     try {
-        showLoading(true);
-
-        // 1. Kényszerítjük a LocalStorage használatát (hogy túlélje a redirectet)
+        window.showLoading(true);
+        // Kényszerítjük a LocalStorage használatát, hogy a redirect után is megmaradjon a munkamenet
         await setPersistence(window.auth, browserLocalPersistence);
-        
+
         if (isMobile) {
             console.log("Mobil Redirect indítása...");
-            // 2. Mobilon átirányítás
             await signInWithRedirect(window.auth, provider);
         } else {
-            // 3. Asztali gépen popup
             const result = await signInWithPopup(window.auth, provider);
             if (result && result.user) {
                 window.handleSuccessfulLogin(result.user);
             }
-            showLoading(false);
+            window.showLoading(false);
         }
     } catch (error) {
         console.error("Facebook Login hiba:", error);
-        showLoading(false);
-        alert("Bejelentkezési hiba: " + error.message);
+        window.showLoading(false);
+        // Csak akkor riasszunk, ha nem a felhasználó zárta be az ablakot
+        if (error.code !== 'auth/popup-closed-by-user') {
+            alert("Bejelentkezési hiba: " + error.message);
+        }
     }
 };
 
-/**
- * Ez a függvény figyeli, hogy épp most tértünk-e vissza a Facebookról
- */
 window.handleFirebaseRedirectResult = async function() {
     if (!window.auth || !window.getRedirectResult) return;
 
     try {
         const result = await window.getRedirectResult(window.auth);
         if (result && result.user) {
-            console.log("Sikeres belépés:", result.user);
-            if (typeof window.handleSuccessfulLogin === 'function') {
-                window.handleSuccessfulLogin(result.user);
-            }
+            console.log("Sikeres visszatérés a Facebookról:", result.user);
+            window.handleSuccessfulLogin(result.user);
         }
     } catch (error) {
-        // EZ FONTOS: Mobilon így fogjuk látni, mi a baj!
-        console.error("Redirect hiba:", error);
-        
-        // Bizonyos hibákat (pl. ha csak simán betölt az oldal de nem volt login) ignorálunk
-        if (error.code && error.code !== 'auth/popup-closed-by-user') {
-            alert("Facebook hiba üzenet: " + error.message + " (Kód: " + error.code + ")");
-        }
+        console.error("Redirect feldolgozási hiba:", error);
+        // Mobilon ne zaklassuk a felhasználót alert-tel, ha csak simán megnyitotta az oldalt
     }
 };
+
+
 
 // FIGYELŐ: Amint az auth objektum kész, ellenőrizzük a redirect eredményét
 const redirectWatcher = setInterval(() => {
