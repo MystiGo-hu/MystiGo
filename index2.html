@@ -508,6 +508,7 @@
             height: 60px !important; /* Kisebb méret, hogy ne lógjon bele semmibe */
             width: auto;
             object-fit: contain;
+	    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
         }
         
         /* 2. KÖZÉPSŐ RÉSZ (Név + Avatar + Teszt felirat) */
@@ -576,7 +577,7 @@
         #exit-game-btn {
             position: absolute;
             z-index: 1000;
-            top: 5px !important; 
+            top: 5px !important;
             right: 10px !important;
             /* Biztosítjuk, hogy a gomb mérete fix legyen */
             width: 35px;
@@ -605,10 +606,13 @@
                 
         /* Középső logó méretének kicsinyítése a Kalandválasztó oldalon */
         #main-header-logo {
-            max-height: 90px;
-	    width: auto; /* Elegendő helyet hagy az oldalsó képeknek és az alatta lévő tartalomnak */
-            
-        }
+    max-height: 90px; /* Vissza az eredeti méretre */
+    width: auto;
+    display: block;
+    margin: 0 auto 0px auto;
+    /* Csak a logó alakját követő finom árnyék */
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
         
         /* --- LANDING PAGE (INDÍTÓ OLDAL) VISSZAÁLLÍTOTT STÍLUSAI --- */
         #landing-page .w-full.h-\[20vh\] {
@@ -727,7 +731,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.71
+       v1.2.72
 
    </span>
 
