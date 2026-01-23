@@ -1364,7 +1364,6 @@
 <div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/95 hidden items-center justify-center z-[10001] p-4">   
  <div class="bg-white/10 backdrop-blur-xl p-6 rounded-3xl w-full max-w-md border border-white/20 relative">
         <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-	<div id="qr-reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-2xl" style="min-height: 250px;"></div>
             <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
             <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -9884,18 +9883,11 @@ let html5QrCode = null;
 
 let isScannerTransitioning = false;
 
-window.openQrScanner = function(target) {
-    if (isScannerTransitioning) return;
-    
+wwindow.openQrScanner = function() {
     const modal = document.getElementById('qr-scanner-modal');
-    
-    // KÉNYSZERÍTETT MEGJELENÍTÉS (Ez a kulcs)
-    modal.style.display = 'flex'; 
-    modal.style.zIndex = '10001';
+    modal.style.setProperty('display', 'flex', 'important'); // Ez felülbírál mindent
     modal.classList.remove('hidden');
-    modal.classList.add('flex');  
-
-
+    modal.classList.add('flex');
 
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
