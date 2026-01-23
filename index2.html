@@ -1361,7 +1361,7 @@
     </button>
 </div>
 
-<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/90 hidden items-center justify-center z-[9999] p-4">
+<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/90 hidden items-center justify-center z-[10001] p-4">
     <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col">
         <div class="p-4 border-b flex justify-between items-center bg-gray-50">
             <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
@@ -9888,7 +9888,13 @@ window.openQrScanner = function(target) {
     if (isScannerTransitioning) return;
     
     const modal = document.getElementById('qr-scanner-modal');
-    
+  modal.style.setProperty('z-index', '10005', 'important'); // Minden felett
+    modal.style.display = 'flex'; 
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');    
+
+
+
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
     }
