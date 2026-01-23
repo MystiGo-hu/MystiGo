@@ -1677,12 +1677,12 @@
            style="text-transform: uppercase;"
            class="w-full pl-4 pr-12 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none focus:border-[#FFA500]">
     
-    <button onclick="openQrScanner('coupon')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#FFA500] transition-colors">
-        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-    </button>
+    <button type="button" onclick="openQrScanner('coupon')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#FFA500] transition-colors">
+    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+</button>
 </div>
         
         <div id="coupon-error" class="text-red-500 text-[10px] font-bold mb-3 hidden">⚠️ Érvénytelen kód!</div>
@@ -9881,14 +9881,25 @@ let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
 
 
-window.openQrScanner = function(target) {
-    const modal = document.getElementById('qr-scanner-modal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+let isScannerTransitioning = false;
 
+window.openQrScanner = function(target) {
+    // Ha éppen folyamatban van egy nyitás vagy zárás, ne csináljon semmit
+    if (isScannerTransitioning) return;
+    
+    const modal = document.getElementById('qr-scanner-modal');
+    
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
     }
+
+    // Ha már fut a kamera, nem indítjuk el újra
+    if (html5QrCode.isScanning) return;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    isScannerTransitioning = true;
 
     const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
 
@@ -9896,18 +9907,18 @@ window.openQrScanner = function(target) {
         { facingMode: "environment" }, 
         qrConfig, 
         (decodedText) => {
+            // --- SIKERES BEOLVASÁS ---
+            
             if (target === true) {
-                // UNLOCK MÓD: Az aktuális feladat kódjával vetjük össze
+                // 1. LAKAT / FELADAT FELOLDÓ MÓD
                 const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
                 const expected = String(task.unlockCode).trim().toLowerCase();
                 const scanned = decodedText.trim().toLowerCase();
 
                 if (scanned === expected) {
-                    // SIKERES FELOLDÁS
                     task.isUnlocked = true;
                     closeQrScanner();
                     
-                    // Siker visszajelzés (Toast)
                     const toast = document.createElement('div');
                     toast.className = 'success-toast active';
                     toast.style.borderColor = '#00CED1';
@@ -9916,31 +9927,29 @@ window.openQrScanner = function(target) {
                     
                     setTimeout(() => {
                         toast.remove();
-                        loadTask(task.index); // Feladat újratöltése immár feloldva
+                        loadTask(task.index);
                         if (typeof saveGameState === 'function') saveGameState();
                     }, 2000);
                 } else {
-                    // HIBÁS QR KÓD
                     closeQrScanner();
                 }
             } 
-            // --- ✨ ÚJ: KUPON MÓD KEZELÉSE ---
             else if (target === 'coupon') {
+                // 2. KUPONKÓD MÓD
                 const couponInput = document.getElementById('coupon-input');
                 if (couponInput) {
                     couponInput.value = decodedText.trim().toUpperCase();
                     closeQrScanner();
                     
-                    // Automatikus ellenőrzés indítása
+                    // Automatikus ellenőrzés indítása rövid késleltetéssel
                     setTimeout(() => {
                         const verifyBtn = document.getElementById('verify-coupon-btn');
                         if (verifyBtn) verifyBtn.click();
                     }, 500);
                 }
             } 
-            // --------------------------------
             else {
-                // NORMÁL MÓD (Válaszbeírás)
+                // 3. NORMÁL MÓD (Válaszbeírás)
                 document.getElementById('answer-input').value = decodedText;
                 if (typeof playArrivalNotification === 'function') playArrivalNotification();
                 closeQrScanner();
@@ -9950,26 +9959,36 @@ window.openQrScanner = function(target) {
                 }, 500);
             }
         },
-        (errorMessage) => { /* folyamatos olvasás... */ }
-    ).catch((err) => {
-        console.error("Hiba:", err);
+        (errorMessage) => { /* folyamatos olvasás hiba nélkül */ }
+    )
+    .then(() => {
+        isScannerTransitioning = false;
+    })
+    .catch((err) => {
+        console.error("QR hiba:", err);
+        isScannerTransitioning = false;
         closeQrScanner();
     });
 };
 
-
-
-
 window.closeQrScanner = function() {
+    // Ha éppen folyamatban van egy átmenet, várjunk
+    if (isScannerTransitioning) return;
+    
     const modal = document.getElementById('qr-scanner-modal');
-    if (html5QrCode) {
+    
+    if (html5QrCode && html5QrCode.isScanning) {
+        isScannerTransitioning = true;
         html5QrCode.stop().then(() => {
             html5QrCode.clear();
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+            isScannerTransitioning = false;
         }).catch(err => {
+            console.error("Stop hiba:", err);
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+            isScannerTransitioning = false;
         });
     } else {
         modal.classList.add('hidden');
