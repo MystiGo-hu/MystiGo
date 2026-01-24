@@ -508,6 +508,7 @@
             height: 60px !important; /* Kisebb méret, hogy ne lógjon bele semmibe */
             width: auto;
             object-fit: contain;
+	    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
         }
         
         /* 2. KÖZÉPSŐ RÉSZ (Név + Avatar + Teszt felirat) */
@@ -576,7 +577,7 @@
         #exit-game-btn {
             position: absolute;
             z-index: 1000;
-            top: 5px !important; 
+            top: 5px !important;
             right: 10px !important;
             /* Biztosítjuk, hogy a gomb mérete fix legyen */
             width: 35px;
@@ -605,10 +606,13 @@
                 
         /* Középső logó méretének kicsinyítése a Kalandválasztó oldalon */
         #main-header-logo {
-            max-height: 90px;
-	    width: auto; /* Elegendő helyet hagy az oldalsó képeknek és az alatta lévő tartalomnak */
-            
-        }
+    max-height: 90px; /* Vissza az eredeti méretre */
+    width: auto;
+    display: block;
+    margin: 0 auto 0px auto;
+    /* Csak a logó alakját követő finom árnyék */
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
         
         /* --- LANDING PAGE (INDÍTÓ OLDAL) VISSZAÁLLÍTOTT STÍLUSAI --- */
         #landing-page .w-full.h-\[20vh\] {
@@ -727,7 +731,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.70
+       v1.2.73
 
    </span>
 
@@ -1357,18 +1361,16 @@
     </button>
 </div>
 
-<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/90 hidden items-center justify-center z-[9999] p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col">
+<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/95 hidden items-center justify-center z-[10001] p-4">   
+ <div class="bg-white/10 backdrop-blur-xl p-6 rounded-3xl w-full max-w-md border border-white/20 relative">
         <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+	<div id="qr-reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-2xl" style="min-height: 250px;"></div>
             <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
             <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <div class="p-4">
-            <div id="qr-reader" class="overflow-hidden rounded-2xl border-2 border-dashed border-gray-200"></div>
-            <p class="text-xs text-gray-500 text-center mt-4">Irányítsd a kamerát a kihelyezett QR kódra!</p>
-        </div>
+        
         <div class="p-4 bg-gray-50">
             <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl">Mégse</button>
         </div>
@@ -1641,7 +1643,7 @@
 
 
 
-<div id="coupon-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9999;">
+<div id="coupon-modal" class="modal-overlay fixed inset-0 bg-black/80 hidden items-center justify-center p-4" style="z-index: 9000;">
     <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center border-t-4 border-[#FFA500]">
         <div class="text-3xl mb-2">🎫</div>
         <h2 id="coupon-modal-header" class="text-lg font-bold text-[#0D2B45] mb-1">Fizetős tartalom</h2>
@@ -1668,9 +1670,18 @@
             <p class="text-xs text-gray-600 mt-2 font-semibold">Add meg a kódod:</p>
         </div>
         
-        <input type="text" id="coupon-input" placeholder="KUPONKÓD" 
-               style="text-transform: uppercase;"
-               class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none mb-3 focus:border-[#FFA500]">
+        <div class="relative mb-3">
+    <input type="text" id="coupon-input" placeholder="KUPONKÓD" 
+           style="text-transform: uppercase;"
+           class="w-full pl-4 pr-12 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none focus:border-[#FFA500]">
+    
+    <button type="button" onclick="openQrScanner('coupon')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#FFA500] transition-colors">
+    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+</button>
+</div>
         
         <div id="coupon-error" class="text-red-500 text-[10px] font-bold mb-3 hidden">⚠️ Érvénytelen kód!</div>
 
@@ -5151,39 +5162,30 @@ window.autoSortGamesByDistance = function() {
     }
 
     const proceedToStart = async () => {
-    if (gameConfig.price > 0) {
-        window.openCouponModal(gameId, title);
-        return;
-    }
-
-    // --- JAVÍTOTT RÉSZ: Bejelentkezés kényszerítése, ha még nincs user ---
-    if (window.auth && !window.auth.currentUser) {
-        try {
-            console.log("Nincs bejelentkezett felhasználó, anonim fiók létrehozása...");
-            // MEGJEGYZÉS: Győződj meg róla, hogy a window.signInAnonymously exportálva van a modulodból!
-            await window.signInAnonymously(window.auth); 
-        } catch (error) {
-            console.error("Hiba az anonim bejelentkezésnél:", error);
-            // Itt érdemes megállítani a folyamatot, mert user nélkül nem lesz hova menteni
-            alert("Hiba a munkamenet indításakor. Ellenőrizd az internetkapcsolatot!");
-            return; 
+        if (gameConfig.price > 0) {
+            window.openCouponModal(gameId, title);
+            return;
         }
-    }
 
-    // Itt már biztosan van auth.currentUser (vagy a friss anonim, vagy egy korábbi login)
-    if (window.auth && window.auth.currentUser) {
-        try {
-            showLoading(true);
-            await window.saveUserProfile(nameInput.value, avatarSelect.value);
-        } catch (e) {
-            showLoading(false);
-            console.warn("Profil mentési hiba:", e);
+        // --- MÓDOSÍTÁS ITT TÖRTÉNT ---
+        // Kivettük a !window.auth.currentUser.isAnonymous feltételt.
+        // Így minden bejelentkezett user (vendég is) mentésre kerül.
+        if (window.auth && window.auth.currentUser) {
+            try {
+                showLoading(true);
+                // Elmentjük a nevet és avatart a users/{uid}/profile alá
+                await window.saveUserProfile(nameInput.value, avatarSelect.value);
+            } catch (e) {
+                showLoading(false);
+                console.warn("Profil mentési hiba (nem kritikus):", e);
+                // Nem állítjuk meg a játékot hiba esetén sem
+            }
         }
-    }
+        // -----------------------------
 
-    await window.loadGameDataAndStart(gameId);
-    requestGpsAndStart(gameId);
-};
+        await window.loadGameDataAndStart(gameId);
+        requestGpsAndStart(gameId);
+    };
 
     if (skipConfirmation) {
         proceedToStart();
@@ -9234,14 +9236,15 @@ const val = nameInput.value.trim();
 
     // ✅ FONTOS: Ide a SAJÁT konfigurációdat másold be!
     const firebaseConfig = {
-        apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw", 
-        authDomain: "mystigo-7b149.firebaseapp.com",
-        databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "mystigo-7b149",
-        storageBucket: "mystigo-7b149.appspot.com",
-        messagingSenderId: "367383637666",
-        appId: "1:367383637666:web:156184517316377e641775"
-    };
+  apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
+  authDomain: "mystigo-7b149.firebaseapp.com",
+  databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mystigo-7b149",
+  storageBucket: "mystigo-7b149.firebasestorage.app",
+  messagingSenderId: "616896082200",
+  appId: "1:616896082200:web:b13c243df8eaac6d542e6d",
+  measurementId: "G-PFDMYCJ9J1"
+};
 
     try {
         const app = initializeApp(firebaseConfig);
@@ -9256,7 +9259,6 @@ const val = nameInput.value.trim();
 	window.FacebookAuthProvider = FacebookAuthProvider;
 	window.GoogleAuthProvider = GoogleAuthProvider;
 	window.signInWithPopup = signInWithPopup;
-	window.signInAnonymously = signInAnonymously;
 	window.isPopupActive = false;
         window.ref = ref; 
         window.get = get; 
@@ -9877,8 +9879,15 @@ let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
 
 
-window.openQrScanner = function(target) {
+let isScannerTransitioning = false;
+
+window.openQrScanner = function(target) { 
     const modal = document.getElementById('qr-scanner-modal');
+    
+    // Kényszerítsük a megjelenítést és a legfelső réteget
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.zIndex = "10002"; // Biztosan a kupon (9000) felett legyen
+    
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
@@ -9886,43 +9895,38 @@ window.openQrScanner = function(target) {
         html5QrCode = new Html5Qrcode("qr-reader");
     }
 
+    if (html5QrCode.isScanning) return;
+
+    isScannerTransitioning = true;
     const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     html5QrCode.start(
-        { facingMode: "environment" }, 
-        qrConfig, 
+        { facingMode: "environment" },
+        qrConfig,
         (decodedText) => {
-            if (target === true) {
-                // UNLOCK MÓD: Az aktuális feladat kódjával vetjük össze
+            // SIKERES BEOLVASÁS
+            if (target === true) { 
+                // Feladat feloldás mód
                 const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
-                const expected = String(task.unlockCode).trim().toLowerCase();
-                const scanned = decodedText.trim().toLowerCase();
-
-                if (scanned === expected) {
-                    // SIKERES FELOLDÁS
+                if (decodedText.trim().toLowerCase() === String(task.unlockCode).trim().toLowerCase()) {
                     task.isUnlocked = true;
                     closeQrScanner();
-                    
-                    // Siker visszajelzés (Toast)
-                    const toast = document.createElement('div');
-                    toast.className = 'success-toast active';
-                    toast.style.borderColor = '#00CED1';
-                    toast.innerHTML = '<div class="icon">🔓</div><div><div style="font-weight:800;">SIKERES FELOLDÁS!</div></div>';
-                    document.body.appendChild(toast);
-                    
-                    setTimeout(() => {
-                        toast.remove();
-                        loadTask(task.index); // Feladat újratöltése immár feloldva
-                        if (typeof saveGameState === 'function') saveGameState();
-                    }, 2000);
-                } else {
-                    // HIBÁS QR KÓD
+                    loadTask(task.index);
+                }
+            } else if (target === 'coupon') {
+                // KUPONKÓD MÓD - Ez kell neked!
+                const couponInput = document.getElementById('coupon-input');
+                if (couponInput) {
+                    couponInput.value = decodedText.trim().toUpperCase();
                     closeQrScanner();
+                    setTimeout(() => {
+                        const verifyBtn = document.getElementById('verify-coupon-btn');
+                        if (verifyBtn) verifyBtn.click();
+                    }, 500);
                 }
             } else {
-                // NORMÁL MÓD (Válaszbeírás)
+                // Normál válasz beírás
                 document.getElementById('answer-input').value = decodedText;
-                if (typeof playArrivalNotification === 'function') playArrivalNotification();
                 closeQrScanner();
                 setTimeout(() => { 
                     const submitBtn = document.getElementById('submit-answer-btn');
@@ -9930,31 +9934,38 @@ window.openQrScanner = function(target) {
                 }, 500);
             }
         },
-        (errorMessage) => { /* folyamatos olvasás... */ }
-    ).catch((err) => {
-        console.error("Hiba:", err);
+        (errorMessage) => { /* folyamatos olvasás */ }
+    )
+    .then(() => { isScannerTransitioning = false; })
+    .catch((err) => {
+        console.error("QR hiba:", err);
+        isScannerTransitioning = false;
         closeQrScanner();
     });
 };
 
 
 
-
-
 window.closeQrScanner = function() {
+    if (isScannerTransitioning) return;
     const modal = document.getElementById('qr-scanner-modal');
-    if (html5QrCode) {
+    
+    if (html5QrCode && html5QrCode.isScanning) {
+        isScannerTransitioning = true;
         html5QrCode.stop().then(() => {
             html5QrCode.clear();
+            modal.style.display = 'none'; // Ezt add hozzá
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+            isScannerTransitioning = false;
         }).catch(err => {
+            modal.style.display = 'none'; // Ezt add hozzá
             modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            isScannerTransitioning = false;
         });
     } else {
+        modal.style.display = 'none'; // Ezt add hozzá
         modal.classList.add('hidden');
-        modal.classList.remove('flex');
     }
 };
 
