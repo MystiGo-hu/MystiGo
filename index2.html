@@ -3841,11 +3841,11 @@ else {
         showPage('game-list-page');
         
         // --- ÚJ RÉSZ: Csak akkor kérdezünk rá, ha nem direkt linkkel érkeztek ---
-        if (!appState.isDirectLink && !appState.currentFilteredGames) {
+        
             setTimeout(() => {
                 window.checkAndPromptResume();
             }, 500); // Rövid késleltetés a simább megjelenésért
-        }
+        
     } else {
             // JAVÍTÁS: Csak akkor futtatjuk az applyFilters-t, ha az URL szűrés NEM talált semmit
             if (!isFromCache && !appState.currentFilteredGames) {
