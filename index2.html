@@ -731,7 +731,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.74
+       v1.2.75
 
    </span>
 
@@ -1221,16 +1221,7 @@
     </button>
 
 
-<div id="instant-resume-ui" class="hidden mt-3 pt-3 border-t border-orange-200 justify-between items-center">
-        <div class="flex flex-col">
-            <span class="text-[10px] font-bold text-orange-600 uppercase">Félbehagyott kaland:</span>
-            <span class="text-[11px] font-medium text-gray-600">Van egy mentett állásod.</span>
-        </div>
-        <div class="flex gap-2">
-            <button onclick="resumeInstantAdventure()" class="px-3 py-2 bg-green-500 text-white text-[10px] font-bold rounded-lg shadow-sm active:scale-95 transition uppercase">Folytatás</button>
-            <button onclick="deleteInstantAdventure()" class="px-3 py-2 bg-white border border-red-200 text-red-500 text-[10px] font-bold rounded-lg active:scale-95 transition uppercase">Törlés</button>
-        </div>
-    </div>
+
 
 
     </div>
@@ -3222,23 +3213,6 @@ window.addSmartTileLayer = function(mapInstance) {
 
 
 
-window.checkInstantProgress = function() {
-    const resumeUI = document.getElementById('instant-resume-ui');
-    if (!resumeUI) return;
-
-    // Megkeressük az instant mentést (GameState)
-    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
-
-    if (saveKey) {
-        // HA VAN MENTÉS: Megjelenítjük (flex)
-        resumeUI.classList.remove('hidden');
-        resumeUI.classList.add('flex');
-    } else {
-        // HA NINCS: Teljesen elrejtjük (hidden) és levesszük a flex-et
-        resumeUI.classList.add('hidden');
-        resumeUI.classList.remove('flex');
-    }
-};
 
 /**
  * Instant Kaland folytatása: Betölti az adatokat és az állást is
@@ -3264,39 +3238,6 @@ window.resumeInstantAdventure = function() {
 
 
 
-window.deleteInstantAdventure = function(force = false) {
-    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
-    
-    if (!saveKey) {
-        window.checkInstantProgress();
-        return;
-    }
-
-    // Ez a függvény csak a törléssel foglalkozik
-    const performDeletion = () => {
-    const gameId = saveKey.replace('MystiGoGameState_', '');
-    localStorage.removeItem(saveKey); 
-    localStorage.removeItem(`MystiGo_GameData_${gameId}`); 
-    
-    if (window.games && window.games[gameId]) {
-        delete window.games[gameId];
-    }
-    window.checkInstantProgress();
-    // A reset törölve, hogy megmaradjanak a beállított szűrők felülíráskor
-    console.log("Instant játék törölve, felület frissítve.");
-};
-
-    if (force) {
-        performDeletion();
-    } else {
-        showMessage(
-            'Azonnali kaland törlése', 
-            'Biztosan törölni szeretnéd a folyamatban lévő azonnali kalandot? Ezt a folyamatot nem lehet visszavonni.', 
-            performDeletion, 
-            true
-        );
-    }
-};
 
 // --- TESTRESZABÁS ÉS CÉLPONT FUNKCIÓK (Most már globálisan elérhetőek) ---
 appState.instantTarget = null;
@@ -3669,6 +3610,68 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
             }
         }
 
+
+
+
+// ÚJ: Félbehagyott játék ellenőrzése és felajánlása
+window.checkAndPromptResume = function() {
+    let latestSaveKey = null;
+    let latestTimestamp = 0;
+
+    // 1. Megkeressük a legfrissebb mentést
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('MystiGoGameState_')) {
+            try {
+                const state = JSON.parse(localStorage.getItem(key));
+                if (state && state.lastTimestamp > latestTimestamp) {
+                    latestTimestamp = state.lastTimestamp;
+                    latestSaveKey = key;
+                }
+            } catch (e) { console.error("Hiba a mentés beolvasásakor:", e); }
+        }
+    }
+
+    if (latestSaveKey) {
+        const gameId = latestSaveKey.replace('MystiGoGameState_', '');
+        
+        // --- ÚJ RÉSZ: Instant játék kezelése ---
+        if (gameId.startsWith('instant_')) {
+            const dataKey = `MystiGo_GameData_${gameId}`;
+            const savedGameData = localStorage.getItem(dataKey);
+            
+            if (savedGameData) {
+                // Ha megvan az instant játék definíciója, betöltjük a memóriába (window.games)
+                const instantGame = JSON.parse(savedGameData);
+                window.games[gameId] = instantGame;
+            } else {
+                // Ha nincs meg a definíció, nem tudjuk elindítani
+                return;
+            }
+        }
+        // ----------------------------------------
+
+        const game = window.games[gameId];
+        if (!game) return;
+
+        const gameTitle = game.title || "Ismeretlen kaland";
+
+        showMessage(
+            "Folytatás?",
+            `Úgy tűnik, van egy félbehagyott kalandod: <strong>${gameTitle}</strong>.<br><br>Akarod folytatni ott, ahol abbahagytad?`,
+            () => {
+                // IGEN gomb: Meghívjuk a betöltést
+                if (typeof loadGameById === 'function') {
+                    loadGameById(gameId);
+                }
+            },
+            true // Megjeleníti a "Nem" gombot is
+        );
+    }
+};
+
+
+
         function deleteSavedGame(gameId) {
     // Saját modális ablak használata megerősítésre
     showMessage(
@@ -3677,6 +3680,7 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         () => {
             // Ez a rész csak akkor fut le, ha az "Igen" gombra nyomnak
             localStorage.removeItem(getStorageKey(gameId));
+	    localStorage.removeItem('MystiGo_GameData_' + gameId);
             
             // UI frissítése (eredeti logikád megőrzése)
             const urlParams = new URLSearchParams(window.location.search);
@@ -3800,9 +3804,16 @@ else {
         // Csak akkor váltunk oldalt, ha ez az első renderelés (Cache vagy első Load)
         // Ha már a felhasználó ott van, nem akarjuk újratölteni/ugráltatni az oldalt, csak a listát frissíteni.
         const listPage = document.getElementById('game-list-page');
-        if (listPage && listPage.classList.contains('hidden')) {
-            showPage('game-list-page');
-        } else {
+    if (listPage && listPage.classList.contains('hidden')) {
+        showPage('game-list-page');
+        
+        // --- ÚJ RÉSZ: Csak akkor kérdezünk rá, ha nem direkt linkkel érkeztek ---
+        if (!appState.isDirectLink && !appState.currentFilteredGames) {
+            setTimeout(() => {
+                window.checkAndPromptResume();
+            }, 500); // Rövid késleltetés a simább megjelenésért
+        }
+    } else {
             // JAVÍTÁS: Csak akkor futtatjuk az applyFilters-t, ha az URL szűrés NEM talált semmit
             if (!isFromCache && !appState.currentFilteredGames) {
                 if (typeof applyFilters === 'function') applyFilters();
@@ -4149,7 +4160,7 @@ const isRegistered = !!(user && !user.isAnonymous);
                 // -------------------------------
                 
                 if (pageId === 'game-list-page') {
-        window.checkInstantProgress();
+        
         const mainHeaderLogo = document.getElementById('main-header-logo');
         const titleEl = document.getElementById('page-title');
 
@@ -4449,7 +4460,7 @@ window.closeImageModal = function() {
 
             visibleGames.forEach(game => {
                 const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
-                const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+                const placeholderImage = `thumbnails/instantgame.webp`;
                 
                 // ... (típus badge, priceText, locationBadge logika változatlan) ...
                 let gameTypeBadge = '';
