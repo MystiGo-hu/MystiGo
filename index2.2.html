@@ -1361,24 +1361,6 @@
     </button>
 </div>
 
-<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/95 hidden items-center justify-center z-[10001] p-4">   
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden relative shadow-2xl">
-        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-            <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
-            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-200 rounded-full transition">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-        
-        <div class="p-4 bg-white">
-            <div id="qr-reader" class="w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200" style="min-height: 250px; background: #f9fafb;"></div>
-        </div>
-        
-        <div class="p-4 bg-gray-50 border-t">
-            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">Mégse</button>
-        </div>
-    </div>
-</div>
 
                                  
 	     <div id="hint-buttons-container" class="flex justify-between gap-2 mt-4 text-[10px] font-semibold">
@@ -1677,7 +1659,7 @@
            style="text-transform: uppercase;"
            class="w-full pl-4 pr-12 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none focus:border-[#FFA500]">
     
-    <button type="button" onclick="openQrScanner('coupon')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#FFA500] transition-colors">
+    <button onclick="openQrScanner('coupon')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#FFA500] transition-colors">
     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -9884,80 +9866,60 @@ let html5QrCode = null;
 let isScannerTransitioning = false;
 
 window.openQrScanner = function(target) { 
+    console.log("QR olvasó indítása, cél:", target);
     const modal = document.getElementById('qr-scanner-modal');
     if (!modal) return;
 
-    // 1. Megjelenítés kényszerítése (Kupon ablak z-indexe 9000, ez 10002 lesz)
+    // Minden más ablak elé kényszerítjük
     modal.style.setProperty('display', 'flex', 'important');
-    modal.style.zIndex = "10002"; 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.style.zIndex = "999999"; 
 
-    // 2. Olvasó inicializálása
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
     }
 
-    // Ha már fut, állítsuk le és indítsuk újra a biztos siker érdekében
+    // Ha futna, állítsuk le és indítsuk újra
     if (html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => startScanner(target));
+        html5QrCode.stop().then(() => startScannerInternal(target)).catch(() => startScannerInternal(target));
     } else {
-        startScanner(target);
+        startScannerInternal(target);
     }
 
-    function startScanner(targetType) {
-        isScannerTransitioning = true;
+    function startScannerInternal(targetType) {
         const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
-
+        
         html5QrCode.start(
             { facingMode: "environment" },
             qrConfig,
             (decodedText) => {
-                // SIKERES BEOLVASÁS
+                console.log("Beolvasva:", decodedText);
+                
                 if (targetType === 'coupon') {
+                    // KUPON KEZELÉS
                     const couponInput = document.getElementById('coupon-input');
                     if (couponInput) {
                         couponInput.value = decodedText.trim().toUpperCase();
                         closeQrScanner();
-                        // Kis késleltetés az ablak bezáródása után az ellenőrzéshez
+                        // Automatikus ellenőrzés a kupon ablakban
                         setTimeout(() => {
                             const verifyBtn = document.getElementById('verify-coupon-btn');
                             if (verifyBtn) verifyBtn.click();
-                        }, 500);
-                    }
-                } else if (targetType === true) {
-                    // Lakat/Feladat feloldás mód
-                    const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
-                    if (decodedText.trim().toLowerCase() === String(task.unlockCode).trim().toLowerCase()) {
-                        task.isUnlocked = true;
-                        closeQrScanner();
-                        loadTask(task.index);
+                        }, 400);
                     }
                 } else {
-                    // Normál válasz
-                    const ansInput = document.getElementById('answer-input');
-                    if (ansInput) {
-                        ansInput.value = decodedText;
-                        closeQrScanner();
-                        setTimeout(() => { 
-                            const submitBtn = document.getElementById('submit-answer-btn');
-                            if (submitBtn) submitBtn.click(); 
-                        }, 500);
-                    }
+                    // NORMÁL VÁLASZ (vagy feladat feloldás)
+                    const input = document.getElementById('answer-input') || document.getElementById('unlock-input');
+                    if (input) input.value = decodedText;
+                    closeQrScanner();
                 }
             },
-            (errorMessage) => { /* folyamatos olvasás hiba nélkül */ }
-        )
-        .then(() => { isScannerTransitioning = false; })
-        .catch((err) => {
-            console.error("QR Kamera hiba:", err);
-            isScannerTransitioning = false;
-            // Ha nem indul el a kamera (pl. engedély hiánya), ne ragadjon be a modal
-            // De adjunk esélyt a manuális gépelésnek
+            (err) => { /* folyamatos olvasás... */ }
+        ).catch(err => {
+            console.error("Kamera hiba:", err);
+            alert("Nem sikerült elindítani a kamerát. Ellenőrizd a jogosultságokat!");
         });
     }
 };
-
 
 
 window.closeQrScanner = function() {
@@ -9987,7 +9949,22 @@ window.closeQrScanner = function() {
 
 </script>
 
-
+<div id="qr-scanner-modal" style="display: none; z-index: 999999 !important;" class="fixed inset-0 bg-black/95 items-center justify-center p-4">   
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden relative shadow-2xl">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
+            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-200 rounded-full transition">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-4 bg-white">
+            <div id="qr-reader" class="w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200" style="min-height: 250px; background: #f9fafb;"></div>
+        </div>
+        <div class="p-4 bg-gray-50 border-t">
+            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">Mégse</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
