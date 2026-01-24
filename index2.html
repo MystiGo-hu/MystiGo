@@ -3475,6 +3475,20 @@ function loadGameById(gameId) {
             try {
                 const savedStateJson = localStorage.getItem(getStorageKey(gameId));
                 if (!savedStateJson) return false;
+		
+
+		if (!window.games[gameId]) {
+            if (gameId.startsWith('instant_')) {
+                window.loadInstantGamesIntoMemory();
+            }
+        }
+
+        if (!window.games[gameId]) {
+            console.warn(`A mentett játék (${gameId}) nem található. Mentés törlése.`);
+            deleteSavedGame(gameId); 
+            return false; 
+        }
+
 
                 // --- BIZTONSÁGI JAVÍTÁS (CRASH FIX) ---
                 // Ellenőrizzük, hogy létezik-e még a játék az Excel adatbázisban
@@ -3613,6 +3627,23 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
 
 
 
+// ÚJ: Az összes mentett instant játék betöltése a memóriába
+window.loadInstantGamesIntoMemory = function() {
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('MystiGo_GameData_instant_')) {
+            try {
+                const gameData = JSON.parse(localStorage.getItem(key));
+                if (gameData && gameData.id) {
+                    window.games[gameData.id] = gameData;
+                }
+            } catch (e) { console.error("Hiba az instant játék betöltésekor:", e); }
+        }
+    }
+};
+
+
+
 // ÚJ: Félbehagyott játék ellenőrzése és felajánlása
 window.checkAndPromptResume = function() {
     let latestSaveKey = null;
@@ -3711,7 +3742,8 @@ window.initializeGamesFromFirebase = async function() {
     if (cachedList) {
         try {
             window.games = JSON.parse(cachedList);
-            processGameDataAndRender(true); 
+            window.loadInstantGamesIntoMemory();
+	    processGameDataAndRender(true); 
             console.log("🚀 Cache betöltve.");
         } catch(e) {
             localStorage.removeItem(CACHE_KEY_LIST);
@@ -3762,6 +3794,7 @@ console.log("✅ Friss adatok megérkeztek a Firebase-ről!");
 const data = snapshot.val();
 console.log("🎮 Betöltött játékok száma:", Object.keys(data).length);
             window.games = snapshot.val();
+	    window.loadInstantGamesIntoMemory();
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
             processGameDataAndRender(false);
             if(statusText) statusText.textContent = "";
