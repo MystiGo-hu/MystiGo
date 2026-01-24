@@ -731,7 +731,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.75
+       v1.2.76
 
    </span>
 
@@ -2996,13 +2996,15 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 const monthData = allMonthsData[targetMonthKey];
                 
                 // Az adatbázisban itt a kulcs a UserID, az érték az objektum (név, pont, avatar)
-                players = Object.values(monthData).map(data => ({
-                    name: data.name,
-                    avatar: data.avatar || 'cat',
-                    score: data.score, // Ez már a helyes, növekvő pontszám
-                    isRegistered: true 
-                }));
-            }
+                players = Object.values(monthData)
+        .filter(data => (parseInt(data.score) > 0)) // <--- EZ A SZŰRŐ HIÁNYZOTT
+        .map(data => ({
+            name: data.name,
+            avatar: data.avatar || 'cat',
+            score: data.score,
+            isRegistered: true 
+        }));
+}
 
             renderHofTable(players, tbody);
         }
