@@ -1362,21 +1362,23 @@
 </div>
 
 <div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/95 hidden items-center justify-center z-[10001] p-4">   
- <div class="bg-white/10 backdrop-blur-xl p-6 rounded-3xl w-full max-w-md border border-white/20 relative">
+    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden relative shadow-2xl">
         <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-	<div id="qr-reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-2xl" style="min-height: 250px;"></div>
             <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
-            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
+            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-200 rounded-full transition">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         
-        <div class="p-4 bg-gray-50">
-            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl">Mégse</button>
+        <div class="p-4 bg-white">
+            <div id="qr-reader" class="w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200" style="min-height: 250px; background: #f9fafb;"></div>
+        </div>
+        
+        <div class="p-4 bg-gray-50 border-t">
+            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">Mégse</button>
         </div>
     </div>
 </div>
-
 
                                  
 	     <div id="hint-buttons-container" class="flex justify-between gap-2 mt-4 text-[10px] font-semibold">
@@ -9883,65 +9885,77 @@ let isScannerTransitioning = false;
 
 window.openQrScanner = function(target) { 
     const modal = document.getElementById('qr-scanner-modal');
-    
-    // Kényszerítsük a megjelenítést és a legfelső réteget
+    if (!modal) return;
+
+    // 1. Megjelenítés kényszerítése (Kupon ablak z-indexe 9000, ez 10002 lesz)
     modal.style.setProperty('display', 'flex', 'important');
-    modal.style.zIndex = "10002"; // Biztosan a kupon (9000) felett legyen
-    
+    modal.style.zIndex = "10002"; 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
+    // 2. Olvasó inicializálása
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
     }
 
-    if (html5QrCode.isScanning) return;
+    // Ha már fut, állítsuk le és indítsuk újra a biztos siker érdekében
+    if (html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => startScanner(target));
+    } else {
+        startScanner(target);
+    }
 
-    isScannerTransitioning = true;
-    const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+    function startScanner(targetType) {
+        isScannerTransitioning = true;
+        const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-    html5QrCode.start(
-        { facingMode: "environment" },
-        qrConfig,
-        (decodedText) => {
-            // SIKERES BEOLVASÁS
-            if (target === true) { 
-                // Feladat feloldás mód
-                const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
-                if (decodedText.trim().toLowerCase() === String(task.unlockCode).trim().toLowerCase()) {
-                    task.isUnlocked = true;
-                    closeQrScanner();
-                    loadTask(task.index);
+        html5QrCode.start(
+            { facingMode: "environment" },
+            qrConfig,
+            (decodedText) => {
+                // SIKERES BEOLVASÁS
+                if (targetType === 'coupon') {
+                    const couponInput = document.getElementById('coupon-input');
+                    if (couponInput) {
+                        couponInput.value = decodedText.trim().toUpperCase();
+                        closeQrScanner();
+                        // Kis késleltetés az ablak bezáródása után az ellenőrzéshez
+                        setTimeout(() => {
+                            const verifyBtn = document.getElementById('verify-coupon-btn');
+                            if (verifyBtn) verifyBtn.click();
+                        }, 500);
+                    }
+                } else if (targetType === true) {
+                    // Lakat/Feladat feloldás mód
+                    const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
+                    if (decodedText.trim().toLowerCase() === String(task.unlockCode).trim().toLowerCase()) {
+                        task.isUnlocked = true;
+                        closeQrScanner();
+                        loadTask(task.index);
+                    }
+                } else {
+                    // Normál válasz
+                    const ansInput = document.getElementById('answer-input');
+                    if (ansInput) {
+                        ansInput.value = decodedText;
+                        closeQrScanner();
+                        setTimeout(() => { 
+                            const submitBtn = document.getElementById('submit-answer-btn');
+                            if (submitBtn) submitBtn.click(); 
+                        }, 500);
+                    }
                 }
-            } else if (target === 'coupon') {
-                // KUPONKÓD MÓD - Ez kell neked!
-                const couponInput = document.getElementById('coupon-input');
-                if (couponInput) {
-                    couponInput.value = decodedText.trim().toUpperCase();
-                    closeQrScanner();
-                    setTimeout(() => {
-                        const verifyBtn = document.getElementById('verify-coupon-btn');
-                        if (verifyBtn) verifyBtn.click();
-                    }, 500);
-                }
-            } else {
-                // Normál válasz beírás
-                document.getElementById('answer-input').value = decodedText;
-                closeQrScanner();
-                setTimeout(() => { 
-                    const submitBtn = document.getElementById('submit-answer-btn');
-                    if (submitBtn) submitBtn.click(); 
-                }, 500);
-            }
-        },
-        (errorMessage) => { /* folyamatos olvasás */ }
-    )
-    .then(() => { isScannerTransitioning = false; })
-    .catch((err) => {
-        console.error("QR hiba:", err);
-        isScannerTransitioning = false;
-        closeQrScanner();
-    });
+            },
+            (errorMessage) => { /* folyamatos olvasás hiba nélkül */ }
+        )
+        .then(() => { isScannerTransitioning = false; })
+        .catch((err) => {
+            console.error("QR Kamera hiba:", err);
+            isScannerTransitioning = false;
+            // Ha nem indul el a kamera (pl. engedély hiánya), ne ragadjon be a modal
+            // De adjunk esélyt a manuális gépelésnek
+        });
+    }
 };
 
 
