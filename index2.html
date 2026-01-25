@@ -731,7 +731,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.76
+       v1.2.77
 
    </span>
 
@@ -4463,7 +4463,7 @@ window.closeImageModal = function() {
                  // (csak a helytakarékosság miatt nem másolom be az egészet)
                  if (gamesToRender) return true;
                  if (window.showHiddenGames) return true;
-                 if (game.isHidden) return false;
+                 if (game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return false;
                  
                  let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
                  const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
@@ -4791,7 +4791,7 @@ window.applyFilters = function() {
             const filteredGames = {};
 
             Object.values(games).forEach(game => {
-                if (!window.showHiddenGames && game.isHidden) return; 
+                if (!window.showHiddenGames && game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return; 
 
                 // 1. Helyszín szűrés
                 let locMatch = (location === 'all');
@@ -4924,7 +4924,7 @@ window.autoSortGamesByDistance = function() {
                         // Ha NEM vagyunk fejlesztői módban (showHiddenGames hamis), akkor szűrünk:
                         if (!window.showHiddenGames) {
                             // 1. Rejtett játékok kiszűrése
-                            if (game.isHidden) return;
+                            if (game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return;
                             
                             // 2. Nem játszható (Letiltott) játékok kiszűrése
                             if (game.maxPlayCount === -1) return;
