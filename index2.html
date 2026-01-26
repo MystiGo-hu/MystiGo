@@ -183,6 +183,40 @@
         }
        
 
+
+#in-app-browser-warning {
+    display: none; /* Alaphelyzetben rejtve */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ff9800; /* Figyelemfelkeltő narancs */
+    color: white;
+    z-index: 999999;
+    padding: 12px 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    font-family: sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+#in-app-browser-warning strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+#in-app-browser-warning .close-warning {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+
+
 #content-page-wrapper {
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
@@ -704,6 +738,16 @@
 </head>
 <body class="overflow-hidden">
 
+
+<div id="in-app-browser-warning">
+    <span class="close-warning" onclick="this.parentElement.style.display='none'">&times;</span>
+    <strong>⚠️ Korlátozott böngésző észlelve</strong>
+    A Google bejelentkezés Facebook/Instagram böngészőben nem működik. 
+    Kattints a jobb felső sarokban a <strong>három pontra (⋮)</strong> és válaszd a 
+    <strong>"Megnyitás böngészőben"</strong> opciót!
+</div>
+
+
 <div id="offline-indicator" class="hidden fixed top-0 left-0 text-[6px] font-mono font-bold text-red-900 opacity-50 z-[9999] pointer-events-none select-none tracking-widest" style="text-shadow: 0 0 2px white;">
     🔴 Offline
 </div>
@@ -731,7 +775,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.78
+       v1.2.79
 
    </span>
 
@@ -9317,6 +9361,23 @@ const val = nameInput.value.trim();
 };
 
    
+
+window.addEventListener('load', function() {
+    var ua = navigator.userAgent || navigator.vendor || window.opera;
+    var isFacebook = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1);
+    var isInstagram = (ua.indexOf("Instagram") > -1);
+    var isMessenger = (ua.indexOf("Messenger") > -1);
+
+    // Ha Facebookon, Instagramon vagy Messengeren belül van
+    if (isFacebook || isInstagram || isMessenger) {
+        var warningBar = document.getElementById('in-app-browser-warning');
+        if (warningBar) {
+            warningBar.style.display = 'block';
+            // Eltoljuk az oldal tartalmát lejjebb, hogy ne takarja ki a fejlécet
+            document.body.style.marginTop = warningBar.offsetHeight + 'px';
+        }
+    }
+});
 
 
    
