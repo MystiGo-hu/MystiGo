@@ -472,6 +472,20 @@ body {
             background-color: #f7fafc;
             position: relative; /* Fontos a gomb abszolút pozicionálásához */
         }
+
+
+.story-details .story-details {
+            border: none !important;
+            background-color: transparent !important;
+            padding: 0.25rem 0 !important;
+        }
+
+        /* Az elválasztó vonal eltávolítása a kinyitott szöveg felől */
+        .story-details .story-content {
+            border-top: none !important;
+        }
+
+
         .story-details summary {
             font-weight: 600;
             color: var(--brand-blue);
@@ -486,14 +500,14 @@ body {
         .story-details summary::-webkit-details-marker {
             display: none;
         }
-        .story-details summary::before {
+        .story-details > summary::before {
             content: '+';
             font-size: 1.25rem;
             margin-right: 0.5rem;
             transition: transform 0.2s;
             line-height: 0;
         }
-        .story-details[open] summary::before {
+        .story-details[open] > summary::before {
             content: '-';
             transform: rotate(0deg);
         }
@@ -772,7 +786,7 @@ body {
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.791
+       v1.2.79
 
    </span>
 
@@ -905,82 +919,137 @@ body {
                             </div>
                         </div>
                         
-                        <details id="game-type-explanation" class="story-details mb-4" style="background-color: #fefce8; border-color: #fde68a;">
+                        
+
+<details id="how-it-works" class="story-details mb-4"
+    style="background-color: #fefce8; border-color: #fde68a;">
+
     <summary style="font-weight: 800; color: var(--brand-blue); padding: 0.5rem; display: flex; align-items: center;">
-        <span class="text-xl mr-2"ℹ️</span> Hogyan működik a MystiGo?
-        <span style="position: absolute; right: 0.75rem; top: 0.8rem; font-size: 1.5rem;"></span>
+        <span class="text-xl mr-2">ℹ️</span> Hogyan működik?
     </summary>
-                            <div class="story-content" style="border-top: 1px solid #fde68a; margin-top: 0.5rem; padding-top: 0.5rem;">
-                                
-                                <div class="space-y-2 text-sm text-gray-700">
-                                   <p>📱 Telefon + GPS + internet szükséges</p>
-                                   <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
-				   <div class="my-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
-    <div class="shrink-0 flex flex-col items-center gap-1">
-    <img src="logo/verified.png" alt="Verified" class="h-12 w-auto object-contain">
 
-    <div class="flex items-center gap-1">
-        <img src="logo/google_logo.svg" alt="Google" class="h-4 w-auto object-contain">
-        <span class="text-[16px] leading-none text-gray-600"><strong>✉︎</strong></span>
+    <div class="story-content"
+        style="border-top: 1px solid #fde68a; margin-top: 0.5rem; padding-top: 0.5rem;">
+
+        <!-- 1️⃣ Általános tudnivalók -->
+        <details class="story-details mb-3">
+            <summary class="font-bold text-sm text-brand-blue cursor-pointer">📱 Általános tudnivalók</summary>
+            <div class="space-y-2 text-sm text-gray-700 mt-2">
+
+                <p>📱 Telefon + GPS + internet szükséges</p>
+                <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
+                <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
+                <p>🗺️ Kövesd a térképen a célpontokat</p>
+                <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
+<p class="space-y-2 text-sm text-gray-700 mt-2">👤 Játék Vendégként: Elegendő egy nevet és avatart megadnod. Ideális próbakörre, de a pontjaidat így <strong>nem tudod gyűjteni</strong>, és nem kerülsz fel a <strong>Dicsőségfalra</strong>.</p>
+                        
+
+                <div class="my-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
+                    <div class="shrink-0 flex flex-col items-center gap-1">
+                        <img src="logo/verified.png" alt="Verified"
+                            class="h-12 w-auto object-contain">
+
+                        <div class="flex items-center gap-1">
+                            <img src="logo/google_logo.svg" alt="Google"
+                                class="h-4 w-auto object-contain">
+                            <span class="text-[16px] leading-none text-gray-600"><strong>✉︎</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="ml-3">
+                        <p class="font-bold text-brand-blue leading-tight text-[15px]">
+                            Miért érdemes belépni?
+                        </p>
+                        <p class="text-[12px] leading-snug mt-1 text-gray-700">
+                            Regisztrálj, hogy a rendszer <strong>megjegyezze a neved és az avatarod</strong>!
+                            Így gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, felkerülhetsz az exkluzív
+                            <strong>Dicsőségfal</strong> ✨ ranglistára, az avatarod mellé pedig megkapod a
+                            <strong>hitelesített (blue check)</strong> jelvényt!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 2️⃣ Pontozás & segítségek -->
+        <details class="story-details mb-3">
+            <summary class="font-bold text-sm text-brand-blue">⭐ Pontozás & segítségek</summary>
+
+            <div class="space-y-2 text-sm text-gray-700 mt-2">
+                <p>⭐ Minden feladat 50 pontot ér</p>
+                <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
+                <p>❌ Minden rossz válasz: −1 pont</p>
+                <p>💎 Titkos kincsek: +10 pont (opcionális). Bizonyos pályákon találkozhatsz velük. Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!</p>
+
+                <p class="text-xs text-gray-600 italic">
+                    Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!
+                </p>
+            </div>
+        </details>
+
+        <!-- 3️⃣ Időmérés & rangsor -->
+        <details class="story-details mb-3">
+            <summary class="font-bold text-sm text-brand-blue">⏱️ Időmérés & rangsorolás</summary>
+
+            <div class="space-y-2 text-sm text-gray-700 mt-2">
+                <p>⏱️ Két időmérés látható:</p>
+                <p class="ml-4">🔵 Kék = Teljes idő (kevésbé számít)</p>
+                <p class="ml-4">🟢 Zöld = Feladat idő (fontosabb!)</p>
+
+                <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <p class="font-bold text-brand-blue mb-1">🏆 Rangsorolás sorrendje:</p>
+                    <ol class="list-decimal list-inside space-y-1 ml-1">
+                        <li><strong>⭐ Szerzett Pontok</strong> (Ez a legfontosabb!)</strong></li>
+                        <li><strong>🧩 Feladat idő</strong></li>
+                        <li><strong>⏱️ Teljes idő</strong></li>
+                    </ol>
+
+                    <div class="mt-2 flex items-start gap-2 text-xs text-blue-800 bg-white p-2 rounded border border-blue-100">
+                        <span class="text-lg">💡</span>
+                        <span>
+                            <strong>Tipp:</strong> Nem kell rohanni a helyszínek között! A teljes idő számít legkevésbé. Team játéknál nyugodtan sétáljatok, a pontosság és a biztonság a legfontosabb!
+                        </span>
+                    </div>
+                </div>
+
+                <p class="mt-2">
+                    ⚠️ Ha gond van az adott feladattal, használd a
+                    <strong>„Feladat átugrása”</strong> gombot, ilyenkor az adott feladat 0 pontot fog érni.
+                </p>
+            </div>
+        </details>
+
+        <!-- 4️⃣ Játéktípusok -->
+        <details class="story-details mb-3">
+            <summary class="font-bold text-sm text-brand-blue">🧭 Kaland típusok</summary>
+
+            <div class="space-y-2 text-sm text-gray-700 mt-2">
+                <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok sorrendben követik egymást.</p>
+                <p><strong>Kids 🐈:</strong> Kimondottan 6-12 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve, sorban haladó feladatokkal.</p>
+                <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén. Csapatonként egy eszközön használható!</p>
+                <p><strong>Explore 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
+                <p><strong>Instant 🎲:</strong> Bárhol elindítható, <strong>"Azonnali kaland"</strong> a pillanatnyi tartózkodási helyed köré generált egyedi kaland, választható tematikájú és nehézségi szintű feladatokkal.</p>
+            </div>
+        </details>
+
+        <!-- Feedback -->
+        <div class="mt-6 pt-4 border-t border-gray-200">
+            <p class="text-xs font-bold text-gray-500 mb-1 text-center uppercase tracking-wide">
+                Problémád adódott?
+            </p>
+
+            <p class="text-[10px] text-gray-400 text-center mb-3 italic">
+                (Minden oldal legalján is megtalálod ezt a gombot)
+            </p>
+
+            <a href="https://forms.gle/Kzt5CvVrCxec2bby9" target="_blank"
+                class="block w-full py-2.5 rounded-lg border border-red-200 bg-white text-xs font-bold text-center text-red-600 hover:bg-red-50 hover:border-red-300 transition shadow-sm flex items-center justify-center gap-2">
+                <span>📢</span> Visszajelzés / Hiba bejelentése
+            </a>
+        </div>
+
     </div>
-</div>
-
-<div class="ml-3"> <p class="font-bold text-brand-blue leading-tight text-[15px]">Miért érdemes belépni?</p>
-    <p class="text-[12px] leading-snug mt-1 text-gray-700">
-    Regisztrálj, hogy a rendszer <strong>megjegyezze a neved és az avatarod</strong>! Így gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, felkerülhetsz az exkluzív <strong>Dicsőségfal</strong> ✨ ranglistára, az avatarod mellé pedig megkapod a <strong>hitelesített (blue check)</strong> jelvényt!
-</p>
-</div>
-</div>
-
-                                   <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
-                                   <p>🗺️ Kövesd a térképen a célpontokat</p>
-                                   <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
-                                   <p>⭐ Minden feladat 50 pontot ér</p>
-                                   <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
-                                   <p>❌ Minden rossz válasz: −1 pont</p>
-                                   <p>💎 Titkos kincsek: +10 pont (opcionális). Bizonyos pályákon találkozhatsz velük. Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!</p>
-                                   <div class="mt-3 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                       <p class="font-bold text-brand-blue mb-1">🏆 Rangsorolás sorrendje:</p>
-                                       <ol class="list-decimal list-inside space-y-1 ml-1">
-                                           <li><strong>⭐Szerzett Pontok</strong> (Ez a legfontosabb!)</li>
-                                           <li><strong>🧩Feladat idő</strong> (Csak a kérdés megoldása alatt telik)</li>
-                                           <li><strong>⏱️Teljes idő</strong> (Séta + gondolkodás)</li>
-                                       </ol>
-                                       <div class="mt-2 flex items-start gap-2 text-xs text-blue-800 bg-white p-2 rounded border border-blue-100">
-                                           <span class="text-lg">💡</span>
-                                           <span><strong>Tipp:</strong> Nem kell rohanni a helyszínek között! A teljes idő számít legkevésbé. Team játéknál nyugodtan sétáljatok, a pontosság és a biztonság a legfontosabb!</span>
-                                       </div>
-                                   </div>
-
-                                   <p>⏱️ Két időmérés a képernyőn:</p>
-                                   <p style="margin-left: 1.5rem">• 🔵 Kék = Teljes idő (kevésbé számít)</p>
-                                   <p style="margin-left: 1.5rem">• 🟢 Zöld = Feladat idő (fontosabb!)</p>
-                                   <p class="mt-2">⚠️ Ha gond van az adott feladattal, használd a <strong>„Feladat átugrása”</strong> gombot, de ilyenkor az adott feladat 0 pontot fog érni.</p>
-                                </div>
-                                
-                                <h2 class="text-lg font-bold text-text-heading mt-4 mb-2">Kaland Típusok Magyarázata</h2>
-                                <div class="space-y-2 text-sm text-gray-700">
-                                   <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok sorrendben követik egymást.</p>
-                                    <p><strong>Kids 🐈:</strong> Kimondottan 6-12 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve, sorban haladó feladatokkal.</p>
-                                    <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén.</p>
-                                    <p><strong>Explore 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
-				    <p><strong>Instant 🎲:</strong> Bárhol elindítható, <strong>"Azonnali kaland"</strong> a pillanatnyi tartózkodási helyed köré generált egyedi kaland, választható tematikájú és nehézségi szintű feladatokkal.</p>
-                                </div>
-
-
-<div class="mt-6 pt-4 border-t border-gray-200">
-                                    <p class="text-xs font-bold text-gray-500 mb-1 text-center uppercase tracking-wide">Problémád adódott?</p>
-                                    
-                                    <p class="text-[10px] text-gray-400 text-center mb-3 italic">
-                                        (Minden oldal legalján is megtalálod ezt a gombot)
-                                    </p>
-
-                                    <a href="https://forms.gle/Kzt5CvVrCxec2bby9" target="_blank" 
-                                       class="block w-full py-2.5 rounded-lg border border-red-200 bg-white text-xs font-bold text-center text-red-600 hover:bg-red-50 hover:border-red-300 transition shadow-sm flex items-center justify-center gap-2">
-                                        <span>📢</span> Visszajelzés / Hiba bejelentése
-                                    </a>
-                                </div>
-                                </div> </details>
+</details>
 
 
 
