@@ -3059,6 +3059,7 @@ window.openHallOfFame = async function(mode = 'monthly') {
                     name: data.teamName,
                     avatar: data.avatar || 'cat',
                     score: parseInt(data.totalScore || 0),
+		    lastLogin: userNode.lastLogin || 0,
                     isRegistered: true
                 });
             }
@@ -3130,7 +3131,14 @@ window.openHallOfFame = async function(mode = 'monthly') {
 
 // Segédfüggvény a táblázat kirajzolásához
 function renderHofTable(players, tbody) {
-    players.sort((a, b) => b.score - a.score);
+    players.sort((a, b) => {
+        const scoreDiff = b.score - a.score; // Pontszám csökkenő
+        if (scoreDiff !== 0) return scoreDiff;
+        
+        // Ha a pont egyenlő, akkor lastLogin szerint növekvő:
+        // Így a régebbi (kisebb szám) lesz elől, az új (nagyobb szám) a végén.
+        return (a.lastLogin || 0) - (b.lastLogin || 0);
+    });
     let html = "";
     if (players.length === 0) {
         html = '<tr><td colspan="3" class="text-center py-10 text-gray-400">Ebben az időszakban nem született eredmény.</td></tr>';
