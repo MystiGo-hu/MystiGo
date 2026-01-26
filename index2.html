@@ -3053,7 +3053,8 @@ window.openHallOfFame = async function(mode = 'monthly') {
     let players = [];
     if (snapshot.exists()) {
         snapshot.forEach(child => {
-            const data = child.val().profile;
+		const userNode = child.val();            
+		const data = userNode.profile;
             if (data && data.teamName) {
                 players.push({
                     name: data.teamName,
