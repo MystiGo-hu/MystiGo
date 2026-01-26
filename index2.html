@@ -185,34 +185,33 @@
 
 
 #in-app-browser-warning {
-    display: none; /* Alaphelyzetben rejtve */
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    background: #ff9800; /* Figyelemfelkeltő narancs */
+    background: #ff9800;
     color: white;
-    z-index: 999999;
-    padding: 12px 15px;
+    z-index: 1000000; /* Legfelül legyen */
+    padding: 12px 40px 12px 15px; /* Hely a bezáró gombnak */
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    font-family: sans-serif;
     font-size: 13px;
     line-height: 1.4;
 }
 
-#in-app-browser-warning strong {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 3px;
+/* Sima visszacsúszás animáció a testnek */
+body {
+    transition: margin-top 0.3s ease-in-out;
 }
 
 #in-app-browser-warning .close-warning {
     position: absolute;
-    right: 10px;
-    top: 10px;
-    font-size: 20px;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
     cursor: pointer;
-    opacity: 0.8;
+    line-height: 1;
 }
 
 
@@ -740,11 +739,9 @@
 
 
 <div id="in-app-browser-warning">
-    <span class="close-warning" onclick="this.parentElement.style.display='none'">&times;</span>
+    <span class="close-warning" onclick="closeBrowserWarning()">&times;</span>
     <strong>⚠️ Korlátozott böngésző észlelve</strong>
-    A Google bejelentkezés Facebook/Instagram böngészőben nem működik. 
-    Kattints a jobb felső sarokban a <strong>három pontra (⋮)</strong> és válaszd a 
-    <strong>"Megnyitás böngészőben"</strong> opciót!
+    A Google login itt nem működik. Kattints a jobb felső <strong>három pontra (⋮)</strong> és válaszd a <strong>"Megnyitás böngészőben"</strong> opciót!
 </div>
 
 
@@ -9362,23 +9359,32 @@ const val = nameInput.value.trim();
 
    
 
+
+
+
+function closeBrowserWarning() {
+    var warningBar = document.getElementById('in-app-browser-warning');
+    if (warningBar) {
+        warningBar.style.display = 'none';
+        // Visszaállítjuk az oldal margóját nullára
+        document.body.style.marginTop = '0px';
+    }
+}
+
 window.addEventListener('load', function() {
     var ua = navigator.userAgent || navigator.vendor || window.opera;
-    var isFacebook = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1);
-    var isInstagram = (ua.indexOf("Instagram") > -1);
-    var isMessenger = (ua.indexOf("Messenger") > -1);
+    var isInApp = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || 
+                  (ua.indexOf("Instagram") > -1) || (ua.indexOf("Messenger") > -1);
 
-    // Ha Facebookon, Instagramon vagy Messengeren belül van
-    if (isFacebook || isInstagram || isMessenger) {
+    if (isInApp) {
         var warningBar = document.getElementById('in-app-browser-warning');
         if (warningBar) {
             warningBar.style.display = 'block';
-            // Eltoljuk az oldal tartalmát lejjebb, hogy ne takarja ki a fejlécet
+            // Pontosan annyival toljuk le az oldalt, amilyen magas a sáv
             document.body.style.marginTop = warningBar.offsetHeight + 'px';
         }
     }
 });
-
 
    
 
