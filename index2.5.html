@@ -508,6 +508,7 @@
             height: 60px !important; /* Kisebb méret, hogy ne lógjon bele semmibe */
             width: auto;
             object-fit: contain;
+	    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
         }
         
         /* 2. KÖZÉPSŐ RÉSZ (Név + Avatar + Teszt felirat) */
@@ -576,7 +577,7 @@
         #exit-game-btn {
             position: absolute;
             z-index: 1000;
-            top: 5px !important; 
+            top: 5px !important;
             right: 10px !important;
             /* Biztosítjuk, hogy a gomb mérete fix legyen */
             width: 35px;
@@ -605,10 +606,13 @@
                 
         /* Középső logó méretének kicsinyítése a Kalandválasztó oldalon */
         #main-header-logo {
-            max-height: 90px;
-	    width: auto; /* Elegendő helyet hagy az oldalsó képeknek és az alatta lévő tartalomnak */
-            
-        }
+    max-height: 90px; /* Vissza az eredeti méretre */
+    width: auto;
+    display: block;
+    margin: 0 auto 0px auto;
+    /* Csak a logó alakját követő finom árnyék */
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
         
         /* --- LANDING PAGE (INDÍTÓ OLDAL) VISSZAÁLLÍTOTT STÍLUSAI --- */
         #landing-page .w-full.h-\[20vh\] {
@@ -696,6 +700,7 @@
             border-radius: 1rem !important;      /* Lekerekítés a többi boxhoz igazítva */
         }
 
+
     </style>
 </head>
 <body class="overflow-hidden">
@@ -727,7 +732,7 @@
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.70
+       v1.2.78
 
    </span>
 
@@ -860,82 +865,159 @@
                             </div>
                         </div>
                         
-                        <details id="game-type-explanation" class="story-details mb-4" style="background-color: #fefce8; border-color: #fde68a;">
-    <summary style="font-weight: 800; color: var(--brand-blue); padding: 0.5rem; display: flex; align-items: center;">
-        <span class="text-xl mr-2"ℹ️</span> Hogyan működik a MystiGo?
-        <span style="position: absolute; right: 0.75rem; top: 0.8rem; font-size: 1.5rem;"></span>
+
+
+
+
+
+      <style>
+    /* 1. RESET: Letiltjuk a fő stílusból örökölt jeleket és a gyári nyilakat */
+    .inner-details summary::before,
+    .inner-details summary::after {
+        content: none !important; /* Ez tünteti el a pirossal jelölt extra jeleket */
+    }
+
+    .inner-details summary::-webkit-details-marker,
+    .inner-details summary::marker {
+        display: none !important;
+    }
+
+    /* 2. Egyedi keret és háttér a belső menüknek */
+    .inner-details {
+        border: 1px solid #fde68a;
+        border-radius: 1rem;
+        background-color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+    }
+
+    .inner-details summary {
+        list-style: none !important;
+        display: flex;
+        align-items: center;
+        padding: 0.85rem;
+        font-weight: 800;
+        font-size: 0.85rem;
+        color: #0D2B45;
+        cursor: pointer;
+    }
+
+    /* 3. A saját +/- jelünk a szöveg előtt */
+    .inner-details .toggle-sign::before {
+        content: "+";
+        display: inline-block;
+        width: 1.2rem;
+        margin-right: 0.5rem;
+        text-align: center;
+        font-family: monospace;
+        font-size: 1.25rem;
+    }
+
+    .inner-details[open] > summary .toggle-sign::before {
+        content: "-";
+    }
+</style>
+
+<details id="game-type-explanation" class="story-details mb-4" style="background-color: #fefce8; border-color: #fde68a;">
+    <summary style="font-weight: 800; color: var(--brand-blue); padding: 0.75rem; display: flex; align-items: center; cursor: pointer;">
+        <span class="text-xl mr-2">ℹ️</span> Hogyan működik a MystiGo?
     </summary>
-                            <div class="story-content" style="border-top: 1px solid #fde68a; margin-top: 0.5rem; padding-top: 0.5rem;">
-                                
-                                <div class="space-y-2 text-sm text-gray-700">
-                                   <p>📱 Telefon + GPS + internet szükséges</p>
-                                   <p>🔋 Töltsd fel az akkut (vagy hozz powerbankot)</p>
-				   <div class="my-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
-    <div class="shrink-0 flex flex-col items-center gap-1">
-    <img src="logo/verified.png" alt="Verified" class="h-12 w-auto object-contain">
 
-    <div class="flex items-center gap-1">
-        <img src="logo/google_logo.svg" alt="Google" class="h-4 w-auto object-contain">
-        <span class="text-[16px] leading-none text-gray-600"><strong>✉︎</strong></span>
+    <div class="p-3 space-y-3" style="border-top: 1px solid #fde68a;">
+        
+        <details class="inner-details">
+            <summary><span class="toggle-sign"></span>🚀 Előkészületek és Belépés</summary>
+            <div class="p-3 pt-0 text-sm text-gray-700 space-y-3 ml-6 font-normal">
+                <p>📱 Telefon + GPS + internet szükséges. Érdemes feltöltött akkuval elindulni.</p>
+                
+                <div class="space-y-2">
+                    <div class="p-3 bg-white/80 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="font-bold text-brand-blue flex items-center gap-2 mb-1">👤 Játék Vendégként</p>
+                        <p class="text-[11px] leading-relaxed italic">Elegendő egy nevet és avatart megadnod. Ideális, ha csak kipróbálnád a rendszert, de a pontjaidat így <strong>nem tudod hosszú távon gyűjteni</strong>, és nem kerülsz fel a <strong>Dicsőségfal</strong> ranglistájára sem.</p>
+                    </div>
+                    <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-200 shadow-sm">
+                        <p class="font-bold text-brand-blue flex items-center gap-2 mb-1">✨ Regisztrált játékos (Ajánlott)</p>
+                        <p class="text-[11px] leading-relaxed">Regisztrálj, hogy a rendszer megjegyezze a neved és az avatarod! Így gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, felkerülhetsz az exkluzív ranglistára, az avatarod mellé pedig megkapod a <strong>hitelesített (blue check)</strong> jelvényt!</p>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <details class="inner-details">
+            <summary><span class="toggle-sign"></span>🏆 Pontozás és Időmérés</summary>
+            <div class="p-3 pt-0 text-sm text-gray-700 space-y-4 ml-6 font-normal">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-green-100/50 p-2 rounded-lg border border-green-200 text-center">
+                        <p class="text-[10px] font-bold text-green-700">HELYES VÁLASZ</p>
+                        <p class="text-lg font-black text-green-600">+50 pont</p>
+                    </div>
+                    <div class="bg-red-100/50 p-2 rounded-lg border border-red-200 text-center">
+                        <p class="text-[10px] font-bold text-red-700">ROSSZ VÁLASZ</p>
+                        <p class="text-lg font-black text-red-600">-1 pont</p>
+                    </div>
+                </div>
+
+                <div class="bg-purple-50/80 p-3 rounded-xl border border-purple-200">
+                    <p class="font-bold text-xs text-purple-700 mb-1">💎 Titkos kincsek (+10 pont)</p>
+                    <p class="text-[11px] leading-relaxed">Bizonyos pályákon találkozhatsz velük (opcionális). Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!</p>
+                </div>
+
+                <div class="bg-yellow-50 p-3 rounded-xl border border-yellow-200 space-y-2">
+                    <p class="font-bold text-xs text-brand-blue uppercase border-b border-yellow-200 pb-1">⏱️ Kétféle időmérés a képernyőn:</p>
+                    <p class="text-[11px]">🟢 <strong>Feladat idő (Fontosabb):</strong> Csak a kérdés megjelenése és a helyes megoldás beküldése alatt telik. Ez a fő mérvadó pontegyenlőségnél.</p>
+                    <p class="text-[11px]">🔵 <strong>Teljes idő (Kevésbé számít):</strong> A séta + gondolkodás ideje. Nem kell rohanni, a teljes idő számít legkevésbé a rangsorolásnál!</p>
+                </div>
+
+                <div class="text-[11px] space-y-1 bg-white/40 p-2 rounded-lg border border-gray-100">
+                    <p class="font-bold text-gray-500 uppercase text-[9px] mb-1 text-center">🏆 Rangsorolás sorrendje:</p>
+                    <p class="flex justify-between"><span>1. ⭐ Szerzett Pontok</span> <span class="text-gray-400">|</span> <span>2. 🧩 Feladat idő</span> <span class="text-gray-400">|</span> <span>3. ⏱️ Teljes idő</span></p>
+                </div>
+
+                <div class="text-[11px] space-y-1 pt-2 border-t border-yellow-200">
+                    <p class="flex justify-between"><span>💡 1. segítség:</span> <span class="font-bold text-red-600">-10 pont</span></p>
+                    <p class="flex justify-between"><span>💡 2. segítség:</span> <span class="font-bold text-red-600">-20 pont</span></p>
+                    <p class="flex justify-between text-gray-500 italic"><span>✔️ Megoldás kérése:</span> <span>0 pont</span></p>
+                </div>
+            </div>
+        </details>
+
+        <details class="inner-details">
+            <summary><span class="toggle-sign"></span>🌍 Játékmódok leírása</summary>
+            <div class="p-3 pt-0 text-sm text-gray-700 space-y-4 ml-6 font-normal">
+                <div class="border-l-4 border-blue-400 pl-3">
+                    <p class="font-bold text-brand-blue">Normal 🧭</p>
+                    <p class="text-[11px] leading-relaxed">Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel. A feladatok szigorú sorrendben követik egymást.</p>
+                </div>
+                <div class="border-l-4 border-pink-400 pl-3">
+                    <p class="font-bold text-pink-600">Kids 🐈</p>
+                    <p class="text-[11px] leading-relaxed">Kimondottan 6-12 éves gyerekeknek. Egyszerűbb kérdések a <strong>Mysti cica</strong> történetével fűszerezve, sorban haladó feladatokkal.</p>
+                </div>
+                <div class="border-l-4 border-orange-400 pl-3">
+                    <p class="font-bold text-orange-700">Team 🧑‍🤝‍🧑</p>
+                    <p class="text-[11px] leading-relaxed">Csapatjátékra optimalizált. A feladatok <strong>változó sorrendben</strong> jönnek, a csapatok egyszerre tudnak indulni egy helyről, és egy helyen végeznek.</p>
+                </div>
+                <div class="border-l-4 border-green-500 pl-3">
+                    <p class="font-bold text-green-700">Explore 🌍</p>
+                    <p class="text-[11px] leading-relaxed">Szabad felfedezés. A játékos szabadon választ a térképen lévő feladatok közül, amelyek az indítás után egyszerre láthatók.</p>
+                </div>
+                <div class="border-l-4 border-purple-500 pl-3">
+                    <p class="font-bold text-purple-700">Instant 🎲</p>
+                    <p class="text-[11px] leading-relaxed"><strong>Azonnali kaland</strong> a pillanatnyi helyzeted körül generálva, választható tematikájú és nehézségi szintű feladatokkal.</p>
+                </div>
+            </div>
+        </details>
+
+        <div class="mt-4 pt-4 border-t border-[#fde68a] text-center">
+            <p class="text-[10px] text-gray-500 italic mb-3 leading-tight">
+                ⚠️ Ha gond van az adott feladattal, használd a <strong>„Feladat átugrása”</strong> gombot, de ilyenkor az adott feladat 0 pontot fog érni.
+            </p>
+            <a href="https://forms.gle/Kzt5CvVrCxec2bby9" target="_blank" 
+               class="block w-full py-2.5 rounded-xl border border-red-200 bg-white text-xs font-bold text-red-600 hover:bg-red-50 transition shadow-sm">
+                📢 Visszajelzés / Hiba bejelentése
+            </a>
+        </div>
     </div>
-</div>
-
-<div class="ml-3"> <p class="font-bold text-brand-blue leading-tight text-[15px]">Miért érdemes belépni?</p>
-    <p class="text-[12px] leading-snug mt-1 text-gray-700">
-    Regisztrálj, hogy a rendszer <strong>megjegyezze a neved és az avatarod</strong>! Így gyűjtheted az <strong>összesített ⭐ pontjaidat</strong>, felkerülhetsz az exkluzív <strong>Dicsőségfal</strong> ✨ ranglistára, az avatarod mellé pedig megkapod a <strong>hitelesített (blue check)</strong> jelvényt!
-</p>
-</div>
-</div>
-
-                                   <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
-                                   <p>🗺️ Kövesd a térképen a célpontokat</p>
-                                   <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
-                                   <p>⭐ Minden feladat 50 pontot ér</p>
-                                   <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
-                                   <p>❌ Minden rossz válasz: −1 pont</p>
-                                   <p>💎 Titkos kincsek: +10 pont (opcionális). Bizonyos pályákon találkozhatsz velük. Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!</p>
-                                   <div class="mt-3 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                       <p class="font-bold text-brand-blue mb-1">🏆 Rangsorolás sorrendje:</p>
-                                       <ol class="list-decimal list-inside space-y-1 ml-1">
-                                           <li><strong>⭐Szerzett Pontok</strong> (Ez a legfontosabb!)</li>
-                                           <li><strong>🧩Feladat idő</strong> (Csak a kérdés megoldása alatt telik)</li>
-                                           <li><strong>⏱️Teljes idő</strong> (Séta + gondolkodás)</li>
-                                       </ol>
-                                       <div class="mt-2 flex items-start gap-2 text-xs text-blue-800 bg-white p-2 rounded border border-blue-100">
-                                           <span class="text-lg">💡</span>
-                                           <span><strong>Tipp:</strong> Nem kell rohanni a helyszínek között! A teljes idő számít legkevésbé. Team játéknál nyugodtan sétáljatok, a pontosság és a biztonság a legfontosabb!</span>
-                                       </div>
-                                   </div>
-
-                                   <p>⏱️ Két időmérés a képernyőn:</p>
-                                   <p style="margin-left: 1.5rem">• 🔵 Kék = Teljes idő (kevésbé számít)</p>
-                                   <p style="margin-left: 1.5rem">• 🟢 Zöld = Feladat idő (fontosabb!)</p>
-                                   <p class="mt-2">⚠️ Ha gond van az adott feladattal, használd a <strong>„Feladat átugrása”</strong> gombot, de ilyenkor az adott feladat 0 pontot fog érni.</p>
-                                </div>
-                                
-                                <h2 class="text-lg font-bold text-text-heading mt-4 mb-2">Kaland Típusok Magyarázata</h2>
-                                <div class="space-y-2 text-sm text-gray-700">
-                                   <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok sorrendben követik egymást.</p>
-                                    <p><strong>Kids 🐈:</strong> Kimondottan 6-12 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve, sorban haladó feladatokkal.</p>
-                                    <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén.</p>
-                                    <p><strong>Explore 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
-				    <p><strong>Instant 🎲:</strong> Bárhol elindítható, <strong>"Azonnali kaland"</strong> a pillanatnyi tartózkodási helyed köré generált egyedi kaland, választható tematikájú és nehézségi szintű feladatokkal.</p>
-                                </div>
-
-
-<div class="mt-6 pt-4 border-t border-gray-200">
-                                    <p class="text-xs font-bold text-gray-500 mb-1 text-center uppercase tracking-wide">Problémád adódott?</p>
-                                    
-                                    <p class="text-[10px] text-gray-400 text-center mb-3 italic">
-                                        (Minden oldal legalján is megtalálod ezt a gombot)
-                                    </p>
-
-                                    <a href="https://forms.gle/Kzt5CvVrCxec2bby9" target="_blank" 
-                                       class="block w-full py-2.5 rounded-lg border border-red-200 bg-white text-xs font-bold text-center text-red-600 hover:bg-red-50 hover:border-red-300 transition shadow-sm flex items-center justify-center gap-2">
-                                        <span>📢</span> Visszajelzés / Hiba bejelentése
-                                    </a>
-                                </div>
-                                </div> </details>
+</details>
 
 
 
@@ -1217,16 +1299,7 @@
     </button>
 
 
-<div id="instant-resume-ui" class="hidden mt-3 pt-3 border-t border-orange-200 justify-between items-center">
-        <div class="flex flex-col">
-            <span class="text-[10px] font-bold text-orange-600 uppercase">Félbehagyott kaland:</span>
-            <span class="text-[11px] font-medium text-gray-600">Van egy mentett állásod.</span>
-        </div>
-        <div class="flex gap-2">
-            <button onclick="resumeInstantAdventure()" class="px-3 py-2 bg-green-500 text-white text-[10px] font-bold rounded-lg shadow-sm active:scale-95 transition uppercase">Folytatás</button>
-            <button onclick="deleteInstantAdventure()" class="px-3 py-2 bg-white border border-red-200 text-red-500 text-[10px] font-bold rounded-lg active:scale-95 transition uppercase">Törlés</button>
-        </div>
-    </div>
+
 
 
     </div>
@@ -1357,23 +1430,6 @@
     </button>
 </div>
 
-<div id="qr-scanner-modal" class="modal-overlay fixed inset-0 bg-black/90 hidden items-center justify-center z-[9999] p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col">
-        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-            <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
-            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div class="p-4">
-            <div id="qr-reader" class="overflow-hidden rounded-2xl border-2 border-dashed border-gray-200"></div>
-            <p class="text-xs text-gray-500 text-center mt-4">Irányítsd a kamerát a kihelyezett QR kódra!</p>
-        </div>
-        <div class="p-4 bg-gray-50">
-            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl">Mégse</button>
-        </div>
-    </div>
-</div>
 
 
                                  
@@ -1668,10 +1724,20 @@
             <p class="text-xs text-gray-600 mt-2 font-semibold">Add meg a kódod:</p>
         </div>
         
-        <input type="text" id="coupon-input" placeholder="KUPONKÓD" 
-               style="text-transform: uppercase;"
-               class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none mb-3 focus:border-[#FFA500]">
-        
+        <div class="relative mb-3">
+    <input type="text" id="coupon-input" placeholder="KUPONKÓD" 
+           style="text-transform: uppercase;"
+           class="w-full pl-4 pr-12 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold tracking-widest outline-none focus:border-[#FFA500]">
+    
+    <button type="button" onclick="openQrScanner('coupon')" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#FFA500] z-50">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+    </button>
+</div>
+
+
         <div id="coupon-error" class="text-red-500 text-[10px] font-bold mb-3 hidden">⚠️ Érvénytelen kód!</div>
 
         <div class="flex gap-2">
@@ -3008,13 +3074,15 @@ window.openHallOfFame = async function(mode = 'monthly') {
                 const monthData = allMonthsData[targetMonthKey];
                 
                 // Az adatbázisban itt a kulcs a UserID, az érték az objektum (név, pont, avatar)
-                players = Object.values(monthData).map(data => ({
-                    name: data.name,
-                    avatar: data.avatar || 'cat',
-                    score: data.score, // Ez már a helyes, növekvő pontszám
-                    isRegistered: true 
-                }));
-            }
+                players = Object.values(monthData)
+        .filter(data => (parseInt(data.score) > 0)) // <--- EZ A SZŰRŐ HIÁNYZOTT
+        .map(data => ({
+            name: data.name,
+            avatar: data.avatar || 'cat',
+            score: data.score,
+            isRegistered: true 
+        }));
+}
 
             renderHofTable(players, tbody);
         }
@@ -3149,7 +3217,8 @@ window.showHiddenGames = false;
         const DEFAULT_GAME_FILE = 'games/games.xlsx'; 
 
         const AVATAR_ICONS = {
-cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖', ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', dragon: '🐲', alien: '👽', rocket: '🚀', ninja: '🥷', unicorn: '🦄', cactus: '🌵', guitar: '🎸', soccer: '⚽', coffee: '☕', butterfly: '🦋', lion: '🦁', tiger: '🐯', owl: '🦉', superhero: '🦸', pirate: '🏴‍☠️', gamepad: '🎮', camera: '📷', rainbow: '🌈', diamond: '💎', ufo: '🛸', sloth: '🦥', poop: '💩', chicken: '🐔', dino: '🦖', avocado: '🥑', ice_cream: '🍦', frog: '🐸', penguin: '🐧'
+cat: '🐱', dog: '🐶', panda: '🐼', monkey: '🐵', shark: '🦈', parrot: '🦜', bear: '🐻', cow: '🐮', elephant: '🐘', detective: '🕵️', explorer: '🧭', wizard: '🧙', robot: '🤖', ghost: '👻', skull: '☠️', lock: '🔒', magician: '🎩', mask: '🎭', fire: '🔥', knight: '⚔️', hamburger: '🍔', pizza: '🍕', doughnut: '🍩', cupcake: '🧁', lollipop: '🍭', smile: '😎', zombie: '🧟',ballerina: '🩰',police: '🚓',firefighter: '🚒',ambulance: '🚑',star: '⭐️', heart: '❤️', crown: '👑', laptop: '💻', floppy: '💾', dragon: '🐲', alien: '👽', rocket: '🚀', ninja: '🥷', unicorn: '🦄', cactus: '🌵', guitar: '🎸', soccer: '⚽', coffee: '☕', butterfly: '🦋', lion: '🦁', tiger: '🐯', owl: '🦉', superhero: '🦸', pirate: '🏴‍☠️', gamepad: '🎮', camera: '📷', rainbow: '🌈', diamond: '💎', ufo: '🛸', sloth: '🦥', poop: '💩', chicken: '🐔', dino: '🦖', avocado: '🥑', ice_cream: '🍦', frog: '🐸', penguin: '🐧', princess: '👸', rose: '🌹', eggplant: '🍆', strawberry: '🍓', croissant: '🥐', dancer: '💃', lips: '🫦', marmaid: '🧜‍♀️', spider: '🕷️', sun: '🌞', moon: '🌙', rabbit: '🐰' 
+
         };
 
         window.appState = {};
@@ -3225,23 +3294,6 @@ window.addSmartTileLayer = function(mapInstance) {
 
 
 
-window.checkInstantProgress = function() {
-    const resumeUI = document.getElementById('instant-resume-ui');
-    if (!resumeUI) return;
-
-    // Megkeressük az instant mentést (GameState)
-    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
-
-    if (saveKey) {
-        // HA VAN MENTÉS: Megjelenítjük (flex)
-        resumeUI.classList.remove('hidden');
-        resumeUI.classList.add('flex');
-    } else {
-        // HA NINCS: Teljesen elrejtjük (hidden) és levesszük a flex-et
-        resumeUI.classList.add('hidden');
-        resumeUI.classList.remove('flex');
-    }
-};
 
 /**
  * Instant Kaland folytatása: Betölti az adatokat és az állást is
@@ -3267,39 +3319,6 @@ window.resumeInstantAdventure = function() {
 
 
 
-window.deleteInstantAdventure = function(force = false) {
-    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
-    
-    if (!saveKey) {
-        window.checkInstantProgress();
-        return;
-    }
-
-    // Ez a függvény csak a törléssel foglalkozik
-    const performDeletion = () => {
-    const gameId = saveKey.replace('MystiGoGameState_', '');
-    localStorage.removeItem(saveKey); 
-    localStorage.removeItem(`MystiGo_GameData_${gameId}`); 
-    
-    if (window.games && window.games[gameId]) {
-        delete window.games[gameId];
-    }
-    window.checkInstantProgress();
-    // A reset törölve, hogy megmaradjanak a beállított szűrők felülíráskor
-    console.log("Instant játék törölve, felület frissítve.");
-};
-
-    if (force) {
-        performDeletion();
-    } else {
-        showMessage(
-            'Azonnali kaland törlése', 
-            'Biztosan törölni szeretnéd a folyamatban lévő azonnali kalandot? Ezt a folyamatot nem lehet visszavonni.', 
-            performDeletion, 
-            true
-        );
-    }
-};
 
 // --- TESTRESZABÁS ÉS CÉLPONT FUNKCIÓK (Most már globálisan elérhetőek) ---
 appState.instantTarget = null;
@@ -3537,6 +3556,20 @@ function loadGameById(gameId) {
             try {
                 const savedStateJson = localStorage.getItem(getStorageKey(gameId));
                 if (!savedStateJson) return false;
+		
+
+		if (!window.games[gameId]) {
+            if (gameId.startsWith('instant_')) {
+                window.loadInstantGamesIntoMemory();
+            }
+        }
+
+        if (!window.games[gameId]) {
+            console.warn(`A mentett játék (${gameId}) nem található. Mentés törlése.`);
+            deleteSavedGame(gameId); 
+            return false; 
+        }
+
 
                 // --- BIZTONSÁGI JAVÍTÁS (CRASH FIX) ---
                 // Ellenőrizzük, hogy létezik-e még a játék az Excel adatbázisban
@@ -3672,6 +3705,85 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
             }
         }
 
+
+
+
+// ÚJ: Az összes mentett instant játék betöltése a memóriába
+window.loadInstantGamesIntoMemory = function() {
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('MystiGo_GameData_instant_')) {
+            try {
+                const gameData = JSON.parse(localStorage.getItem(key));
+                if (gameData && gameData.id) {
+                    window.games[gameData.id] = gameData;
+                }
+            } catch (e) { console.error("Hiba az instant játék betöltésekor:", e); }
+        }
+    }
+};
+
+
+
+// ÚJ: Félbehagyott játék ellenőrzése és felajánlása
+window.checkAndPromptResume = function() {
+    let latestSaveKey = null;
+    let latestTimestamp = 0;
+
+    // 1. Megkeressük a legfrissebb mentést
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('MystiGoGameState_')) {
+            try {
+                const state = JSON.parse(localStorage.getItem(key));
+                if (state && state.lastTimestamp > latestTimestamp) {
+                    latestTimestamp = state.lastTimestamp;
+                    latestSaveKey = key;
+                }
+            } catch (e) { console.error("Hiba a mentés beolvasásakor:", e); }
+        }
+    }
+
+    if (latestSaveKey) {
+        const gameId = latestSaveKey.replace('MystiGoGameState_', '');
+        
+        // --- ÚJ RÉSZ: Instant játék kezelése ---
+        if (gameId.startsWith('instant_')) {
+            const dataKey = `MystiGo_GameData_${gameId}`;
+            const savedGameData = localStorage.getItem(dataKey);
+            
+            if (savedGameData) {
+                // Ha megvan az instant játék definíciója, betöltjük a memóriába (window.games)
+                const instantGame = JSON.parse(savedGameData);
+                window.games[gameId] = instantGame;
+            } else {
+                // Ha nincs meg a definíció, nem tudjuk elindítani
+                return;
+            }
+        }
+        // ----------------------------------------
+
+        const game = window.games[gameId];
+        if (!game) return;
+
+        const gameTitle = game.title || "Ismeretlen kaland";
+
+        showMessage(
+            "Folytatás?",
+            `Úgy tűnik, van egy félbehagyott kalandod: <strong>${gameTitle}</strong>.<br><br>Akarod folytatni ott, ahol abbahagytad?`,
+            () => {
+                // IGEN gomb: Meghívjuk a betöltést
+                if (typeof loadGameById === 'function') {
+                    loadGameById(gameId);
+                }
+            },
+            true // Megjeleníti a "Nem" gombot is
+        );
+    }
+};
+
+
+
         function deleteSavedGame(gameId) {
     // Saját modális ablak használata megerősítésre
     showMessage(
@@ -3680,6 +3792,7 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
         () => {
             // Ez a rész csak akkor fut le, ha az "Igen" gombra nyomnak
             localStorage.removeItem(getStorageKey(gameId));
+	    localStorage.removeItem('MystiGo_GameData_' + gameId);
             
             // UI frissítése (eredeti logikád megőrzése)
             const urlParams = new URLSearchParams(window.location.search);
@@ -3710,7 +3823,8 @@ window.initializeGamesFromFirebase = async function() {
     if (cachedList) {
         try {
             window.games = JSON.parse(cachedList);
-            processGameDataAndRender(true); 
+            window.loadInstantGamesIntoMemory();
+	    processGameDataAndRender(true); 
             console.log("🚀 Cache betöltve.");
         } catch(e) {
             localStorage.removeItem(CACHE_KEY_LIST);
@@ -3761,6 +3875,7 @@ console.log("✅ Friss adatok megérkeztek a Firebase-ről!");
 const data = snapshot.val();
 console.log("🎮 Betöltött játékok száma:", Object.keys(data).length);
             window.games = snapshot.val();
+	    window.loadInstantGamesIntoMemory();
             localStorage.setItem(CACHE_KEY_LIST, JSON.stringify(window.games));
             processGameDataAndRender(false);
             if(statusText) statusText.textContent = "";
@@ -3803,9 +3918,16 @@ else {
         // Csak akkor váltunk oldalt, ha ez az első renderelés (Cache vagy első Load)
         // Ha már a felhasználó ott van, nem akarjuk újratölteni/ugráltatni az oldalt, csak a listát frissíteni.
         const listPage = document.getElementById('game-list-page');
-        if (listPage && listPage.classList.contains('hidden')) {
-            showPage('game-list-page');
-        } else {
+    if (listPage && listPage.classList.contains('hidden')) {
+        showPage('game-list-page');
+        
+        // --- ÚJ RÉSZ: Csak akkor kérdezünk rá, ha nem direkt linkkel érkeztek ---
+        
+            setTimeout(() => {
+                window.checkAndPromptResume();
+            }, 500); // Rövid késleltetés a simább megjelenésért
+        
+    } else {
             // JAVÍTÁS: Csak akkor futtatjuk az applyFilters-t, ha az URL szűrés NEM talált semmit
             if (!isFromCache && !appState.currentFilteredGames) {
                 if (typeof applyFilters === 'function') applyFilters();
@@ -4152,7 +4274,7 @@ const isRegistered = !!(user && !user.isAnonymous);
                 // -------------------------------
                 
                 if (pageId === 'game-list-page') {
-        window.checkInstantProgress();
+        
         const mainHeaderLogo = document.getElementById('main-header-logo');
         const titleEl = document.getElementById('page-title');
 
@@ -4420,7 +4542,7 @@ window.closeImageModal = function() {
                  // (csak a helytakarékosság miatt nem másolom be az egészet)
                  if (gamesToRender) return true;
                  if (window.showHiddenGames) return true;
-                 if (game.isHidden) return false;
+                 if (game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return false;
                  
                  let playCount = parseInt(localStorage.getItem('MystiGo_Perm_Count_' + game.id) || 0);
                  const oldBooleanSave = localStorage.getItem('MystiGo_Perm_Completed_' + game.id);
@@ -4452,7 +4574,7 @@ window.closeImageModal = function() {
 
             visibleGames.forEach(game => {
                 const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
-                const placeholderImage = `https://placehold.co/600x300/${game.type === 'kids' ? 'FFF8E1' : 'E0F7FA'}/${game.type === 'kids' ? 'F57C00' : '0A2B4C'}?text=${encodeURIComponent(game.title)}`;
+                const placeholderImage = `thumbnails/instantgame.webp`;
                 
                 // ... (típus badge, priceText, locationBadge logika változatlan) ...
                 let gameTypeBadge = '';
@@ -4527,6 +4649,9 @@ window.closeImageModal = function() {
                     `;
                 }
 
+
+
+
                 const leaderboardBtnHtml = `
                     <button onclick="event.stopPropagation(); openLeaderboardModal('${game.id}');" 
                             class="absolute bottom-2 right-2 bg-white text-brand-blue border border-gray-200 p-2 rounded-full shadow-lg hover:bg-brand-orange hover:text-white hover:scale-110 transition-all z-30"
@@ -4535,13 +4660,24 @@ window.closeImageModal = function() {
                     </button>
                 `;
 
+
+const routePreviewBtnHtml = `
+    <button onclick="event.stopPropagation(); previewRoute('${game.id}');" 
+            class="absolute bottom-2 right-14 bg-white text-brand-blue border border-gray-200 p-2 rounded-full shadow-lg hover:bg-brand-orange hover:text-white hover:scale-110 transition-all z-30" 
+            title="Útvonal előnézete">
+        🗺️
+    </button>
+`;
+
+
+
                 listEl.innerHTML += `
                     <div class="content-card overflow-hidden cursor-pointer hover:shadow-xl transition-shadow relative ${cardBorder}" 
                          onclick="handleGameSelect('${game.id}', '${gameTitleForMessage}', '${game.type}', '${priceText}', ${hasSave})">
                         ${saveIndicator}
                         ${completedBadge}
                         ${deleteButtonHtml}
-                        ${leaderboardBtnHtml}
+                        ${routePreviewBtnHtml} ${leaderboardBtnHtml}
                         
                         <div class="relative">
                             <img id="game-img-${game.id}" src="${game.imageUrl || placeholderImage}" alt="${game.title}" class="h-40 w-full object-cover ${contentOpacityClass}" onerror="this.onerror=null;this.src='${placeholderImage}';">
@@ -4631,6 +4767,98 @@ window.closeImageModal = function() {
             // ----------------------------------------------------------------
         }
   
+
+
+
+
+window.previewRoute = function(gameId) {
+    const game = window.games[gameId];
+    if (!game) return;
+
+    let points = [];
+    const sLat = parseFloat(game.startLocationLat || (game.startLocation && game.startLocation.lat));
+    const sLng = parseFloat(game.startLocationLng || (game.startLocation && game.startLocation.lng));
+    if (!isNaN(sLat)) points.push({ lat: sLat, lng: sLng, type: 'start' });
+
+    const eLat = parseFloat(game.endLocationLat);
+    const eLng = parseFloat(game.endLocationLng);
+    if (!isNaN(eLat)) {
+        points.push({ lat: eLat, lng: eLng, type: 'end' });
+    } else if (game.tasks) {
+        const tasksArray = Array.isArray(game.tasks) ? game.tasks : Object.values(game.tasks);
+        const lastT = tasksArray[tasksArray.length - 1];
+        const tLat = parseFloat(lastT?.locationLat || lastT?.location?.lat);
+        const tLng = parseFloat(lastT?.locationLng || lastT?.location?.lng);
+        if (!isNaN(tLat)) points.push({ lat: tLat, lng: tLng, type: 'end' });
+    }
+
+    if (points.length < 1) {
+        showMessage("Hiba", "Nincsenek koordináták.");
+        return;
+    }
+
+    // --- AZ ABSZOLÚT KOMPAKT ELRENDEZÉS ---
+    showMessage("Kaland útvonala", `
+        <div class="-mt-8 -mb-10 space-y-2"> 
+            <div id="preview-map" class="w-full h-[180px] rounded-xl border border-gray-200 shadow-sm bg-gray-100 overflow-hidden"></div>
+            
+            <div class="flex justify-between items-center px-1 py-1">
+                
+                
+                <div class="flex items-center justify-center gap-3 flex-1 border-x border-gray-100 px-2">
+                    <div class="flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#10b981]"></span>
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-tight">Start</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#ef4444]"></span>
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-tight">Cél</span>
+                    </div>
+                </div>
+
+               
+            </div>
+        </div>
+    `, null);
+
+    setTimeout(() => {
+        const previewMap = L.map('preview-map', { 
+            zoomControl: false, 
+            attributionControl: false,
+            dragging: true 
+        });
+        
+        // Alapértelmezett OSM réteg az éles színekért
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(previewMap);
+
+        const latLngs = points.map(p => [p.lat, p.lng]);
+
+        if (latLngs.length > 1) {
+            L.polyline(latLngs, {
+                color: '#3b82f6', 
+                weight: 3,
+                opacity: 0.8,
+                dashArray: '5, 8'
+            }).addTo(previewMap);
+        }
+
+        points.forEach((p) => {
+            const color = p.type === 'start' ? '#10b981' : '#ef4444';
+            L.circleMarker([p.lat, p.lng], {
+                radius: 6,
+                fillColor: color,
+                color: '#ffffff',
+                weight: 2,
+                fillOpacity: 1
+            }).addTo(previewMap);
+        });
+
+        const bounds = L.latLngBounds(latLngs);
+        previewMap.fitBounds(bounds, { padding: [25, 25] });
+        
+        setTimeout(() => previewMap.invalidateSize(), 200);
+    }, 400);
+};
 
 
 
@@ -4748,7 +4976,7 @@ window.applyFilters = function() {
             const filteredGames = {};
 
             Object.values(games).forEach(game => {
-                if (!window.showHiddenGames && game.isHidden) return; 
+                if (!window.showHiddenGames && game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return; 
 
                 // 1. Helyszín szűrés
                 let locMatch = (location === 'all');
@@ -4881,7 +5109,7 @@ window.autoSortGamesByDistance = function() {
                         // Ha NEM vagyunk fejlesztői módban (showHiddenGames hamis), akkor szűrünk:
                         if (!window.showHiddenGames) {
                             // 1. Rejtett játékok kiszűrése
-                            if (game.isHidden) return;
+                            if (game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return;
                             
                             // 2. Nem játszható (Letiltott) játékok kiszűrése
                             if (game.maxPlayCount === -1) return;
@@ -6401,141 +6629,102 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0) {
 
 window.generateBonusPoints = async function(count) {
     if (!count || count <= 0) return;
-    console.log(`💎 ${count} bónusz pont generálása optimalizált módban...`);
-    appState.bonusPoints = [];
-    const tasks = appState.currentGame.tasks.filter(t => t.location && t.location.lat && !t.isStartTask);
-    if (tasks.length === 0) return;
-
-    const sampleTasks = tasks.slice(0, 4);
-    let centerLat = sampleTasks.reduce((sum, t) => sum + t.location.lat, 0) / sampleTasks.length;
-    let centerLng = sampleTasks.reduce((sum, t) => sum + t.location.lng, 0) / sampleTasks.length;
-
-    // A lekérdezés ugyanaz marad
-   const query = `[out:json][timeout:15]; (
-    // PRÉMIUM PONTOK (ezeket akarjuk leginkább)
-    node(around:500,${centerLat},${centerLng})["historic"~"monument|memorial|statue|castle|ruins"];
-    node(around:500,${centerLat},${centerLng})["tourism"~"viewpoint|artwork|museum|attraction"];
-    node(around:500,${centerLat},${centerLng})["amenity"~"fountain|theatre"];
-
-    // TARTALÉK PONTOK (csak ha nincs más)
-    node(around:500,${centerLat},${centerLng})["amenity"="bench"];
-    node(around:500,${centerLat},${centerLng})["highway"="crossing"];
-); out body 100;`;
+    console.log(`💎 ${count} bónusz pont generálása (biztonságos zónák keresése)...`);
     
-    // Tükörszerverek listája
+    appState.bonusPoints = [];
+    
+    // 1. Összegyűjtjük az állomásokat, hogy elkerüljük az ütközést
+    const taskLocations = appState.currentGame.tasks
+        .filter(t => t.location && t.location.lat)
+        .map(t => ({ lat: t.location.lat, lng: t.location.lng }));
+
+    if (taskLocations.length === 0) return;
+
+    // Középpont meghatározása (eredeti logika)
+    const sampleTasks = taskLocations.slice(0, 4);
+    let centerLat = sampleTasks.reduce((sum, t) => sum + t.lat, 0) / sampleTasks.length;
+    let centerLng = sampleTasks.reduce((sum, t) => sum + t.lng, 0) / sampleTasks.length;
+
+    // Segédfüggvény a távolságok ellenőrzéséhez (Ez rövidíti le a kódot!)
+    const isPointSafe = (lat, lng) => {
+        const distFromBonuses = appState.bonusPoints.every(bp => 
+            haversineDistance({lat, lng}, {lat: bp.lat, lng: bp.lng}) >= 100);
+        const distFromTasks = taskLocations.every(tl => 
+            haversineDistance({lat, lng}, tl) >= 100);
+        return distFromBonuses && distFromTasks;
+    };
+
+    // 2. OSM LEKÉRDEZÉS (Eredeti tükörszerveres logika és timeout)
+    const query = `[out:json][timeout:15]; (
+        node(around:700,${centerLat},${centerLng})["historic"];
+        node(around:700,${centerLat},${centerLng})["tourism"];
+        node(around:700,${centerLat},${centerLng})["amenity"];
+        node(around:700,${centerLat},${centerLng})["highway"="crossing"];
+    ); out body 150;`;
+
     const mirrors = [
-        "https://overpass.openstreetmap.fr/api/interpreter",
+       "https://overpass.openstreetmap.fr/api/interpreter", 
    "https://overpass-api.de/api/interpreter",
-        "https://lz4.overpass-api.de/api/interpreter",
-        "https://z.overpass-api.de/api/interpreter"
-        
+        "https://lz4.overpass-api.de/api/interpreter"
     ];
 
-    let success = false;
     let data = null;
-
-    // Sorban megpróbáljuk a szervereket
     for (const mirror of mirrors) {
         try {
-            console.log(`Próbálkozás szerverrel: ${mirror}`);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 mp timeout szerverenként
-            
-            const response = await fetch(`${mirror}?data=${encodeURIComponent(query)}`, { 
-                signal: controller.signal 
-            });
-            
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(`${mirror}?data=${encodeURIComponent(query)}`, { signal: controller.signal });
             clearTimeout(timeoutId);
-            
-            if (response.ok) {
-                data = await response.json();
-                if (data && data.elements) {
-                    success = true;
-                    console.log(`✅ Sikerült adatot lekérni: ${mirror}`);
-                    break; 
-                }
+            if (response.ok) { 
+                data = await response.json(); 
+                if (data?.elements) break; 
             }
-        } catch (e) {
-            console.warn(`⚠️ Szerver hiba (${mirror}):`, e.message);
-        }
+        } catch (e) { console.warn(`Szerver hiba: ${mirror}`); }
     }
 
-    if (success && data) {
-        let candidates = data.elements || [];
-        const jitter = () => (Math.random() - 0.5) * 0.0002;
+    // 3. PONTOK ELHELYEZÉSE (Először POI-kból, aztán random)
+    if (data && data.elements) {
+        let candidates = data.elements;
+        // Véletlenszerű sorrend, hogy ne mindig ugyanazok a POI-k legyenek (izgalmasabb játék)
+        candidates.sort(() => Math.random() - 0.5);
 
-        // 1. Prioritási szintek (OSM tagek alapján)
-        const getPriority = (el) => {
-            const tags = el.tags || {};
-            if (tags.historic || tags.tourism === 'museum' || tags.tourism === 'artwork') return 1;
-            if (tags.amenity === 'fountain' || tags.tourism === 'viewpoint' || tags.tourism === 'attraction') return 2;
-            if (tags.leisure === 'park' || tags.leisure === 'playground') return 3;
-            if (tags.highway === 'crossing') return 4;
-            if (tags.amenity === 'bench') return 5;
-            return 6;
-        };
+        for (let el of candidates) {
+            if (appState.bonusPoints.length >= count) break;
+            const cLat = el.lat, cLng = el.lon || el.lng;
 
-        // Prioritás szerinti rendezés
-        candidates.sort((a, b) => getPriority(a) - getPriority(b));
-
-        // 2. TARTALÉK: Ha nincs elég OSM pont, generálunk véletlenszerűeket
-        // Itt 'lon'-t használunk, hogy illeszkedjen az OSM adatok szerkezetéhez a tömbben
-        if (candidates.length < count) {
-            while (candidates.length < count) {
-                candidates.push({
-                    lat: centerLat + (Math.random() - 0.5) * 0.0045,
-                    lon: centerLng + (Math.random() - 0.5) * 0.0045, // OSM formátum: lon
-                    id: `random_${Math.random()}`,
-                    tags: {}
+            if (isPointSafe(cLat, cLng)) {
+                let pName = (el.tags && el.tags.name) ? el.tags.name : "Bónusz pont";
+                appState.bonusPoints.push({
+                    id: `bonus_${Date.now()}_${appState.bonusPoints.length}`,
+                    lat: cLat, lng: cLng, collected: false, score: 10, name: pName
                 });
             }
         }
+    }
 
-        // 3. ADATOK ÁTÍRÁSA AZ APP ÁLLAPOTÁBA
-        for (let i = 0; i < count; i++) {
-            let el = candidates[i];
-            const priority = getPriority(el);
-            
-            let pName = "Bónusz pont";
-            if (el.tags && el.tags.name) {
-                pName = el.tags.name;
-            } else if (el.tags) {
-                if (el.tags.amenity === 'bench') pName = "Pihenőhely (Pad)";
-                else if (el.tags.highway === 'crossing') pName = "Biztonságos átkelő";
-            }
-
+    // 4. FALLBACK: Random pótlás, ha nem lett meg a kért darabszám
+    let safety = 0;
+    while (appState.bonusPoints.length < count && safety < 300) {
+        safety++;
+        const rLat = centerLat + (Math.random() - 0.5) * 0.012;
+        const rLng = centerLng + (Math.random() - 0.5) * 0.012;
+        if (isPointSafe(rLat, rLng)) {
             appState.bonusPoints.push({
-                id: `bonus_${Date.now()}_${i}`,
-                lat: (el.lat || 0) + jitter(),
-                lng: (el.lon || 0) + jitter(), // Itt váltunk: lon -> lng!
-                collected: false,
-                score: 10,
-                name: pName
-            });
-        }
-    } else {
-        // 4. VÉGSŐ FALLBACK (Ha a szerver egyáltalán nem válaszolt)
-        console.error("❌ Minden OSM szerver elbukott, végső tartalék megoldás...");
-        for (let i = 0; i < count; i++) {
-            appState.bonusPoints.push({
-                id: `fallback_bonus_${i}`,
-                lat: centerLat + (Math.random() - 0.5) * 0.0045,
-                lng: centerLng + (Math.random() - 0.5) * 0.0045, // Itt lng-t használunk
-                collected: false,
-                score: 10,
-                name: "Bónusz pont"
+                id: `rnd_${Date.now()}_${appState.bonusPoints.length}`,
+                lat: rLat, lng: rLng, collected: false, score: 10, name: "Titkos kincs 💎"
             });
         }
     }
 
+    // 5. MEGJELENÍTÉS ÉS IGAZÍTÁS (Eredeti funkciók)
     renderBonusMarkers();
     if (appState.map && appState.bonusPoints.length > 0) {
-        const bounds = appState.bonusPoints.map(bp => [bp.lat, bp.lng]);
+        const bounds = [...appState.bonusPoints.map(bp => [bp.lat, bp.lng]), 
+                        ...taskLocations.map(tl => [tl.lat, tl.lng])];
         if (appState.userPosition) bounds.push([appState.userPosition.lat, appState.userPosition.lng]);
         appState.map.fitBounds(L.latLngBounds(bounds).pad(0.3));
     }
 };
-
    
   function initializeMap(gameData = null) {
     const mapContainer = document.getElementById('map');
@@ -9182,6 +9371,7 @@ const val = nameInput.value.trim();
             tasks: tasksWithLocation,
             startLocation: { lat: startLat, lng: startLng },
             description: `Generált ${themeLabel} kaland ${tasksWithLocation.length} állomással.`,
+	    bonuspoint: 5,
             endStory: "Gratulálunk a teljesítéshez! Reméljük, tetszett ez az azonnali kaland."
         };
 
@@ -9217,43 +9407,27 @@ const val = nameInput.value.trim();
 
 <script type="module">
 
-
-
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js";
     import { getDatabase, ref, get, child, push, update, set, query, runTransaction, onValue, orderByChild, equalTo } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail} 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-
-
     // ✅ FONTOS: Ide a SAJÁT konfigurációdat másold be!
     const firebaseConfig = {
-        apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw", 
-        authDomain: "mystigo-7b149.firebaseapp.com",
-        databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "mystigo-7b149",
-        storageBucket: "mystigo-7b149.appspot.com",
-        messagingSenderId: "367383637666",
-        appId: "1:367383637666:web:156184517316377e641775"
-    };
+  apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
+  authDomain: "mystigo-7b149.firebaseapp.com",
+  databaseURL: "https://mystigo-7b149-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mystigo-7b149",
+  storageBucket: "mystigo-7b149.firebasestorage.app",
+  messagingSenderId: "616896082200",
+  appId: "1:616896082200:web:b13c243df8eaac6d542e6d",
+  measurementId: "G-PFDMYCJ9J1"
+};
 
     try {
         const app = initializeApp(firebaseConfig);
-        
-self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-
-const appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider('6LfPFlMsAAAAAFPtgL3y_IhgSkfPK_kB7eOnW7H2'),
-    isTokenAutoRefreshEnabled: true
-});
-
-
-
-
-
-	const db = getDatabase(app);
+        const db = getDatabase(app);
         const auth = getAuth(app);
 
         // Globális elérés biztosítása a többi scriptnek
@@ -9884,90 +10058,142 @@ let lastBackgroundTime = 0; // Ez tárolja, mikor mentél ki a háttérbe
 let html5QrCode = null;
 
 
-window.openQrScanner = function(target) {
+let isScannerStopping = false;
+let isScannerBusy = false;
+let scanningActive = false;
+
+window.openQrScanner = async function(target) {
+    // Ha már fut egy folyamat, ne engedjük újra
+    if (scanningActive) return;
+    
     const modal = document.getElementById('qr-scanner-modal');
+    if (!modal) return;
+
+    modal.style.setProperty('display', 'flex', 'important');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("qr-reader");
-    }
-
-    const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        qrConfig, 
-        (decodedText) => {
-            if (target === true) {
-                // UNLOCK MÓD: Az aktuális feladat kódjával vetjük össze
-                const task = appState.currentGame.tasks.find(t => Number(t.index) === Number(appState.currentTaskIndex));
-                const expected = String(task.unlockCode).trim().toLowerCase();
-                const scanned = decodedText.trim().toLowerCase();
-
-                if (scanned === expected) {
-                    // SIKERES FELOLDÁS
-                    task.isUnlocked = true;
-                    closeQrScanner();
-                    
-                    // Siker visszajelzés (Toast)
-                    const toast = document.createElement('div');
-                    toast.className = 'success-toast active';
-                    toast.style.borderColor = '#00CED1';
-                    toast.innerHTML = '<div class="icon">🔓</div><div><div style="font-weight:800;">SIKERES FELOLDÁS!</div></div>';
-                    document.body.appendChild(toast);
-                    
-                    setTimeout(() => {
-                        toast.remove();
-                        loadTask(task.index); // Feladat újratöltése immár feloldva
-                        if (typeof saveGameState === 'function') saveGameState();
-                    }, 2000);
-                } else {
-                    // HIBÁS QR KÓD
-                    closeQrScanner();
-                }
-            } else {
-                // NORMÁL MÓD (Válaszbeírás)
-                document.getElementById('answer-input').value = decodedText;
-                if (typeof playArrivalNotification === 'function') playArrivalNotification();
-                closeQrScanner();
-                setTimeout(() => { 
-                    const submitBtn = document.getElementById('submit-answer-btn');
-                    if (submitBtn) submitBtn.click(); 
-                }, 500);
+    try {
+        if (html5QrCode) {
+            const state = html5QrCode.getState();
+            if (state === 3 || state === 2) { 
+                await html5QrCode.stop();
             }
-        },
-        (errorMessage) => { /* folyamatos olvasás... */ }
-    ).catch((err) => {
-        console.error("Hiba:", err);
-        closeQrScanner();
-    });
+            document.getElementById('qr-reader').innerHTML = "";
+        } else {
+            html5QrCode = new Html5Qrcode("qr-reader");
+        }
+
+        scanningActive = true; // Jelzzük, hogy várunk a kódra
+
+        const qrConfig = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 
+        };
+
+        await html5QrCode.start(
+            { facingMode: "environment" },
+            qrConfig,
+            async (decodedText) => {
+                // --- A KRITIKUS RÉSZ ---
+                if (!scanningActive) return; // Ha már egyet találtunk, a többit dobja el
+                scanningActive = false;      // Azonnal zárjuk a reteszt
+
+                console.log("QR beolvasva:", decodedText);
+
+                try {
+                    await html5QrCode.stop();
+                    window.closeQrScanner();
+                } catch (e) { console.warn(e); }
+
+                // SZÖVEG TISZTÍTÁSA (URL levágása, tiltott karakterek szűrése)
+                let cleanCode = decodedText.trim();
+                if (cleanCode.includes('/')) {
+                    cleanCode = cleanCode.split('/').filter(p => p.length > 0).pop();
+                }
+                cleanCode = cleanCode.replace(/[.#$[\]]/g, "");
+
+                // LOGIKA SZÉTVÁLASZTÁSA
+                if (target === 'coupon') {
+                    const couponInput = document.getElementById('coupon-input');
+                    if (couponInput) {
+                        couponInput.value = cleanCode.toUpperCase();
+                        console.log("Kupon ellenőrzése ezzel a kóddal:", cleanCode);
+                        setTimeout(() => { 
+                            const btn = document.getElementById('verify-coupon-btn');
+                            if (btn) btn.click();
+                        }, 400);
+                    }
+                } 
+                else if (target === true) {
+                    const currentTask = appState.currentGame.tasks.find(t => t.index === appState.currentTaskIndex);
+                    if (currentTask && String(currentTask.unlockCode).trim().toUpperCase() === cleanCode.toUpperCase()) {
+                        currentTask.isUnlocked = true;
+                        if (typeof MystiSounds !== 'undefined') MystiSounds.success?.();
+                        loadTask(appState.currentTaskIndex);
+                    } else {
+                       
+                    }
+                } 
+                else {
+                    const answerInput = document.getElementById('answer-input');
+                    if (answerInput) {
+                        answerInput.value = cleanCode;
+                        setTimeout(() => { 
+                            const btn = document.getElementById('submit-answer-btn');
+                            if (btn) btn.click();
+                        }, 400);
+                    }
+                }
+            },
+            (errorMessage) => { /* folyamatban... */ }
+        );
+
+    } catch (err) {
+        console.error("Scanner hiba:", err);
+        scanningActive = false;
+        window.closeQrScanner();
+    }
 };
-
-
-
-
 
 window.closeQrScanner = function() {
+    scanningActive = false; // Reseteljük a reteszt záráskor
     const modal = document.getElementById('qr-scanner-modal');
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }).catch(err => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        });
-    } else {
+    if (html5QrCode && html5QrCode.getState() === 3) {
+        html5QrCode.stop().catch(e => console.warn(e));
+    }
+    if (modal) {
+        modal.style.setProperty('display', 'none', 'important');
         modal.classList.add('hidden');
-        modal.classList.remove('flex');
     }
 };
+
 
 
 
 </script>
+
+
+
+<div id="qr-scanner-modal" style="display: none; z-index: 100000 !important;" class="fixed inset-0 bg-black/95 items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-brand-blue">QR Kód Beolvasása</h3>
+            <button onclick="closeQrScanner()" class="text-gray-400 p-2 hover:bg-gray-100 rounded-full">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-4">
+            <div id="qr-reader" class="overflow-hidden rounded-2xl border-2 border-dashed border-gray-200"></div>
+            <p class="text-xs text-gray-500 text-center mt-4">Irányítsd a kamerát a kihelyezett QR kódra!</p>
+        </div>
+        <div class="p-4 bg-gray-50">
+            <button onclick="closeQrScanner()" class="w-full py-3 bg-gray-200 text-gray-700 font-bold rounded-xl">Mégse</button>
+        </div>
+    </div>
+</div>
+
 
 
 
