@@ -2268,34 +2268,40 @@ window._isSyncingInProgress = false;
 async function performActualFirebaseSave(scoreData) {
     if (!navigator.onLine || !window.db || !window.ref || !window.set) return false;
 
-    // Biztosítjuk a szám formátumot és az UID meglétét
     const pointsToAdd = Number(scoreData.score) || 0;
     const uid = scoreData.uid;
     const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms));
 
     try {
+        // EGYEDI AZONOSÍTÓ GENERÁLÁSA
         const resultId = `${uid}_${scoreData.timestamp}`;
         const targetId = String(scoreData.gameId || 'default').startsWith('instant_') ? 'instant_kozos' : scoreData.gameId;
 
-        // 1. LÉPÉS: DEDUPLIKÁCIÓ ÉS EREDMÉNY RÖGZÍTÉSE
-        // Ezt külön vesszük, mert ez a legfontosabb "zár" a duplikáció ellen
+        // 1. LÉPÉS: ATOMI DEDUPLIKÁCIÓ ÉS RÖGZÍTÉSE A RANGLISTÁBA
+        // Ez a "kapuőr": ha ide már beírtuk, a committed hamis lesz, és semmi mást nem csinálunk.
         const entryRef = window.ref(window.db, `leaderboard/${targetId}/${resultId}`);
         const checkResult = await window.runTransaction(entryRef, (currentData) => {
-            if (currentData === null) return scoreData; 
-            return undefined; // Megszakítás, ha már létezik
+            if (currentData === null) {
+                // Még nem létezik, rögzítjük az eredményt
+                return scoreData; 
+            }
+            // Már létezik, nem csinálunk semmit (undefined megszakítja a tranzakciót)
+            return undefined; 
         });
 
+        // Ha az adat már bent volt az adatbázisban, megállunk itt! (Duplikáció megállítva)
         if (!checkResult.committed) {
-            console.warn("⚠️ Ez az eredmény már szerepel az adatbázisban, nem adjuk hozzá újra.");
-            return true; // Sikeresnek jelöljük, hogy törlődjön a local listából
+            console.warn("⚠️ Duplikáció kiszűrve: Ez az eredmény már fel lett dolgozva korábban.");
+            return true; 
         }
 
-        // 2. LÉPÉS: PONTOK SZÉTOSZTÁSA (Ha regisztrált a user)
+        // 2. LÉPÉS: ÖSSZESÍTETT ÉRTÉKEK FRISSÍTÉSE
+        // Csak akkor jutunk el ide, ha az 1. lépés sikeres (új adat) volt.
         if (scoreData.isRegistered && uid) {
-            // Promise.all-lal párhuzamosan indítjuk a frissítéseket a gyorsaságért
+            console.log("🚀 Új eredmény észlelve, pontok hozzáadása a profilokhoz...");
+            
             await Promise.all([
-                // A) Felhasználói profil frissítése (Főoldali összpontszám)
-                // FIGYELEM: Itt a 'users/registered/${uid}/profile' utat használjuk, mert a többi kódod is ide várja!
+                // A) Felhasználói profil (Összpontszám a főoldalhoz)
                 (async () => {
                     const profileRef = window.ref(window.db, `users/registered/${uid}/profile`);
                     await window.runTransaction(profileRef, (current) => {
@@ -2321,7 +2327,7 @@ async function performActualFirebaseSave(scoreData) {
                     });
                 })(),
 
-                // C) Összesített dicsőségfal
+                // C) Összesített (örök) dicsőségfal
                 (async () => {
                     const allTimeRef = window.ref(window.db, `all_time_leaderboard/${uid}`);
                     await window.runTransaction(allTimeRef, (current) => {
@@ -2332,10 +2338,10 @@ async function performActualFirebaseSave(scoreData) {
             ]);
         }
 
-        console.log(`✅ SIKER: ${pointsToAdd} pont szinkronizálva minden helyre.`);
+        console.log(`✅ SIKER: ${pointsToAdd} pont hozzáadva minden táblához.`);
         return true;
     } catch (error) {
-        console.error("❌ Kritikus hiba a mentés során:", error);
+        console.error("❌ Kritikus hiba a mentési folyamatban:", error);
         return false;
     }
 }
