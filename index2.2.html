@@ -3618,6 +3618,9 @@ window.applyRotation = function(deg) {
                 availableTasks: [], 
                 taskMarkers: {},
 		lastAutoZoomTime: 0,
+		hasScrolledToZone: false,    
+	        hasScrolledToUnlock: false,
+		lastProcessedTaskIndex: null,
 	        visibleGamesLimit: 5,
 		bonusPoints: [],
 		currentFilteredGames: null,
@@ -6283,6 +6286,31 @@ const inputContainer = document.getElementById('answer-input-container');
 
     checkGeofence();
     updateStatusDisplays();
+
+
+if (taskIndex > 0 && (!isLocked)) {
+    if (!appState.hasScrolledToUnlock) {
+        setTimeout(() => {
+            const storyEl = document.getElementById('story');
+            if (storyEl) {
+                storyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                appState.hasScrolledToUnlock = true;
+            }
+        }, 500);
+    }
+} else if (taskIndex > 0 && isLocked) {
+    // Ha zárolt feladathoz értünk, engedélyezzük a későbbi feloldáskori görgetést
+    appState.hasScrolledToUnlock = false;
+}
+
+// 2. Feladatváltás érzékelése: ha új helyszínre érünk, reseteljük a zóna-görgetést
+if (taskIndex !== appState.lastProcessedTaskIndex) {
+    appState.hasScrolledToZone = false;
+    appState.lastProcessedTaskIndex = taskIndex;
+}
+
+
+
 }
 
 
@@ -7384,18 +7412,22 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
                     currentTask.isTaskTimerActive = true;
                     playArrivalNotification();
 
-if (isStartTask) {
+if (!appState.hasScrolledToZone) {
         setTimeout(() => {
-            const startBtn = document.getElementById('start-game-btn');
-            if (startBtn) {
-                startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Ha ez a start feladat, a gombra fókuszálunk. 
+            // Ha lakat van (isLocked), a lakat dobozra. 
+            // Egyébként a feladat tartalmára.
+            let targetId = isStartTask ? 'start-game-btn' : 'normal-task-content';
+            
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                appState.hasScrolledToZone = true;
             }
-        }, 600); // 0.6 mp késleltetés, hogy a UI biztosan megjelenjen
+        }, 600);
     }
-
-
-			        if (appState.isTimerRunning && !isStartTask) currentTask.startTime = appState.geofenceTime;
-                }
+    if (appState.isTimerRunning && !isStartTask) currentTask.startTime = appState.geofenceTime;
+}
                 
                 if (appState.isInZone) {
     distEl.textContent = t('in_zone');
@@ -7405,14 +7437,6 @@ if (isStartTask) {
     document.getElementById('submit-answer-btn').disabled = false;
     document.getElementById('answer-input').disabled = false;
     taskInteractionArea.classList.remove('hidden'); 
-setTimeout(() => {
-    const targetEl = document.getElementById('normal-task-content');
-    if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-}, 300);  
-
-
 
 
   
