@@ -6395,6 +6395,8 @@ function endGame() {
     if (appState.map) { appState.map.remove(); appState.map = null; }
     if (window.manualMarker) { window.manualMarker.remove(); window.manualMarker = null; }
 
+	const completionTimestamp = Date.now();
+
     const finalTotalTime = appState.totalTime; 
     const finalTaskTime = appState.geofenceTime; 
     window.currentGameId = appState.currentGame ? appState.currentGame.id : null;
@@ -6421,6 +6423,7 @@ function endGame() {
         localStorage.setItem('MystiGo_Perm_Completed_' + appState.currentGame.id, 'true');
     }
 
+
     // --- MENTÉS ÉS PONTADÁS (Csak ha nem teszt mód) ---
     if (!appState.isTestModeEnabled && appState.currentGame && appState.currentGame.id !== 'teszt-game') {
     if (window.saveScoreToFirebase) {
@@ -6430,7 +6433,8 @@ function endGame() {
             teamAvatar: appState.teamAvatar,
             score: appState.score,
             totalTime: finalTotalTime,
-            geofenceTime: finalTaskTime
+            geofenceTime: finalTaskTime,
+	    timestamp: completionTimestamp
         });
         
         if (window.incrementGameCompletion) {
@@ -6443,7 +6447,7 @@ function endGame() {
     if (!appState.isTestModeEnabled && appState.score > 0) {
         if (window.auth && window.auth.currentUser) { 
             const finalScoreValue = parseInt(appState.score) || 0;
-            window.addPointsToUser(finalScoreValue)
+            
                 .then(() => console.log("✅ Összpontszám frissítve a profilban."))
                 .catch(e => console.error("❌ Profil hiba:", e));
         }
