@@ -2268,66 +2268,91 @@ window._isSyncingInProgress = false;
 async function performActualFirebaseSave(scoreData) {
     if (!navigator.onLine || !window.db || !window.ref || !window.set) return false;
 
+    // Kényszerítsük a pontszámot szám formátumra a biztonság kedvéért
+    const pointsToAdd = Number(scoreData.score) || 0;
     const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms));
 
     try {
-        // EGYEDI AZONOSÍTÓ GENERÁLÁSA (hogy ne lehessen duplikálni)
-        // Az UID és a pontos timestamp kombinációja garantáltan egyedi egy játék végén
         const resultId = `${scoreData.uid}_${scoreData.timestamp}`;
         const targetId = String(scoreData.gameId || 'default').startsWith('instant_') ? 'instant_kozos' : scoreData.gameId;
 
         await Promise.race([
             (async () => {
-                // 1. ELLENŐRZÉS: Beírtuk-e már ezt a konkrét eredményt?
-                // Push helyett fix útvonalat használunk az eredmény ID-ja alapján
+                // 1. DEDUPLIKÁCIÓ ÉS EREDMÉNY MENTÉSE
                 const entryRef = window.ref(window.db, `leaderboard/${targetId}/${resultId}`);
                 
-                // Tranzakcióval nézzük meg, létezik-e már
                 const checkResult = await window.runTransaction(entryRef, (currentData) => {
-                    if (currentData === null) {
-                        return scoreData; // Ha üres, beírjuk az adatot
-                    }
-                    return undefined; // Ha már létezik, megszakítjuk a tranzakciót
+                    if (currentData === null) return scoreData; 
+                    return undefined; 
                 });
 
-                // Ha nem mi írtuk be most (mert már ott volt), akkor nem növelünk pontot!
                 if (!checkResult.committed) {
-                    console.warn("⚠️ Ez az eredmény már szerepel a ranglistán, kihagyjuk a pontozást.");
-                    return true; // Sikeresnek jelöljük, hogy törlődjön a sorból
+                    console.warn("⚠️ Ez az eredmény már fel lett dolgozva, törlés a listából.");
+                    return true; 
                 }
 
-                // 2. HA REGISZTRÁLT USER, AZ ÖSSZESÍTETT ADATOK FRISSÍTÉSE
+                // 2. HA REGISZTRÁLT USER, MINDEN PONT-GYŰJTŐ HELY FRISSÍTÉSE
                 if (scoreData.isRegistered && scoreData.uid) {
-                    
-                    // A) Felhasználói profil (Főoldali összpontszám)
-                    const userRef = window.ref(window.db, `users/${scoreData.uid}`);
+                    const uid = scoreData.uid;
+
+                    // --- A) Felhasználói profil (Ezt látod a Főoldalon) ---
+                    const userRef = window.ref(window.db, `users/${uid}`);
                     await window.runTransaction(userRef, (currentData) => {
-                        if (!currentData) return { totalScore: scoreData.score, lastTeamName: scoreData.teamName, lastAvatar: scoreData.teamAvatar, lastActive: Date.now() };
-                        return { ...currentData, totalScore: (currentData.totalScore || 0) + scoreData.score, lastTeamName: scoreData.teamName, lastAvatar: scoreData.teamAvatar, lastActive: Date.now() };
+                        if (!currentData) {
+                            return {
+                                totalScore: pointsToAdd,
+                                lastTeamName: scoreData.teamName,
+                                lastAvatar: scoreData.teamAvatar,
+                                lastActive: Date.now()
+                            };
+                        }
+                        return {
+                            ...currentData,
+                            totalScore: (Number(currentData.totalScore) || 0) + pointsToAdd,
+                            lastTeamName: scoreData.teamName,
+                            lastAvatar: scoreData.teamAvatar,
+                            lastActive: Date.now()
+                        };
                     });
 
-                    // B) Havi dicsőségfal
+                    // --- B) Havi dicsőségfal ---
                     const dateObj = new Date(scoreData.timestamp);
                     const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-                    const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${scoreData.uid}`);
+                    const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${uid}`);
                     await window.runTransaction(monthlyRef, (currentData) => {
-                        const base = { name: scoreData.teamName, avatar: scoreData.teamAvatar, isRegistered: true, lastUpdate: Date.now() };
-                        return !currentData ? { ...base, score: scoreData.score } : { ...base, score: (currentData.score || 0) + scoreData.score };
+                        const base = { 
+                            name: scoreData.teamName, 
+                            avatar: scoreData.teamAvatar, 
+                            isRegistered: true, 
+                            lastUpdate: Date.now() 
+                        };
+                        return !currentData 
+                            ? { ...base, score: pointsToAdd } 
+                            : { ...base, score: (Number(currentData.score) || 0) + pointsToAdd };
                     });
 
-                    // C) Összesített (All-time) dicsőségfal
-                    const allTimeRef = window.ref(window.db, `all_time_leaderboard/${scoreData.uid}`);
+                    // --- C) Összesített (All-time) dicsőségfal ---
+                    const allTimeRef = window.ref(window.db, `all_time_leaderboard/${uid}`);
                     await window.runTransaction(allTimeRef, (currentData) => {
-                        const base = { name: scoreData.teamName, avatar: scoreData.teamAvatar, isRegistered: true, lastUpdate: Date.now() };
-                        return !currentData ? { ...base, score: scoreData.score } : { ...base, score: (currentData.score || 0) + scoreData.score };
+                        const base = { 
+                            name: scoreData.teamName, 
+                            avatar: scoreData.teamAvatar, 
+                            isRegistered: true, 
+                            lastUpdate: Date.now() 
+                        };
+                        return !currentData 
+                            ? { ...base, score: pointsToAdd } 
+                            : { ...base, score: (Number(currentData.score) || 0) + pointsToAdd };
                     });
                 }
             })(),
-            timeout(12000)
+            timeout(15000) // 15 másodperc, mert 4 tranzakció fut le
         ]);
+        
+        console.log("✅ Offline pontok sikeresen elosztva minden táblába.");
         return true;
     } catch (error) {
-        console.error("❌ Mentési hiba:", error);
+        console.error("❌ Hiba a szinkronizáció során:", error);
         return false;
     }
 }
