@@ -8,8 +8,75 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script> 
-    
+    <script src="https://unpkg.com/html5-qrcode"></script>    
+
+
+
     <style>
+
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon input {
+    padding-right: 45px; /* Hely az ikonnak */
+}
+
+.qr-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    transition: color 0.2s, transform 0.1s;
+}
+
+.qr-btn:hover {
+    color: var(--success);
+    transform: scale(1.1);
+}
+
+.qr-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+
+/* Scanner Modal stílus */
+    #qr-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 3000;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    #reader {
+        width: 100%;
+        max-width: 400px;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .qr-close-btn {
+        margin-top: 20px;
+        background: #ef4444;
+        color: white;
+    }
+
+
+
         :root {
             --primary: #2563eb;
             --primary-light: #eff6ff;
@@ -451,6 +518,24 @@
                     <div class="field-group"><label>Feladat Kép <span class="tooltip">ⓘ<span class="tooltiptext">Az itt megadott kép fog megjelenni az adott feladatnál. Ide a kép nevét írd be és külön csatolmányként küldd el nekünk.</span></span></label><input type="text" id="t-image-${id}" placeholder="img/task.png"></div>
                 </div>
 
+
+
+<div class="field-group">
+    <label>Feladat feloldó kód <span class="tooltip">ⓘ<span class="tooltiptext">Kattints a QR ikonra a kód beolvasásához!</span></span></label>
+    <div class="input-with-icon">
+        <input type="text" id="t-unlock-${id}" placeholder="Opcionális kód...">
+        <button class="qr-btn" onclick="openScanner('t-unlock-${id}')" title="Beolvasás kamerával">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
                 <div class="field-group"><label>Helyszín Sztori <span class="tooltip">ⓘ<span class="tooltiptext">Ez a történet fog megjelenni az adot feladatpontnál.</span></span></label><textarea id="t-story-${id}" rows="3"></textarea></div>
                 <div class="field-group"><label>Konkrét Feladat / Kérdés* <span class="tooltip">ⓘ<span class="tooltiptext">Ez az a kérdés, amit a felhasználónak meg kell válaszolnia a helyszínen.</span></span></label><textarea id="t-prompt-${id}" rows="2"></textarea></div>
                 
@@ -460,15 +545,31 @@
                 </div>
 
                 <div class="solution-zone">
+                    
+<div class="field-group">
+    <label style="color:var(--primary);">Megoldás* <span class="tooltip">ⓘ<span class="tooltiptext">Ez lesz a feladat megoldása. Amennyiben több jó megoldást is elfogadunk akkor ; elválasztva soroljuk fel a jó megoldásokat. Ezt fogja elfogadni a rendszer helyes válaszként. QR kód beolvasás funkciót is használhatod.</span></span></label>
+    <div class="input-with-icon">
+        <input type="text" id="t-sol-${id}" placeholder="Helyes válasz...">
+        <button class="qr-btn" onclick="openScanner('t-sol-${id}')" title="Beolvasás kamerával">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
+
+
+
                     <div class="field-group">
-                        <label style="color:var(--primary);">Megoldás* <span class="tooltip">ⓘ<span class="tooltiptext">Ez lesz a feladat megoldása. Amennyiben több jó megoldást is elfogadunk akkor ; elválasztva soroljuk fel a jó megoldásokat. Ezt fogja elfogadni a rendszer helyes válaszként.</span></span></label>
-                        <input type="text" id="t-sol-${id}" placeholder="Helyes válasz...">
-                    </div>
-                    <div class="field-group">
-                        <label>Megoldás Átugrása <span class="tooltip">ⓘ<span class="tooltiptext">Ezzel a beállítással lehet megadni, hogy az adott feladathoz legyen e kikérhető megoldás vagy sem.</span></span></label>
+                        <label>Megoldás<span class="tooltip">ⓘ<span class="tooltiptext">Ezzel a beállítással lehet megadni, hogy az adott feladathoz legyen e kikérhető megoldás vagy sem.</span></span></label>
                         <div class="radio-group">
                             <div class="radio-option"><input type="radio" name="t-dis-${id}" id="dis-n-${id}" value="" checked><label for="dis-n-${id}">🔓 Kikérhető</label></div>
-                            <div class="radio-option"><input type="radio" name="t-dis-${id}" id="dis-y-${id}" value="1"><label for="dis-y-${id}">🔒 Tiltva</label></div>
+                            <div class="radio-option"><input type="radio" name="t-dis-${id}" id="dis-y-${id}" value="1"><label for="dis-y-${id}">🔒 Rejtve marad</label></div>
                         </div>
                     </div>
                 </div>
@@ -612,8 +713,9 @@
             document.getElementById(`t-image-${taskCounter}`).value = t.taskImage || '';
             document.getElementById(`t-story-${taskCounter}`).value = t.story || '';
             document.getElementById(`t-prompt-${taskCounter}`).value = t.prompt || '';
-            document.getElementById(`t-h1-${t.index}`).value = t.hint1 || ''; // fix
-            document.getElementById(`t-h2-${t.index}`).value = t.hint2 || ''; // fix
+            document.getElementById(`t-unlock-${taskCounter}`).value = t.unlockCode || ''; // Ez hiányzott
+document.getElementById(`t-h1-${taskCounter}`).value = t.hint1 || ''; // t.index-ről javítva taskCounter-re
+document.getElementById(`t-h2-${taskCounter}`).value = t.hint2 || '';
             document.getElementById(`t-sol-${taskCounter}`).value = t.solution || '';
             if(t.disableSolution == 1) document.getElementById(`dis-y-${taskCounter}`).checked = true;
         });
@@ -648,7 +750,8 @@
                 hint1: document.getElementById(`t-h1-${id}`).value, hint2: document.getElementById(`t-h2-${id}`).value,
                 solution: document.getElementById(`t-sol-${id}`).value,
                 disableSolution: document.querySelector(`input[name="t-dis-${id}"]:checked`).value,
-                taskImage: document.getElementById(`t-image-${id}`).value
+                taskImage: document.getElementById(`t-image-${id}`).value,
+		unlockCode: document.getElementById(`t-unlock-${id}`).value
             });
         });
         allTasksData = allTasksData.filter(x => x.gameId !== gid).concat(newTasks);
@@ -659,6 +762,59 @@
     }
 
     window.onload = () => { if(taskCounter===0) document.getElementById('plus-button').click(); };
+
+
+
+let html5QrCode;
+let activeScannerTargetId = null;
+
+async function openScanner(targetId) {
+    activeScannerTargetId = targetId;
+    document.getElementById('qr-modal').style.display = 'flex';
+    
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    try {
+        await html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            (decodedText) => {
+                // Siker esetén beírjuk az értéket és leállítjuk
+                document.getElementById(activeScannerTargetId).value = decodedText;
+                stopScanner();
+            }
+        );
+    } catch (err) {
+        alert("Hiba a kamera indításakor: " + err);
+        stopScanner();
+    }
+}
+
+function stopScanner() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('qr-modal').style.display = 'none';
+        }).catch(() => {
+            document.getElementById('qr-modal').style.display = 'none';
+        });
+    } else {
+        document.getElementById('qr-modal').style.display = 'none';
+    }
+}
+
+
+
+
 </script>
+
+
+<div id="qr-modal">
+    <div id="reader"></div>
+    <button class="btn qr-close-btn" onclick="stopScanner()">Mégse / Bezárás</button>
+</div>
+
+
+
 </body>
 </html>
