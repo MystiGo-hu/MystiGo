@@ -7383,6 +7383,17 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
                 if (appState.isInZone && !currentTask.isTaskTimerActive) {
                     currentTask.isTaskTimerActive = true;
                     playArrivalNotification();
+
+if (isStartTask) {
+        setTimeout(() => {
+            const startBtn = document.getElementById('start-game-btn');
+            if (startBtn) {
+                startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 600); // 0.6 mp késleltetés, hogy a UI biztosan megjelenjen
+    }
+
+
 			        if (appState.isTimerRunning && !isStartTask) currentTask.startTime = appState.geofenceTime;
                 }
                 
@@ -7394,7 +7405,17 @@ if (appState.bonusPoints && appState.bonusPoints.length > 0 && currentLocation) 
     document.getElementById('submit-answer-btn').disabled = false;
     document.getElementById('answer-input').disabled = false;
     taskInteractionArea.classList.remove('hidden'); 
-    
+setTimeout(() => {
+    const targetEl = document.getElementById('normal-task-content');
+    if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}, 300);  
+
+
+
+
+  
     if (isStartTask) {
         startButtonContainer.classList.remove('hidden');
         document.getElementById('submit-answer-btn').disabled = true; 
@@ -10274,6 +10295,15 @@ window.openQrScanner = async function(target) {
                         currentTask.isUnlocked = true;
                         if (typeof MystiSounds !== 'undefined') MystiSounds.success?.();
                         loadTask(appState.currentTaskIndex);
+
+setTimeout(() => {
+    const taskContent = document.getElementById('story');
+    if (taskContent) {
+        taskContent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}, 500);
+
+
                     } else {
                        
                     }
