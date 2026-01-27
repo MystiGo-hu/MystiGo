@@ -941,7 +941,7 @@ body {
                 <p>📍 Menj a játék kezdőpontjára – ott indul el a játék</p>
                 <p>🗺️ Kövesd a térképen a célpontokat</p>
                 <p>🧩 A kérdés csak a helyszínen jelenik meg</p>
-<p class="space-y-2 text-sm text-gray-700 mt-2">👤 Játék Vendégként: Elegendő egy nevet és avatart megadnod. Ideális próbakörre, de a pontjaidat így <strong>nem tudod hosszú távon gyűjteni</strong>  (bármikor nullázódhat), és nem kerülsz fel a <strong>Dicsőségfalra</strong>.</p>
+<p class="space-y-2 text-sm text-gray-700 mt-2">👤 Játék Vendégként: Elegendő egy nevet és avatart megadnod. Ideális próbakörre, de a pontjaidat így <strong>nem tudod gyűjteni</strong>, és nem kerülsz fel a <strong>Dicsőségfalra</strong> sem.</p>
                         
 
                 <div class="my-3 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
@@ -979,11 +979,9 @@ body {
                 <p>⭐ Minden feladat 50 pontot ér</p>
                 <p>💡 Kérhetsz 2 segítséget (−10 / −20 pont) vagy megoldást (0 pont)</p>
                 <p>❌ Minden rossz válasz: −1 pont</p>
-                <p>💎 Titkos kincsek: +10 pont (opcionális). Bizonyos pályákon találkozhatsz velük. Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!</p>
+                <p>💎 Titkos kincsek: +10 pont (opcionális). Bizonyos pályákon találkozhatsz velük. A rendszer véletlen szerűen dobja, amennyiben egy kincs nem érhető el biztonságosan vagy szabályosan, akkor ne próbáld megszerezni, a biztonság a legfontosabb!</p>
 
-                <p class="text-xs text-gray-600 italic">
-                    Ha egy kincs nem érhető el biztonságosan, ne próbáld megszerezni – a biztonság a legfontosabb!
-                </p>
+              
             </div>
         </details>
 
@@ -1026,7 +1024,7 @@ body {
             <div class="space-y-2 text-sm text-gray-700 mt-2">
                 <p><strong>Normal 🧭:</strong> Általános kaland, felnőtt/tinédzser (14+) játékosoknak szánt kérdésekkel és feladatokkal. A feladatok sorrendben követik egymást.</p>
                 <p><strong>Kids 🐈:</strong> Kimondottan 6-12 éves gyerekeknek szóló, egyszerűbb kérdések, a Mysti cica történetével fűszerezve, sorban haladó feladatokkal.</p>
-                <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén. Csapatonként egy eszközön használható!</p>
+                <p><strong>Team 🧑‍🤝‍🧑:</strong> Csapatjátékra optimalizált. A feladatok *változó sorrendben* jönnek egymás után, egyszerre tudnak indulni egy helyről a csapatok, és egy helyen végeznek a játék végén. Ilyenkor csapatonként egy eszközön használható a játék!</p>
                 <p><strong>Explore 🌍:</strong> A játékos szabadon választ a térképen lévő feladatok közül. A célpontok a játék indítása után egyszerre láthatók a térképen.</p>
                 <p><strong>Instant 🎲:</strong> Bárhol elindítható, <strong>"Azonnali kaland"</strong> a pillanatnyi tartózkodási helyed köré generált egyedi kaland, választható tematikájú és nehézségi szintű feladatokkal.</p>
             </div>
@@ -9399,7 +9397,7 @@ const val = nameInput.value.trim();
 
         const mirrors = [
             "https://overpass.openstreetmap.fr/api/interpreter",
-     "https://overpass-api.de/api/interpreter",
+     	    "https://overpass-api.de/api/interpreter",
             "https://lz4.overpass-api.de/api/interpreter"
             
         ];
@@ -9445,13 +9443,13 @@ const val = nameInput.value.trim();
         let lastBearing = appState.instantTarget ? calculateBearing(startLat, startLng, appState.instantTarget.lat, appState.instantTarget.lng) : null;
 
         for (let i = 0; i < taskCount; i++) {
-            let minDist = 150, maxDist = 350;
+            let minDist = 150, maxDist = 250;
 
             if (appState.instantTarget) {
                 const remainingDist = haversineDistance(currentPos, appState.instantTarget);
                 const tasksLeft = taskCount - i;
                 let idealStep = remainingDist / tasksLeft;
-                if (idealStep < 250) { minDist = 150; maxDist = 300; } 
+                if (idealStep < 200) { minDist = 150; maxDist = 250; } 
                 else { minDist = idealStep * 0.7; maxDist = idealStep * 1.3; }
                 lastBearing = calculateBearing(currentPos.lat, currentPos.lng, appState.instantTarget.lat, appState.instantTarget.lng);
             }
