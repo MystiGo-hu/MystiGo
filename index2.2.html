@@ -2262,9 +2262,13 @@ window.getGameCurrentCount = async function(gameId) {
  
 
 
-// 1. SEGÉDFÜGGVÉNY: Csak a mentés, UI nélkül, igaz/hamis visszatéréssel
+// --- 1. SEGÉDFÜGGVÉNY: Tényleges mentés, UI nélkül ---
 async function performActualFirebaseSave(scoreData) {
-    if (!navigator.onLine || !window.db) return false;
+    // Ellenőrizzük, hogy minden Firebase eszköz megvan-e
+    if (!navigator.onLine || !window.db || !window.ref || !window.set) {
+        console.warn("🌐 Mentés meghiúsult: Nincs net vagy Firebase nincs inicializálva.");
+        return false;
+    }
 
     const timeout = (ms) => new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Timeout")), ms)
@@ -2273,7 +2277,7 @@ async function performActualFirebaseSave(scoreData) {
     try {
         await Promise.race([
             (async () => {
-                const targetId = String(scoreData.gameId).startsWith('instant_') ? 'instant_kozos' : scoreData.gameId;
+                const targetId = String(scoreData.gameId || 'default').startsWith('instant_') ? 'instant_kozos' : scoreData.gameId;
                 const gameLeaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
                 const newEntryRef = window.push(gameLeaderboardRef);
                 await window.set(newEntryRef, scoreData);
@@ -2293,106 +2297,114 @@ async function performActualFirebaseSave(scoreData) {
                     await window.runTransaction(monthlyRef, (currentData) => {
                         if (currentData === null) {
                             return {
-                                name: scoreData.teamName,
-                                avatar: scoreData.teamAvatar,
-                                score: scoreData.score,
-                                isRegistered: true,
-                                lastUpdate: Date.now()
+                                name: scoreData.teamName, avatar: scoreData.teamAvatar,
+                                score: scoreData.score, isRegistered: true, lastUpdate: Date.now()
                             };
                         } else {
                             return {
                                 ...currentData,
-                                name: scoreData.teamName,
-                                avatar: scoreData.teamAvatar,
-                                score: (currentData.score || 0) + scoreData.score,
-                                lastUpdate: Date.now()
+                                name: scoreData.teamName, avatar: scoreData.teamAvatar,
+                                score: (currentData.score || 0) + scoreData.score, lastUpdate: Date.now()
                             };
                         }
                     });
                 }
             })(),
-            timeout(8000)
+            timeout(8000) // 8 másodperc korlát
         ]);
-        return true; // Sikerült a mentés
+        console.log("✅ Sikeres online mentés.");
+        return true;
     } catch (error) {
-        console.error("Firebase save error:", error);
-        return false; // Hiba vagy timeout
+        console.error("❌ Hiba az online mentés során:", error);
+        return false;
     }
 }
 
-// 2. SEGÉDFÜGGVÉNY: Mentés LocalStorage-ba
+// --- 2. SEGÉDFÜGGVÉNY: Mentés LocalStorage-ba ---
 window.saveToPendingUploads = function(scoreData) {
     try {
         const pending = JSON.parse(localStorage.getItem('pendingUploads') || '[]');
-        // Ellenőrizzük, ne legyen benne duplikáció (opcionális)
-        const exists = pending.some(item => item.timestamp === scoreData.timestamp && item.score === scoreData.score);
-        if (!exists) {
-            scoreData.isOfflineSave = true;
+        // Megjelöljük, hogy ez egy offline mentés
+        scoreData.isOfflineSave = true;
+        // Csak akkor adjuk hozzá, ha ez a konkrét eredmény még nincs benne (időbélyeg alapján)
+        if (!pending.some(p => p.timestamp === scoreData.timestamp)) {
             pending.push(scoreData);
             localStorage.setItem('pendingUploads', JSON.stringify(pending));
-            console.log("💾 Mentve várólistára (Local)");
+            console.log("💾 Eredmény elmentve localstorage-ba.");
         }
     } catch (e) {
-        console.error("LocalStorage hiba:", e);
+        console.error("CRITICAL: LocalStorage írási hiba!", e);
     }
 };
 
-// 3. FŐ FÜGGVÉNY: Játék végén hívjuk (UI-val)
+// --- 3. FŐ FÜGGVÉNY: Játék végén hívjuk (Töltőképernyő kezeléssel) ---
 window.saveScoreToFirebase = async function(data) {
-    const user = window.auth ? window.auth.currentUser : null;
-    const uid = user ? user.uid : ('guest_' + Date.now());
+    console.log("🚀 Mentési folyamat indítása...");
     
-    const scoreData = {
-        gameId: data.gameId,
-        teamName: data.teamName,
-        teamAvatar: data.teamAvatar,
-        score: data.score,
-        totalTime: data.totalTime,
-        geofenceTime: data.geofenceTime,
-        timestamp: Date.now(),
-        dateString: new Date().toLocaleString('hu-HU'),
-        isRegistered: !!(user && !user.isAnonymous),
-        uid: uid
-    };
+    // Biztosítjuk, hogy a töltő látszódjon
+    if (typeof window.showLoading === 'function') window.showLoading(true);
 
-    const success = await performActualFirebaseSave(scoreData);
-    
-    if (!success) {
-        window.saveToPendingUploads(scoreData);
-    }
+    try {
+        const user = window.auth ? window.auth.currentUser : null;
+        const uid = user ? user.uid : ('guest_' + Date.now());
+        
+        const scoreData = {
+            gameId: data.gameId,
+            teamName: data.teamName,
+            teamAvatar: data.teamAvatar,
+            score: data.score,
+            totalTime: data.totalTime,
+            geofenceTime: data.geofenceTime,
+            timestamp: Date.now(),
+            dateString: new Date().toLocaleString('hu-HU'),
+            isRegistered: !!(user && !user.isAnonymous),
+            uid: uid
+        };
 
-    // A töltőképernyő MINDENKÉPPEN tűnjön el
-    if (typeof window.showLoading === 'function') {
-        window.showLoading(false);
+        const success = await performActualFirebaseSave(scoreData);
+        if (!success) {
+            window.saveToPendingUploads(scoreData);
+        }
+    } catch (globalError) {
+        console.error("Váratlan hiba a mentés során:", globalError);
+    } finally {
+        // Ez a blokk MINDENKÉPPEN lefut: hiba, siker vagy timeout esetén is!
+        console.log("🏁 Mentési folyamat lezárva, töltő elrejtése.");
+        if (typeof window.showLoading === 'function') {
+            window.showLoading(false);
+        }
     }
 };
 
-// 4. SZINKRONIZÁLÁS: Indításkor (UI nélkül a háttérben)
+// --- 4. SZINKRONIZÁLÁS: Automatikus feltöltés ---
 window.syncPendingUploads = async function() {
-    if (!navigator.onLine || !window.db) return;
+    if (!navigator.onLine) return;
+    
+    let pending = [];
+    try {
+        pending = JSON.parse(localStorage.getItem('pendingUploads') || '[]');
+    } catch(e) { return; }
 
-    let pending = JSON.parse(localStorage.getItem('pendingUploads') || '[]');
     if (pending.length === 0) return;
 
-    console.log(`🔄 Szinkronizálás indítása: ${pending.length} tétel...`);
-    
+    console.log(`🔄 Szinkronizálás: ${pending.length} eredmény vár feltöltésre...`);
     const remaining = [];
+
     for (const item of pending) {
-        const success = await performActualFirebaseSave(item);
-        if (!success) {
-            remaining.push(item); // Ha most sem sikerült, marad a listában
+        try {
+            const success = await performActualFirebaseSave(item);
+            if (!success) remaining.push(item);
+        } catch (e) {
+            remaining.push(item);
         }
     }
 
     if (remaining.length === 0) {
         localStorage.removeItem('pendingUploads');
-        console.log("✅ Minden adat szinkronizálva.");
     } else {
         localStorage.setItem('pendingUploads', JSON.stringify(remaining));
-        console.log(`⚠️ ${remaining.length} tétel maradt offline.`);
     }
 };
-
 
 
 
