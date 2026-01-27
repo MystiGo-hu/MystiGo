@@ -2222,64 +2222,7 @@ window.getGameCurrentCount = async function(gameId) {
     }
 }
 
-  // 2. Szinkronizáció végrehajtása (Feltöltés) - JAVÍTOTT VERZIÓ
-  window.syncPendingUploads = async function() {
-    if (!navigator.onLine) return; 
-
-    // ✅ JAVÍTÁS: Csak akkor fusson, ha a modul már betöltötte a Firebase-t
-    if (typeof window.push !== 'function' || !window.db) {
-        console.warn("⏳ Firebase modul betöltése folyamatban...");
-        return; 
-    }
-
-    let pending = JSON.parse(localStorage.getItem(PENDING_UPLOADS_KEY) || "[]");
-      if (pending.length === 0) return; 
-
-      console.log(`🔄 Offline adatok szinkronizálása (${pending.length} db)...`);
-      
-      const newPending = [];
-      let uploadCount = 0;
-
-      for (const data of pending) {
-          try {
-              // ✅ JAVÍTÁS: window.ref és window.db használata
-              const leaderboardRef = window.ref(window.db, 'leaderboard/' + data.gameId);
-              
-              // ✅ JAVÍTÁS: window.push használata
-              await window.push(leaderboardRef, {
-                  teamName: data.teamName,
-                  teamAvatar: data.teamAvatar,
-                  score: data.score,
-                  totalTime: data.totalTime,
-                  geofenceTime: data.geofenceTime,
-                  timestamp: data.timestamp, 
-                  dateString: data.dateString
-              });
-
-              if (window.incrementGameCompletion) {
-                  try {
-                      await window.incrementGameCompletion(data.gameId);
-                      console.log(`✅ ${data.teamName}: Számláló növelve.`);
-                  } catch (cntErr) {
-                      console.error(`⚠️ ${data.teamName}: Számláló hiba:`, cntErr);
-                  }
-              }
-              
-              uploadCount++;
-              console.log(`✅ ${data.teamName} eredménye szinkronizálva.`);
-
-          } catch (error) {
-              console.error("Szinkronizációs hiba:", error);
-              newPending.push(data);
-          }
-      }
-
-      localStorage.setItem(PENDING_UPLOADS_KEY, JSON.stringify(newPending));
-      
-      if (uploadCount > 0) {
-          console.log(`${uploadCount} offline eredmény sikeresen beküldve.`);
-      }
-  };
+  
 
 
 
@@ -2314,20 +2257,91 @@ window.getGameCurrentCount = async function(gameId) {
       if(window.updateOfflineIndicator) window.updateOfflineIndicator(true);
   });
 
-  // Indításkor is próbálja meg (hátha most van net, de tegnap nem volt)
-  setTimeout(() => { if(window.syncPendingUploads) window.syncPendingUploads(); }, 6000);
 
 
-  // 2. MENTÉS (Biztonságos verzió - Offline támogatással) - JAVÍTOTT
-  // --- MENTÉS LOGIKA (0 PONT ELLENŐRZÉSSEL) ---
+ 
 
-// 2. MENTÉS ÉS NÉV SZINKRONIZÁLÁS (JAVÍTOTT VERZIÓ)
+
+// 1. SEGÉDFÜGGVÉNY: Csak a mentés, UI nélkül, igaz/hamis visszatéréssel
+async function performActualFirebaseSave(scoreData) {
+    if (!navigator.onLine || !window.db) return false;
+
+    const timeout = (ms) => new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), ms)
+    );
+
+    try {
+        await Promise.race([
+            (async () => {
+                const targetId = String(scoreData.gameId).startsWith('instant_') ? 'instant_kozos' : scoreData.gameId;
+                const gameLeaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
+                const newEntryRef = window.push(gameLeaderboardRef);
+                await window.set(newEntryRef, scoreData);
+
+                if (scoreData.isRegistered && scoreData.uid) {
+                    const userRef = window.ref(window.db, `users/${scoreData.uid}`);
+                    await window.update(userRef, {
+                        lastTeamName: scoreData.teamName,
+                        lastAvatar: scoreData.teamAvatar,
+                        lastActive: Date.now()
+                    });
+
+                    const dateObj = new Date(scoreData.timestamp);
+                    const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                    const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${scoreData.uid}`);
+
+                    await window.runTransaction(monthlyRef, (currentData) => {
+                        if (currentData === null) {
+                            return {
+                                name: scoreData.teamName,
+                                avatar: scoreData.teamAvatar,
+                                score: scoreData.score,
+                                isRegistered: true,
+                                lastUpdate: Date.now()
+                            };
+                        } else {
+                            return {
+                                ...currentData,
+                                name: scoreData.teamName,
+                                avatar: scoreData.teamAvatar,
+                                score: (currentData.score || 0) + scoreData.score,
+                                lastUpdate: Date.now()
+                            };
+                        }
+                    });
+                }
+            })(),
+            timeout(8000)
+        ]);
+        return true; // Sikerült a mentés
+    } catch (error) {
+        console.error("Firebase save error:", error);
+        return false; // Hiba vagy timeout
+    }
+}
+
+// 2. SEGÉDFÜGGVÉNY: Mentés LocalStorage-ba
+window.saveToPendingUploads = function(scoreData) {
+    try {
+        const pending = JSON.parse(localStorage.getItem('pendingUploads') || '[]');
+        // Ellenőrizzük, ne legyen benne duplikáció (opcionális)
+        const exists = pending.some(item => item.timestamp === scoreData.timestamp && item.score === scoreData.score);
+        if (!exists) {
+            scoreData.isOfflineSave = true;
+            pending.push(scoreData);
+            localStorage.setItem('pendingUploads', JSON.stringify(pending));
+            console.log("💾 Mentve várólistára (Local)");
+        }
+    } catch (e) {
+        console.error("LocalStorage hiba:", e);
+    }
+};
+
+// 3. FŐ FÜGGVÉNY: Játék végén hívjuk (UI-val)
 window.saveScoreToFirebase = async function(data) {
-    // --- 1. Felhasználó és Alapadatok előkészítése ---
     const user = window.auth ? window.auth.currentUser : null;
     const uid = user ? user.uid : ('guest_' + Date.now());
-    const isRegistered = user && !user.isAnonymous;
-
+    
     const scoreData = {
         gameId: data.gameId,
         teamName: data.teamName,
@@ -2337,85 +2351,50 @@ window.saveScoreToFirebase = async function(data) {
         geofenceTime: data.geofenceTime,
         timestamp: Date.now(),
         dateString: new Date().toLocaleString('hu-HU'),
-        isRegistered: isRegistered,
+        isRegistered: !!(user && !user.isAnonymous),
         uid: uid
     };
 
-    // Időtúllépés segédfüggvény (8 másodperc)
-    const timeout = (ms) => new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Hálózati időtúllépés")), ms)
-    );
-
-    // --- 2. MENTÉS LOGIKA ---
-    // Csak akkor próbálkozunk online, ha van net és betöltött a Firebase
-    if (navigator.onLine && window.db) {
-        try {
-            // A Promise.race biztosítja, hogy ha a hálózat "lassú", akkor is továbblépjünk
-            await Promise.race([
-                (async () => {
-                    // A) ÚJ EREDMÉNY MENTÉSE
-                    const targetId = String(data.gameId).startsWith('instant_') ? 'instant_kozos' : data.gameId;
-                    const gameLeaderboardRef = window.ref(window.db, `leaderboard/${targetId}`);
-                    const newEntryRef = window.push(gameLeaderboardRef);
-                    await window.set(newEntryRef, scoreData);
-                    console.log("✅ Pontszám elmentve az adatbázisba.");
-
-                    // B) REGISZTRÁLT FELHASZNÁLÓ ADATAINAK FRISSÍTÉSE
-                    if (isRegistered) {
-                        const userRef = window.ref(window.db, `users/${uid}`);
-                        await window.update(userRef, {
-                            lastTeamName: data.teamName,
-                            lastAvatar: data.teamAvatar,
-                            lastActive: Date.now()
-                        });
-
-                        // C) HAVI DICSŐSÉGFAL FRISSÍTÉSE (Transaction)
-                        const dateObj = new Date();
-                        const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-                        const monthlyRef = window.ref(window.db, `monthly_leaderboard/${monthKey}/${uid}`);
-
-                        await window.runTransaction(monthlyRef, (currentData) => {
-                            if (currentData === null) {
-                                return {
-                                    name: scoreData.teamName,
-                                    avatar: scoreData.teamAvatar,
-                                    score: scoreData.score,
-                                    isRegistered: true,
-                                    lastUpdate: Date.now()
-                                };
-                            } else {
-                                return {
-                                    ...currentData,
-                                    name: scoreData.teamName,
-                                    avatar: scoreData.teamAvatar,
-                                    score: (currentData.score || 0) + scoreData.score,
-                                    lastUpdate: Date.now()
-                                };
-                            }
-                        });
-                        console.log("✅ Havi dicsőségfal frissítve.");
-                    }
-                })(),
-                timeout(8000) // 8 másodperc után megszakítjuk az online próbálkozást
-            ]);
-
-        } catch (error) {
-            console.error("❌ Online mentési hiba vagy időtúllépés:", error);
-            // Ha hiba volt (pl. megszakadt a net közben), mentjük localba
-            saveToPendingUploads(scoreData);
-        }
-    } else {
-        // Alapból offline vagyunk
-        console.warn("🌐 Offline mód: Mentés localStorage-ba.");
-        saveToPendingUploads(scoreData);
+    const success = await performActualFirebaseSave(scoreData);
+    
+    if (!success) {
+        window.saveToPendingUploads(scoreData);
     }
 
-    // --- 3. UI FELOLDÁSA ---
-    // Fontos: Itt mindenképpen leállítjuk a töltőkarikát, akár sikerült az online mentés, akár offline-ba mentettük
+    // A töltőképernyő MINDENKÉPPEN tűnjön el
     if (typeof window.showLoading === 'function') {
         window.showLoading(false);
     }
 };
+
+// 4. SZINKRONIZÁLÁS: Indításkor (UI nélkül a háttérben)
+window.syncPendingUploads = async function() {
+    if (!navigator.onLine || !window.db) return;
+
+    let pending = JSON.parse(localStorage.getItem('pendingUploads') || '[]');
+    if (pending.length === 0) return;
+
+    console.log(`🔄 Szinkronizálás indítása: ${pending.length} tétel...`);
+    
+    const remaining = [];
+    for (const item of pending) {
+        const success = await performActualFirebaseSave(item);
+        if (!success) {
+            remaining.push(item); // Ha most sem sikerült, marad a listában
+        }
+    }
+
+    if (remaining.length === 0) {
+        localStorage.removeItem('pendingUploads');
+        console.log("✅ Minden adat szinkronizálva.");
+    } else {
+        localStorage.setItem('pendingUploads', JSON.stringify(remaining));
+        console.log(`⚠️ ${remaining.length} tétel maradt offline.`);
+    }
+};
+
+
+
 
 
 
