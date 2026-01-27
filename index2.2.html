@@ -2378,35 +2378,78 @@ window.saveScoreToFirebase = async function(data) {
 
 // --- 4. SZINKRONIZÁLÁS: Automatikus feltöltés ---
 window.syncPendingUploads = async function() {
-    if (!navigator.onLine) return;
+    // 1. Alapvető ellenőrzések
+    if (!navigator.onLine) {
+        console.log("🌐 Szinkronizáció várakozik: Nincs internet.");
+        return;
+    }
     
+    // Fontos: megvárjuk, amíg a Firebase adatbázis és a szükséges metódusok elérhetőek
+    if (!window.db || !window.ref || !window.set) {
+        console.warn("⏳ Szinkronizáció várakozik: Firebase még nem töltődött be.");
+        return;
+    }
+
     let pending = [];
     try {
         pending = JSON.parse(localStorage.getItem('pendingUploads') || '[]');
-    } catch(e) { return; }
+    } catch(e) { 
+        console.error("LocalStorage olvasási hiba:", e);
+        return; 
+    }
 
     if (pending.length === 0) return;
 
-    console.log(`🔄 Szinkronizálás: ${pending.length} eredmény vár feltöltésre...`);
+    console.log(`🔄 Szinkronizálás indítása: ${pending.length} tétel...`);
     const remaining = [];
 
     for (const item of pending) {
         try {
+            // Megpróbáljuk a mentést
             const success = await performActualFirebaseSave(item);
-            if (!success) remaining.push(item);
+            if (!success) {
+                remaining.push(item);
+            } else {
+                console.log("✅ Egy tétel sikeresen feltöltve.");
+            }
         } catch (e) {
+            console.error("Hiba tétel feltöltésekor:", e);
             remaining.push(item);
         }
     }
 
+    // Lista frissítése a maradékkal
     if (remaining.length === 0) {
         localStorage.removeItem('pendingUploads');
+        console.log("✨ Minden elmaradt pontszám szinkronizálva!");
     } else {
         localStorage.setItem('pendingUploads', JSON.stringify(remaining));
+        console.log(`⚠️ ${remaining.length} tétel továbbra is várakozik.`);
     }
 };
 
+// --- AUTOMATIKUS INDÍTÓK (Ezek biztosítják a működést újranyitáskor) ---
 
+// A) Indítás az oldal betöltése után (több időpontban is megpróbáljuk)
+window.addEventListener('load', () => {
+    // 3 mp múlva (hátha gyors a net)
+    setTimeout(() => window.syncPendingUploads(), 3000);
+    // 10 mp múlva (biztonsági tartalék, ha lassú a betöltés)
+    setTimeout(() => window.syncPendingUploads(), 10000);
+});
+
+// B) Indítás, amint a böngésző jelzi, hogy visszatért a net (re-open után is működik)
+window.addEventListener('online', () => {
+    console.log("🌐 Internet észlelve, szinkronizáció indítása...");
+    window.syncPendingUploads();
+});
+
+// C) Indítás minden alkalommal, amikor a felhasználó visszatér az ablakba
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        window.syncPendingUploads();
+    }
+});
 
 
 
