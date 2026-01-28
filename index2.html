@@ -786,7 +786,7 @@ body {
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.82
+       v1.2.83
 
    </span>
 
@@ -1211,60 +1211,6 @@ body {
           
 
           
-<div id="filter-container" class="bg-gray-200 p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
-    <div onclick="toggleFilterSection()" class="cursor-pointer flex items-center justify-between select-none">
-        <h3 class="text-sm font-bold text-brand-blue flex items-center">
-            <span id="filter-toggle-icon" class="mr-2 text-lg font-extrabold text-black leading-none" style="margin-top: -2px;">+</span>
-            
-            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            Kaland Keresése & Szűrése
-        </h3>
-    </div>
-    
-    <div id="filter-content" class="hidden mt-3 pt-3 border-t border-gray-100">
-        <div class="grid grid-cols-2 gap-3 mb-3">
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1">Helyszín</label>
-                <select id="filter-location" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                    <option value="all">Összes Helyszín</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1">Típus</label>
-                <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                    <option value="all">Összes Típus</option>
-                    <option value="normal">Normal 🧭</option>
-                    <option value="kids">Kids 🐈</option>
-                    <option value="team">Csapat 🧑‍🤝‍🧑</option>
-                    <option value="explore">Explore 🌍</option>
-                </select>
-            </div>
-        </div>
-
-        <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">Keresés (Név, ID, Város...)</label>
-            <div class="relative">
-                <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Írj be valamit..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
-                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-        </div>
-       
-<div class="mt-3 pt-3 border-t border-gray-100">
-            
-            <button onclick="openGameMap()" class="w-full mb-2 py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-                🗺️ Játékok megjelenítése térképen
-            </button>
-
-            <button onclick="sortGamesNearby()" id="btn-sort-nearby" class="w-full py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
-                📍 Játékok a közelemben (Távolság szerint)
-            </button>
-            
-            <p id="nearby-status" class="text-[10px] text-center text-gray-400 mt-1 hidden"></p>
-        </div>
-    </div>
-</div>
 
 
 <div id="instant-adventure-container" class="relative bg-orange-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
@@ -1349,6 +1295,70 @@ body {
         </div>
     </div>
 </div>
+
+
+
+
+
+
+<div id="filter-container" class="bg-gray-200 p-4 rounded-xl shadow-sm border border-gray-100 mb-6 transition-all duration-300">
+    <div onclick="toggleFilterSection()" class="cursor-pointer flex items-center justify-between select-none">
+        <h3 class="text-sm font-bold text-brand-blue flex items-center">
+            <span id="filter-toggle-icon" class="mr-2 text-lg font-extrabold text-black leading-none" style="margin-top: -2px;">+</span>
+            
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            Kaland Keresése & Szűrése
+        </h3>
+    </div>
+    
+    <div id="filter-content" class="hidden mt-3 pt-3 border-t border-gray-100">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Helyszín</label>
+                <select id="filter-location" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                    <option value="all">Összes Helyszín</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Típus</label>
+                <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                    <option value="all">Összes Típus</option>
+                    <option value="normal">Normal 🧭</option>
+                    <option value="kids">Kids 🐈</option>
+                    <option value="team">Csapat 🧑‍🤝‍🧑</option>
+                    <option value="explore">Explore 🌍</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Keresés (Név, ID, Város...)</label>
+            <div class="relative">
+                <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Írj be valamit..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none bg-gray-50">
+                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+        </div>
+       
+<div class="mt-3 pt-3 border-t border-gray-100">
+            
+            <button onclick="openGameMap()" class="w-full mb-2 py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+                🗺️ Játékok megjelenítése térképen
+            </button>
+
+            <button onclick="sortGamesNearby()" id="btn-sort-nearby" class="w-full py-2 bg-white border-2 border-brand-blue text-brand-blue hover:bg-gray-100 hover:text-brand-blue font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-sm">
+                📍 Játékok a közelemben (Távolság szerint)
+            </button>
+            
+            <p id="nearby-status" class="text-[10px] text-center text-gray-400 mt-1 hidden"></p>
+        </div>
+    </div>
+</div>
+
+
+
+
 
 
 		<div id="game-list" class="space-y-6"></div>
@@ -9319,6 +9329,29 @@ function getPointPriority(poi) {
 
 
 
+
+window.deleteInstantAdventure = function(silent = false) {
+    const saveKey = Object.keys(localStorage).find(key => key.startsWith('MystiGoGameState_instant_'));
+    if (saveKey) {
+        const gameId = saveKey.replace('MystiGoGameState_', '');
+        localStorage.removeItem(saveKey);
+        localStorage.removeItem(`MystiGo_GameData_${gameId}`);
+        
+        if (!silent) {
+            showMessage("Törölve", "A folyamatban lévő azonnali kalandot töröltük.");
+            // Ha épp a listán vagyunk, frissítjük a nézetet
+            if (typeof applyFilters === 'function') applyFilters();
+        }
+        console.log("Azonnali kaland sikeresen törölve:", gameId);
+        return true;
+    }
+    return false;
+};
+
+
+
+
+
 /**
  * AZONNALI KALAND GENERÁTOR (JSON struktúrához igazítva)
  */
@@ -9330,6 +9363,8 @@ window.startInstantAdventure = async function() {
     const countSelect = document.getElementById('instant-task-count-select');
     const nameInput = document.getElementById('team-name-input');
       const avatarSelect = document.getElementById('team-avatar-select');
+
+
     if (!btn) return;
 
 const val = nameInput.value.trim();
@@ -9373,7 +9408,7 @@ const val = nameInput.value.trim();
     const originalContent = btn.innerHTML;
 
     try {
-        btn.innerHTML = `🔍 ${taskCount} állomás tervezése...`;
+        btn.innerHTML = `🔍 Tervezés folyamatban...`;
         btn.disabled = true;
         if (!window.db) throw new Error("A rendszer még nem állt fel.");
 
