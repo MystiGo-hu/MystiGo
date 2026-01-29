@@ -2412,7 +2412,7 @@ window.saveScoreToFirebase = async function(data) {
             geofenceTime: data.geofenceTime,
             timestamp: Date.now(),
             dateString: new Date().toLocaleString('hu-HU'),
-            isRegistered: !!user,
+            isRegistered: !!(user && !user.isAnonymous),
             uid: uid
         };
 
