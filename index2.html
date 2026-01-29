@@ -2401,41 +2401,7 @@ window.saveScoreToFirebase = async function(data) {
 
     try {
         const user = window.auth ? window.auth.currentUser : null;
-   let uid;
-if (user) {
-    uid = user.uid;
-} else {
-    // Inkognitó módban a megadott név alapján fix azonosítót képzünk
-    // Így egy munkameneten belül ugyanaz a "user" marad az adatbázisban
-    const teamName = data.teamName || 'guest';
-    const normalizedName = window.normalizeForComparison(teamName);
-    
-    // SessionStorage-ba mentjük, hogy az ablak bezárásáig ne változzon
-    let guestId = sessionStorage.getItem('mystigo_stable_guest_id');
-    if (!guestId) {
-        guestId = 'guest_' + normalizedName + '_' + Math.floor(Math.random() * 10000);
-        sessionStorage.setItem('mystigo_stable_guest_id', guestId);
-    }
-    uid = guestId;
-}
-
-        if (user) {
-            // Ha van bejelentkezett felhasználó, az ő UID-ját használjuk
-            uid = user.uid;
-        } else {
-            // Ha vendég mód van, megkeressük a már létező munkamenet-azonosítót
-            let guestId = sessionStorage.getItem('mystigo_guest_id');
-            
-            if (!guestId) {
-                // Csak akkor generálunk újat, ha még nincs a sessionben
-                guestId = 'guest_' + Date.now();
-                sessionStorage.setItem('mystigo_guest_id', guestId);
-                console.log("🆕 Új ideiglenes vendég azonosító generálva:", guestId);
-            } else {
-                console.log("♻️ Meglévő vendég azonosító használata:", guestId);
-            }
-            uid = guestId;
-        }
+        const uid = user ? user.uid : ('guest_' + Date.now());
         
         const scoreData = {
             gameId: data.gameId,
@@ -2464,9 +2430,6 @@ if (user) {
         }
     }
 };
-
-
-
 
 // --- 4. SZINKRONIZÁLÁS: Automatikus feltöltés ---
 window.syncPendingUploads = async function() {
@@ -5842,7 +5805,7 @@ window.triggerSolutionUI = function(solutionText, onOk) {
                 if (timerDisplay) timerDisplay.textContent = formatTime(appState.totalTime);
 
                 // Ritkább mentés
-                if (appState.totalTime % 30 === 0) {
+                if (appState.totalTime % 5 === 0) {
                     saveGameState();
                 }
             }
@@ -9724,9 +9687,6 @@ window.addEventListener('load', function() {
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-
-
-
         // Globális elérés biztosítása a többi scriptnek
         window.db = db;
 	window.orderByChild = orderByChild;
@@ -9748,17 +9708,6 @@ window.addEventListener('load', function() {
         window.isFirebaseReady = true;
 	window.dispatchEvent(new Event('firebase-ready')); 
 	console.log("✅ Firebase modul betöltve és jelzés elküldve.");
-
-
-function getPersistentGuestId() {
-    let guestId = sessionStorage.getItem('mystigo_guest_id');
-    if (!guestId) {
-        guestId = 'guest_' + Date.now();
-        sessionStorage.setItem('mystigo_guest_id', guestId);
-        console.log("🆕 Új vendég ID generálva:", guestId);
-    }
-    return guestId;
-}
 
 
 
