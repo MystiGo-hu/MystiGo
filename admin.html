@@ -11,11 +11,10 @@
         body { background-color: #0D2B45; color: #e2e8f0; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn-mystigo { background: linear-gradient(135deg, #20e3b2 0%, #009ad7 100%); transition: all 0.2s; }
-        input { background: #0f172a !important; border: 1px solid #334155 !important; }
-        input:focus { border-color: #20e3b2 !important; box-shadow: 0 0 0 2px rgba(32, 227, 178, 0.1); }
-        /* Stílus a dropdownhoz, hogy illeszkedjen az inputokhoz */
-        select { background: #0f172a !important; border: 1px solid #334155 !important; color: white; }
-        select:focus { border-color: #20e3b2 !important; outline: none; }
+        .btn-mystigo:active { scale: 0.98; }
+        input, select { background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; }
+        input:focus, select:focus { border-color: #20e3b2 !important; box-shadow: 0 0 0 2px rgba(32, 227, 178, 0.1); outline: none; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -37,29 +36,33 @@
         </div>
 
         <div id="admin-content" class="hidden space-y-6">
+            
             <div class="glass rounded-3xl p-6">
                 <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
                     <i class="fa-solid fa-plus-circle text-teal-400"></i>
-                    Kuponok hozzáadása
+                    Kezelés
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1 ml-1">Cél mappa kiválasztása</label>
-                        <select id="cp-folder" class="w-full p-3 rounded-xl outline-none transition-all cursor-pointer">
-                            <option value="common">Általános (common)</option>
-                            <option value="allatkert">Állatkert (allatkert)</option>
-                        </select>
+                        <label class="block text-xs text-gray-400 mb-1 ml-1">Cél mappa</label>
+                        <div class="flex gap-2">
+                            <select id="cp-folder" class="flex-1 p-3 rounded-xl cursor-pointer">
+                                </select>
+                            <button id="new-folder-btn" class="bg-slate-700 px-4 rounded-xl hover:bg-slate-600 transition-all" title="Új mappa">
+                                <i class="fa-solid fa-folder-plus"></i>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1 ml-1">Kupon kód</label>
-                        <input type="text" id="cp-code" class="w-full p-3 rounded-xl outline-none transition-all" placeholder="Kupon kód helye...">
+                        <input type="text" id="cp-code" class="w-full p-3 rounded-xl uppercase font-mono tracking-widest" placeholder="Kód vagy üresen generál">
                     </div>
                 </div>
 
                 <div class="flex flex-col md:flex-row gap-3">
-                    <button id="add-single-btn" class="flex-1 btn-mystigo py-3 rounded-xl font-bold text-white">
-                        Egyedi kupon mentése
+                    <button id="add-single-btn" class="flex-1 btn-mystigo py-3 rounded-xl font-bold text-white shadow-md">
+                        Kupon Mentése
                     </button>
                     <label class="flex-1 cursor-pointer bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-white text-center transition-all">
                         <span><i class="fa-solid fa-file-excel mr-2"></i>Excel feltöltés</span>
@@ -67,15 +70,28 @@
                     </label>
                 </div>
             </div>
+
+            <div class="glass rounded-3xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-database text-blue-400"></i> 
+                        Aktív kuponok 
+                        <span id="current-folder-label" class="text-xs font-normal text-gray-400 ml-2"></span>
+                    </h2>
+                    <span id="count" class="bg-white/10 px-3 py-1 rounded-full text-xs font-mono">0 db</span>
+                </div>
+                
+                <div id="list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    </div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Firebase konfiguráció (pontosan úgy, ahogy a fájlodban volt)
         const firebaseConfig = {
             apiKey: "AIzaSyCA7V1WXFCVhmw2BygHkrwhrSy1Taoohyw",
             authDomain: "mystigo-7b149.firebaseapp.com",
@@ -84,7 +100,6 @@
             storageBucket: "mystigo-7b149.appspot.com",
             messagingSenderId: "367383637666",
             appId: "1:367383637666:web:156184517316377e641775"
-
         };
 
         const app = initializeApp(firebaseConfig);
@@ -94,13 +109,16 @@
 
         const loginSection = document.getElementById('login-section');
         const adminContent = document.getElementById('admin-content');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
+        const folderSelect = document.getElementById('cp-folder');
+        const listDiv = document.getElementById('list');
+        const countSpan = document.getElementById('count');
 
+        // Auth figyelés
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === 'krisztian.topler@gmail.com') {
                 loginSection.classList.add('hidden');
                 adminContent.classList.remove('hidden');
+                initFolderListener(); // Mappák betöltése
             } else {
                 loginSection.classList.remove('hidden');
                 adminContent.classList.add('hidden');
@@ -108,35 +126,122 @@
             }
         });
 
-        loginBtn.onclick = () => signInWithPopup(auth, provider);
-        logoutBtn.onclick = () => signOut(auth);
+        document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
+        document.getElementById('logout-btn').onclick = () => signOut(auth);
 
-        // Kupon kezelés logika
-        const codeInput = document.getElementById('cp-code');
-        const folderSelect = document.getElementById('cp-folder'); // Az új dropdown azonosítója
-        const addSingleBtn = document.getElementById('add-single-btn');
-        const xlsInput = document.getElementById('xls-upload');
+        // --- Mappa és Lista kezelés ---
 
-        addSingleBtn.onclick = async () => {
-            const code = codeInput.value.trim().toUpperCase();
-            const folder = folderSelect.value; // Itt kérjük le a kiválasztott mappát
+        function initFolderListener() {
+            // Figyeljük a teljes 'coupons' csomópontot a mappák kinyeréséhez
+            onValue(ref(db, 'coupons'), (snapshot) => {
+                const data = snapshot.val();
+                const currentSelection = folderSelect.value;
+                folderSelect.innerHTML = '';
+                
+                if (data) {
+                    const folders = Object.keys(data);
+                    folders.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        folderSelect.appendChild(opt);
+                    });
+                    
+                    if (currentSelection && folders.includes(currentSelection)) {
+                        folderSelect.value = currentSelection;
+                    }
+                } else {
+                    // Ha teljesen üres a DB
+                    const opt = document.createElement('option');
+                    opt.value = 'common';
+                    opt.textContent = 'common';
+                    folderSelect.appendChild(opt);
+                }
+                loadCoupons(); // Lista frissítése a választott mappából
+            });
+        }
+
+        // Új mappa gomb
+        document.getElementById('new-folder-btn').onclick = () => {
+            const name = prompt("Új mappa neve (pl. mozi, etterem):");
+            if (name) {
+                const cleanName = name.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                const opt = document.createElement('option');
+                opt.value = cleanName;
+                opt.textContent = cleanName;
+                folderSelect.appendChild(opt);
+                folderSelect.value = cleanName;
+                loadCoupons();
+            }
+        };
+
+        // Mappa váltáskor lista frissítés
+        folderSelect.onchange = () => loadCoupons();
+
+        function loadCoupons() {
+            const folder = folderSelect.value;
+            if (!folder) return;
+
+            document.getElementById('current-folder-label').textContent = `> ${folder}`;
+
+            onValue(ref(db, `coupons/${folder}`), (snapshot) => {
+                listDiv.innerHTML = '';
+                const data = snapshot.val();
+                
+                if (!data) {
+                    countSpan.innerText = '0 db';
+                    listDiv.innerHTML = '<p class="text-gray-500 text-sm italic col-span-full text-center py-4">Nincsenek kuponok ebben a mappában.</p>';
+                    return;
+                }
+
+                const codes = Object.keys(data);
+                countSpan.innerText = codes.length + ' db';
+                
+                codes.sort().forEach(code => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/10 hover:border-teal-500/30 transition-all";
+                    item.innerHTML = `
+                        <span class="font-mono font-bold text-sm text-teal-400">${code}</span>
+                        <button class="del-btn text-gray-500 hover:text-red-500 p-2 transition-colors">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>`;
+                    
+                    item.querySelector('.del-btn').onclick = () => {
+                        if(confirm(`Törlöd a(z) ${code} kupont a(z) ${folder} mappából?`)) {
+                            remove(ref(db, `coupons/${folder}/${code}`));
+                        }
+                    };
+                    listDiv.appendChild(item);
+                });
+            });
+        }
+
+        // --- Hozzáadás Logika ---
+
+        function generateCode() {
+            return Math.random().toString(36).substring(2, 7).toUpperCase();
+        }
+
+        document.getElementById('add-single-btn').onclick = async () => {
+            const input = document.getElementById('cp-code');
+            const folder = folderSelect.value;
+            let code = input.value.trim().toUpperCase() || generateCode();
             
-            if (!code) return;
+            if (!folder) return alert("Válassz vagy hozz létre egy mappát!");
 
             try {
-                // Az útvonal kiegészítve a mappával: coupons/mappa/kod
-                await set(ref(db, 'coupons/' + folder + '/' + code), true);
-                alert(`Kupon hozzáadva a(z) ${folder} mappához: ${code}`);
-                codeInput.value = '';
+                await set(ref(db, `coupons/${folder}/${code}`), true);
+                input.value = '';
             } catch (err) {
                 alert("Hiba: " + err.message);
             }
         };
 
-        xlsInput.onchange = (e) => {
+        // Excel feltöltés
+        document.getElementById('xls-upload').onchange = (e) => {
             const file = e.target.files[0];
-            const folder = folderSelect.value; // Tömeges feltöltésnél is figyeljük a mappát
-            if (!file) return;
+            const folder = folderSelect.value;
+            if (!file || !folder) return;
 
             const reader = new FileReader();
             reader.onload = async (evt) => {
@@ -153,8 +258,7 @@
                         const code = rows[i][0]; 
                         if (code) {
                             const cleanCode = String(code).trim().toUpperCase();
-                            // Az updates objektumban is módosítottuk az útvonalat
-                            updates['coupons/' + folder + '/' + cleanCode] = true;
+                            updates[`coupons/${folder}/${cleanCode}`] = true;
                             count++;
                         }
                     }
@@ -163,7 +267,7 @@
                         await update(ref(db), updates);
                         alert(`${count} db kupon feltöltve a(z) "${folder}" mappába!`);
                     }
-                    xlsInput.value = '';
+                    e.target.value = '';
                 } catch (err) {
                     alert("Hiba a feldolgozás során!");
                     console.error(err);
