@@ -15,6 +15,27 @@
     <style>
 
 
+#map-content .tooltip .tooltiptext {
+    bottom: auto;
+    top: 150%;         /* Lefelé nyílik */
+    z-index: 3000;      /* Magasabb, mint a térkép rétegei */
+    pointer-events: none; /* Biztosítja, hogy ne zavarja a kattintást */
+}
+
+/* A nyíl megfordítása és rétegrendje */
+#map-content .tooltip .tooltiptext::after {
+    top: auto;
+    bottom: 100%;
+    border-color: transparent transparent #334155 transparent;
+    z-index: 3001;
+}
+
+/* Biztosítjuk, hogy a fejléc tárolója is "felül" maradjon */
+#map-content > div:first-child {
+    position: relative;
+    z-index: 2500;
+}
+
 .input-with-icon {
     position: relative;
     display: flex;
@@ -430,7 +451,7 @@
 <div id="map-modal">
     <div id="map-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-    <h3 style="margin:0; border:none;">Válassz helyszínt</h3>
+    <h3 style="margin:0; border:none;">Válassz helyszínt<span class="tooltip">ⓘ<span class="tooltiptext">Kattints a térképre a jelölő elhelyezéséhez! Használd az Élő követést a precíz tervezéshez: akkor tökéletes a beállítás, ha a kijelölt pont és annak átmérője (piros kör) magába foglalja a pillanatnyi helyzeted hibahatárát jelző zöld területét.</span></span></h3>
     <div style="display: flex; align-items: center; gap: 10px;">
         <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-muted);">
             <input type="checkbox" id="live-gps-toggle" onchange="toggleLiveGps(this.checked)"> Élő követés
