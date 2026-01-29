@@ -786,7 +786,7 @@ body {
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.85
+       v1.2.86
 
    </span>
 
@@ -5076,7 +5076,6 @@ window.updateHeaderByFilteredResults = function(filteredGames) {
 
 
 
-// --- EZ HIÁNYZOTT: Szűrés végrehajtása ---
 window.applyFilters = function() {
             const locSelect = document.getElementById('filter-location');
             const typeSelect = document.getElementById('filter-type');
@@ -5102,7 +5101,12 @@ window.applyFilters = function() {
             const filteredGames = {};
 
             Object.values(games).forEach(game => {
-                if (!window.showHiddenGames && game.isHidden && !localStorage.getItem(getStorageKey(game.id))) return; 
+                if (!window.showHiddenGames && game.isHidden) {
+            const hasSave = localStorage.getItem(getStorageKey(game.id)) !== null;
+            if (!hasSave) {
+                return; // Megállítja az adott játék feldolgozását, nem kerül be a listába
+            }
+        } 
 
                 // 1. Helyszín szűrés
                 let locMatch = (location === 'all');
