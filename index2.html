@@ -2401,7 +2401,25 @@ window.saveScoreToFirebase = async function(data) {
 
     try {
         const user = window.auth ? window.auth.currentUser : null;
-        const uid = user ? user.uid : ('guest_' + Date.now());
+        let uid;
+
+        if (user) {
+            // Ha van bejelentkezett felhasználó, az ő UID-ját használjuk
+            uid = user.uid;
+        } else {
+            // Ha vendég mód van, megkeressük a már létező munkamenet-azonosítót
+            let guestId = sessionStorage.getItem('mystigo_guest_id');
+            
+            if (!guestId) {
+                // Csak akkor generálunk újat, ha még nincs a sessionben
+                guestId = 'guest_' + Date.now();
+                sessionStorage.setItem('mystigo_guest_id', guestId);
+                console.log("🆕 Új ideiglenes vendég azonosító generálva:", guestId);
+            } else {
+                console.log("♻️ Meglévő vendég azonosító használata:", guestId);
+            }
+            uid = guestId;
+        }
         
         const scoreData = {
             gameId: data.gameId,
@@ -2430,7 +2448,6 @@ window.saveScoreToFirebase = async function(data) {
         }
     }
 };
-
 // --- 4. SZINKRONIZÁLÁS: Automatikus feltöltés ---
 window.syncPendingUploads = async function() {
     // 1. Alapvető ellenőrzések
