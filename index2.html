@@ -786,7 +786,7 @@ body {
                  <div id="main-header">
 
 <span class="absolute top-0 right-2 text-[9px] text-gray-500 font-mono tracking-widest opacity-50 pointer-events-none select-none">
-       v1.2.83
+       v1.2.85
 
    </span>
 
@@ -5930,9 +5930,22 @@ if (window.auth && window.auth.currentUser) {
     function startGame(gameId, modeOverride = null) {
     console.log("Starting game:", gameId);
 
-    // 1. Kupon kezelés
-    if (window.pendingCouponCode && window.db) {
-        const couponRef = window.ref(window.db, 'coupons/' + window.pendingCouponCode);
+    // 1. Kupon kezelés - Törlés a mentett dinamikus útvonal alapján
+    if (window.pendingCouponPath && window.db) {
+        // A window.pendingCouponPath tartalmazza a teljes utat, pl: "coupons/allatkert/KOD123"
+        const couponRef = window.ref(window.db, window.pendingCouponPath);
+        
+        window.set(couponRef, null).then(() => {
+            console.log("Kupon sikeresen törölve innen:", window.pendingCouponPath);
+            window.pendingCouponPath = null;
+            window.pendingCouponCode = null;
+        }).catch(err => {
+            console.error("Hiba a kupon törlésekor:", err);
+        });
+    } 
+    // Biztonsági tartalék: ha nincs mentett útvonal, de van kód (régi működés)
+    else if (window.pendingCouponCode && window.db) {
+        const couponRef = window.ref(window.db, 'coupons/common/' + window.pendingCouponCode);
         window.set(couponRef, null).then(() => {
             window.pendingCouponCode = null;
         });
@@ -8489,32 +8502,44 @@ async function validateAndUseCoupon() {
     errorEl.classList.add('hidden');
 
     try {
-        const couponRef = window.ref(window.db, 'coupons/' + code);
+        // 1. Megkeressük az aktuális játék adatait
+        const gameData = window.games ? window.games[currentCouponGameId] : null;
+        
+        // 2. Meghatározzuk a mappát: ha a játékhoz van rendelve folder, azt használjuk, 
+        // különben a 'common' (általános) mappát.
+        const folder = (gameData && gameData.couponFolder) ? gameData.couponFolder : 'common';
+        
+        // 3. Összeállítjuk a teljes elérési utat
+        const couponPath = 'coupons/' + folder + '/' + code;
+        const couponRef = window.ref(window.db, couponPath);
+
         const snapshot = await window.get(couponRef);
 
         if (snapshot.exists()) {
+            // ELMENTJÜK: a kódot és a TELJES utat is, hogy a játék indításakor 
+            // pontosan tudjuk, mit kell törölni a Firebase-ből.
             window.pendingCouponCode = code; 
+            window.pendingCouponPath = couponPath; 
+            
             btn.disabled = false; 
             btn.textContent = "Ellenőrzés";
             window.closeCouponModal();
             
-            // --- JAVÍTÁS KEZDETE ---
-            // Itt kötelezően le kell futtatni az adatok betöltését, 
-            // hogy a név és avatar bekerüljön az appState-be!
+            // Meglévő logika: adatok betöltése és játék indítása
             await window.loadGameDataAndStart(currentCouponGameId);
-            // --- JAVÍTÁS VÉGE ---
 
             if (typeof requestGpsAndStart === 'function') {
                 requestGpsAndStart(currentCouponGameId);
             }
         } else {
+            // Ha nem található a kupon az adott mappában
             errorEl.classList.remove('hidden');
             btn.disabled = false;
             btn.textContent = "Ellenőrzés";
         }
     } catch (e) {
         console.error("Kupon ellenőrzési hiba:", e);
-        alert("Hiba történt a szerverrel való kommunikáció során.");
+        errorEl.classList.remove('hidden');
         btn.disabled = false;
         btn.textContent = "Ellenőrzés";
     }
