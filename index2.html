@@ -2401,8 +2401,23 @@ window.saveScoreToFirebase = async function(data) {
 
     try {
         const user = window.auth ? window.auth.currentUser : null;
-   const uid = user ? user.uid : getPersistentGuestId();
-        let uid;
+   let uid;
+if (user) {
+    uid = user.uid;
+} else {
+    // Inkognitó módban a megadott név alapján fix azonosítót képzünk
+    // Így egy munkameneten belül ugyanaz a "user" marad az adatbázisban
+    const teamName = data.teamName || 'guest';
+    const normalizedName = window.normalizeForComparison(teamName);
+    
+    // SessionStorage-ba mentjük, hogy az ablak bezárásáig ne változzon
+    let guestId = sessionStorage.getItem('mystigo_stable_guest_id');
+    if (!guestId) {
+        guestId = 'guest_' + normalizedName + '_' + Math.floor(Math.random() * 10000);
+        sessionStorage.setItem('mystigo_stable_guest_id', guestId);
+    }
+    uid = guestId;
+}
 
         if (user) {
             // Ha van bejelentkezett felhasználó, az ő UID-ját használjuk
@@ -5827,7 +5842,7 @@ window.triggerSolutionUI = function(solutionText, onOk) {
                 if (timerDisplay) timerDisplay.textContent = formatTime(appState.totalTime);
 
                 // Ritkább mentés
-                if (appState.totalTime % 5 === 0) {
+                if (appState.totalTime % 30 === 0) {
                     saveGameState();
                 }
             }
