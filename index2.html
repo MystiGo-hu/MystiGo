@@ -8453,6 +8453,8 @@ window.openCouponModal = function(gameId, title) {
     // Alapértelmezett szövegek
     const defaultHeader = "Fizetős tartalom";
     const defaultText = "Ez a kaland kuponkóddal érhető el.";
+const gamePrice = gameData.price ? `${gameData.price} Ft` : "Tetszőleges összeg";
+
 
     // Logika: Ha van egyedi szöveg definiálva a játékhoz
     if (gameData && gameData.couponMessage) {
@@ -8468,7 +8470,20 @@ window.openCouponModal = function(gameId, title) {
         if (textEl) textEl.innerHTML = defaultText;
         
         // MEGJELENÍTJÜK a szürke dobozt
-        if (purchaseInfoEl) purchaseInfoEl.classList.remove('hidden');
+        if (purchaseInfoEl) {
+            purchaseInfoEl.classList.remove('hidden');
+            // Itt módosítjuk a "Jegyvásárlás" szöveget is a dobozon belül
+            const purchaseTextEl = purchaseInfoEl.querySelector('p');
+            if (purchaseTextEl) {
+                const price = parseInt(gameData.price || 0);
+                // Ha az ár nagyobb mint 1, kiírjuk az összeget, különben "Tetszőleges összeg"
+                const priceDisplay = (price > 1) 
+                    ? `${price.toLocaleString('hu-HU')} Ft` 
+                    : "Tetszőleges összeg";
+
+                purchaseTextEl.innerHTML = `Jegyvásárlás: <br> <span class="font-bold text-sm">${priceDisplay}</span>`;
+            }
+        }
     }
 
     // Modal megjelenítése és reset (eredeti funkciók)
