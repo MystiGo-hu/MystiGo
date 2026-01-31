@@ -8027,6 +8027,7 @@ function finishGpsTest(forceError = false, errorMsg = "") {
         statusText.textContent = "Nincs jel.";
         resultMsg.className = "mt-2 p-2 rounded text-xs font-bold text-center bg-red-100 text-red-700 block";
         resultMsg.innerHTML = `❌ Nem sikerült pozíciót találni.<br>Ellenőrizd a beállításokat!`;
+	document.getElementById('gps-help-modal').classList.remove('hidden');
     }
     
     resultMsg.classList.remove('hidden');
